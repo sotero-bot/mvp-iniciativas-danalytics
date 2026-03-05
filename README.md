@@ -20,13 +20,14 @@ En tu instancia de PostgreSQL, crea una base de datos con el nombre `activity_pl
 
 Crea un archivo `.env` en la raíz del proyecto basado en el siguiente ejemplo:
 ```env
-# Database Configuration
-DB_USER=tu_usuario
-DB_PASSWORD=tu_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=activity_platform_db
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public"
+# Database Configuration (Local)
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=activity_platform_db
+POSTGRES_PRISMA_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?schema=public"
+POSTGRES_URL_NON_POOLING="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?schema=public"
 
 # App Config
 PORT=3000

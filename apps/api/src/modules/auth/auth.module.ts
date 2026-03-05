@@ -12,7 +12,7 @@ import { AuthController } from './infrastructure/auth.controller';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: 'SECRET_KEY_MVP',
+      secret: process.env.SUPABASE_JWT_SECRET || 'SECRET_KEY_MVP',
       signOptions: { expiresIn: '60m' },
     }),
   ],
@@ -20,4 +20,4 @@ import { AuthController } from './infrastructure/auth.controller';
   controllers: [AuthController],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }
