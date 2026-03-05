@@ -24,7 +24,11 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         setError(errData.message || res.statusText || 'Credenciales inválidas');
       }
     } catch (err: any) {
-      setError(`Error de conexión: ${err.message || String(err)}`);
+      console.error('FETCH ERROR:', err);
+      // Forzar la visualización en pantalla y en un popup para que el usuario pueda enviarnos pantallazo.
+      const errorMsg = `Error de red: ${err?.message || JSON.stringify(err) || String(err)}`;
+      setError(errorMsg);
+      alert(errorMsg);
     }
   };
 
