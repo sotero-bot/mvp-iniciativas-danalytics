@@ -21,7 +21,7 @@
   "scripts": {
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",
     "seed:admin": "npx ts-node -e 'import { PrismaClient } from \"@prisma/client\"; import * as bcrypt from \"bcrypt\"; const prisma = new PrismaClient(); async function run() { const password = \"dax1973*\"; const hashedPassword = await bcrypt.hash(password, 10); await prisma.admin.upsert({ where: { username: \"admin\" }, update: {}, create: { username: \"admin\", nombre: \"Admin Principal\", password: hashedPassword } }); console.log(\"Admin verificado/creado: admin / dax1973*\"); await prisma.$disconnect(); } run();'",
-    "vercel-build": "prisma generate && tsc -p tsconfig.json && vite build && npm run seed:admin"
+    "vercel-build": "prisma generate && prisma db push && tsc -p tsconfig.json && vite build && npm run seed:admin"
   },
   "dependencies": {
     "@nestjs/jwt": "^11.0.2",
