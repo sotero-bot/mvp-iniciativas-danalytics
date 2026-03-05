@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model InstanciaActividad {
+  id            String    @id
+  actividadId   String
+  usuarioId     String?
+  accessToken   String    @unique
+  estado        String
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  emailReferencia String?
+  
+  actividad     Actividad @relation(fields: [actividadId], references: [id])
+  usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
+  interacciones Interaccion[]
+}
+
+model Interaccion {
+  id          String   @id @default(uuid())
+  instanciaId String
+  pasoId      String
+  contenido   String
+  fecha       DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  instancia   InstanciaActividad @relation(fields: [instanciaId], references: [id])
+  paso        PasoActividad @relation(fields: [pasoId], references: [id])
+
+  @@index([pasoId])
+}
+
+model Empresa {
+  id        String   @id @default(uuid())
+  nombre    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  usuarios    Usuario[]
+  iniciativas Iniciativa[]
+}
+
+model Iniciativa {
+  id          String      @id @default(uuid())
+  nombre      String
+  descripcion String?
+  empresaId   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  empresa     Empresa     @relation(fields: [empresaId], references: [id])
+  actividades Actividad[]
+}
+
+model Actividad {
+  id           String   @id @default(uuid())
+  nombre       String
+  descripcion  String?
+  estado       String   @default("inactiva")
+  iniciativaId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  iniciativa   Iniciativa @relation(fields: [iniciativaId], references: [id])
+  instancias   InstanciaActividad[]
+  pasos        PasoActividad[]
+  enlaces      EnlaceActividad[]
+}
+
+model EnlaceActividad {
+  id          String   @id @default(uuid())
+  actividadId String
+  accessToken String   @unique
+  nombre      String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  actividad   Actividad @relation(fields: [actividadId], references: [id])
+}
+
+model PasoActividad {
+  id            String   @id @default(uuid())
+  actividadId   String
+  titulo        String
+  objetivo      String?
+  instrucciones String?
+  promptIa      String?
+  usarIa        Boolean  @default(false)
+  orden         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  actividad     Actividad @relation(fields: [actividadId], references: [id])
+  interacciones Interaccion[]
+
+  @@unique([actividadId, orden])
+  @@index([actividadId])
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nombre    String
+  email     String?
+  cargo     String?
+  empresaId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado    String   @default("activo")
+  
+  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  instancias InstanciaActividad[]
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  nombre    String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
