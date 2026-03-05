@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const API_URL = 'http://127.0.0.1:3000';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function IniciativasPage() {
   const [iniciativas, setIniciativas] = useState<any[]>([]);
@@ -42,16 +42,16 @@ export function IniciativasPage() {
   return (
     <div>
       <h1 style={{ marginBottom: 30 }}>Gestión de Iniciativas</h1>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 30 }}>
         <div className="card">
           <h3 style={{ marginBottom: 20 }}>Nueva Iniciativa</h3>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Empresa</label>
-              <select 
-                className="input" 
-                value={empresaId} 
+              <select
+                className="input"
+                value={empresaId}
                 onChange={e => setEmpresaId(e.target.value)}
                 required
               >
@@ -63,19 +63,19 @@ export function IniciativasPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
-              <input 
-                className="input" 
-                value={nombre} 
-                onChange={e => setNombre(e.target.value)} 
+              <input
+                className="input"
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
                 placeholder="Ej: Transformación Digital"
                 required
               />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción</label>
-              <textarea 
-                className="input" 
-                value={descripcion} 
+              <textarea
+                className="input"
+                value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
                 placeholder="Descripción breve..."
                 rows={3}

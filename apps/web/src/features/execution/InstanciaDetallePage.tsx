@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const API_URL = 'http://127.0.0.1:3000';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface StepResult {
   pasoId: string;
@@ -36,14 +36,14 @@ export function InstanciaDetallePage() {
       try {
         setLoading(true);
         const res = await fetch(`${API_URL}/admin/instancias/${id}`);
-        
+
         if (res.status === 404) {
           setError('Instancia no encontrada');
           return;
         }
-        
+
         if (!res.ok) throw new Error('Error al cargar los detalles de la instancia');
-        
+
         setData(await res.json());
       } catch (err: any) {
         setError(err.message);
@@ -71,8 +71,8 @@ export function InstanciaDetallePage() {
     <div className="layout-content">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '0.8rem' }}
             onClick={() => navigate('/admin/instancias')}
           >
@@ -81,10 +81,9 @@ export function InstanciaDetallePage() {
           <h1>Detalle de Ejecución</h1>
           <p style={{ color: 'var(--color-text-secondary)' }}>ID: {data.id}</p>
         </div>
-        <span className={`status-badge ${
-          data.estado === 'finalizado' ? 'status-success' : 
-          data.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
-        }`} style={{ fontSize: '1rem', padding: '8px 16px' }}>
+        <span className={`status-badge ${data.estado === 'finalizado' ? 'status-success' :
+            data.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
+          }`} style={{ fontSize: '1rem', padding: '8px 16px' }}>
           {data.estado.toUpperCase()}
         </span>
       </div>
@@ -126,14 +125,14 @@ export function InstanciaDetallePage() {
             {/* Header del Paso */}
             <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-bg-page)', backgroundColor: 'var(--color-bg-subtle)' }}>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <div style={{ 
-                  background: 'var(--color-primary)', 
-                  color: 'white', 
-                  width: '32px', 
-                  height: '32px', 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  background: 'var(--color-primary)',
+                  color: 'white',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 'bold',
                   flexShrink: 0
@@ -154,11 +153,11 @@ export function InstanciaDetallePage() {
             {/* Contenido del Paso */}
             <div style={{ padding: '1.5rem' }}>
               {p.instrucciones && (
-                <div style={{ 
-                  marginBottom: '1.5rem', 
-                  padding: '1rem', 
-                  backgroundColor: '#fdfcfe', 
-                  border: '1px solid #e9d5ff', 
+                <div style={{
+                  marginBottom: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: '#fdfcfe',
+                  border: '1px solid #e9d5ff',
                   borderLeft: '4px solid #a855f7',
                   borderRadius: '6px',
                   fontSize: '0.9rem'
@@ -169,11 +168,11 @@ export function InstanciaDetallePage() {
               )}
 
               {p.promptIa && (
-                <div style={{ 
-                  marginBottom: '1.5rem', 
-                  padding: '1rem', 
-                  backgroundColor: '#f8fafc', 
-                  border: '1px solid #e2e8f0', 
+                <div style={{
+                  marginBottom: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '6px',
                   fontSize: '0.9rem'
                 }}>
@@ -185,12 +184,12 @@ export function InstanciaDetallePage() {
               <div style={{ marginTop: '1rem' }}>
                 <strong style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>RESPUESTA DEL USUARIO:</strong>
                 {p.respuesta ? (
-                  <div style={{ 
-                    padding: '1.5rem', 
-                    backgroundColor: 'white', 
-                    border: '1px solid var(--color-bg-page)', 
+                  <div style={{
+                    padding: '1.5rem',
+                    backgroundColor: 'white',
+                    border: '1px solid var(--color-bg-page)',
                     borderRadius: '8px',
-                    whiteSpace: 'pre-wrap', 
+                    whiteSpace: 'pre-wrap',
                     lineHeight: '1.6',
                     fontSize: '1.05rem',
                     color: '#1e293b',

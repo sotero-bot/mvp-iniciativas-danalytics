@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const API_URL = 'http://127.0.0.1:3000'; // Ajustar según env
+const API_URL = import.meta.env.VITE_API_URL || '/api'; // Ajustar según env
 
 export function EmpresasPage() {
   const [empresas, setEmpresas] = useState([]);
@@ -29,15 +29,15 @@ export function EmpresasPage() {
       <div className="flex justify-between items-center mb-4">
         <h1>Gestión de Empresas</h1>
       </div>
-      
+
       <div className="card mb-4" style={{ maxWidth: '500px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Nueva Empresa</label>
         <div className="flex gap-2">
-          <input 
+          <input
             className="input"
-            value={nombre} 
-            onChange={e => setNombre(e.target.value)} 
-            placeholder="Nombre de la empresa..." 
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            placeholder="Nombre de la empresa..."
           />
           <button className="btn btn-primary" onClick={create}>Crear</button>
         </div>

@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
-const API_URL = 'http://127.0.0.1:3000';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function ActividadesPage() {
   const [list, setList] = useState<any[]>([]);
   const [iniciativas, setIniciativas] = useState<any[]>([]);
-  const [form, setForm] = useState({ 
-    nombre: '', 
-    descripcion: '', 
+  const [form, setForm] = useState({
+    nombre: '',
+    descripcion: '',
     iniciativaId: ''
   });
 
@@ -22,8 +22,8 @@ export function ActividadesPage() {
     setIniciativas(await res.json());
   };
 
-  useEffect(() => { 
-    load(); 
+  useEffect(() => {
+    load();
     loadIniciativas();
   }, []);
 
@@ -36,7 +36,7 @@ export function ActividadesPage() {
       const res = await fetch(`${API_URL}/methodology/actividades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           nombre: form.nombre,
           descripcion: form.descripcion,
           iniciativaId: form.iniciativaId
@@ -45,10 +45,10 @@ export function ActividadesPage() {
 
       if (res.ok) {
         load();
-        setForm({ 
-          nombre: '', 
-          descripcion: '', 
-          iniciativaId: form.iniciativaId 
+        setForm({
+          nombre: '',
+          descripcion: '',
+          iniciativaId: form.iniciativaId
         });
       }
     } catch (e) {
@@ -58,22 +58,22 @@ export function ActividadesPage() {
 
   return (
     <div>
-       <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4">
         <h1>Diseño de Metodología</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
-        
+
         {/* Formulario (Left) */}
         <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
           <h3>Nueva Actividad</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Iniciativa</label>
-              <select 
+              <select
                 className="input"
                 value={form.iniciativaId}
-                onChange={e => setForm({...form, iniciativaId: e.target.value})}
+                onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
               >
                 <option value="">Seleccione una Iniciativa</option>
                 {iniciativas.map(ini => (
@@ -83,20 +83,20 @@ export function ActividadesPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Nombre de Actividad</label>
-              <input 
+              <input
                 className="input"
-                placeholder="Ej: Análisis de Brechas" 
+                placeholder="Ej: Análisis de Brechas"
                 value={form.nombre}
-                onChange={e => setForm({...form, nombre: e.target.value})}
+                onChange={e => setForm({ ...form, nombre: e.target.value })}
               />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción</label>
-              <textarea 
+              <textarea
                 className="input"
-                placeholder="¿Qué se espera en esta actividad?" 
+                placeholder="¿Qué se espera en esta actividad?"
                 value={form.descripcion}
-                onChange={e => setForm({...form, descripcion: e.target.value})}
+                onChange={e => setForm({ ...form, descripcion: e.target.value })}
                 rows={4}
               />
             </div>
