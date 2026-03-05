@@ -195,7 +195,7 @@ export function InstanciasPage() {
               <tr key={ins.id}>
                 <td>
                   <span className={`status-badge ${ins.estado === 'finalizado' ? 'status-success' :
-                      ins.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
+                    ins.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
                     }`}>
                     {ins.estado}
                   </span>

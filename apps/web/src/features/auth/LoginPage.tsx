@@ -20,46 +20,47 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         const data = await res.json();
         onLogin(data.access_token);
       } else {
-        setError('Credenciales inválidas');
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.message || res.statusText || 'Credenciales inválidas');
       }
-    } catch (err) {
-      setError('Error de conexión');
+    } catch (err: any) {
+      setError(`Error de conexión: ${err.message || String(err)}`);
     }
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh', 
-      background: 'var(--color-bg-page)' 
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      background: 'var(--color-bg-page)'
     }}>
       <div className="card" style={{ width: 350 }}>
         <h2 style={{ textAlign: 'center', color: 'var(--color-primary)', marginBottom: 20 }}>Danalytics Admin</h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9em' }}>Usuario</label>
-            <input 
-              className="input" 
-              value={username} 
+            <input
+              className="input"
+              value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder="Usuario"
             />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9em' }}>Contraseña</label>
-            <input 
-              className="input" 
+            <input
+              className="input"
               type="password"
-              value={password} 
+              value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••"
             />
           </div>
-          
+
           {error && <div style={{ color: 'red', fontSize: '0.9em', textAlign: 'center' }}>{error}</div>}
-          
+
           <button type="submit" className="btn btn-primary" style={{ marginTop: 10 }}>Ingresar</button>
         </form>
       </div>
