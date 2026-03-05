@@ -24,6 +24,6 @@
     ]
   },
   "include": [
-    "apps/**/*"
+    "apps/api/**/*"
   ]
 }
