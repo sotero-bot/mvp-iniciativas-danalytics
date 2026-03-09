@@ -11,27 +11,44 @@ import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
 import { RunnerResultsPage } from './features/execution/RunnerResultsPage';
 import { ActividadPasosPage } from './features/methodology/ActividadPasosPage';
 
-const Layout = ({ children }: { children: React.ReactNode }) => (
+const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) => (
   <div className="layout-container">
     <aside className="sidebar">
       <div className="sidebar-title">
-        <div style={{ width: 24, height: 24, background: 'var(--color-primary)', borderRadius: 6 }}></div>
-        <span>Danalytics</span>
+        <div className="sidebar-logo"></div>
+        <span>IAGobernanza</span>
       </div>
+      <div className="sidebar-section-label">Panel</div>
       <nav>
         <NavLink to="/admin/empresas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          Empresas
+          🏢 Empresas
         </NavLink>
         <NavLink to="/admin/iniciativas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          Iniciativas
+          🚀 Iniciativas
         </NavLink>
         <NavLink to="/admin/actividades" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          Actividades
+          ⚡ Actividades
         </NavLink>
         <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          Instancias
+          📋 Ejecuciones
         </NavLink>
       </nav>
+      <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <button
+          onClick={onLogout}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            width: '100%', padding: '0.5625rem 0.625rem',
+            background: 'none', border: 'none', borderRadius: 'var(--radius-sm)',
+            color: 'var(--sidebar-text)', fontSize: '0.875rem', fontWeight: 500,
+            cursor: 'pointer', transition: 'var(--transition)', fontFamily: 'var(--font-family)'
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#F1F5F9'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)'; }}
+        >
+          ↩ Cerrar sesión
+        </button>
+      </div>
     </aside>
     <main className="main-content">
       {children}
@@ -64,12 +81,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Admin Routes (Protected) */}
-        <Route path="/admin/empresas" element={<AdminRoute><Layout><EmpresasPage /></Layout></AdminRoute>} />
-        <Route path="/admin/iniciativas" element={<AdminRoute><Layout><IniciativasPage /></Layout></AdminRoute>} />
-        <Route path="/admin/actividades" element={<AdminRoute><Layout><ActividadesPage /></Layout></AdminRoute>} />
-        <Route path="/admin/actividades/:id/pasos" element={<AdminRoute><Layout><ActividadPasosPage /></Layout></AdminRoute>} />
-        <Route path="/admin/instancias" element={<AdminRoute><Layout><InstanciasPage /></Layout></AdminRoute>} />
-        <Route path="/admin/instancias/:id" element={<AdminRoute><Layout><InstanciaDetallePage /></Layout></AdminRoute>} />
+        <Route path="/admin/empresas" element={<AdminRoute><Layout onLogout={handleLogout}><EmpresasPage /></Layout></AdminRoute>} />
+        <Route path="/admin/iniciativas" element={<AdminRoute><Layout onLogout={handleLogout}><IniciativasPage /></Layout></AdminRoute>} />
+        <Route path="/admin/actividades" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadesPage /></Layout></AdminRoute>} />
+        <Route path="/admin/actividades/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadPasosPage /></Layout></AdminRoute>} />
+        <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
+        <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 
         {/* Public Runner Routes (No Auth) */}
         <Route path="/runner/enlace/:token" element={<EnlaceRunnerPage />} />
@@ -85,11 +102,10 @@ function App() {
         {/* Default Redirect */}
         <Route path="*" element={
           token ?
-            <Layout>
-              <div className="card">
-                <h2>Bienvenido al Panel de Administración</h2>
-                <p>Seleccione una opción del menú.</p>
-                <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 20 }}>Cerrar Sesión</button>
+            <Layout onLogout={handleLogout}>
+              <div className="card" style={{ maxWidth: 480 }}>
+                <h2>Bienvenido al Panel</h2>
+                <p style={{ marginTop: 8 }}>Selecciona una opción del menú para comenzar.</p>
               </div>
             </Layout> :
             <LoginPage onLogin={handleLogin} />

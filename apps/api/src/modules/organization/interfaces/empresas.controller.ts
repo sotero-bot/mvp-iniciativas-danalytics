@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 
@@ -18,6 +18,14 @@ export class EmpresasController {
         id: randomUUID(),
         nombre: body.nombre
       }
+    });
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() body: { nombre: string }) {
+    return this.prisma.empresa.update({
+      where: { id },
+      data: { nombre: body.nombre }
     });
   }
 

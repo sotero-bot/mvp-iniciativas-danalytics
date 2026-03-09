@@ -22,6 +22,50 @@ interface RunnerData {
   interacciones: { pasoId: string; contenido: string }[];
 }
 
+/* ── Brand header ── */
+function RunnerHeader() {
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      height: 52,
+      background: 'rgba(255,255,255,0.9)',
+      backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(226,232,240,0.8)',
+      display: 'flex', alignItems: 'center', padding: '0 1.5rem',
+      gap: 10,
+    }}>
+      <div style={{
+        width: 26, height: 26,
+        background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+        borderRadius: 7,
+        boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+        flexShrink: 0,
+      }} />
+      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A', letterSpacing: '-0.03em' }}>
+        IAGobernanza
+      </span>
+    </div>
+  );
+}
+
+/* ── Step pills ── */
+function StepPills({ total, current }: { total: number; current: number }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 28 }}>
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{
+          height: 6,
+          flex: 1,
+          maxWidth: 48,
+          borderRadius: 9999,
+          background: i < current ? '#2563EB' : i === current ? '#93C5FD' : '#E2E8F0',
+          transition: 'background 0.3s ease',
+        }} />
+      ))}
+    </div>
+  );
+}
+
 export function RunnerPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<RunnerData | null>(null);
@@ -46,7 +90,6 @@ export function RunnerPage() {
       const json = await res.json();
       setData(json);
 
-      // Encontrar por qué paso vamos (el primero sin respuesta)
       if (json.estado !== 'generado') {
         const lastAnsweredIndex = json.pasos.findIndex((p: Paso) =>
           !json.interacciones.some((i: any) => i.pasoId === p.id)
@@ -69,20 +112,16 @@ export function RunnerPage() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [token]);
+  useEffect(() => { loadData(); }, [token]);
 
   const handleIniciar = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
-
       if (!res.ok) {
         const errJson = await res.json();
         throw new Error(errJson.message || 'Error al iniciar la actividad');
       }
-
       await loadData();
     } catch (err: any) {
       alert('Error al comenzar: ' + err.message);
@@ -112,8 +151,6 @@ export function RunnerPage() {
 
   const handleSiguiente = async () => {
     const paso = data!.pasos[currentStepIndex];
-
-    // Si el paso usa IA, la respuesta real es la de la IA. Si no usa IA, es la del usuario.
     const respuestaFinal = paso.usarIa ? respuestaIa : respuesta;
 
     if (!respuestaFinal.trim()) {
@@ -132,26 +169,19 @@ export function RunnerPage() {
     });
 
     if (currentStepIndex < data!.pasos.length - 1) {
-      const nuevaInteraccion = {
-        pasoId: paso.id,
-        contenido: respuestaFinal,
-        fecha: new Date().toISOString()
-      };
-
       setData(prev => prev ? {
         ...prev,
-        interacciones: [...prev.interacciones.filter(i => i.pasoId !== paso.id), nuevaInteraccion]
+        interacciones: [...prev.interacciones.filter(i => i.pasoId !== paso.id),
+          { pasoId: paso.id, contenido: respuestaFinal, fecha: new Date().toISOString() } as any]
       } : prev);
 
       setCurrentStepIndex(currentStepIndex + 1);
       setRespuesta('');
       setRespuestaIa('');
       setArchivoIa(null);
-      if (data!.pasos[currentStepIndex + 1]?.promptIa) {
-        setCustomPrompt(data!.pasos[currentStepIndex + 1].promptIa!);
-      } else {
-        setCustomPrompt('');
-      }
+      editorRef.current?.replaceContent('');
+      iaEditorRef.current?.replaceContent('');
+      setCustomPrompt(data!.pasos[currentStepIndex + 1]?.promptIa ?? '');
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -159,9 +189,8 @@ export function RunnerPage() {
     setLoading(false);
   };
 
-  // Llamará a la API de ChatGPT
   const handleEnviarIA = async () => {
-    if (!respuesta.trim() && !archivoIa) return alert('Escribe tu respuesta o adjunta un archivo antes de consultar la IA');
+    if (!respuesta.trim() && !archivoIa) return alert('Por favor escriba su respuesta o adjunte un archivo antes de consultar a la IA');
     setEnviandoIa(true);
     setRespuestaIa('');
     iaEditorRef.current?.replaceContent('');
@@ -175,11 +204,7 @@ export function RunnerPage() {
       if (customPrompt) formData.append('customPrompt', customPrompt);
       if (archivoIa) formData.append('archivo', archivoIa);
 
-      const res = await fetch(`${API_URL}/execution/${token}/ia`, {
-        method: 'POST',
-        body: formData  // No Content-Type header: browser sets multipart boundary automatically
-      });
-
+      const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Error al consultar la IA');
 
       const json = await res.json();
@@ -195,312 +220,398 @@ export function RunnerPage() {
   const getRespuestaPasoAnterior = (): string => {
     if (!data || currentStepIndex === 0) return '';
     const pasoAnterior = data.pasos[currentStepIndex - 1];
-    const interaccion = data.interacciones.find(i => i.pasoId === pasoAnterior.id);
-    return interaccion?.contenido ?? '';
+    return data.interacciones.find(i => i.pasoId === pasoAnterior.id)?.contenido ?? '';
   };
 
-  if (loading && !data) return <div className="runner-center">Cargando...</div>;
-  if (error) return <div className="runner-center">Error: {error}</div>;
+  /* ── Loading / Error ── */
+  if (loading && !data) return (
+    <>
+      <RunnerHeader />
+      <div className="runner-center" style={{ paddingTop: 52 }}>
+        <div style={{ width: 20, height: 20, border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        Cargando actividad...
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    </>
+  );
+
+  if (error) return (
+    <>
+      <RunnerHeader />
+      <div className="runner-center" style={{ paddingTop: 52, color: '#EF4444' }}>⚠ {error}</div>
+    </>
+  );
+
   if (!data) return null;
 
+  /* ── Estado: generado (identificación + inicio) ── */
   if (data.estado === 'generado') {
     return (
-      <div className="runner-layout">
-        <div className="card runner-card">
-          <h1>{data.nombreActividad}</h1>
-          <p>{data.descripcionActividad}</p>
+      <>
+        <RunnerHeader />
+        <div className="runner-layout" style={{ paddingTop: 88 }}>
+          <div className="card runner-card">
 
-          {!data.usuarioId ? (
-            <form
-              className={wasValidated ? 'was-validated' : ''}
-              onSubmit={(e) => {
-                e.preventDefault();
-                setWasValidated(true);
-                if (e.currentTarget.checkValidity()) {
-                  handleIdentificar();
-                }
-              }}
-              style={{ marginTop: 30, borderTop: '1px solid var(--color-bg-page)', paddingTop: 20 }}
-              noValidate
-            >
-              <h3 style={{ marginBottom: 15 }}>Cuéntanos quién eres</h3>
-              <div style={{ marginBottom: 15 }}>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Nombre Completo</label>
-                <input
-                  className="input"
-                  required
-                  value={idenForm.nombre}
-                  onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
-                  placeholder="Tu nombre completo"
-                />
-                <div className="invalid-feedback">Tu nombre completo es requerido.</div>
+            {/* Activity info */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: '#EFF6FF', color: '#2563EB',
+                padding: '4px 14px', borderRadius: 9999,
+                fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.04em',
+                marginBottom: 16,
+              }}>
+                ACTIVIDAD
               </div>
-              <div style={{ marginBottom: 15 }}>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Correo Electrónico</label>
-                <input
-                  className="input"
-                  type="email"
-                  required
-                  value={idenForm.email}
-                  onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
-                  placeholder="ejemplo@empresa.com"
-                />
-                <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>{data.nombreActividad}</h1>
+              {data.descripcionActividad && (
+                <p style={{ maxWidth: 500, margin: '0 auto', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+                  {data.descripcionActividad}
+                </p>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{data.pasos.length}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>pasos</div>
+                </div>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Cargo / Área</label>
-                <input
-                  className="input"
-                  value={idenForm.cargo}
-                  onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
-                  placeholder="Ej: Director de Innovación"
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                Identificarme y Comenzar
-              </button>
-            </form>
-          ) : (
-            <div style={{ marginTop: 30 }}>
-              <button className="btn btn-primary" onClick={handleIniciar}>Comenzar Actividad</button>
             </div>
-          )}
+
+            {/* Identification form or start */}
+            {!data.usuarioId ? (
+              <form
+                className={wasValidated ? 'was-validated' : ''}
+                onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) handleIdentificar(); }}
+                noValidate
+              >
+                <h3 style={{ marginBottom: 4 }}>Cuéntenos quién es</h3>
+                <p style={{ marginBottom: 24, fontSize: '0.875rem' }}>Esta información quedará asociada a sus respuestas.</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Nombre Completo</label>
+                    <input className="input" required value={idenForm.nombre}
+                      onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
+                      placeholder="Su nombre completo" />
+                    <div className="invalid-feedback">El nombre completo es requerido.</div>
+                  </div>
+                  <div>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Correo Electrónico</label>
+                    <input className="input" type="email" required value={idenForm.email}
+                      onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
+                      placeholder="ejemplo@empresa.com" />
+                    <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Cargo / Área</label>
+                    <input className="input" value={idenForm.cargo}
+                      onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
+                      placeholder="Ej: Director de Innovación" />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn btn-primary" disabled={loading}
+                  style={{ marginTop: 28, width: '100%', padding: '0.75rem', fontSize: '0.9375rem' }}>
+                  {loading ? 'Registrando...' : 'Comenzar actividad →'}
+                </button>
+              </form>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ marginBottom: 24 }}>Ya está identificado. Cuando esté listo, puede comenzar la actividad.</p>
+                <button className="btn btn-primary" onClick={handleIniciar} disabled={loading}
+                  style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem' }}>
+                  {loading ? 'Iniciando...' : 'Comenzar actividad →'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
+  /* ── Estado: finalizado ── */
   if (data.estado === 'finalizado') {
     return (
-      <div className="runner-layout">
-        <div className="card runner-card" style={{ textAlign: 'center' }}>
-          <div className="status-badge status-success" style={{ display: 'inline-block', marginBottom: 20 }}>Finalizado</div>
-          <h1>¡Actividad Completada!</h1>
-          <p>Tus respuestas han sido registradas exitosamente.</p>
-          <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <a
-              href={`/runner/${token}/resultados`}
-              className="btn btn-primary"
-              style={{ padding: '12px 28px', fontSize: '1rem', textDecoration: 'none' }}
-            >
-              📋 Ver Mis Resultados
+      <>
+        <RunnerHeader />
+        <div className="runner-layout" style={{ paddingTop: 88 }}>
+          <div className="card runner-card" style={{ textAlign: 'center', padding: '3rem 2.25rem' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.5rem', fontSize: '1.75rem',
+            }}>✓</div>
+            <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>¡Actividad completada!</h1>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
+              Sus respuestas han sido registradas exitosamente. Puede ver un resumen completo a continuación.
+            </p>
+            <a href={`/runner/${token}/resultados`} className="btn btn-primary"
+              style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem', textDecoration: 'none', display: 'inline-flex' }}>
+              Ver mis resultados →
             </a>
-            <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.85rem' }}>
-              También puedes cerrar esta ventana.
+            <p style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
+              También puede cerrar esta ventana.
             </p>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
+  /* ── Estado: iniciado (ejecución paso a paso) ── */
   const currentPaso = data.pasos[currentStepIndex];
-  const progress = ((currentStepIndex) / data.pasos.length) * 100;
+  const progress = (currentStepIndex / data.pasos.length) * 100;
+  const respuestaAnterior = getRespuestaPasoAnterior();
+  const isLastStep = currentStepIndex === data.pasos.length - 1;
 
   return (
-    <div className="runner-layout">
-      <div className="runner-progress-bar">
-        <div className="runner-progress-fill" style={{ width: `${progress}%` }}></div>
+    <>
+      <RunnerHeader />
+
+      {/* Progress bar */}
+      <div className="runner-progress-bar" style={{ top: 52 }}>
+        <div className="runner-progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="card runner-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <span style={{ fontSize: '0.8em', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-            PASO {currentStepIndex + 1} DE {data.pasos.length}
-          </span>
-          <span className="status-badge status-warning">En progreso</span>
-        </div>
+      <div className="runner-layout" style={{ paddingTop: 88 }}>
+        <div className="runner-card card">
 
-        <h2 style={{ marginBottom: 10 }}>{currentPaso.titulo}</h2>
-        {currentPaso.objetivo && (
-          <p style={{ fontStyle: 'italic', color: 'var(--color-primary)', marginBottom: 20 }}>
-            Objetivo: {currentPaso.objetivo}
-          </p>
-        )}
-
-        {currentPaso.instrucciones && (
-          <div style={{
-            background: '#fdfcfe',
-            padding: 15,
-            borderRadius: 8,
-            marginBottom: 20,
-            borderLeft: '4px solid #a855f7',
-            borderRight: '1px solid #e9d5ff',
-            borderTop: '1px solid #e9d5ff',
-            borderBottom: '1px solid #e9d5ff'
-          }}>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: '#7e22ce', fontWeight: 'bold', marginBottom: 5 }}>INSTRUCCIONES METODOLÓGICAS</span>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#581c87', whiteSpace: 'pre-wrap' }}>{currentPaso.instrucciones}</p>
+          {/* Step meta */}
+          <div style={{ marginBottom: 24 }}>
+            <StepPills total={data.pasos.length} current={currentStepIndex} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Paso {currentStepIndex + 1} de {data.pasos.length}
+              </span>
+              {isLastStep && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D97706', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 10px', borderRadius: 9999 }}>
+                  Último paso
+                </span>
+              )}
+            </div>
           </div>
-        )}
 
-        {currentPaso.promptIa && (
-          <div style={{
-            background: '#f1f5f9',
-            padding: 15,
-            borderRadius: 8,
-            marginBottom: 20,
-            borderLeft: '4px solid #64748b'
-          }}>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: 5 }}>PROMPT IA DE REFERENCIA</span>
-            <textarea
-              className="input"
-              rows={20}
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              style={{ background: '#fff', fontSize: '0.9rem', color: '#334155', marginTop: 5 }}
-            />
-            <p style={{ margin: '5px 0 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-              Puedes ajustar este prompt para este intento. Solo afectará tu consulta actual.
+          {/* Step title & objective */}
+          <h2 style={{ fontSize: '1.375rem', marginBottom: currentPaso.objetivo ? 8 : 20 }}>
+            {currentPaso.titulo}
+          </h2>
+          {currentPaso.objetivo && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontStyle: 'italic', marginBottom: 20, fontWeight: 500 }}>
+              {currentPaso.objetivo}
             </p>
-          </div>
-        )}
+          )}
 
-        {/* Botón copiar respuesta del paso anterior — visible solo desde paso 2 en adelante */}
-        {currentStepIndex > 0 && (() => {
-          const respuestaAnterior = getRespuestaPasoAnterior();
-          return respuestaAnterior ? (
+          {/* Instructions */}
+          {currentPaso.instrucciones && (
+            <div style={{
+              background: '#FDFCFF',
+              padding: '1rem 1.25rem',
+              borderRadius: 8,
+              marginBottom: 20,
+              borderLeft: '3px solid #A855F7',
+              border: '1px solid #EDE9FE',
+              borderLeftWidth: 3,
+              borderLeftColor: '#A855F7',
+            }}>
+              <span style={{ display: 'block', fontSize: '0.7rem', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Instrucciones
+              </span>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#4C1D95', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                {currentPaso.instrucciones}
+              </p>
+            </div>
+          )}
+
+          {/* Prompt IA */}
+          {currentPaso.promptIa && (
+            <div style={{
+              background: '#F8FAFC',
+              padding: '1rem 1.25rem',
+              borderRadius: 8,
+              marginBottom: 20,
+              border: '1px solid var(--color-border)',
+            }}>
+              <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Prompt IA de referencia
+              </span>
+              <textarea
+                className="input"
+                rows={10}
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, resize: 'vertical' }}
+              />
+              <p style={{ margin: '6px 0 0', fontSize: '0.73rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
+                Puede ajustar este prompt. Solo afectará su consulta actual.
+              </p>
+            </div>
+          )}
+
+          {/* Previous step hint */}
+          {respuestaAnterior && (
             <div style={{
               marginBottom: 20,
-              padding: '10px 14px',
-              background: '#fffbeb',
-              border: '1px solid #fcd34d',
+              padding: '0.875rem 1rem',
+              background: '#FFFBEB',
+              border: '1px solid #FDE68A',
               borderRadius: 8,
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: '0.75rem',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
             }}>
-              <span style={{ fontSize: '0.82rem', color: '#92400e', flex: 1 }}>
-                💬 <strong>Paso anterior:</strong> {respuestaAnterior.length > 120 ? respuestaAnterior.slice(0, 120) + '…' : respuestaAnterior}
-              </span>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-                onClick={() => editorRef.current?.insertContent(respuestaAnterior)}
-              >
-                📋 Copiar en mi respuesta
-              </button>
-              {currentPaso.usarIa && (
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '4px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-                  onClick={() => setCustomPrompt(prev => prev ? prev + '\n\n' + respuestaAnterior : respuestaAnterior)}
-                >
-                  🤖 Copiar en Prompt IA
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#B45309', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>
+                  Respuesta anterior
+                </div>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400E', lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {respuestaAnterior}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
+                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                  onClick={() => editorRef.current?.insertContent(respuestaAnterior)}>
+                  Copiar en respuesta
                 </button>
-              )}
+                {currentPaso.usarIa && (
+                  <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                    onClick={() => setCustomPrompt(prev => prev ? prev + '\n\n' + respuestaAnterior : respuestaAnterior)}>
+                    Copiar en prompt
+                  </button>
+                )}
+              </div>
             </div>
-          ) : null;
-        })()}
+          )}
 
-        <div style={{ marginTop: 10 }}>
-          <label style={{ fontWeight: 500, display: 'block', marginBottom: 8 }}>Tu Respuesta</label>
-          <WysiwygEditor
-            ref={editorRef}
-            value={respuesta}
-            onChange={setRespuesta}
-            placeholder="Escribe aquí tu respuesta..."
-            minHeight={280}
-          />
+          {/* Response area */}
+          <div style={{ marginBottom: currentPaso.usarIa ? 0 : 28 }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: 8, color: 'var(--color-text-main)' }}>
+              Tu respuesta
+            </label>
+            <WysiwygEditor
+              ref={editorRef}
+              value={respuesta}
+              onChange={setRespuesta}
+              placeholder="Escriba aquí su respuesta..."
+              minHeight={220}
+            />
 
-          {/* Archivo adjunto opcional para IA */}
+            {/* File attachment */}
+            {currentPaso.usarIa && (
+              <div style={{
+                marginTop: 10,
+                padding: '10px 14px',
+                background: '#FAFAFE',
+                border: '1px dashed #C4B5FD',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: '0.8rem', color: '#6D28D9', fontWeight: 500 }}>Adjuntar archivo</span>
+                <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>PDF, Word, Excel — máx. 10 MB</span>
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', fontSize: '0.78rem',
+                  background: '#EDE9FE', color: '#5B21B6',
+                  borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+                  border: '1px solid #C4B5FD',
+                }}>
+                  {archivoIa ? `✓ ${archivoIa.name}` : '📂 Seleccionar archivo'}
+                  <input type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
+                    style={{ display: 'none' }}
+                    onChange={e => setArchivoIa(e.target.files?.[0] || null)} />
+                </label>
+                {archivoIa && (
+                  <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                    onClick={() => setArchivoIa(null)}>✕ Quitar</button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* IA Panel */}
           {currentPaso.usarIa && (
             <div style={{
-              marginTop: 12,
-              padding: '12px 14px',
-              background: '#f8f7ff',
-              border: '1px dashed #c4b5fd',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
+              marginTop: 16,
+              border: '1px solid #DDD6FE',
+              borderRadius: 10,
+              overflow: 'hidden',
             }}>
-              <span style={{ fontSize: '0.82rem', color: '#5b21b6', fontWeight: 500 }}>📎 Adjuntar archivo a la IA</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>PDF, Word, Excel, texto — máx. 10 MB</span>
-              <label style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 12px', fontSize: '0.8rem',
-                background: '#ede9fe', color: '#5b21b6',
-                borderRadius: 6, cursor: 'pointer', fontWeight: 500,
-                border: '1px solid #c4b5fd', whiteSpace: 'nowrap'
+              {/* IA Header */}
+              <div style={{
+                padding: '0.875rem 1.25rem',
+                background: 'linear-gradient(135deg, #F5F3FF, #FAF8FF)',
+                borderBottom: '1px solid #EDE9FE',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
               }}>
-                {archivoIa ? `✅ ${archivoIa.name}` : '📂 Seleccionar archivo'}
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
-                  style={{ display: 'none' }}
-                  onChange={e => setArchivoIa(e.target.files?.[0] || null)}
-                />
-              </label>
-              {archivoIa && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 7,
+                    background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.85rem',
+                  }}>✨</div>
+                  <span style={{ fontWeight: 600, color: '#4C1D95', fontSize: '0.875rem' }}>Asistente IA</span>
+                </div>
                 <button
-                  className="btn btn-secondary"
-                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                  onClick={() => setArchivoIa(null)}
+                  className="btn btn-primary"
+                  style={{ padding: '6px 16px', fontSize: '0.8rem', background: '#7C3AED', boxShadow: '0 1px 2px rgba(109,40,217,0.3)' }}
+                  onClick={handleEnviarIA}
+                  disabled={(!respuesta.trim() && !archivoIa) || enviandoIa}
                 >
-                  ✕ Quitar
+                  {enviandoIa ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                      Consultando...
+                    </span>
+                  ) : 'Enviar a ChatGPT'}
                 </button>
-              )}
+              </div>
+
+              {/* IA Editor */}
+              <div style={{ padding: '1rem 1.25rem', background: '#FDFCFF' }}>
+                {enviandoIa && !respuestaIa && (
+                  <div style={{
+                    padding: '2rem', textAlign: 'center', color: '#7C3AED',
+                    fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  }}>
+                    <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                    Generando respuesta con IA...
+                  </div>
+                )}
+                <WysiwygEditor
+                  ref={iaEditorRef}
+                  value={respuestaIa}
+                  onChange={setRespuestaIa}
+                  placeholder="La respuesta de ChatGPT aparecerá aquí. Puede editarla antes de continuar."
+                  minHeight={200}
+                  borderColor="#DDD6FE"
+                />
+              </div>
             </div>
           )}
 
-          {/* Botón enviar a IA */}
-          {currentPaso.usarIa && (
-            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                className="btn btn-primary"
-                style={{ padding: '6px 16px', fontSize: '0.82rem', background: '#7c3aed', border: 'none' }}
-                onClick={handleEnviarIA}
-                disabled={(!respuesta.trim() && !archivoIa) || enviandoIa}
-              >
-                {enviandoIa ? '⏳ Consultando IA...' : '✨ Enviar a ChatGPT'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Panel de IA — visible solo si el paso usa IA */}
-        {currentPaso.usarIa && (
-          <div style={{
-            marginTop: 20,
-            padding: '1rem 1.25rem',
-            background: '#f8f7ff',
-            border: '1px solid #c4b5fd',
-            borderRadius: 10
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontWeight: 600, color: '#5b21b6', fontSize: '0.9rem' }}>🤖 Asistente IA</span>
-            </div>
-
-            <WysiwygEditor
-              ref={iaEditorRef}
-              value={respuestaIa}
-              onChange={setRespuestaIa}
-              placeholder="La respuesta de ChatGPT aparecerá aquí..."
-              minHeight={280}
-              borderColor="#c4b5fd"
-            />
+          {/* Next / Finish button */}
+          <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleSiguiente}
+              disabled={(currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading}
+              style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
+            >
+              {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
+            </button>
           </div>
-        )}
 
-        <div style={{ marginTop: 30, display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            className="btn btn-primary"
-            onClick={handleSiguiente}
-            disabled={
-              (currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading
-            }
-          >
-            {currentStepIndex === data.pasos.length - 1 ? 'Finalizar Actividad' : 'Siguiente Paso'}
-          </button>
         </div>
       </div>
-    </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </>
   );
 }

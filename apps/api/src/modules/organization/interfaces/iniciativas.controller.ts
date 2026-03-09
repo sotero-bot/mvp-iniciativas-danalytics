@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 
@@ -41,6 +41,19 @@ export class IniciativasController {
     return this.prisma.iniciativa.findUnique({
       where: { id },
       include: { empresa: true, actividades: { where: { activo: true } } }
+    });
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() body: { nombre?: string; descripcion?: string; empresaId?: string }) {
+    return this.prisma.iniciativa.update({
+      where: { id },
+      data: {
+        ...(body.nombre && { nombre: body.nombre }),
+        ...(body.descripcion !== undefined && { descripcion: body.descripcion }),
+        ...(body.empresaId && { empresaId: body.empresaId }),
+      },
+      include: { empresa: true }
     });
   }
 
