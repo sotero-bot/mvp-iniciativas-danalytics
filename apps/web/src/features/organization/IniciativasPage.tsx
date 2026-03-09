@@ -8,6 +8,7 @@ export function IniciativasPage() {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [empresaId, setEmpresaId] = useState('');
+  const [wasValidated, setWasValidated] = useState(false);
 
   useEffect(() => {
     fetchIniciativas();
@@ -35,6 +36,7 @@ export function IniciativasPage() {
     }).then(() => {
       setNombre('');
       setDescripcion('');
+      setWasValidated(false);
       fetchIniciativas();
     });
   };
@@ -46,9 +48,20 @@ export function IniciativasPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 30 }}>
         <div className="card">
           <h3 style={{ marginBottom: 20 }}>Nueva Iniciativa</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <form
+            className={wasValidated ? 'was-validated' : ''}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setWasValidated(true);
+              if (e.currentTarget.checkValidity()) {
+                handleSubmit(e);
+              }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 15 }}
+            noValidate
+          >
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Empresa</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Empresa</label>
               <select
                 className="input"
                 value={empresaId}
@@ -60,9 +73,10 @@ export function IniciativasPage() {
                   <option key={emp.id} value={emp.id}>{emp.nombre}</option>
                 ))}
               </select>
+              <div className="invalid-feedback">Debe seleccionar una empresa.</div>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
               <input
                 className="input"
                 value={nombre}
@@ -70,6 +84,7 @@ export function IniciativasPage() {
                 placeholder="Ej: Transformación Digital"
                 required
               />
+              <div className="invalid-feedback">El nombre es requerido.</div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción</label>
@@ -81,7 +96,7 @@ export function IniciativasPage() {
                 rows={3}
               />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={!empresaId}>Crear Iniciativa</button>
+            <button type="submit" className="btn btn-primary">Crear Iniciativa</button>
           </form>
         </div>
 

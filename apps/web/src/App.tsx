@@ -8,6 +8,7 @@ import { InstanciaDetallePage } from './features/execution/InstanciaDetallePage'
 
 import { RunnerPage } from './features/execution/RunnerPage';
 import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
+import { RunnerResultsPage } from './features/execution/RunnerResultsPage';
 import { ActividadPasosPage } from './features/methodology/ActividadPasosPage';
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -72,6 +73,7 @@ function App() {
 
         {/* Public Runner Routes (No Auth) */}
         <Route path="/runner/enlace/:token" element={<EnlaceRunnerPage />} />
+        <Route path="/runner/:token/resultados" element={<RunnerResultsPage />} />
         <Route path="/runner/:token" element={<RunnerPage />} />
 
         {/* Login Route */}

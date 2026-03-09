@@ -13,6 +13,7 @@ export function ActividadPasosPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [wasValidated, setWasValidated] = useState(false);
   const [form, setForm] = useState({
     titulo: '',
     objetivo: '',
@@ -86,6 +87,7 @@ export function ActividadPasosPage() {
         });
         setShowForm(false);
         setEditingId(null);
+        setWasValidated(false);
         loadPasos();
       }
     } catch (err) {
@@ -118,6 +120,7 @@ export function ActividadPasosPage() {
       promptIa: '',
       orden: maxOrden + 1
     });
+    setWasValidated(false);
   };
 
   if (loading) return <div className="runner-center">Cargando pasos...</div>;
@@ -152,9 +155,20 @@ export function ActividadPasosPage() {
       {showForm && (
         <div className="card" style={{ marginBottom: '2rem', border: '1px solid var(--color-primary)' }}>
           <h3>{editingId ? 'Editar Paso' : 'Nuevo Paso'}</h3>
-          <form onSubmit={handleSubmit} style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <form
+            className={wasValidated ? 'was-validated' : ''}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setWasValidated(true);
+              if (e.currentTarget.checkValidity()) {
+                handleSubmit(e);
+              }
+            }}
+            style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+            noValidate
+          >
             <div style={{ gridColumn: 'span 2' }}>
-              <label>Título *</label>
+              <label className="required-label">Título</label>
               <input
                 className="input"
                 required
@@ -162,9 +176,10 @@ export function ActividadPasosPage() {
                 onChange={e => setForm({ ...form, titulo: e.target.value })}
                 placeholder="Ej: Entrevista de Stakeholders"
               />
+              <div className="invalid-feedback">El título del paso es requerido.</div>
             </div>
             <div>
-              <label>Orden *</label>
+              <label className="required-label">Orden</label>
               <input
                 className="input"
                 type="number"
@@ -172,6 +187,7 @@ export function ActividadPasosPage() {
                 value={form.orden}
                 onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })}
               />
+              <div className="invalid-feedback">El orden es requerido.</div>
             </div>
             <div>
               <label>Objetivo</label>
@@ -214,7 +230,7 @@ export function ActividadPasosPage() {
             {/* Prompt IA — visible solo si usarIa === true */}
             {form.usarIa && (
               <div style={{ gridColumn: 'span 2' }}>
-                <label>Prompt IA *</label>
+                <label className="required-label">Prompt IA</label>
                 <textarea
                   className="input"
                   rows={3}
@@ -223,6 +239,7 @@ export function ActividadPasosPage() {
                   onChange={e => setForm({ ...form, promptIa: e.target.value })}
                   placeholder="Instrucciones para la IA (contexto, tono, objetivo del paso)..."
                 />
+                <div className="invalid-feedback">El prompt IA es requerido cuando la IA está activa.</div>
               </div>
             )}
 

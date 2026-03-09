@@ -34,6 +34,7 @@ export function RunnerPage() {
   const [iaViewMode, setIaViewMode] = useState<'preview' | 'edit'>('preview');
   const [userViewMode, setUserViewMode] = useState<'preview' | 'edit'>('edit');
   const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '' });
+  const [wasValidated, setWasValidated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -203,26 +204,41 @@ export function RunnerPage() {
           <p>{data.descripcionActividad}</p>
 
           {!data.usuarioId ? (
-            <div style={{ marginTop: 30, borderTop: '1px solid var(--color-bg-page)', paddingTop: 20 }}>
+            <form
+              className={wasValidated ? 'was-validated' : ''}
+              onSubmit={(e) => {
+                e.preventDefault();
+                setWasValidated(true);
+                if (e.currentTarget.checkValidity()) {
+                  handleIdentificar();
+                }
+              }}
+              style={{ marginTop: 30, borderTop: '1px solid var(--color-bg-page)', paddingTop: 20 }}
+              noValidate
+            >
               <h3 style={{ marginBottom: 15 }}>Cuéntanos quién eres</h3>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Nombre Completo *</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Nombre Completo</label>
                 <input
                   className="input"
+                  required
                   value={idenForm.nombre}
                   onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
                   placeholder="Tu nombre completo"
                 />
+                <div className="invalid-feedback">Tu nombre completo es requerido.</div>
               </div>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Correo Electrónico *</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Correo Electrónico</label>
                 <input
                   className="input"
                   type="email"
+                  required
                   value={idenForm.email}
                   onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
                   placeholder="ejemplo@empresa.com"
                 />
+                <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
               </div>
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', marginBottom: 5, fontSize: '0.9rem' }}>Cargo / Área</label>
@@ -234,13 +250,13 @@ export function RunnerPage() {
                 />
               </div>
               <button
+                type="submit"
                 className="btn btn-primary"
-                onClick={handleIdentificar}
-                disabled={!idenForm.nombre.trim() || !idenForm.email.trim() || loading}
+                disabled={loading}
               >
                 Identificarme y Comenzar
               </button>
-            </div>
+            </form>
           ) : (
             <div style={{ marginTop: 30 }}>
               <button className="btn btn-primary" onClick={handleIniciar}>Comenzar Actividad</button>
@@ -258,7 +274,18 @@ export function RunnerPage() {
           <div className="status-badge status-success" style={{ display: 'inline-block', marginBottom: 20 }}>Finalizado</div>
           <h1>¡Actividad Completada!</h1>
           <p>Tus respuestas han sido registradas exitosamente.</p>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 20 }}>Ya puedes cerrar esta ventana.</p>
+          <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <a
+              href={`/runner/${token}/resultados`}
+              className="btn btn-primary"
+              style={{ padding: '12px 28px', fontSize: '1rem', textDecoration: 'none' }}
+            >
+              📋 Ver Mis Resultados
+            </a>
+            <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.85rem' }}>
+              También puedes cerrar esta ventana.
+            </p>
+          </div>
         </div>
       </div>
     );

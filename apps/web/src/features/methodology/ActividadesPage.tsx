@@ -7,6 +7,7 @@ export function ActividadesPage() {
   const [list, setList] = useState<any[]>([]);
   const [iniciativas, setIniciativas] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [wasValidated, setWasValidated] = useState(false);
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
@@ -98,6 +99,7 @@ export function ActividadesPage() {
       descripcion: '',
       iniciativaId: form.iniciativaId
     });
+    setWasValidated(false);
   };
 
   return (
@@ -111,11 +113,23 @@ export function ActividadesPage() {
         {/* Formulario (Left) */}
         <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
           <h3>{editingId ? 'Editar Actividad' : 'Nueva Actividad'}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+          <form
+            className={wasValidated ? 'was-validated' : ''}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setWasValidated(true);
+              if (e.currentTarget.checkValidity()) {
+                editingId ? update() : create();
+              }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}
+            noValidate
+          >
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Iniciativa</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Iniciativa</label>
               <select
                 className="input"
+                required
                 value={form.iniciativaId}
                 onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
               >
@@ -124,15 +138,18 @@ export function ActividadesPage() {
                   <option key={ini.id} value={ini.id}>{ini.nombre} ({ini.empresa?.nombre})</option>
                 ))}
               </select>
+              <div className="invalid-feedback">Seleccione una iniciativa.</div>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Nombre de Actividad</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre de Actividad</label>
               <input
                 className="input"
+                required
                 placeholder="Ej: Análisis de Brechas"
                 value={form.nombre}
                 onChange={e => setForm({ ...form, nombre: e.target.value })}
               />
+              <div className="invalid-feedback">Ingrese el nombre de la actividad.</div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción</label>
@@ -146,15 +163,15 @@ export function ActividadesPage() {
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
+                type="submit"
                 className="btn btn-primary"
-                onClick={editingId ? update : create}
-                disabled={!form.iniciativaId || !form.nombre}
                 style={{ flex: 1 }}
               >
                 {editingId ? 'Guardar Cambios' : 'Guardar Actividad'}
               </button>
               {editingId && (
                 <button
+                  type="button"
                   className="btn btn-secondary"
                   onClick={cancelEdit}
                 >
@@ -162,7 +179,7 @@ export function ActividadesPage() {
                 </button>
               )}
             </div>
-          </div>
+          </form>
         </div>
 
         {/* Listado (Right) */}

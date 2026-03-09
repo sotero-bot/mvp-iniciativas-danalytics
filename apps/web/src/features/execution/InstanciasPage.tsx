@@ -8,10 +8,16 @@ export function InstanciasPage() {
   const [actividades, setActividades] = useState<any[]>([]);
   const [enlaces, setEnlaces] = useState<any[]>([]);
 
-  // Formulario de enlace multi-persona
   const [formEnlace, setFormEnlace] = useState({ actividadId: '', nombre: '' });
   const [enlaceGenerado, setEnlaceGenerado] = useState<string | null>(null);
   const [generandoEnlace, setGenerandoEnlace] = useState(false);
+  const [wasValidated, setWasValidated] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const load = async () => {
     const [resInst, resEnl] = await Promise.all([
@@ -33,7 +39,6 @@ export function InstanciasPage() {
   }, []);
 
   const generarEnlace = async () => {
-    if (!formEnlace.actividadId) return alert('Seleccione una Actividad');
     setGenerandoEnlace(true);
     setEnlaceGenerado(null);
     try {
@@ -52,6 +57,7 @@ export function InstanciasPage() {
       try { await navigator.clipboard.writeText(url); } catch (_) { }
       await load();
       setFormEnlace({ actividadId: '', nombre: '' });
+      setWasValidated(false);
     } catch (err: any) {
       alert('Error al generar el enlace: ' + err.message);
     } finally {
@@ -62,11 +68,24 @@ export function InstanciasPage() {
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/runner/${token}`;
     navigator.clipboard.writeText(url);
-    alert('Enlace copiado: ' + url);
+    showToast('✅ Enlace copiado al portapapeles');
   };
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#1e293b', color: '#fff', padding: '12px 24px', borderRadius: 8,
+          fontSize: '0.9rem', fontWeight: 500, zIndex: 9999,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          {toast}
+        </div>
+      )}
+
       {/* ─── SECCIÓN: ENLACES MULTI-PERSONA ─── */}
       <div className="flex justify-between items-center mb-6">
         <h1>Control de Ejecuciones</h1>
@@ -77,11 +96,23 @@ export function InstanciasPage() {
         <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
           Crea un link permanente que <strong>cualquier número de personas</strong> puede usar. Cada visita genera una sesión independiente.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1rem', alignItems: 'end' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: 5, fontSize: '0.85em' }}>Actividad Metodológica</label>
+        <form
+          className={wasValidated ? 'was-validated' : ''}
+          onSubmit={(e) => {
+            e.preventDefault();
+            setWasValidated(true);
+            if (e.currentTarget.checkValidity()) {
+              generarEnlace();
+            }
+          }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1rem', alignItems: 'end' }}
+          noValidate
+        >
+          <div style={{ position: 'relative' }}>
+            <label className="required-label" style={{ display: 'block', marginBottom: 5, fontSize: '0.85em' }}>Actividad Metodológica</label>
             <select
               className="input"
+              required
               value={formEnlace.actividadId}
               onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}
             >
@@ -92,6 +123,7 @@ export function InstanciasPage() {
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">Seleccione la actividad metodológica.</div>
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontSize: '0.85em' }}>Etiqueta (Opcional)</label>
@@ -102,10 +134,10 @@ export function InstanciasPage() {
               onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })}
             />
           </div>
-          <button className="btn btn-primary" onClick={generarEnlace} disabled={!formEnlace.actividadId || generandoEnlace}>
+          <button type="submit" className="btn btn-primary" disabled={generandoEnlace}>
             {generandoEnlace ? '⏳ Generando...' : 'Generar Enlace'}
           </button>
-        </div>
+        </form>
 
         {enlaceGenerado && (
           <div style={{
@@ -161,7 +193,7 @@ export function InstanciasPage() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: '0.82rem' }}
-                        onClick={() => { navigator.clipboard.writeText(url); alert('Copiado: ' + url); }}>
+                        onClick={() => { navigator.clipboard.writeText(url); showToast('✅ Enlace copiado al portapapeles'); }}>
                         📋 Copiar enlace
                       </button>
                     </td>
