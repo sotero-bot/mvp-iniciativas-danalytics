@@ -77,7 +77,7 @@ function App() {
         <Route path="/runner/:token" element={<RunnerPage />} />
 
         {/* Login Route */}
-        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/login" element={token ? <Navigate to="/admin/empresas" replace /> : <LoginPage onLogin={handleLogin} />} />
 
         {/* Root redirect */}
         <Route path="/" element={<Navigate to={token ? '/admin/empresas' : '/login'} replace />} />
