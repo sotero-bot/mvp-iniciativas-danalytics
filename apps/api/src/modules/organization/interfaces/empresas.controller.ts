@@ -1,14 +1,14 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 
 @Controller('organization/empresas')
 export class EmpresasController {
-  constructor(private readonly prisma: PrismaService) {} 
+  constructor(private readonly prisma: PrismaService) { }
 
   @Get()
   async findAll() {
-    return this.prisma.empresa.findMany();
+    return this.prisma.empresa.findMany({ where: { activo: true } });
   }
 
   @Post()
@@ -18,6 +18,38 @@ export class EmpresasController {
         id: randomUUID(),
         nombre: body.nombre
       }
+    });
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async softDelete(@Param('id') id: string) {
+    // Cascade: deactivate instancias of all actividades
+    const actividades = await this.prisma.actividad.findMany({
+      where: { iniciativa: { empresaId: id } },
+      select: { id: true }
+    });
+    const actividadIds = actividades.map(a => a.id);
+
+    await this.prisma.instanciaActividad.updateMany({
+      where: { actividadId: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.pasoActividad.updateMany({
+      where: { actividadId: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.actividad.updateMany({
+      where: { id: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.iniciativa.updateMany({
+      where: { empresaId: id },
+      data: { activo: false }
+    });
+    await this.prisma.empresa.update({
+      where: { id },
+      data: { activo: false }
     });
   }
 }

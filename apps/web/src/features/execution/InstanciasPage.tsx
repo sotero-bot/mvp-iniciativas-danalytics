@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -13,10 +14,19 @@ export function InstanciasPage() {
   const [generandoEnlace, setGenerandoEnlace] = useState(false);
   const [wasValidated, setWasValidated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  };
+
+
+  const handleDeleteInstancia = async () => {
+    if (!deleteModal) return;
+    await fetch(`${API_URL}/admin/instancias/${deleteModal}`, { method: 'DELETE' });
+    setDeleteModal(null);
+    load();
   };
 
   const load = async () => {
@@ -85,6 +95,15 @@ export function InstanciasPage() {
           {toast}
         </div>
       )}
+
+      {/* Delete confirm modal */}
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        title="¿Eliminar Ejecución?"
+        message="Esta acción desactivará la ejecución y no se podrá acceder a ella."
+        onConfirm={handleDeleteInstancia}
+        onCancel={() => setDeleteModal(null)}
+      />
 
       {/* ─── SECCIÓN: ENLACES MULTI-PERSONA ─── */}
       <div className="flex justify-between items-center mb-6">
@@ -252,6 +271,13 @@ export function InstanciasPage() {
                     <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85em' }}
                       onClick={() => copyLink(ins.accessToken)}>
                       Copiar Enlace
+                    </button>
+                    <button
+                      className="btn"
+                      style={{ padding: '6px 10px', fontSize: '0.85em', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                      onClick={() => setDeleteModal(ins.id)}
+                    >
+                      🗑️
                     </button>
                   </div>
                 </td>

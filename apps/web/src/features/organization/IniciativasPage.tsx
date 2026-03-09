@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -9,6 +10,7 @@ export function IniciativasPage() {
   const [descripcion, setDescripcion] = useState('');
   const [empresaId, setEmpresaId] = useState('');
   const [wasValidated, setWasValidated] = useState(false);
+  const [modal, setModal] = useState<{ id: string; nombre: string } | null>(null);
 
   useEffect(() => {
     fetchIniciativas();
@@ -27,6 +29,13 @@ export function IniciativasPage() {
       .then(setEmpresas);
   };
 
+  const handleDelete = async () => {
+    if (!modal) return;
+    await fetch(`${API_URL}/organization/iniciativas/${modal.id}`, { method: 'DELETE' });
+    setModal(null);
+    fetchIniciativas();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetch(`${API_URL}/organization/iniciativas`, {
@@ -43,6 +52,13 @@ export function IniciativasPage() {
 
   return (
     <div>
+      <ConfirmModal
+        isOpen={!!modal}
+        title="¿Eliminar Iniciativa?"
+        message={`Se desactivarán también sus actividades y ejecuciones de "${modal?.nombre}".`}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+      />
       <h1 style={{ marginBottom: 30 }}>Gestión de Iniciativas</h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 30 }}>
@@ -118,6 +134,15 @@ export function IniciativasPage() {
                   <td><span className="status-badge" style={{ backgroundColor: '#e2e8f0', color: '#475569' }}>{ini.empresa?.nombre}</span></td>
                   <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.9em' }}>{ini.descripcion || '-'}</td>
                   <td style={{ fontSize: '0.85em' }}>{new Date(ini.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button
+                      className="btn"
+                      style={{ padding: '4px 8px', fontSize: '12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                      onClick={() => setModal({ id: ini.id, nombre: ini.nombre })}
+                    >
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

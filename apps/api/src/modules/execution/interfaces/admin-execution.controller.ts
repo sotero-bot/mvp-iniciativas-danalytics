@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
 import { GenerarInstanciaUseCase } from '../application/GenerarInstanciaUseCase';
 import { ObtenerInstanciaDetalleUseCase } from '../application/ObtenerInstanciaDetalleUseCase';
 import { PrismaService } from '../../../prisma.service';
@@ -21,6 +21,7 @@ export class AdminExecutionController {
   @Get()
   async listAll() {
     return this.prisma.instanciaActividad.findMany({
+      where: { activo: true },
       orderBy: { createdAt: 'desc' },
       include: {
         actividad: {
@@ -45,5 +46,14 @@ export class AdminExecutionController {
       }
       throw error;
     }
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async softDelete(@Param('id') id: string) {
+    await this.prisma.instanciaActividad.update({
+      where: { id },
+      data: { activo: false }
+    });
   }
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -8,6 +9,7 @@ export function ActividadesPage() {
   const [iniciativas, setIniciativas] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
+  const [modal, setModal] = useState<{ id: string; nombre: string } | null>(null);
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
@@ -102,8 +104,23 @@ export function ActividadesPage() {
     setWasValidated(false);
   };
 
+
+  const handleDelete = async () => {
+    if (!modal) return;
+    await fetch(`${API_URL}/methodology/actividades/${modal.id}`, { method: 'DELETE' });
+    setModal(null);
+    load();
+  };
+
   return (
     <div>
+      <ConfirmModal
+        isOpen={!!modal}
+        title="¿Eliminar Actividad?"
+        message={`Se desactivarán también los pasos y ejecuciones de "${modal?.nombre}".`}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+      />
       <div className="flex justify-between items-center mb-4">
         <h1>Diseño de Metodología</h1>
       </div>
@@ -208,6 +225,13 @@ export function ActividadesPage() {
                   <Link to={`/admin/actividades/${a.id}/pasos`} className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.85rem' }}>
                     ⚙️ Gestionar Pasos
                   </Link>
+                  <button
+                    className="btn"
+                    style={{ padding: '5px 12px', fontSize: '0.85rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                    onClick={() => setModal({ id: a.id, nombre: a.nombre })}
+                  >
+                    🗑️ Eliminar
+                  </button>
                 </div>
               </div>
               <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.8rem', fontSize: '0.95em' }}>{a.descripcion}</p>

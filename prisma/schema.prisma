@@ -14,6 +14,7 @@ model InstanciaActividad {
   usuarioId     String?
   accessToken   String    @unique
   estado        String
+  activo        Boolean   @default(true)
   fechaInicio   DateTime?
   fechaFin      DateTime?
   createdAt     DateTime @default(now())
@@ -42,6 +43,7 @@ model Interaccion {
 model Empresa {
   id        String   @id @default(uuid())
   nombre    String
+  activo    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   usuarios    Usuario[]
@@ -53,6 +55,7 @@ model Iniciativa {
   nombre      String
   descripcion String?
   empresaId   String
+  activo      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
@@ -66,6 +69,7 @@ model Actividad {
   descripcion  String?
   estado       String   @default("inactiva")
   iniciativaId String
+  activo       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -96,6 +100,7 @@ model PasoActividad {
   promptIa      String?
   usarIa        Boolean  @default(false)
   orden         Int
+  activo        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -1,27 +1,26 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 
 @Controller('organization/iniciativas')
 export class IniciativasController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @Get()
   async findAll(@Query('empresaId') empresaId?: string) {
-    console.log(`[IniciativasController] GET /iniciativas - empresaId: ${empresaId}`);
     if (empresaId) {
       return this.prisma.iniciativa.findMany({
-        where: { empresaId }
+        where: { empresaId, activo: true }
       });
     }
     return this.prisma.iniciativa.findMany({
+      where: { activo: true },
       include: { empresa: true }
     });
   }
 
   @Post()
   async create(@Body() body: { nombre: string; descripcion?: string; empresaId: string }) {
-    console.log(`[IniciativasController] POST /iniciativas - body:`, body);
     try {
       const res = await this.prisma.iniciativa.create({
         data: {
@@ -31,10 +30,8 @@ export class IniciativasController {
           empresaId: body.empresaId
         }
       });
-      console.log(`[IniciativasController] Iniciativa creada OK:`, res.id);
       return res;
     } catch (e: any) {
-      console.error(`[IniciativasController] ERROR CREANDO INICIATIVA:`, e.message);
       throw e;
     }
   }
@@ -43,7 +40,34 @@ export class IniciativasController {
   async findOne(@Param('id') id: string) {
     return this.prisma.iniciativa.findUnique({
       where: { id },
-      include: { empresa: true, actividades: true }
+      include: { empresa: true, actividades: { where: { activo: true } } }
+    });
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async softDelete(@Param('id') id: string) {
+    const actividades = await this.prisma.actividad.findMany({
+      where: { iniciativaId: id },
+      select: { id: true }
+    });
+    const actividadIds = actividades.map(a => a.id);
+
+    await this.prisma.instanciaActividad.updateMany({
+      where: { actividadId: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.pasoActividad.updateMany({
+      where: { actividadId: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.actividad.updateMany({
+      where: { id: { in: actividadIds } },
+      data: { activo: false }
+    });
+    await this.prisma.iniciativa.update({
+      where: { id },
+      data: { activo: false }
     });
   }
 }

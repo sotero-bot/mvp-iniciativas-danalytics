@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
@@ -15,11 +15,11 @@ export class ActividadesController {
 
   @Get()
   async findAll(@Query('iniciativaId') iniciativaId?: string) {
-    console.log(`[ActividadesController] GET /actividades - iniciativaId: ${iniciativaId}`);
     if (iniciativaId) {
-      return this.prisma.actividad.findMany({ where: { iniciativaId } });
+      return this.prisma.actividad.findMany({ where: { iniciativaId, activo: true } });
     }
     return this.prisma.actividad.findMany({
+      where: { activo: true },
       include: { iniciativa: { include: { empresa: true } } }
     });
   }
@@ -27,7 +27,7 @@ export class ActividadesController {
   @Post()
   async create(@Body() body: { nombre: string; descripcion: string; iniciativaId: string }) {
     try {
-      const res = await this.prisma.actividad.create({
+      return await this.prisma.actividad.create({
         data: {
           id: randomUUID(),
           nombre: body.nombre,
@@ -35,9 +35,7 @@ export class ActividadesController {
           iniciativaId: body.iniciativaId
         }
       });
-      return res;
     } catch (e: any) {
-      console.error(`[ActividadesController] ERROR CREANDO ACTIVIDAD:`, e.message);
       throw e;
     }
   }
@@ -47,19 +45,30 @@ export class ActividadesController {
     @Param('id') id: string,
     @Body() body: { nombre: string; descripcion: string; iniciativaId: string }
   ) {
-    try {
-      const res = await this.prisma.actividad.update({
-        where: { id },
-        data: {
-          nombre: body.nombre,
-          descripcion: body.descripcion,
-          iniciativaId: body.iniciativaId
-        }
-      });
-      return res;
-    } catch (e: any) {
-      console.error(`[ActividadesController] ERROR UPDATING ACTIVIDAD:`, e.message);
-      throw e;
-    }
+    return this.prisma.actividad.update({
+      where: { id },
+      data: {
+        nombre: body.nombre,
+        descripcion: body.descripcion,
+        iniciativaId: body.iniciativaId
+      }
+    });
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async softDelete(@Param('id') id: string) {
+    await this.prisma.instanciaActividad.updateMany({
+      where: { actividadId: id },
+      data: { activo: false }
+    });
+    await this.prisma.pasoActividad.updateMany({
+      where: { actividadId: id },
+      data: { activo: false }
+    });
+    await this.prisma.actividad.update({
+      where: { id },
+      data: { activo: false }
+    });
   }
 }

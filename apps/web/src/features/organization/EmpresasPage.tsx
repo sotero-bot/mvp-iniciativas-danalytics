@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'; // Ajustar según env
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function EmpresasPage() {
   const [empresas, setEmpresas] = useState([]);
   const [nombre, setNombre] = useState('');
   const [wasValidated, setWasValidated] = useState(false);
+  const [modal, setModal] = useState<{ id: string; nombre: string } | null>(null);
 
   const load = async () => {
     const res = await fetch(`${API_URL}/organization/empresas`);
@@ -26,8 +28,23 @@ export function EmpresasPage() {
     load();
   };
 
+  const handleDelete = async () => {
+    if (!modal) return;
+    await fetch(`${API_URL}/organization/empresas/${modal.id}`, { method: 'DELETE' });
+    setModal(null);
+    load();
+  };
+
   return (
     <div>
+      <ConfirmModal
+        isOpen={!!modal}
+        title="¿Eliminar Empresa?"
+        message={`Se desactivarán también todas las iniciativas, actividades y ejecuciones de "${modal?.nombre}".`}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+      />
+
       <div className="flex justify-between items-center mb-4">
         <h1>Gestión de Empresas</h1>
       </div>
@@ -69,7 +86,7 @@ export function EmpresasPage() {
               <th>ID</th>
               <th>Nombre</th>
               <th>Creado</th>
-              <th style={{ width: 100 }}>Acciones</th>
+              <th style={{ width: 120 }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -79,7 +96,16 @@ export function EmpresasPage() {
                 <td style={{ fontWeight: 500 }}>{e.nombre}</td>
                 <td style={{ color: 'var(--color-text-secondary)' }}>{new Date(e.createdAt).toLocaleDateString()}</td>
                 <td>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>Editar</button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>Editar</button>
+                    <button
+                      className="btn"
+                      style={{ padding: '4px 8px', fontSize: '12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                      onClick={() => setModal({ id: e.id, nombre: e.nombre })}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -14,6 +15,7 @@ export function ActividadPasosPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
+  const [modal, setModal] = useState<{ id: string; titulo: string } | null>(null);
   const [form, setForm] = useState({
     titulo: '',
     objetivo: '',
@@ -123,6 +125,14 @@ export function ActividadPasosPage() {
     setWasValidated(false);
   };
 
+
+  const handleDelete = async () => {
+    if (!modal) return;
+    await fetch(`${API_URL}/admin/actividades/${id}/pasos/${modal.id}`, { method: 'DELETE' });
+    setModal(null);
+    loadPasos();
+  };
+
   if (loading) return <div className="runner-center">Cargando pasos...</div>;
   if (error) return (
     <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
@@ -133,6 +143,13 @@ export function ActividadPasosPage() {
 
   return (
     <div className="layout-content">
+      <ConfirmModal
+        isOpen={!!modal}
+        title="¿Eliminar Paso?"
+        message={`El paso "${modal?.titulo}" será eliminado de esta actividad.`}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+      />
       <div className="flex justify-between items-center mb-4">
         <div>
           <button
@@ -288,9 +305,18 @@ export function ActividadPasosPage() {
                       )}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => handleEdit(p)}>
-                        Editar
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => handleEdit(p)}>
+                          Editar
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ padding: '2px 8px', fontSize: '0.75rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                          onClick={() => setModal({ id: p.id, titulo: p.titulo })}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {p.usarIa && p.promptIa && (

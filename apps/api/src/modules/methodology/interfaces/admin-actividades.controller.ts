@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Get, Body, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Put, Delete, Get, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
 import { ObtenerPasosActividadUseCase } from '../application/ObtenerPasosActividadUseCase';
@@ -19,16 +19,18 @@ export class AdminActividadesController {
   async obtenerPasos(@Param('id') id: string) {
     try {
       const pasos = await this.obtenerPasosUseCase.execute(id);
-      return pasos.map(p => new PasoActividadResponseDto({
-        id: p.id,
-        actividadId: p.actividadId,
-        titulo: p.titulo,
-        orden: p.orden,
-        objetivo: p.objetivo,
-        instrucciones: p.instrucciones,
-        usarIa: p.usarIa,
-        promptIa: p.promptIa
-      }));
+      return pasos
+        .filter((p: any) => p.activo !== false)
+        .map(p => new PasoActividadResponseDto({
+          id: p.id,
+          actividadId: p.actividadId,
+          titulo: p.titulo,
+          orden: p.orden,
+          objetivo: p.objetivo,
+          instrucciones: p.instrucciones,
+          usarIa: p.usarIa,
+          promptIa: p.promptIa
+        }));
     } catch (error) {
       this.handleError(error);
     }
@@ -47,6 +49,18 @@ export class AdminActividadesController {
     } catch (error) {
       this.handleError(error);
     }
+  }
+
+  @Delete(':id/pasos/:pasoId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async eliminarPaso(
+    @Param('id') _id: string,
+    @Param('pasoId') pasoId: string
+  ) {
+    await this.prisma.pasoActividad.update({
+      where: { id: pasoId },
+      data: { activo: false }
+    });
   }
 
   private handleError(error: unknown): void {
