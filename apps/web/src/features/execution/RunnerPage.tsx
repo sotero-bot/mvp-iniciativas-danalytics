@@ -37,6 +37,7 @@ export function RunnerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const editorRef = useRef<WysiwygEditorHandle>(null);
+  const iaEditorRef = useRef<WysiwygEditorHandle>(null);
 
   const loadData = async () => {
     try {
@@ -163,6 +164,7 @@ export function RunnerPage() {
     if (!respuesta.trim() && !archivoIa) return alert('Escribe tu respuesta o adjunta un archivo antes de consultar la IA');
     setEnviandoIa(true);
     setRespuestaIa('');
+    iaEditorRef.current?.replaceContent('');
 
     const paso = data!.pasos[currentStepIndex];
 
@@ -182,6 +184,7 @@ export function RunnerPage() {
 
       const json = await res.json();
       setRespuestaIa(json.respuestaIa);
+      iaEditorRef.current?.replaceContent(json.respuestaIa);
     } catch (err: any) {
       alert('Error en Asistente IA: ' + err.message);
     } finally {
@@ -476,6 +479,7 @@ export function RunnerPage() {
             </div>
 
             <WysiwygEditor
+              ref={iaEditorRef}
               value={respuestaIa}
               onChange={setRespuestaIa}
               placeholder="La respuesta de ChatGPT aparecerá aquí..."

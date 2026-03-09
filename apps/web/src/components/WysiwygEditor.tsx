@@ -18,6 +18,7 @@ interface WysiwygEditorProps {
 
 export interface WysiwygEditorHandle {
     insertContent: (text: string) => void;
+    replaceContent: (text: string) => void;
 }
 
 const ToolbarButton = ({
@@ -72,6 +73,11 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             const newContent = current.trim() ? current + '\n\n' + text : text;
             isInternalChange.current = false;
             editor.commands.setContent(newContent);
+        },
+        replaceContent: (text: string) => {
+            if (!editor) return;
+            isInternalChange.current = false;
+            editor.commands.setContent(text);
         }
     }), [editor]);
 
