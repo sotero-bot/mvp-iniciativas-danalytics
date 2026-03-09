@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 export function ActividadesPage() {
   const [list, setList] = useState<any[]>([]);
   const [iniciativas, setIniciativas] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
@@ -56,6 +57,49 @@ export function ActividadesPage() {
     }
   };
 
+  const update = async () => {
+    if (!form.iniciativaId || !editingId) {
+      alert('Debe seleccionar una Iniciativa y estar editando una actividad');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/methodology/actividades/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          descripcion: form.descripcion,
+          iniciativaId: form.iniciativaId
+        })
+      });
+
+      if (res.ok) {
+        load();
+        cancelEdit();
+      }
+    } catch (e) {
+      alert('Error en el servidor al actualizar');
+    }
+  };
+
+  const edit = (a: any) => {
+    setEditingId(a.id);
+    setForm({
+      nombre: a.nombre,
+      descripcion: a.descripcion || '',
+      iniciativaId: a.iniciativaId
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({
+      nombre: '',
+      descripcion: '',
+      iniciativaId: form.iniciativaId
+    });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -66,7 +110,7 @@ export function ActividadesPage() {
 
         {/* Formulario (Left) */}
         <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
-          <h3>Nueva Actividad</h3>
+          <h3>{editingId ? 'Editar Actividad' : 'Nueva Actividad'}</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Iniciativa</label>
@@ -100,9 +144,24 @@ export function ActividadesPage() {
                 rows={4}
               />
             </div>
-            <button className="btn btn-primary" onClick={create} disabled={!form.iniciativaId || !form.nombre}>
-              Guardar Actividad
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                className="btn btn-primary"
+                onClick={editingId ? update : create}
+                disabled={!form.iniciativaId || !form.nombre}
+                style={{ flex: 1 }}
+              >
+                {editingId ? 'Guardar Cambios' : 'Guardar Actividad'}
+              </button>
+              {editingId && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={cancelEdit}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -126,6 +185,9 @@ export function ActividadesPage() {
                   <h3 style={{ margin: 0, color: 'var(--color-primary)' }}>{a.nombre}</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.85rem' }} onClick={() => edit(a)}>
+                    ✏️ Editar
+                  </button>
                   <Link to={`/admin/actividades/${a.id}/pasos`} className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.85rem' }}>
                     ⚙️ Gestionar Pasos
                   </Link>

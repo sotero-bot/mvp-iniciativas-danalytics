@@ -12,6 +12,7 @@ export function ActividadPasosPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     titulo: '',
     objetivo: '',
@@ -49,11 +50,15 @@ export function ActividadPasosPage() {
     loadPasos();
   }, [id]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/admin/actividades/${id}/pasos`, {
-        method: 'POST',
+      const url = editingId
+        ? `${API_URL}/admin/actividades/${id}/pasos/${editingId}`
+        : `${API_URL}/admin/actividades/${id}/pasos`;
+
+      const res = await fetch(url, {
+        method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
@@ -66,7 +71,7 @@ export function ActividadPasosPage() {
       }
 
       if (res.status === 404) {
-        alert('Actividad no encontrada');
+        alert('Actividad/Paso no encontrado');
         return;
       }
 
@@ -77,14 +82,42 @@ export function ActividadPasosPage() {
           instrucciones: '',
           usarIa: false,
           promptIa: '',
-          orden: pasos.length + 2
+          orden: pasos.length + (editingId ? 1 : 2)
         });
         setShowForm(false);
+        setEditingId(null);
         loadPasos();
       }
     } catch (err) {
       alert('Error de conexión con el servidor');
     }
+  };
+
+  const handleEdit = (p: any) => {
+    setEditingId(p.id);
+    setForm({
+      titulo: p.titulo,
+      objetivo: p.objetivo || '',
+      instrucciones: p.instrucciones || '',
+      usarIa: p.usarIa || false,
+      promptIa: p.promptIa || '',
+      orden: p.orden
+    });
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setShowForm(false);
+    const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
+    setForm({
+      titulo: '',
+      objetivo: '',
+      instrucciones: '',
+      usarIa: false,
+      promptIa: '',
+      orden: maxOrden + 1
+    });
   };
 
   if (loading) return <div className="runner-center">Cargando pasos...</div>;
@@ -118,8 +151,8 @@ export function ActividadPasosPage() {
 
       {showForm && (
         <div className="card" style={{ marginBottom: '2rem', border: '1px solid var(--color-primary)' }}>
-          <h3>Nuevo Paso</h3>
-          <form onSubmit={handleCreate} style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <h3>{editingId ? 'Editar Paso' : 'Nuevo Paso'}</h3>
+          <form onSubmit={handleSubmit} style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label>Título *</label>
               <input
@@ -194,8 +227,8 @@ export function ActividadPasosPage() {
             )}
 
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar Paso</button>
+              <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">{editingId ? 'Guardar Cambios' : 'Guardar Paso'}</button>
             </div>
           </form>
         </div>
@@ -238,7 +271,7 @@ export function ActividadPasosPage() {
                       )}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} disabled>
+                      <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => handleEdit(p)}>
                         Editar
                       </button>
                     </td>

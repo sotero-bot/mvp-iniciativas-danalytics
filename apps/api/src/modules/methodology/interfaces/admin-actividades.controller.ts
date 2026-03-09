@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Body, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
 import { ObtenerPasosActividadUseCase } from '../application/ObtenerPasosActividadUseCase';
 import { AgregarPasoDto } from './dtos/agregar-paso.dto';
@@ -9,9 +10,10 @@ import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 @Controller('admin/actividades')
 export class AdminActividadesController {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly agregarPasoUseCase: AgregarPasoActividadUseCase,
     private readonly obtenerPasosUseCase: ObtenerPasosActividadUseCase
-  ) {}
+  ) { }
 
   @Get(':id/pasos')
   async obtenerPasos(@Param('id') id: string) {
@@ -54,5 +56,30 @@ export class AdminActividadesController {
       throw new BadRequestException(error.message);
     }
     throw error;
+  }
+
+  @Put(':id/pasos/:pasoId')
+  async actualizarPaso(
+    @Param('id') id: string,
+    @Param('pasoId') pasoId: string,
+    @Body() dto: any
+  ) {
+    try {
+      const res = await this.prisma.pasoActividad.update({
+        where: { id: pasoId },
+        data: {
+          titulo: dto.titulo,
+          objetivo: dto.objetivo,
+          instrucciones: dto.instrucciones,
+          usarIa: dto.usarIa,
+          promptIa: dto.promptIa,
+          orden: dto.orden
+        }
+      });
+      return res;
+    } catch (error) {
+      console.error(`[AdminActividadesController] ERROR UPDATING PASO:`, error);
+      throw error;
+    }
   }
 }
