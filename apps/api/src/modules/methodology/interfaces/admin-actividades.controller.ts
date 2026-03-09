@@ -26,6 +26,7 @@ export class AdminActividadesController {
         orden: p.orden,
         objetivo: p.objetivo,
         instrucciones: p.instrucciones,
+        usarIa: p.usarIa,
         promptIa: p.promptIa
       }));
     } catch (error) {

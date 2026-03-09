@@ -14,7 +14,7 @@ export class ConsultarIaPorTokenUseCase {
         });
     }
 
-    async execute(token: string, pasoId: string, respuestaUsuario: string): Promise<string> {
+    async execute(token: string, pasoId: string, respuestaUsuario: string, customPrompt?: string): Promise<string> {
         const instancia = await this.accederUseCase.execute(token);
 
         const paso = await this.prisma.pasoActividad.findUnique({
@@ -29,7 +29,7 @@ export class ConsultarIaPorTokenUseCase {
             throw new Error(`El paso no tiene habilitada la IA`);
         }
 
-        const systemPrompt = paso.promptIa || 'Eres un experto evaluando respuestas. Revisa el texto proporcionado y ofrece feedback constructivo.';
+        const systemPrompt = customPrompt || paso.promptIa || 'Eres un experto evaluando respuestas. Revisa el texto proporcionado y ofrece feedback constructivo.';
 
         try {
             const response = await this.openai.chat.completions.create({

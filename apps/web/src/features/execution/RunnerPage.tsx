@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -27,7 +29,10 @@ export function RunnerPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [respuesta, setRespuesta] = useState('');
   const [respuestaIa, setRespuestaIa] = useState('');
+  const [customPrompt, setCustomPrompt] = useState('');
   const [enviandoIa, setEnviandoIa] = useState(false);
+  const [iaViewMode, setIaViewMode] = useState<'preview' | 'edit'>('preview');
+  const [userViewMode, setUserViewMode] = useState<'preview' | 'edit'>('edit');
   const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,9 +51,14 @@ export function RunnerPage() {
         );
         if (lastAnsweredIndex !== -1) {
           setCurrentStepIndex(lastAnsweredIndex);
+          if (json.pasos[lastAnsweredIndex].promptIa) {
+            setCustomPrompt(json.pasos[lastAnsweredIndex].promptIa);
+          }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
         }
+      } else if (json.pasos.length > 0 && json.pasos[0].promptIa) {
+        setCustomPrompt(json.pasos[0].promptIa);
       }
     } catch (err: any) {
       setError(err.message);
@@ -134,6 +144,11 @@ export function RunnerPage() {
       setCurrentStepIndex(currentStepIndex + 1);
       setRespuesta('');
       setRespuestaIa('');
+      if (data!.pasos[currentStepIndex + 1]?.promptIa) {
+        setCustomPrompt(data!.pasos[currentStepIndex + 1].promptIa!);
+      } else {
+        setCustomPrompt('');
+      }
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -153,7 +168,7 @@ export function RunnerPage() {
       const res = await fetch(`${API_URL}/execution/${token}/ia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pasoId: paso.id, respuesta })
+        body: JSON.stringify({ pasoId: paso.id, respuesta, customPrompt })
       });
 
       if (!res.ok) {
@@ -298,7 +313,16 @@ export function RunnerPage() {
             borderLeft: '4px solid #64748b'
           }}>
             <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: 5 }}>PROMPT IA DE REFERENCIA</span>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155' }}>{currentPaso.promptIa}</p>
+            <textarea
+              className="input"
+              rows={20}
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              style={{ background: '#fff', fontSize: '0.9rem', color: '#334155', marginTop: 5 }}
+            />
+            <p style={{ margin: '5px 0 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+              Puedes ajustar este prompt para este intento. Solo afectará tu consulta actual.
+            </p>
           </div>
         )}
 
@@ -327,19 +351,79 @@ export function RunnerPage() {
               >
                 📋 Copiar en mi respuesta
               </button>
+              {currentPaso.usarIa && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  onClick={() => setCustomPrompt(prev => prev ? prev + '\n\n' + respuestaAnterior : respuestaAnterior)}
+                >
+                  🤖 Copiar en Prompt IA
+                </button>
+              )}
             </div>
           ) : null;
         })()}
 
         <div style={{ marginTop: 10 }}>
-          <label style={{ display: 'block', marginBottom: 10, fontWeight: 500 }}>Tu Respuesta</label>
-          <textarea
-            className="input"
-            rows={6}
-            value={respuesta}
-            onChange={e => setRespuesta(e.target.value)}
-            placeholder="Escribe aquí tu respuesta..."
-          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label style={{ fontWeight: 500, margin: 0 }}>Tu Respuesta</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className={`btn ${userViewMode === 'preview' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={() => setUserViewMode('preview')}
+              >
+                👁️ Vista Previa
+              </button>
+              <button
+                className={`btn ${userViewMode === 'edit' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={() => setUserViewMode('edit')}
+              >
+                ✏️ Editar
+              </button>
+            </div>
+          </div>
+
+          {userViewMode === 'preview' ? (
+            <div style={{
+              background: '#fdfcfe',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '1rem',
+              fontSize: '0.9rem',
+              color: '#334155',
+              overflowX: 'auto',
+              minHeight: '138px'
+            }}>
+              {!respuesta ? (
+                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Tu respuesta aparecerá aquí...</span>
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }} {...props} />,
+                    th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '10px', background: '#f1f5f9', textAlign: 'left', fontWeight: 'bold' }} {...props} />,
+                    td: ({ node, ...props }) => <td style={{ border: '1px solid #cbd5e1', padding: '10px' }} {...props} />,
+                    p: ({ node, ...props }) => <p style={{ marginBottom: '1rem' }} {...props} />,
+                    ul: ({ node, ...props }) => <ul style={{ paddingLeft: '1.5rem', marginBottom: '1rem' }} {...props} />,
+                    ol: ({ node, ...props }) => <ol style={{ paddingLeft: '1.5rem', marginBottom: '1rem' }} {...props} />
+                  }}
+                >
+                  {respuesta}
+                </ReactMarkdown>
+              )}
+            </div>
+          ) : (
+            <textarea
+              className="input"
+              rows={20}
+              value={respuesta}
+              onChange={e => setRespuesta(e.target.value)}
+              placeholder="Escribe aquí tu respuesta..."
+            />
+          )}
+
           {/* Botón enviar a IA — debajo de Tu Respuesta para dejar claro que envía ese contenido */}
           {currentPaso.usarIa && (
             <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
@@ -364,15 +448,64 @@ export function RunnerPage() {
             border: '1px solid #c4b5fd',
             borderRadius: 10
           }}>
-            <span style={{ display: 'block', fontWeight: 600, color: '#5b21b6', fontSize: '0.9rem', marginBottom: 10 }}>🤖 Asistente IA</span>
-            <textarea
-              className="input"
-              rows={5}
-              value={respuestaIa}
-              onChange={e => setRespuestaIa(e.target.value)}
-              placeholder="La respuesta de ChatGPT aparecerá aquí..."
-              style={{ background: '#fff', borderColor: '#c4b5fd', fontSize: '0.9rem' }}
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+              <span style={{ fontWeight: 600, color: '#5b21b6', fontSize: '0.9rem' }}>🤖 Asistente IA</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className={`btn ${iaViewMode === 'preview' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  onClick={() => setIaViewMode('preview')}
+                >
+                  👁️ Vista Previa
+                </button>
+                <button
+                  className={`btn ${iaViewMode === 'edit' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  onClick={() => setIaViewMode('edit')}
+                >
+                  ✏️ Editar
+                </button>
+              </div>
+            </div>
+
+            {iaViewMode === 'preview' ? (
+              <div style={{
+                background: '#fff',
+                border: '1px solid #c4b5fd',
+                borderRadius: '6px',
+                padding: '1rem',
+                fontSize: '0.9rem',
+                color: '#334155',
+                overflowX: 'auto'
+              }}>
+                {!respuestaIa ? (
+                  <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>La respuesta de ChatGPT aparecerá aquí...</span>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }} {...props} />,
+                      th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '10px', background: '#f1f5f9', textAlign: 'left', fontWeight: 'bold' }} {...props} />,
+                      td: ({ node, ...props }) => <td style={{ border: '1px solid #cbd5e1', padding: '10px' }} {...props} />,
+                      p: ({ node, ...props }) => <p style={{ marginBottom: '1rem' }} {...props} />,
+                      ul: ({ node, ...props }) => <ul style={{ paddingLeft: '1.5rem', marginBottom: '1rem' }} {...props} />,
+                      ol: ({ node, ...props }) => <ol style={{ paddingLeft: '1.5rem', marginBottom: '1rem' }} {...props} />
+                    }}
+                  >
+                    {respuestaIa}
+                  </ReactMarkdown>
+                )}
+              </div>
+            ) : (
+              <textarea
+                className="input"
+                rows={20}
+                value={respuestaIa}
+                onChange={e => setRespuestaIa(e.target.value)}
+                placeholder="La respuesta de ChatGPT aparecerá aquí..."
+                style={{ background: '#fff', borderColor: '#c4b5fd', fontSize: '0.9rem' }}
+              />
+            )}
           </div>
         )}
 

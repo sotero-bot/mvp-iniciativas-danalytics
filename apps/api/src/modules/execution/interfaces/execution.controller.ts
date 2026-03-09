@@ -107,10 +107,10 @@ export class ExecutionController {
   @HttpCode(HttpStatus.OK)
   async consultarIa(
     @Param('token') token: string,
-    @Body() body: { pasoId: string; respuesta: string }
+    @Body() body: { pasoId: string; respuesta: string; customPrompt?: string }
   ): Promise<{ respuestaIa: string }> {
     try {
-      const gptResponse = await this.consultarIaUseCase.execute(token, body.pasoId, body.respuesta);
+      const gptResponse = await this.consultarIaUseCase.execute(token, body.pasoId, body.respuesta, body.customPrompt);
       return { respuestaIa: gptResponse };
     } catch (error) {
       this.handleError(error);
