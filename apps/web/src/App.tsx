@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { EmpresasPage } from './features/organization/EmpresasPage';
 import { IniciativasPage } from './features/organization/IniciativasPage';
 import { ActividadesPage } from './features/methodology/ActividadesPage';
@@ -78,6 +78,9 @@ function App() {
 
         {/* Login Route */}
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+
+        {/* Root redirect */}
+        <Route path="/" element={<Navigate to={token ? '/admin/empresas' : '/login'} replace />} />
 
         {/* Default Redirect */}
         <Route path="*" element={

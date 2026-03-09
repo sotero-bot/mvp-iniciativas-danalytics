@@ -1,4 +1,8 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import * as os from 'os';
 import { AccederInstanciaPorTokenUseCase } from '../application/AccederInstanciaPorTokenUseCase';
 import { IniciarInstanciaPorTokenUseCase } from '../application/IniciarInstanciaPorTokenUseCase';
 import { RegistrarRespuestaPorTokenUseCase } from '../application/RegistrarRespuestaPorTokenUseCase';
@@ -105,12 +109,34 @@ export class ExecutionController {
 
   @Post(':token/ia')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('archivo', {
+      storage: diskStorage({
+        destination: os.tmpdir(),
+        filename: (_req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + path.extname(file.originalname));
+        }
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 } // 10 MB
+    })
+  )
   async consultarIa(
     @Param('token') token: string,
-    @Body() body: { pasoId: string; respuesta: string; customPrompt?: string }
+    @Body() body: { pasoId: string; respuesta: string; customPrompt?: string },
+    @UploadedFile() file?: Express.Multer.File
   ): Promise<{ respuestaIa: string }> {
     try {
-      const gptResponse = await this.consultarIaUseCase.execute(token, body.pasoId, body.respuesta, body.customPrompt);
+      const fileInfo = file
+        ? { path: file.path, mimetype: file.mimetype, originalname: file.originalname }
+        : undefined;
+      const gptResponse = await this.consultarIaUseCase.execute(
+        token,
+        body.pasoId,
+        body.respuesta,
+        body.customPrompt,
+        fileInfo
+      );
       return { respuestaIa: gptResponse };
     } catch (error) {
       this.handleError(error);

@@ -319,15 +319,7 @@ export function ActividadPasosPage() {
                       </div>
                     </td>
                   </tr>
-                  {p.usarIa && p.promptIa && (
-                    <tr style={{ borderBottom: '1px solid var(--color-bg-page)', background: 'rgba(0,0,0,0.02)' }}>
-                      <td colSpan={5} style={{ padding: '6px 12px 10px 32px' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                          🤖 Prompt: {p.promptIa}
-                        </span>
-                      </td>
-                    </tr>
-                  )}
+
                 </React.Fragment>
               ))}
             </tbody>
