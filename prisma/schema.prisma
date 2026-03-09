@@ -9,45 +9,43 @@ datasource db {
 }
 
 model InstanciaActividad {
-  id            String    @id
-  actividadId   String
-  usuarioId     String?
-  accessToken   String    @unique
-  estado        String
-  activo        Boolean   @default(true)
-  fechaInicio   DateTime?
-  fechaFin      DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String        @id
+  actividadId     String
+  usuarioId       String?
+  accessToken     String        @unique
+  estado          String
+  activo          Boolean       @default(true)
+  fechaInicio     DateTime?
+  fechaFin        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   emailReferencia String?
-  
-  actividad     Actividad @relation(fields: [actividadId], references: [id])
-  usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
-  interacciones Interaccion[]
+  actividad       Actividad     @relation(fields: [actividadId], references: [id])
+  usuario         Usuario?      @relation(fields: [usuarioId], references: [id])
+  interacciones   Interaccion[]
 }
 
 model Interaccion {
-  id          String   @id @default(uuid())
+  id          String             @id @default(uuid())
   instanciaId String
   pasoId      String
   contenido   String
-  fecha       DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  fecha       DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   instancia   InstanciaActividad @relation(fields: [instanciaId], references: [id])
-  paso        PasoActividad @relation(fields: [pasoId], references: [id])
+  paso        PasoActividad      @relation(fields: [pasoId], references: [id])
 
   @@index([pasoId])
 }
 
 model Empresa {
-  id        String   @id @default(uuid())
-  nombre    String
-  activo    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  usuarios    Usuario[]
+  id          String       @id @default(uuid())
+  nombre      String
+  activo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   iniciativas Iniciativa[]
+  usuarios    Usuario[]
 }
 
 model Iniciativa {
@@ -58,71 +56,67 @@ model Iniciativa {
   activo      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  
-  empresa     Empresa     @relation(fields: [empresaId], references: [id])
   actividades Actividad[]
+  empresa     Empresa     @relation(fields: [empresaId], references: [id])
 }
 
 model Actividad {
-  id           String   @id @default(uuid())
+  id           String               @id @default(uuid())
   nombre       String
   descripcion  String?
-  estado       String   @default("inactiva")
+  estado       String               @default("inactiva")
   iniciativaId String
-  activo       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  iniciativa   Iniciativa @relation(fields: [iniciativaId], references: [id])
+  activo       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  iniciativa   Iniciativa           @relation(fields: [iniciativaId], references: [id])
+  enlaces      EnlaceActividad[]
   instancias   InstanciaActividad[]
   pasos        PasoActividad[]
-  enlaces      EnlaceActividad[]
 }
 
 model EnlaceActividad {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   actividadId String
-  accessToken String   @unique
+  accessToken String    @unique
   nombre      String?
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   actividad   Actividad @relation(fields: [actividadId], references: [id])
 }
 
 model PasoActividad {
-  id            String   @id @default(uuid())
+  id            String        @id @default(uuid())
   actividadId   String
   titulo        String
   objetivo      String?
   instrucciones String?
   promptIa      String?
-  usarIa        Boolean  @default(false)
+  usarIa        Boolean       @default(false)
   orden         Int
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  actividad     Actividad @relation(fields: [actividadId], references: [id])
+  activo        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   interacciones Interaccion[]
+  actividad     Actividad     @relation(fields: [actividadId], references: [id])
 
   @@unique([actividadId, orden])
   @@index([actividadId])
 }
 
 model Usuario {
-  id        String   @id @default(uuid())
-  nombre    String
-  email     String?
-  cargo     String?
-  empresaId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  estado    String   @default("activo")
-  
-  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  id         String               @id @default(uuid())
+  nombre     String
+  email      String?
+  cargo      String?
+  empresaId  String
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  estado     String               @default("activo")
+  activo     Boolean              @default(true)
   instancias InstanciaActividad[]
+  empresa    Empresa              @relation(fields: [empresaId], references: [id])
 }
 
 model Admin {
@@ -130,6 +124,7 @@ model Admin {
   username  String   @unique
   nombre    String
   password  String
+  activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -9,21 +9,24 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService
-  ) {}
+  ) { }
 
   async validateAdmin(username: string, pass: string): Promise<any> {
     console.log(`[AuthService] Intentando validar usuario: ${username}`);
     const admin = await this.prisma.admin.findUnique({ where: { username } });
-    
     if (admin) {
+      if (!admin.activo) {
+        console.log(`[AuthService] Usuario INACTIVO: ${username}`);
+        return null;
+      }
       console.log(`[AuthService] Usuario encontrado en BD, verificando password...`);
       const isMatch = await bcrypt.compare(pass, admin.password);
       if (isMatch) {
-         console.log(`[AuthService] Password Correcto`);
-         const { password, ...result } = admin;
-         return result;
+        console.log(`[AuthService] Password Correcto`);
+        const { password, ...result } = admin;
+        return result;
       } else {
-         console.log(`[AuthService] Password INCORRECTO`);
+        console.log(`[AuthService] Password INCORRECTO`);
       }
     } else {
       console.log(`[AuthService] Usuario NO encontrado: ${username}`);
