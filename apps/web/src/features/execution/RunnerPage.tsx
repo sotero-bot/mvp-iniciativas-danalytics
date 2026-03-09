@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { WysiwygEditor } from '../../components/WysiwygEditor';
+import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -36,6 +36,7 @@ export function RunnerPage() {
   const [wasValidated, setWasValidated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const editorRef = useRef<WysiwygEditorHandle>(null);
 
   const loadData = async () => {
     try {
@@ -377,7 +378,7 @@ export function RunnerPage() {
               <button
                 className="btn btn-secondary"
                 style={{ padding: '4px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-                onClick={() => setRespuesta(prev => prev ? prev + '\n\n' + respuestaAnterior : respuestaAnterior)}
+                onClick={() => editorRef.current?.insertContent(respuestaAnterior)}
               >
                 📋 Copiar en mi respuesta
               </button>
@@ -397,6 +398,7 @@ export function RunnerPage() {
         <div style={{ marginTop: 10 }}>
           <label style={{ fontWeight: 500, display: 'block', marginBottom: 8 }}>Tu Respuesta</label>
           <WysiwygEditor
+            ref={editorRef}
             value={respuesta}
             onChange={setRespuesta}
             placeholder="Escribe aquí tu respuesta..."

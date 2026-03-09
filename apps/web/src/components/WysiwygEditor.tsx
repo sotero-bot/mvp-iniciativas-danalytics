@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -14,6 +14,10 @@ interface WysiwygEditorProps {
     placeholder?: string;
     minHeight?: number;
     borderColor?: string;
+}
+
+export interface WysiwygEditorHandle {
+    insertContent: (text: string) => void;
 }
 
 const ToolbarButton = ({
@@ -39,7 +43,7 @@ const ToolbarButton = ({
     </button>
 );
 
-export function WysiwygEditor({ value, onChange, placeholder = 'Escribe aquí...', minHeight = 280, borderColor = '#e2e8f0' }: WysiwygEditorProps) {
+export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(function WysiwygEditor({ value, onChange, placeholder = 'Escribe aquí...', minHeight = 280, borderColor = '#e2e8f0' }, ref) {
     const isInternalChange = useRef(false);
 
     const editor = useEditor({
@@ -60,6 +64,16 @@ export function WysiwygEditor({ value, onChange, placeholder = 'Escribe aquí...
             onChange(md);
         }
     });
+
+    useImperativeHandle(ref, () => ({
+        insertContent: (text: string) => {
+            if (!editor) return;
+            const current = (editor.storage as any).markdown.getMarkdown();
+            const newContent = current.trim() ? current + '\n\n' + text : text;
+            isInternalChange.current = false;
+            editor.commands.setContent(newContent);
+        }
+    }), [editor]);
 
     // Sync external value changes (e.g. GPT response arriving)
     useEffect(() => {
@@ -139,4 +153,4 @@ export function WysiwygEditor({ value, onChange, placeholder = 'Escribe aquí...
       `}</style>
         </div>
     );
-}
+});
