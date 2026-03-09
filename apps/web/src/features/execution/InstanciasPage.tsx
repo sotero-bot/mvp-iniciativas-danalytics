@@ -15,6 +15,7 @@ export function InstanciasPage() {
   const [wasValidated, setWasValidated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
+  const [deleteEnlaceModal, setDeleteEnlaceModal] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -26,6 +27,13 @@ export function InstanciasPage() {
     if (!deleteModal) return;
     await fetch(`${API_URL}/admin/instancias/${deleteModal}`, { method: 'DELETE' });
     setDeleteModal(null);
+    load();
+  };
+
+  const handleDeleteEnlace = async () => {
+    if (!deleteEnlaceModal) return;
+    await fetch(`${API_URL}/admin/enlaces/${deleteEnlaceModal}`, { method: 'DELETE' });
+    setDeleteEnlaceModal(null);
     load();
   };
 
@@ -103,6 +111,14 @@ export function InstanciasPage() {
         message="Esta acción desactivará la ejecución y no se podrá acceder a ella."
         onConfirm={handleDeleteInstancia}
         onCancel={() => setDeleteModal(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteEnlaceModal}
+        title="¿Eliminar Enlace?"
+        message="Esta acción desactivará este enlace permanente. Las sesiones ya iniciadas continuarán, pero no se podrán crear nuevas desde este link."
+        onConfirm={handleDeleteEnlace}
+        onCancel={() => setDeleteEnlaceModal(null)}
       />
 
       {/* ─── SECCIÓN: ENLACES MULTI-PERSONA ─── */}
@@ -211,10 +227,19 @@ export function InstanciasPage() {
                       {new Date(e.createdAt).toLocaleDateString()}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: '0.82rem' }}
-                        onClick={() => { navigator.clipboard.writeText(url); showToast('✅ Enlace copiado al portapapeles'); }}>
-                        📋 Copiar enlace
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: '0.82rem' }}
+                          onClick={() => { navigator.clipboard.writeText(url); showToast('✅ Enlace copiado al portapapeles'); }}>
+                          📋 Copiar enlace
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ padding: '4px 8px', fontSize: '0.82rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                          onClick={() => setDeleteEnlaceModal(e.id)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

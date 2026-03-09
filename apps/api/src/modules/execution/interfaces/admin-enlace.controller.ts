@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
 import { GenerarEnlaceActividadUseCase } from '../application/GenerarEnlaceActividadUseCase';
 import { IniciarSesionPorEnlaceUseCase } from '../application/IniciarSesionPorEnlaceUseCase';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
@@ -26,6 +26,7 @@ export class AdminEnlaceController {
     @Get()
     async listAll() {
         return this.prisma.enlaceActividad.findMany({
+            where: { activo: true },
             orderBy: { createdAt: 'desc' },
             include: {
                 actividad: {
@@ -34,6 +35,15 @@ export class AdminEnlaceController {
                     }
                 }
             }
+        });
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Param('id') id: string) {
+        await this.prisma.enlaceActividad.update({
+            where: { id },
+            data: { activo: false }
         });
     }
 }
