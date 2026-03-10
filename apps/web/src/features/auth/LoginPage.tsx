@@ -49,12 +49,10 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         maxWidth: 480,
       }}>
         <div style={{ marginBottom: '3rem' }}>
-          <div style={{
-            width: 40, height: 40,
-            background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-            borderRadius: 10,
+          <img src="/logo-horizontal.png" alt="Danalytics Logo" style={{
+            height: 48,
             marginBottom: '1.5rem',
-            boxShadow: '0 4px 14px rgba(37,99,235,0.4)'
+            objectFit: 'contain'
           }} />
           <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>Bienvenido</h1>
           <p style={{ color: '#64748B', marginTop: 8 }}>Inicia sesión en el panel de IAGobernanza</p>
