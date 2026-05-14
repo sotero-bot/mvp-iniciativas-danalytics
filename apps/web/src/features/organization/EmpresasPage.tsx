@@ -9,6 +9,8 @@ interface Empresa {
   nombre: string;
   logoUrl?: string | null;
   createdAt: string;
+  contextoPdfNombre?: string | null;
+  contextoPdfActualizadoEn?: string | null;
 }
 
 function toBase64(file: File): Promise<string> {
@@ -120,6 +122,7 @@ export function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [nombre, setNombre] = useState('');
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [createPdfFile, setCreatePdfFile] = useState<File | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -128,6 +131,8 @@ export function EmpresasPage() {
   const [editNombre, setEditNombre] = useState('');
   const [editLogoBase64, setEditLogoBase64] = useState<string | null | undefined>(undefined);
   const [editWasValidated, setEditWasValidated] = useState(false);
+  const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
+  const [editPdfRemove, setEditPdfRemove] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const showToast = (msg: string) => {
@@ -146,13 +151,20 @@ export function EmpresasPage() {
     if (!nombre) return;
     const body: any = { nombre };
     if (logoBase64 !== null) body.logoUrl = logoBase64;
-    await fetch(`${API_URL}/organization/empresas`, {
+    const res = await fetch(`${API_URL}/organization/empresas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (createPdfFile) {
+      const created = await res.json();
+      const fd = new FormData();
+      fd.append('archivo', createPdfFile);
+      await fetch(`${API_URL}/organization/empresas/${created.id}/contexto-pdf`, { method: 'POST', body: fd });
+    }
     setNombre('');
     setLogoBase64(null);
+    setCreatePdfFile(null);
     setWasValidated(false);
     load();
     showToast('Empresa creada correctamente');
@@ -171,6 +183,8 @@ export function EmpresasPage() {
     setEditNombre(emp.nombre);
     setEditLogoBase64(undefined);
     setEditWasValidated(false);
+    setEditPdfFile(null);
+    setEditPdfRemove(false);
   };
 
   const handleEdit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -187,6 +201,13 @@ export function EmpresasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (editPdfRemove) {
+      await fetch(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'DELETE' });
+    } else if (editPdfFile) {
+      const fd = new FormData();
+      fd.append('archivo', editPdfFile);
+      await fetch(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'POST', body: fd });
+    }
     setSaving(false);
     setEditModal(null);
     load();
@@ -232,6 +253,58 @@ export function EmpresasPage() {
                   current={editLogoBase64 !== undefined ? editLogoBase64 : editModal.logoUrl}
                   onChange={setEditLogoBase64}
                 />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>
+                  PDF de contexto <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span>
+                </label>
+                {editPdfRemove ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '0.8rem', color: '#EF4444' }}>Se eliminará el PDF al guardar.</span>
+                    <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#64748B', padding: 0 }}
+                      onClick={() => setEditPdfRemove(false)}>Deshacer</button>
+                  </div>
+                ) : editPdfFile ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '0.8rem', color: '#0F172A' }}>📄 {editPdfFile.name}</span>
+                    <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
+                      onClick={() => setEditPdfFile(null)}>✕ Quitar</button>
+                  </div>
+                ) : editModal.contextoPdfNombre ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 10px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 500,
+                      background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0',
+                    }}>
+                      📄 {editModal.contextoPdfNombre}
+                    </span>
+                    <label style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+                      fontSize: '0.78rem', background: '#EFF6FF', color: '#2563EB',
+                      borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE',
+                    }}>
+                      Reemplazar
+                      <input type="file" accept=".pdf" style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
+                    </label>
+                    <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
+                      onClick={() => setEditPdfRemove(true)}>✕ Quitar PDF</button>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px',
+                    fontSize: '0.8rem', background: '#EFF6FF', color: '#2563EB',
+                    borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
+                  }}>
+                    Subir PDF de contexto
+                    <input type="file" accept=".pdf" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
+                  </label>
+                )}
+                <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
+                  El texto del PDF se inyectará en todos los prompts de IA de esta empresa.
+                </p>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancelar</button>
@@ -289,6 +362,29 @@ export function EmpresasPage() {
             <LogoUploadField current={logoBase64} onChange={setLogoBase64} />
           </div>
           <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>PDF de contexto <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span></label>
+            {createPdfFile ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.8rem', color: '#0F172A' }}>📄 {createPdfFile.name}</span>
+                <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
+                  onClick={() => setCreatePdfFile(null)}>✕ Quitar</button>
+              </div>
+            ) : (
+              <label style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px',
+                fontSize: '0.8rem', background: '#EFF6FF', color: '#2563EB',
+                borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
+              }}>
+                Subir PDF de contexto
+                <input type="file" accept=".pdf" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) setCreatePdfFile(f); }} />
+              </label>
+            )}
+            <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
+              El texto del PDF se inyectará en todos los prompts de IA de esta empresa.
+            </p>
+          </div>
+          <div>
             <button type="submit" className="btn btn-primary">Crear empresa</button>
           </div>
         </form>
@@ -311,6 +407,7 @@ export function EmpresasPage() {
             <thead>
               <tr>
                 <th>Empresa</th>
+                <th>Contexto PDF</th>
                 <th>Creada</th>
                 <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
@@ -323,6 +420,27 @@ export function EmpresasPage() {
                       <LogoPreview src={emp.logoUrl} nombre={emp.nombre} size={32} />
                       <span style={{ fontWeight: 500 }}>{emp.nombre}</span>
                     </div>
+                  </td>
+                  <td>
+                    {emp.contextoPdfNombre ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: '0.75rem', fontWeight: 500,
+                        padding: '2px 9px', borderRadius: 20,
+                        background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0',
+                      }} title={emp.contextoPdfNombre}>
+                        📄 Subido
+                      </span>
+                    ) : (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: '0.75rem', fontWeight: 500,
+                        padding: '2px 9px', borderRadius: 20,
+                        background: '#F1F5F9', color: '#94A3B8', border: '1px solid #E2E8F0',
+                      }}>
+                        Sin PDF
+                      </span>
+                    )}
                   </td>
                   <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
                     {new Date(emp.createdAt).toLocaleDateString()}

@@ -14,11 +14,12 @@ export class UsuariosController {
   }
 
   @Post()
-  async create(@Body() body: { nombre: string; cargo: string; empresaId: string }) {
+  async create(@Body() body: { nombre: string; email: string; cargo: string; empresaId: string }) {
     return this.prisma.usuario.create({
       data: {
         id: randomUUID(),
         nombre: body.nombre,
+        email: body.email?.toLowerCase().trim(),
         cargo: body.cargo,
         empresaId: body.empresaId
       }

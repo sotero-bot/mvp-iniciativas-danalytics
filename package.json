@@ -21,6 +21,7 @@
   "scripts": {
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",
     "seed:admin": "npx ts-node -e 'import { PrismaClient } from \"@prisma/client\"; import * as bcrypt from \"bcrypt\"; const prisma = new PrismaClient(); async function run() { const password = \"dax1973*\"; const hashedPassword = await bcrypt.hash(password, 10); await prisma.admin.upsert({ where: { username: \"admin\" }, update: { activo: true }, create: { username: \"admin\", nombre: \"Admin Principal\", password: hashedPassword, activo: true } }); console.log(\"Admin verificado/creado y activado\"); await prisma.$disconnect(); } run();'",
+    "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "vercel-build": "prisma generate && prisma db push && tsc -p tsconfig.json && vite build && npm run seed:admin"
   },
   "dependencies": {
@@ -48,7 +49,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse": "^1.1.1",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tiptap-markdown": "^0.9.0",

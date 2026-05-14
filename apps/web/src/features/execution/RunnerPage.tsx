@@ -246,7 +246,19 @@ export function RunnerPage() {
         body: JSON.stringify(idenForm)
       });
       if (!res.ok) throw new Error('Error al registrar identificación');
-      const res2 = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
+      const result = await res.json();
+
+      // Si el usuario ya tenía una sesión previa, el backend devuelve ese token
+      const activeToken: string = result.instanceToken ?? token;
+
+      if (activeToken !== token) {
+        // Redirigir a la sesión existente (ya está iniciada, no llamar /iniciar)
+        window.location.replace(`/runner/${activeToken}`);
+        return;
+      }
+
+      // Sesión nueva: iniciar y recargar
+      const res2 = await fetch(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
       if (!res2.ok) {
         const errJson = await res2.json();
         throw new Error(errJson.message || 'Error al iniciar la actividad');
@@ -397,18 +409,29 @@ export function RunnerPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Correo Electrónico</label>
+                    <input className="input" type="email" required value={idenForm.email}
+                      onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
+                      onBlur={async e => {
+                        const email = e.target.value.trim();
+                        if (!email || !/\S+@\S+\.\S+/.test(email)) return;
+                        try {
+                          const res = await fetch(`${API_URL}/execution/${token}/usuario?email=${encodeURIComponent(email)}`);
+                          if (res.ok) {
+                            const u = await res.json();
+                            setIdenForm(f => ({ ...f, nombre: u.nombre, cargo: u.cargo ?? f.cargo, area: u.area ?? f.area }));
+                          }
+                        } catch { /* sin usuario previo, no hacer nada */ }
+                      }}
+                      placeholder="ejemplo@empresa.com" />
+                    <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
+                  </div>
+                  <div>
                     <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Nombre Completo</label>
                     <input className="input" required value={idenForm.nombre}
                       onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
                       placeholder="Su nombre completo" />
                     <div className="invalid-feedback">El nombre completo es requerido.</div>
-                  </div>
-                  <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Correo Electrónico</label>
-                    <input className="input" type="email" required value={idenForm.email}
-                      onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
-                      placeholder="ejemplo@empresa.com" />
-                    <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1 }}>

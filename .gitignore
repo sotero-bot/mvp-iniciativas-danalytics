@@ -1,6 +1,9 @@
 # Productos generados
 Producto*.md
 
+# Planes de trabajo locales (no versionados)
+_tareas_realizar/
+
 # Dependencias
 node_modules/
 package-lock.json

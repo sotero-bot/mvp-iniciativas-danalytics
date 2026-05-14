@@ -26,27 +26,33 @@ model InstanciaActividad {
 }
 
 model Interaccion {
-  id          String             @id @default(uuid())
-  instanciaId String
-  pasoId      String
-  contenido   String
-  fecha       DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  instancia   InstanciaActividad @relation(fields: [instanciaId], references: [id])
-  paso        PasoActividad      @relation(fields: [pasoId], references: [id])
+  id               String             @id @default(uuid())
+  instanciaId      String
+  pasoId           String
+  contenido        String
+  respuestaUsuario String?
+  respuestaIa      String?
+  fecha            DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  instancia        InstanciaActividad @relation(fields: [instanciaId], references: [id])
+  paso             PasoActividad      @relation(fields: [pasoId], references: [id])
 
+  @@unique([instanciaId, pasoId])
   @@index([pasoId])
 }
 
 model Empresa {
-  id          String       @id @default(uuid())
-  nombre      String
-  activo      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  logoUrl     String?
-  iniciativas Iniciativa[]
-  usuarios    Usuario[]
+  id                       String       @id @default(uuid())
+  nombre                   String
+  activo                   Boolean      @default(true)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  logoUrl                  String?
+  contextoPdfNombre        String?
+  contextoPdfTexto         String?      @db.Text
+  contextoPdfActualizadoEn DateTime?
+  iniciativas              Iniciativa[]
+  usuarios                 Usuario[]
 }
 
 model Iniciativa {
@@ -109,7 +115,7 @@ model PasoActividad {
 model Usuario {
   id         String               @id @default(uuid())
   nombre     String
-  email      String?
+  email      String
   cargo      String?
   empresaId  String
   createdAt  DateTime             @default(now())
@@ -119,6 +125,8 @@ model Usuario {
   area       String?
   instancias InstanciaActividad[]
   empresa    Empresa              @relation(fields: [empresaId], references: [id])
+
+  @@unique([empresaId, email], name: "empresa_email_unico")
 }
 
 model Admin {

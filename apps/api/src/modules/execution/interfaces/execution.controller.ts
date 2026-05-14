@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
@@ -11,6 +11,7 @@ import { AsignarUsuarioPorTokenUseCase } from '../application/AsignarUsuarioPorT
 import { IniciarSesionPorEnlaceUseCase } from '../application/IniciarSesionPorEnlaceUseCase';
 import { ConsultarIaPorTokenUseCase } from '../application/ConsultarIaPorTokenUseCase';
 import { RunnerResponseDto, IniciarResponseDto, FinalizarResponseDto, RegistrarRespuestaDto } from './dtos';
+import { IdentificarResult } from '../application/AsignarUsuarioPorTokenUseCase';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
 import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { PrismaService } from '../../../prisma.service';
@@ -161,13 +162,33 @@ export class ExecutionController {
     }
   }
 
+  @Get(':token/usuario')
+  async buscarUsuario(
+    @Param('token') token: string,
+    @Query('email') email: string
+  ): Promise<{ nombre: string; cargo?: string; area?: string; email: string } | null> {
+    if (!email) return null;
+    const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    const actividad = await this.prisma.actividad.findUnique({
+      where: { id: instancia.actividadId },
+      include: { iniciativa: true }
+    });
+    if (!actividad) throw new NotFoundException('Actividad no encontrada');
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { empresa_email_unico: { empresaId: actividad.iniciativa.empresaId, email: email.toLowerCase().trim() } }
+    });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    return { nombre: usuario.nombre, cargo: usuario.cargo ?? undefined, area: usuario.area ?? undefined, email: usuario.email };
+  }
+
   @Post(':token/identificar')
   async identificar(
     @Param('token') token: string,
-    @Body() body: { nombre: string; email?: string; cargo?: string; area?: string }
-  ): Promise<void> {
+    @Body() body: { nombre: string; email: string; cargo?: string; area?: string }
+  ): Promise<IdentificarResult> {
     try {
-      await this.identificarUseCase.execute(token, body);
+      return await this.identificarUseCase.execute(token, body);
     } catch (error) {
       this.handleError(error);
     }
