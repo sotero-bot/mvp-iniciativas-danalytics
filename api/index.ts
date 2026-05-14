@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from '../apps/api/src/app.module';
+import { json, urlencoded } from 'express';
 
 const express = require('express');
 const server = express();
@@ -14,7 +15,11 @@ export const createNestServer = async (expressInstance: any) => {
     nestApp = await NestFactory.create(
         AppModule,
         new ExpressAdapter(expressInstance),
+        { bodyParser: false },
     );
+
+    nestApp.use(json({ limit: '5mb' }));
+    nestApp.use(urlencoded({ limit: '5mb', extended: true }));
 
     nestApp.enableCors({
         origin: true,
@@ -22,13 +27,6 @@ export const createNestServer = async (expressInstance: any) => {
         credentials: true,
     });
 
-    nestApp.setGlobalPrefix('api'); // Ensure NestJS routes match Vercel's /api prefix if they don't already. Otherwise they will 404.
-    /* Note: If your controllers already have @Controller('api/...') you can comment out setGlobalPrefix. 
-       Usually, Vercel strips the /api part, or NestJS expects it. Safe approach is not to set it unless needed, 
-       but let's avoid it here and let it route natively since standard behavior is for controllers to just be @Controller('users') etc. 
-       Wait, actually, I will configure Vercel to route /api/(.*) to this index, which passes the original URL (e.g., /api/users).
-       So NestJS will see /api/users. If your controllers don't have the 'api' prefix, we must use setGlobalPrefix('api').
-    */
     nestApp.setGlobalPrefix('api');
 
     await nestApp.init();
