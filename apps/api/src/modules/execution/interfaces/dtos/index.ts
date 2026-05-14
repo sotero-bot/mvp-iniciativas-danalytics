@@ -2,6 +2,8 @@ export class RunnerResponseDto {
   estado: string;
   nombreActividad: string;
   descripcionActividad?: string;
+  nombreEmpresa?: string;
+  logoEmpresa?: string;
   usuarioId?: string;
   pasos: Array<{
     id: string;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
@@ -7,18 +7,126 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 interface Empresa {
   id: string;
   nombre: string;
+  logoUrl?: string | null;
   createdAt: string;
+}
+
+function toBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function LogoPreview({ src, nombre, size = 32 }: { src?: string | null; nombre: string; size?: number }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={nombre}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', border: '1px solid #E2E8F0', background: '#fff' }}
+      />
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.35 + 'px', fontWeight: 700, color: 'white', flexShrink: 0,
+    }}>
+      {nombre.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function LogoUploadField({
+  current,
+  onChange,
+}: {
+  current?: string | null;
+  onChange: (base64: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(current ?? null);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const b64 = await toBase64(file);
+    setPreview(b64);
+    onChange(b64);
+  };
+
+  const handleRemove = () => {
+    setPreview(null);
+    onChange(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {preview ? (
+        <img
+          src={preview}
+          alt="Logo"
+          style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'contain', border: '1px solid #E2E8F0', background: '#F8FAFC' }}
+        />
+      ) : (
+        <div style={{
+          width: 48, height: 48, borderRadius: 8,
+          background: '#F1F5F9', border: '1px dashed #CBD5E1',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '1.25rem', color: '#94A3B8',
+        }}>🖼</div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '4px 12px', fontSize: '0.8rem',
+          background: '#EFF6FF', color: '#2563EB',
+          borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+          border: '1px solid #BFDBFE', width: 'fit-content',
+        }}>
+          {preview ? 'Cambiar logo' : 'Subir logo'}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          />
+        </label>
+        {preview && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '0.75rem', color: '#EF4444', textAlign: 'left', padding: 0,
+            }}
+          >
+            ✕ Quitar logo
+          </button>
+        )}
+        <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>PNG, JPG, SVG — recomendado cuadrado</span>
+      </div>
+    </div>
+  );
 }
 
 export function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [nombre, setNombre] = useState('');
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const [editModal, setEditModal] = useState<Empresa | null>(null);
   const [editNombre, setEditNombre] = useState('');
+  const [editLogoBase64, setEditLogoBase64] = useState<string | null | undefined>(undefined);
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -36,12 +144,15 @@ export function EmpresasPage() {
 
   const create = async () => {
     if (!nombre) return;
+    const body: any = { nombre };
+    if (logoBase64 !== null) body.logoUrl = logoBase64;
     await fetch(`${API_URL}/organization/empresas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre })
+      body: JSON.stringify(body),
     });
     setNombre('');
+    setLogoBase64(null);
     setWasValidated(false);
     load();
     showToast('Empresa creada correctamente');
@@ -58,20 +169,23 @@ export function EmpresasPage() {
   const openEdit = (emp: Empresa) => {
     setEditModal(emp);
     setEditNombre(emp.nombre);
+    setEditLogoBase64(undefined);
     setEditWasValidated(false);
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
+  const handleEdit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget as HTMLFormElement;
     setEditWasValidated(true);
     if (!form.checkValidity()) return;
     if (!editModal) return;
     setSaving(true);
+    const body: any = { nombre: editNombre };
+    if (editLogoBase64 !== undefined) body.logoUrl = editLogoBase64;
     await fetch(`${API_URL}/organization/empresas/${editModal.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: editNombre })
+      body: JSON.stringify(body),
     });
     setSaving(false);
     setEditModal(null);
@@ -104,13 +218,20 @@ export function EmpresasPage() {
             <form
               className={editWasValidated ? 'was-validated' : ''}
               onSubmit={handleEdit}
-              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
               noValidate
             >
               <div>
                 <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
                 <div className="invalid-feedback">El nombre es requerido.</div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo</label>
+                <LogoUploadField
+                  current={editLogoBase64 !== undefined ? editLogoBase64 : editModal.logoUrl}
+                  onChange={setEditLogoBase64}
+                />
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancelar</button>
@@ -151,18 +272,23 @@ export function EmpresasPage() {
             if (form.checkValidity()) create();
           }}
           noValidate
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-          <div className="flex gap-2" style={{ alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <input
-                className="input"
-                required
-                value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                placeholder="Ej: Empresa ABC S.A."
-              />
-              <div className="invalid-feedback">El nombre de la empresa es requerido.</div>
-            </div>
+          <div>
+            <input
+              className="input"
+              required
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              placeholder="Ej: Empresa ABC S.A."
+            />
+            <div className="invalid-feedback">El nombre de la empresa es requerido.</div>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span></label>
+            <LogoUploadField current={logoBase64} onChange={setLogoBase64} />
+          </div>
+          <div>
             <button type="submit" className="btn btn-primary">Crear empresa</button>
           </div>
         </form>
@@ -192,7 +318,12 @@ export function EmpresasPage() {
             <tbody>
               {empresas.map((emp) => (
                 <tr key={emp.id}>
-                  <td style={{ fontWeight: 500 }}>{emp.nombre}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <LogoPreview src={emp.logoUrl} nombre={emp.nombre} size={32} />
+                      <span style={{ fontWeight: 500 }}>{emp.nombre}</span>
+                    </div>
+                  </td>
                   <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
                     {new Date(emp.createdAt).toLocaleDateString()}
                   </td>

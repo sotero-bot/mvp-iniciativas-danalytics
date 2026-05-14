@@ -44,6 +44,7 @@ model Empresa {
   activo      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  logoUrl     String?
   iniciativas Iniciativa[]
   usuarios    Usuario[]
 }
@@ -115,6 +116,7 @@ model Usuario {
   updatedAt  DateTime             @updatedAt
   estado     String               @default("activo")
   activo     Boolean              @default(true)
+  area       String?
   instancias InstanciaActividad[]
   empresa    Empresa              @relation(fields: [empresaId], references: [id])
 }
@@ -124,7 +126,7 @@ model Admin {
   username  String   @unique
   nombre    String
   password  String
-  activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  activo    Boolean  @default(true)
 }

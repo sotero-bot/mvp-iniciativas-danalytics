@@ -25,6 +25,9 @@ export class ObtenerInstanciaDetalleUseCase {
       usuario: {
         id: raw.usuario.id,
         nombre: raw.usuario.nombre,
+        email: raw.usuario.email,
+        cargo: raw.usuario.cargo,
+        area: raw.usuario.area,
       },
       pasos: raw.actividad.pasos.map((paso: any) => {
         const interaccion = raw.interacciones.find((i: any) => i.pasoId === paso.id);

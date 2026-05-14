@@ -9,7 +9,7 @@ export class AsignarUsuarioPorTokenUseCase {
     private readonly prisma: PrismaService // Necesario para crear el Usuario directamente
   ) { }
 
-  async execute(token: string, input: { nombre: string; email?: string; cargo?: string }): Promise<void> {
+  async execute(token: string, input: { nombre: string; email?: string; cargo?: string; area?: string }): Promise<void> {
     const instancia = await this.repository.findByAccessToken(token);
 
     if (!instancia) {
@@ -34,6 +34,7 @@ export class AsignarUsuarioPorTokenUseCase {
         nombre: input.nombre,
         email: input.email,
         cargo: input.cargo,
+        area: input.area,
         empresaId: actividad.iniciativa.empresaId
       }
     });

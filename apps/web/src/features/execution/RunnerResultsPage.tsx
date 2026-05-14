@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -70,20 +70,20 @@ export function RunnerResultsPage() {
             {/* Top bar */}
             <div style={{
                 position: 'sticky', top: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)',
+                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
                 borderBottom: '1px solid rgba(226,232,240,0.8)',
                 padding: '0 1.5rem', height: 52,
-                display: 'flex', alignItems: 'center', gap: 10,
+                display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
             }}>
-                <div style={{
-                    width: 26, height: 26,
-                    background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                    borderRadius: 7, flexShrink: 0,
-                    boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-                }} />
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A', letterSpacing: '-0.03em' }}>
-                    IAGobernanza
+                <img
+                    src="/logo-horizontal.png"
+                    alt="Danalytics"
+                    style={{ height: 36, objectFit: 'contain', justifySelf: 'start' }}
+                />
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
+                    IA Gobernanza
                 </span>
+                <div />
             </div>
 
             <div style={{ maxWidth: 780, margin: '0 auto', paddingTop: '2.5rem' }}>
@@ -109,7 +109,7 @@ export function RunnerResultsPage() {
                             </div>
                             <h1 style={{ fontSize: '1.5rem', marginBottom: 6 }}>{data.nombreActividad}</h1>
                             {data.descripcionActividad && (
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: 480 }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: 480, textAlign: 'justify' }}>
                                     {data.descripcionActividad}
                                 </p>
                             )}
@@ -165,7 +165,7 @@ export function RunnerResultsPage() {
                                             {paso.titulo}
                                         </div>
                                         {paso.objetivo && (
-                                            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-primary)', fontStyle: 'italic' }}>
+                                            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-primary)', fontStyle: 'italic', textAlign: 'justify' }}>
                                                 {paso.objetivo}
                                             </p>
                                         )}
@@ -198,7 +198,7 @@ export function RunnerResultsPage() {
                                                         table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0.75rem 0', fontSize: '0.875rem' }} {...props} />,
                                                         th: ({ node, ...props }) => <th style={{ border: '1px solid #CBD5E1', padding: '8px 12px', background: '#F1F5F9', textAlign: 'left', fontWeight: 600 }} {...props} />,
                                                         td: ({ node, ...props }) => <td style={{ border: '1px solid #CBD5E1', padding: '8px 12px' }} {...props} />,
-                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7 }} {...props} />,
+                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7, textAlign: 'justify' }} {...props} />,
                                                     }}
                                                 >
                                                     {interaccion.contenido}

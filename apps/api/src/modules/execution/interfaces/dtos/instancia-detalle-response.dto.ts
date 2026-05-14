@@ -10,6 +10,9 @@ export class InstanciaDetalleResponseDto {
   usuario: {
     id: string;
     nombre: string;
+    email?: string;
+    cargo?: string;
+    area?: string;
   };
   pasos: Array<{
     pasoId: string;

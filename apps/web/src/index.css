@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
   /* Palette */
@@ -42,7 +42,7 @@
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.15);
 
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   --transition: all 0.15s ease;
 }
 

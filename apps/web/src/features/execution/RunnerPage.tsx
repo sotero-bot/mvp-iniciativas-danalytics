@@ -17,33 +17,138 @@ interface RunnerData {
   estado: string;
   nombreActividad: string;
   descripcionActividad?: string;
+  nombreEmpresa?: string;
+  logoEmpresa?: string;
   usuarioId?: string;
   pasos: Paso[];
   interacciones: { pasoId: string; contenido: string }[];
 }
 
 /* ── Brand header ── */
-function RunnerHeader() {
+function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
+  nombreActividad?: string;
+  nombreEmpresa?: string;
+  logoEmpresa?: string;
+}) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
       height: 52,
-      background: 'rgba(255,255,255,0.9)',
+      background: 'rgba(255,255,255,0.95)',
       backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(226,232,240,0.8)',
-      display: 'flex', alignItems: 'center', padding: '0 1.5rem',
-      gap: 10,
+      display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
+      padding: '0 1.5rem',
     }}>
-      <div style={{
-        width: 26, height: 26,
-        background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-        borderRadius: 7,
-        boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-        flexShrink: 0,
-      }} />
-      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A', letterSpacing: '-0.03em' }}>
-        IAGobernanza
+      <img
+        src="/logo-horizontal.png"
+        alt="Danalytics"
+        style={{ height: 36, objectFit: 'contain', flexShrink: 0, justifySelf: 'start' }}
+      />
+
+      <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
+        IA Gobernanza
       </span>
+
+      {(nombreEmpresa || nombreActividad) ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end',
+          overflow: 'hidden', minWidth: 0,
+        }}>
+          <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
+          {logoEmpresa ? (
+            <img src={logoEmpresa} alt={nombreEmpresa}
+              style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', flexShrink: 0, border: '1px solid #E2E8F0' }} />
+          ) : nombreEmpresa ? (
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+              background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.6rem', fontWeight: 700, color: 'white',
+            }}>
+              {nombreEmpresa.charAt(0).toUpperCase()}
+            </div>
+          ) : null}
+          <span style={{
+            fontSize: '0.78rem', color: '#475569', overflow: 'hidden',
+            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {nombreEmpresa && <span style={{ fontWeight: 600 }}>{nombreEmpresa}</span>}
+            {nombreEmpresa && nombreActividad && <span style={{ color: '#CBD5E1', margin: '0 5px' }}>·</span>}
+            {nombreActividad && <span>{nombreActividad}</span>}
+          </span>
+        </div>
+      ) : <div />}
+    </div>
+  );
+}
+
+/* ── Section block ── */
+function SectionBlock({
+  number, title, description, color, children,
+}: {
+  number: number; title: string; description?: string;
+  color: 'blue' | 'violet' | 'purple'; children: React.ReactNode;
+}) {
+  const palette = {
+    blue:   { bg: '#EFF6FF', border: '#BFDBFE', accent: '#2563EB', titleColor: '#1D4ED8', descColor: '#3B82F6' },
+    violet: { bg: '#FDFCFF', border: '#EDE9FE', accent: '#7C3AED', titleColor: '#5B21B6', descColor: '#7C3AED' },
+    purple: { bg: '#F5F3FF', border: '#DDD6FE', accent: '#8B5CF6', titleColor: '#6D28D9', descColor: '#7C3AED' },
+  };
+  const p = palette[color];
+  return (
+    <div style={{ border: `1px solid ${p.border}`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        padding: '0.75rem 1.25rem', background: p.bg, borderBottom: `1px solid ${p.border}`,
+      }}>
+        <div style={{
+          width: 22, height: 22, borderRadius: '50%', background: p.accent, color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, marginTop: 1,
+        }}>{number}</div>
+        <div>
+          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: p.titleColor, display: 'block' }}>{title}</span>
+          {description && (
+            <span style={{ fontSize: '0.78rem', color: p.descColor, opacity: 0.85, marginTop: 1, display: 'block' }}>{description}</span>
+          )}
+        </div>
+      </div>
+      <div style={{ padding: '1rem 1.25rem' }}>{children}</div>
+    </div>
+  );
+}
+
+/* ── Activity branding ── */
+function ActivityBranding({ nombreActividad, nombreEmpresa, logoEmpresa, border = false }: {
+  nombreActividad: string;
+  nombreEmpresa?: string;
+  logoEmpresa?: string;
+  border?: boolean;
+}) {
+  return (
+    <div style={{
+      textAlign: 'center',
+      marginBottom: 20,
+      ...(border ? { paddingBottom: 20, borderBottom: '1px solid var(--color-border)' } : {}),
+    }}>
+      {logoEmpresa ? (
+        <img src={logoEmpresa} alt={nombreEmpresa}
+          style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0', background: '#fff', display: 'block', margin: '0 auto 10px' }} />
+      ) : nombreEmpresa ? (
+        <div style={{
+          width: 64, height: 64, borderRadius: 12,
+          background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '1.4rem', fontWeight: 700, color: 'white',
+          margin: '0 auto 10px',
+        }}>
+          {nombreEmpresa.charAt(0).toUpperCase()}
+        </div>
+      ) : null}
+      <h2 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+        {nombreActividad}
+      </h2>
     </div>
   );
 }
@@ -75,9 +180,9 @@ export function RunnerPage() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [enviandoIa, setEnviandoIa] = useState(false);
   const [archivoIa, setArchivoIa] = useState<File | null>(null);
-  const [iaViewMode, setIaViewMode] = useState<'preview' | 'edit'>('preview');
-  const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '' });
+  const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '', area: '' });
   const [wasValidated, setWasValidated] = useState(false);
+  const [showPromptEdit, setShowPromptEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const editorRef = useRef<WysiwygEditorHandle>(null);
@@ -141,6 +246,11 @@ export function RunnerPage() {
         body: JSON.stringify(idenForm)
       });
       if (!res.ok) throw new Error('Error al registrar identificación');
+      const res2 = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
+      if (!res2.ok) {
+        const errJson = await res2.json();
+        throw new Error(errJson.message || 'Error al iniciar la actividad');
+      }
       await loadData();
     } catch (err: any) {
       alert(err.message);
@@ -248,24 +358,20 @@ export function RunnerPage() {
   if (data.estado === 'generado') {
     return (
       <>
-        <RunnerHeader />
+        <RunnerHeader nombreActividad={data.nombreActividad} nombreEmpresa={data.nombreEmpresa} logoEmpresa={data.logoEmpresa} />
         <div className="runner-layout" style={{ paddingTop: 88 }}>
           <div className="card runner-card">
 
             {/* Activity info */}
-            <div style={{ textAlign: 'center', marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--color-border)' }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: '#EFF6FF', color: '#2563EB',
-                padding: '4px 14px', borderRadius: 9999,
-                fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.04em',
-                marginBottom: 16,
-              }}>
-                ACTIVIDAD
-              </div>
-              <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>{data.nombreActividad}</h1>
+            <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--color-border)' }}>
+
+              <ActivityBranding
+                nombreActividad={data.nombreActividad}
+                nombreEmpresa={data.nombreEmpresa}
+                logoEmpresa={data.logoEmpresa}
+              />
               {data.descripcionActividad && (
-                <p style={{ maxWidth: 500, margin: '0 auto', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+                <p style={{ maxWidth: 500, margin: '0 auto', color: 'var(--color-text-secondary)', lineHeight: 1.7, textAlign: 'justify' }}>
                   {data.descripcionActividad}
                 </p>
               )}
@@ -284,8 +390,10 @@ export function RunnerPage() {
                 onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) handleIdentificar(); }}
                 noValidate
               >
-                <h3 style={{ marginBottom: 4 }}>Cuéntenos quién es</h3>
-                <p style={{ marginBottom: 24, fontSize: '0.875rem' }}>Esta información quedará asociada a sus respuestas.</p>
+                <h3 style={{ marginBottom: 4 }}>Indícanos quién eres</h3>
+                <p style={{ marginBottom: 24, fontSize: '0.875rem' }}>
+                  Estos datos quedarán vinculados a tu participación en la actividad.
+                </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
@@ -302,11 +410,19 @@ export function RunnerPage() {
                       placeholder="ejemplo@empresa.com" />
                     <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Cargo / Área</label>
-                    <input className="input" value={idenForm.cargo}
-                      onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
-                      placeholder="Ej: Director de Innovación" />
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Cargo</label>
+                      <input className="input" value={idenForm.cargo}
+                        onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
+                        placeholder="Ej: Director de Innovación" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Área</label>
+                      <input className="input" value={idenForm.area}
+                        onChange={e => setIdenForm({ ...idenForm, area: e.target.value })}
+                        placeholder="Ej: Tecnología" />
+                    </div>
                   </div>
                 </div>
 
@@ -317,7 +433,6 @@ export function RunnerPage() {
               </form>
             ) : (
               <div style={{ textAlign: 'center' }}>
-                <p style={{ marginBottom: 24 }}>Ya está identificado. Cuando esté listo, puede comenzar la actividad.</p>
                 <button className="btn btn-primary" onClick={handleIniciar} disabled={loading}
                   style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem' }}>
                   {loading ? 'Iniciando...' : 'Comenzar actividad →'}
@@ -334,9 +449,15 @@ export function RunnerPage() {
   if (data.estado === 'finalizado') {
     return (
       <>
-        <RunnerHeader />
+        <RunnerHeader nombreActividad={data.nombreActividad} nombreEmpresa={data.nombreEmpresa} logoEmpresa={data.logoEmpresa} />
         <div className="runner-layout" style={{ paddingTop: 88 }}>
           <div className="card runner-card" style={{ textAlign: 'center', padding: '3rem 2.25rem' }}>
+            <ActivityBranding
+              nombreActividad={data.nombreActividad}
+              nombreEmpresa={data.nombreEmpresa}
+              logoEmpresa={data.logoEmpresa}
+              border
+            />
             <div style={{
               width: 64, height: 64, borderRadius: '50%',
               background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -365,9 +486,15 @@ export function RunnerPage() {
   const respuestaAnterior = getRespuestaPasoAnterior();
   const isLastStep = currentStepIndex === data.pasos.length - 1;
 
+  // Numeración dinámica de secciones
+  let secNum = 0;
+  const instrSecNum = currentPaso.instrucciones ? ++secNum : null;
+  const respSecNum = ++secNum;
+  const iaSecNum = currentPaso.usarIa ? ++secNum : null;
+
   return (
     <>
-      <RunnerHeader />
+      <RunnerHeader nombreActividad={data.nombreActividad} nombreEmpresa={data.nombreEmpresa} logoEmpresa={data.logoEmpresa} />
 
       {/* Progress bar */}
       <div className="runner-progress-bar" style={{ top: 52 }}>
@@ -376,6 +503,14 @@ export function RunnerPage() {
 
       <div className="runner-layout" style={{ paddingTop: 88 }}>
         <div className="runner-card card">
+
+          {/* Company branding */}
+          <ActivityBranding
+            nombreActividad={data.nombreActividad}
+            nombreEmpresa={data.nombreEmpresa}
+            logoEmpresa={data.logoEmpresa}
+            border
+          />
 
           {/* Step meta */}
           <div style={{ marginBottom: 24 }}>
@@ -393,102 +528,64 @@ export function RunnerPage() {
           </div>
 
           {/* Step title & objective */}
-          <h2 style={{ fontSize: '1.375rem', marginBottom: currentPaso.objetivo ? 8 : 20 }}>
-            {currentPaso.titulo}
-          </h2>
+          <div style={{ marginBottom: currentPaso.objetivo ? 8 : 20 }}>
+            <h2 style={{ fontSize: '1.375rem', margin: 0 }}>
+              {currentPaso.titulo}
+            </h2>
+          </div>
           {currentPaso.objetivo && (
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontStyle: 'italic', marginBottom: 20, fontWeight: 500 }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontStyle: 'italic', marginBottom: 24, fontWeight: 500 }}>
               {currentPaso.objetivo}
             </p>
           )}
 
-          {/* Instructions */}
-          {currentPaso.instrucciones && (
-            <div style={{
-              background: '#FDFCFF',
-              padding: '1rem 1.25rem',
-              borderRadius: 8,
-              marginBottom: 20,
-              borderLeft: '3px solid #A855F7',
-              border: '1px solid #EDE9FE',
-              borderLeftWidth: 3,
-              borderLeftColor: '#A855F7',
-            }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-                Instrucciones
-              </span>
+          {/* SECCIÓN: Instrucciones */}
+          {currentPaso.instrucciones && instrSecNum !== null && (
+            <SectionBlock
+              number={instrSecNum}
+              title="Instrucciones"
+              description="Lee atentamente antes de comenzar tu respuesta"
+              color="violet"
+            >
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#4C1D95', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
                 {currentPaso.instrucciones}
               </p>
-            </div>
+            </SectionBlock>
           )}
 
-          {/* Prompt IA */}
-          {currentPaso.promptIa && (
-            <div style={{
-              background: '#F8FAFC',
-              padding: '1rem 1.25rem',
-              borderRadius: 8,
-              marginBottom: 20,
-              border: '1px solid var(--color-border)',
-            }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-                Prompt IA de referencia
-              </span>
-              <textarea
-                className="input"
-                rows={10}
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, resize: 'vertical' }}
-              />
-              <p style={{ margin: '6px 0 0', fontSize: '0.73rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
-                Puede ajustar este prompt. Solo afectará su consulta actual.
-              </p>
-            </div>
-          )}
-
-          {/* Previous step hint */}
-          {respuestaAnterior && (
-            <div style={{
-              marginBottom: 20,
-              padding: '0.875rem 1rem',
-              background: '#FFFBEB',
-              border: '1px solid #FDE68A',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-              flexWrap: 'wrap',
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#B45309', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>
-                  Respuesta anterior
+          {/* SECCIÓN: Tu respuesta */}
+          <SectionBlock
+            number={respSecNum}
+            title="Tu respuesta"
+            description={
+              currentPaso.usarIa
+                ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA antes de guardar.'
+                : 'Escribe aquí tu análisis o respuesta para avanzar al siguiente paso.'
+            }
+            color="blue"
+          >
+            {/* Respuesta del paso anterior */}
+            {respuestaAnterior && (
+              <div style={{
+                marginBottom: 14, padding: '0.75rem 1rem',
+                background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8,
+                display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#B45309', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>
+                    Respuesta del paso anterior
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400E', lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {respuestaAnterior}
+                  </p>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400E', lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {respuestaAnterior}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
-                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0, alignSelf: 'center' }}
                   onClick={() => editorRef.current?.insertContent(respuestaAnterior)}>
-                  Copiar en respuesta
+                  Usar en respuesta
                 </button>
-                {currentPaso.usarIa && (
-                  <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                    onClick={() => setCustomPrompt(prev => prev ? prev + '\n\n' + respuestaAnterior : respuestaAnterior)}>
-                    Copiar en prompt
-                  </button>
-                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Response area */}
-          <div style={{ marginBottom: currentPaso.usarIa ? 0 : 28 }}>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: 8, color: 'var(--color-text-main)' }}>
-              Tu respuesta
-            </label>
             <WysiwygEditor
               ref={editorRef}
               value={respuesta}
@@ -497,18 +594,12 @@ export function RunnerPage() {
               minHeight={220}
             />
 
-            {/* File attachment */}
+            {/* Adjuntar archivo (solo si hay IA) */}
             {currentPaso.usarIa && (
               <div style={{
-                marginTop: 10,
-                padding: '10px 14px',
-                background: '#FAFAFE',
-                border: '1px dashed #C4B5FD',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
+                marginTop: 10, padding: '10px 14px',
+                background: '#FAFAFE', border: '1px dashed #C4B5FD', borderRadius: 8,
+                display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
               }}>
                 <span style={{ fontSize: '0.8rem', color: '#6D28D9', fontWeight: 500 }}>Adjuntar archivo</span>
                 <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>PDF, Word, Excel — máx. 10 MB</span>
@@ -516,8 +607,7 @@ export function RunnerPage() {
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '4px 12px', fontSize: '0.78rem',
                   background: '#EDE9FE', color: '#5B21B6',
-                  borderRadius: 6, cursor: 'pointer', fontWeight: 500,
-                  border: '1px solid #C4B5FD',
+                  borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #C4B5FD',
                 }}>
                   {archivoIa ? `✓ ${archivoIa.name}` : '📂 Seleccionar archivo'}
                   <input type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
@@ -530,74 +620,90 @@ export function RunnerPage() {
                 )}
               </div>
             )}
-          </div>
+          </SectionBlock>
 
-          {/* IA Panel */}
-          {currentPaso.usarIa && (
-            <div style={{
-              marginTop: 16,
-              border: '1px solid #DDD6FE',
-              borderRadius: 10,
-              overflow: 'hidden',
-            }}>
-              {/* IA Header */}
-              <div style={{
-                padding: '0.875rem 1.25rem',
-                background: 'linear-gradient(135deg, #F5F3FF, #FAF8FF)',
-                borderBottom: '1px solid #EDE9FE',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 7,
-                    background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.85rem',
-                  }}>✨</div>
-                  <span style={{ fontWeight: 600, color: '#4C1D95', fontSize: '0.875rem' }}>Asistente IA</span>
+          {/* SECCIÓN: Asistente IA */}
+          {currentPaso.usarIa && iaSecNum !== null && (
+            <SectionBlock
+              number={iaSecNum}
+              title="Asistente IA"
+              description="Envía tu respuesta al asistente para recibir análisis y retroalimentación. Podrás editar el resultado antes de guardar."
+              color="purple"
+            >
+              {/* Prompt personalizable (colapsable) */}
+              {customPrompt && (
+                <div style={{ marginBottom: 14 }}>
+                  <button
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: '0.78rem', color: '#7C3AED', fontWeight: 600,
+                      display: 'flex', alignItems: 'center', gap: 4, padding: 0,
+                      marginBottom: showPromptEdit ? 8 : 0,
+                    }}
+                    onClick={() => setShowPromptEdit(p => !p)}
+                  >
+                    <span style={{ fontSize: '0.7rem' }}>{showPromptEdit ? '▲' : '▼'}</span>
+                    {showPromptEdit ? 'Ocultar instrucciones al asistente' : 'Personalizar instrucciones al asistente'}
+                  </button>
+                  {showPromptEdit && (
+                    <>
+                      <textarea
+                        className="input"
+                        rows={6}
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, resize: 'vertical' }}
+                      />
+                      <p style={{ margin: '4px 0 0', fontSize: '0.73rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
+                        Ajusta estas instrucciones para que el asistente se enfoque en lo que necesitas.
+                      </p>
+                    </>
+                  )}
                 </div>
-                <button
-                  className="btn btn-primary"
-                  style={{ padding: '6px 16px', fontSize: '0.8rem', background: '#7C3AED', boxShadow: '0 1px 2px rgba(109,40,217,0.3)' }}
-                  onClick={handleEnviarIA}
-                  disabled={(!respuesta.trim() && !archivoIa) || enviandoIa}
-                >
-                  {enviandoIa ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                      Consultando...
-                    </span>
-                  ) : 'Enviar a ChatGPT'}
-                </button>
-              </div>
+              )}
 
-              {/* IA Editor */}
-              <div style={{ padding: '1rem 1.25rem', background: '#FDFCFF' }}>
-                {enviandoIa && !respuestaIa && (
-                  <div style={{
-                    padding: '2rem', textAlign: 'center', color: '#7C3AED',
-                    fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  }}>
-                    <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                    Generando respuesta con IA...
-                  </div>
-                )}
-                <WysiwygEditor
-                  ref={iaEditorRef}
-                  value={respuestaIa}
-                  onChange={setRespuestaIa}
-                  placeholder="La respuesta de ChatGPT aparecerá aquí. Puede editarla antes de continuar."
-                  minHeight={200}
-                  borderColor="#DDD6FE"
-                />
-              </div>
-            </div>
+              {/* Botón enviar */}
+              <button
+                className="btn btn-primary"
+                style={{
+                  background: '#7C3AED', boxShadow: '0 1px 2px rgba(109,40,217,0.3)',
+                  marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6,
+                }}
+                onClick={handleEnviarIA}
+                disabled={(!respuesta.trim() && !archivoIa) || enviandoIa}
+              >
+                {enviandoIa ? (
+                  <>
+                    <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                    Consultando...
+                  </>
+                ) : '✨ Enviar a Asistente IA'}
+              </button>
+
+              {/* Respuesta IA */}
+              {enviandoIa && !respuestaIa && (
+                <div style={{
+                  padding: '1.5rem', textAlign: 'center', color: '#7C3AED',
+                  fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
+                }}>
+                  <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                  Generando análisis con IA...
+                </div>
+              )}
+              <WysiwygEditor
+                ref={iaEditorRef}
+                value={respuestaIa}
+                onChange={setRespuestaIa}
+                placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
+                minHeight={180}
+                borderColor="#DDD6FE"
+              />
+            </SectionBlock>
           )}
 
-          {/* Next / Finish button */}
-          <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Botón siguiente / finalizar */}
+          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}

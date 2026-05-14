@@ -48,7 +48,10 @@ export class ExecutionController {
       // Enriquecer con datos de la actividad
       const actividad = await this.prisma.actividad.findUnique({
         where: { id: instancia.actividadId },
-        include: { pasos: { orderBy: { orden: 'asc' } } }
+        include: {
+          pasos: { orderBy: { orden: 'asc' } },
+          iniciativa: { include: { empresa: true } }
+        }
       });
 
       if (!actividad) {
@@ -59,6 +62,8 @@ export class ExecutionController {
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
         descripcionActividad: actividad.descripcion || undefined,
+        nombreEmpresa: (actividad as any).iniciativa?.empresa?.nombre || undefined,
+        logoEmpresa: (actividad as any).iniciativa?.empresa?.logoUrl || undefined,
         usuarioId: instancia.usuarioId,
         pasos: actividad.pasos.map(p => ({
           id: p.id,
@@ -159,7 +164,7 @@ export class ExecutionController {
   @Post(':token/identificar')
   async identificar(
     @Param('token') token: string,
-    @Body() body: { nombre: string; email?: string; cargo?: string }
+    @Body() body: { nombre: string; email?: string; cargo?: string; area?: string }
   ): Promise<void> {
     try {
       await this.identificarUseCase.execute(token, body);

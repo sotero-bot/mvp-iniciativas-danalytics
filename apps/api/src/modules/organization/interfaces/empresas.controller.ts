@@ -12,21 +12,22 @@ export class EmpresasController {
   }
 
   @Post()
-  async create(@Body() body: { nombre: string }) {
+  async create(@Body() body: { nombre: string; logoUrl?: string }) {
     return this.prisma.empresa.create({
       data: {
         id: randomUUID(),
-        nombre: body.nombre
+        nombre: body.nombre,
+        logoUrl: body.logoUrl ?? null,
       }
     });
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: { nombre: string }) {
-    return this.prisma.empresa.update({
-      where: { id },
-      data: { nombre: body.nombre }
-    });
+  async update(@Param('id') id: string, @Body() body: { nombre?: string; logoUrl?: string | null }) {
+    const data: any = {};
+    if (body.nombre !== undefined) data.nombre = body.nombre;
+    if ('logoUrl' in body) data.logoUrl = body.logoUrl ?? null;
+    return this.prisma.empresa.update({ where: { id }, data });
   }
 
   @Delete(':id')
