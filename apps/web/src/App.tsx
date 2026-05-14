@@ -5,6 +5,7 @@ import { IniciativasPage } from './features/organization/IniciativasPage';
 import { ActividadesPage } from './features/methodology/ActividadesPage';
 import { InstanciasPage } from './features/execution/InstanciasPage';
 import { InstanciaDetallePage } from './features/execution/InstanciaDetallePage';
+import { DashboardPage } from './features/admin/DashboardPage';
 
 import { RunnerPage } from './features/execution/RunnerPage';
 import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
@@ -18,21 +19,44 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <img src="/logo-simbolo.png" alt="Danalytics Logo" className="sidebar-logo" />
         <span>IAGobernanza</span>
       </div>
-      <div className="sidebar-section-label">Panel</div>
+
+      {/* Inicio */}
       <nav>
-        <NavLink to="/admin/empresas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          🏢 Empresas
-        </NavLink>
-        <NavLink to="/admin/iniciativas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          🚀 Iniciativas
-        </NavLink>
-        <NavLink to="/admin/actividades" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          ⚡ Actividades
-        </NavLink>
-        <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          📋 Ejecuciones
+        <NavLink to="/admin/inicio" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <span style={{
+            width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.7rem',
+          }}>⌂</span>
+          Inicio
         </NavLink>
       </nav>
+
+      {/* Nav principal con números de orden */}
+      <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>Flujo de trabajo</div>
+      <nav>
+        {[
+          { num: 1, label: 'Empresas', to: '/admin/empresas', color: '#3B82F6', bg: 'rgba(59,130,246,0.18)' },
+          { num: 2, label: 'Iniciativas', to: '/admin/iniciativas', color: '#A78BFA', bg: 'rgba(139,92,246,0.18)' },
+          { num: 3, label: 'Actividades', to: '/admin/actividades', color: '#FCD34D', bg: 'rgba(245,158,11,0.18)' },
+          { num: 4, label: 'Ejecuciones', to: '/admin/instancias', color: '#6EE7B7', bg: 'rgba(34,197,94,0.18)' },
+        ].map(item => (
+          <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: item.bg,
+              border: `1px solid ${item.color}40`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.6rem', fontWeight: 800, color: item.color,
+              letterSpacing: '-0.01em',
+            }}>{item.num}</span>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
       <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <button
           onClick={onLogout}
@@ -71,7 +95,6 @@ function App() {
     setToken(null);
   };
 
-  // Wrapper para proteger rutas de admim
   const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     if (!token) return <LoginPage onLogin={handleLogin} />;
     return <>{children}</>;
@@ -81,6 +104,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Admin Routes (Protected) */}
+        <Route path="/admin/inicio" element={<AdminRoute><Layout onLogout={handleLogout}><DashboardPage /></Layout></AdminRoute>} />
         <Route path="/admin/empresas" element={<AdminRoute><Layout onLogout={handleLogout}><EmpresasPage /></Layout></AdminRoute>} />
         <Route path="/admin/iniciativas" element={<AdminRoute><Layout onLogout={handleLogout}><IniciativasPage /></Layout></AdminRoute>} />
         <Route path="/admin/actividades" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadesPage /></Layout></AdminRoute>} />
@@ -94,19 +118,19 @@ function App() {
         <Route path="/runner/:token" element={<RunnerPage />} />
 
         {/* Login Route */}
-        <Route path="/login" element={token ? <Navigate to="/admin/empresas" replace /> : <LoginPage onLogin={handleLogin} />} />
+        <Route path="/login" element={token ? <Navigate to="/admin/inicio" replace /> : <LoginPage onLogin={handleLogin} />} />
 
         {/* Root redirect */}
-        <Route path="/" element={<Navigate to={token ? '/admin/empresas' : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={token ? '/admin/inicio' : '/login'} replace />} />
+
+        {/* Admin base redirect */}
+        <Route path="/admin" element={<Navigate to="/admin/inicio" replace />} />
 
         {/* Default Redirect */}
         <Route path="*" element={
           token ?
             <Layout onLogout={handleLogout}>
-              <div className="card" style={{ maxWidth: 480 }}>
-                <h2>Bienvenido al Panel</h2>
-                <p style={{ marginTop: 8 }}>Selecciona una opción del menú para comenzar.</p>
-              </div>
+              <Navigate to="/admin/inicio" replace />
             </Layout> :
             <LoginPage onLogin={handleLogin} />
         } />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -14,12 +15,17 @@ export function EmpresasPage() {
   const [nombre, setNombre] = useState('');
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-  // Edit
   const [editModal, setEditModal] = useState<Empresa | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const load = async () => {
     const res = await fetch(`${API_URL}/organization/empresas`);
@@ -38,6 +44,7 @@ export function EmpresasPage() {
     setNombre('');
     setWasValidated(false);
     load();
+    showToast('Empresa creada correctamente');
   };
 
   const handleDelete = async () => {
@@ -45,6 +52,7 @@ export function EmpresasPage() {
     await fetch(`${API_URL}/organization/empresas/${deleteModal.id}`, { method: 'DELETE' });
     setDeleteModal(null);
     load();
+    showToast('Empresa eliminada');
   };
 
   const openEdit = (emp: Empresa) => {
@@ -55,8 +63,9 @@ export function EmpresasPage() {
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
     setEditWasValidated(true);
-    if (!(e.currentTarget as HTMLFormElement).checkValidity()) return;
+    if (!form.checkValidity()) return;
     if (!editModal) return;
     setSaving(true);
     await fetch(`${API_URL}/organization/empresas/${editModal.id}`, {
@@ -67,10 +76,13 @@ export function EmpresasPage() {
     setSaving(false);
     setEditModal(null);
     load();
+    showToast('Empresa actualizada');
   };
 
   return (
     <div>
+      {toast && <div className="toast">{toast}</div>}
+
       <ConfirmModal
         isOpen={!!deleteModal}
         title="¿Eliminar Empresa?"
@@ -79,7 +91,6 @@ export function EmpresasPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      {/* Edit modal */}
       {editModal && (
         <div className="modal-overlay" onClick={() => setEditModal(null)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -112,18 +123,32 @@ export function EmpresasPage() {
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-4">
-        <h1>Gestión de Empresas</h1>
+      {/* Page header */}
+      <div className="page-header">
+        <div>
+          <h1>Empresas</h1>
+          <p className="page-description">
+            Paso 1 de 4 — Registra las organizaciones cliente. Cada empresa agrupa sus propias iniciativas y actividades.
+          </p>
+        </div>
+        {empresas.length > 0 && (
+          <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
+            Siguiente: Iniciativas →
+          </Link>
+        )}
       </div>
 
-      <div className="card mb-4" style={{ maxWidth: '500px' }}>
-        <label className="required-label" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Nueva Empresa</label>
+      {/* Create form */}
+      <div className="card mb-4" style={{ maxWidth: '560px' }}>
+        <h3 style={{ margin: '0 0 4px' }}>Nueva Empresa</h3>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>Ingresa el nombre de la organización que usará la plataforma.</p>
         <form
           className={wasValidated ? 'was-validated' : ''}
           onSubmit={(e) => {
             e.preventDefault();
+            const form = e.currentTarget;
             setWasValidated(true);
-            if (e.currentTarget.checkValidity()) create();
+            if (form.checkValidity()) create();
           }}
           noValidate
         >
@@ -134,64 +159,89 @@ export function EmpresasPage() {
                 required
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
-                placeholder="Nombre de la empresa..."
+                placeholder="Ej: Empresa ABC S.A."
               />
               <div className="invalid-feedback">El nombre de la empresa es requerido.</div>
             </div>
-            <button type="submit" className="btn btn-primary">Crear</button>
+            <button type="submit" className="btn btn-primary">Crear empresa</button>
           </div>
         </form>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table cellPadding={0} cellSpacing={0}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Creado</th>
-              <th style={{ textAlign: 'right' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {empresas.map((emp) => (
-              <tr key={emp.id}>
-                <td style={{ fontFamily: 'monospace', fontSize: '0.8em', color: 'var(--color-text-secondary)' }}>
-                  {emp.id.split('-')[0]}...
-                </td>
-                <td style={{ fontWeight: 500 }}>{emp.nombre}</td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{new Date(emp.createdAt).toLocaleDateString()}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                      onClick={() => openEdit(emp)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      style={{ padding: '4px 8px', fontSize: '0.875rem' }}
-                      onClick={() => setDeleteModal({ id: emp.id, nombre: emp.nombre })}
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {empresas.length === 0 && (
+      {/* Table or empty state */}
+      {empresas.length === 0 ? (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="empty-state">
+            <div className="empty-state-icon">🏢</div>
+            <p className="empty-state-title">Aún no hay empresas registradas</p>
+            <p className="empty-state-desc">
+              Las empresas son el punto de partida del sistema. Crea la primera para comenzar a configurar iniciativas y actividades.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table cellPadding={0} cellSpacing={0}>
+            <thead>
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
-                  No hay empresas registradas
-                </td>
+                <th>Empresa</th>
+                <th>Creada</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {empresas.map((emp) => (
+                <tr key={emp.id}>
+                  <td style={{ fontWeight: 500 }}>{emp.nombre}</td>
+                  <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                    {new Date(emp.createdAt).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                        onClick={() => openEdit(emp)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: '4px 8px', fontSize: '0.875rem' }}
+                        onClick={() => setDeleteModal({ id: emp.id, nombre: emp.nombre })}
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Next step hint */}
+      {empresas.length > 0 && (
+        <div style={{
+          marginTop: '1.25rem',
+          padding: '0.875rem 1.25rem',
+          background: '#F0F9FF',
+          border: '1px solid #BAE6FD',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex', alignItems: 'center', gap: '0.875rem',
+        }}>
+          <span style={{ fontSize: '1rem' }}>💡</span>
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
+            <strong>Siguiente paso:</strong> Ahora puedes crear Iniciativas que agrupen las actividades de cada empresa.
+          </p>
+          <Link to="/admin/iniciativas" className="btn btn-secondary"
+            style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
+            Ir a Iniciativas →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

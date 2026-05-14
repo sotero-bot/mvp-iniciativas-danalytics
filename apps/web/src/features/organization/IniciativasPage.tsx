@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -20,17 +21,16 @@ interface Empresa {
 export function IniciativasPage() {
   const [iniciativas, setIniciativas] = useState<Iniciativa[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  // Create form
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [empresaId, setEmpresaId] = useState('');
   const [wasValidated, setWasValidated] = useState(false);
 
-  // Delete modal
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
 
-  // Edit modal
   const [editModal, setEditModal] = useState<Iniciativa | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
@@ -38,9 +38,20 @@ export function IniciativasPage() {
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
   useEffect(() => {
-    fetchIniciativas();
-    fetchEmpresas();
+    Promise.all([
+      fetch(`${API_URL}/organization/iniciativas`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/organization/empresas`).then(r => r.ok ? r.json() : []),
+    ]).then(([ini, emp]) => {
+      setIniciativas(ini);
+      setEmpresas(emp);
+      setLoaded(true);
+    });
   }, []);
 
   const fetchIniciativas = () => {
@@ -60,6 +71,7 @@ export function IniciativasPage() {
     await fetch(`${API_URL}/organization/iniciativas/${deleteModal.id}`, { method: 'DELETE' });
     setDeleteModal(null);
     fetchIniciativas();
+    showToast('Iniciativa eliminada');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,6 +86,7 @@ export function IniciativasPage() {
       setEmpresaId('');
       setWasValidated(false);
       fetchIniciativas();
+      showToast('Iniciativa creada correctamente');
     });
   };
 
@@ -87,8 +100,9 @@ export function IniciativasPage() {
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
     setEditWasValidated(true);
-    if (!(e.currentTarget as HTMLFormElement).checkValidity()) return;
+    if (!form.checkValidity()) return;
     if (!editModal) return;
     setSaving(true);
     await fetch(`${API_URL}/organization/iniciativas/${editModal.id}`, {
@@ -99,11 +113,13 @@ export function IniciativasPage() {
     setSaving(false);
     setEditModal(null);
     fetchIniciativas();
+    showToast('Iniciativa actualizada');
   };
 
   return (
     <div>
-      {/* Delete confirm */}
+      {toast && <div className="toast">{toast}</div>}
+
       <ConfirmModal
         isOpen={!!deleteModal}
         title="¿Eliminar Iniciativa?"
@@ -112,7 +128,6 @@ export function IniciativasPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      {/* Edit modal */}
       {editModal && (
         <div className="modal-overlay" onClick={() => setEditModal(null)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -123,7 +138,6 @@ export function IniciativasPage() {
                 fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
               }}>×</button>
             </div>
-
             <form
               className={editWasValidated ? 'was-validated' : ''}
               onSubmit={handleEdit}
@@ -160,26 +174,60 @@ export function IniciativasPage() {
         </div>
       )}
 
-      <h1 style={{ marginBottom: 24 }}>Gestión de Iniciativas</h1>
+      {/* Page header */}
+      <div className="page-header">
+        <div>
+          <h1>Iniciativas</h1>
+          <p className="page-description">
+            Paso 2 de 4 — Agrupa actividades bajo un proyecto o programa específico de cada empresa.
+          </p>
+        </div>
+        {iniciativas.length > 0 && (
+          <Link to="/admin/actividades" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
+            Siguiente: Actividades →
+          </Link>
+        )}
+      </div>
+
+      {/* Prerequisite warning */}
+      {loaded && empresas.length === 0 && (
+        <div className="prereq-banner">
+          <span className="prereq-banner-icon">⚠️</span>
+          <div className="prereq-banner-body">
+            <p className="prereq-banner-title">Primero necesitas registrar una empresa</p>
+            <p className="prereq-banner-text">
+              Las iniciativas pertenecen a una empresa. Crea al menos una empresa antes de continuar.
+            </p>
+          </div>
+          <Link to="/admin/empresas" className="btn btn-secondary"
+            style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
+            Crear empresa →
+          </Link>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
         {/* Create form */}
         <div className="card">
-          <h3 style={{ marginBottom: 20 }}>Nueva Iniciativa</h3>
+          <h3 style={{ margin: '0 0 4px' }}>Nueva Iniciativa</h3>
+          <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>
+            Una iniciativa representa un proyecto o programa dentro de una empresa.
+          </p>
           <form
             className={wasValidated ? 'was-validated' : ''}
             onSubmit={(e) => {
               e.preventDefault();
+              const form = e.currentTarget;
               setWasValidated(true);
-              if (e.currentTarget.checkValidity()) handleSubmit(e);
+              if (form.checkValidity()) handleSubmit(e);
             }}
             style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
             noValidate
           >
             <div>
               <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Empresa</label>
-              <select className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required>
-                <option value="">Seleccione una empresa</option>
+              <select className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required disabled={empresas.length === 0}>
+                <option value="">{empresas.length === 0 ? 'Sin empresas disponibles' : 'Seleccione una empresa'}</option>
                 {empresas.map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.nombre}</option>
                 ))}
@@ -189,78 +237,116 @@ export function IniciativasPage() {
             <div>
               <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
               <input className="input" value={nombre} onChange={e => setNombre(e.target.value)}
-                placeholder="Ej: Transformación Digital" required />
+                placeholder="Ej: Transformación Digital" required disabled={empresas.length === 0} />
               <div className="invalid-feedback">El nombre es requerido.</div>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Descripción</label>
+              <label style={{ display: 'block', marginBottom: 5 }}>Descripción <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>
               <textarea className="input" value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                placeholder="Descripción breve..." rows={3} />
+                placeholder="¿Cuál es el objetivo de esta iniciativa?" rows={3} disabled={empresas.length === 0} />
             </div>
-            <button type="submit" className="btn btn-primary">Crear Iniciativa</button>
+            <button type="submit" className="btn btn-primary" disabled={empresas.length === 0}>
+              Crear Iniciativa
+            </button>
           </form>
         </div>
 
         {/* Table */}
-        <div className="card" style={{ padding: 0 }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)' }}>
-            <h3 style={{ margin: 0 }}>Lista de Iniciativas</h3>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>Iniciativas registradas</h3>
+            {iniciativas.length > 0 && (
+              <span style={{
+                background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE',
+                borderRadius: 9999, padding: '2px 10px', fontSize: '0.72rem', fontWeight: 600,
+              }}>{iniciativas.length}</span>
+            )}
           </div>
-          <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Empresa</th>
-                  <th>Descripción</th>
-                  <th>Fecha</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {iniciativas.map(ini => (
-                  <tr key={ini.id}>
-                    <td><strong>{ini.nombre}</strong></td>
-                    <td>
-                      <span className="status-badge status-neutral">{ini.empresa?.nombre}</span>
-                    </td>
-                    <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 200 }}>
-                      {ini.descripcion || <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>}
-                    </td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                      {new Date(ini.createdAt).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                          onClick={() => openEdit(ini)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          style={{ padding: '4px 8px', fontSize: '0.875rem' }}
-                          onClick={() => setDeleteModal({ id: ini.id, nombre: ini.nombre })}
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
+
+          {iniciativas.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🚀</div>
+              <p className="empty-state-title">Aún no hay iniciativas</p>
+              <p className="empty-state-desc">
+                {empresas.length === 0
+                  ? 'Primero crea una empresa para poder agregar iniciativas.'
+                  : 'Crea tu primera iniciativa usando el formulario de la izquierda.'}
+              </p>
+              {empresas.length === 0 && (
+                <Link to="/admin/empresas" className="btn btn-secondary" style={{ textDecoration: 'none', marginTop: 4, fontSize: '0.8125rem' }}>
+                  Ir a Empresas →
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Empresa</th>
+                    <th>Descripción</th>
+                    <th style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {iniciativas.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-              No hay iniciativas registradas.
-            </p>
+                </thead>
+                <tbody>
+                  {iniciativas.map(ini => (
+                    <tr key={ini.id}>
+                      <td><strong>{ini.nombre}</strong></td>
+                      <td>
+                        <span className="status-badge status-neutral">{ini.empresa?.nombre}</span>
+                      </td>
+                      <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 200 }}>
+                        {ini.descripcion || <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                            onClick={() => openEdit(ini)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: '4px 8px', fontSize: '0.875rem' }}
+                            onClick={() => setDeleteModal({ id: ini.id, nombre: ini.nombre })}
+                            title="Eliminar"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Next step hint */}
+      {iniciativas.length > 0 && (
+        <div style={{
+          marginTop: '1.25rem',
+          padding: '0.875rem 1.25rem',
+          background: '#F0F9FF',
+          border: '1px solid #BAE6FD',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex', alignItems: 'center', gap: '0.875rem',
+        }}>
+          <span style={{ fontSize: '1rem' }}>💡</span>
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
+            <strong>Siguiente paso:</strong> Ahora puedes crear Actividades vinculadas a tus iniciativas.
+          </p>
+          <Link to="/admin/actividades" className="btn btn-secondary"
+            style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
+            Ir a Actividades →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
+const ESTADO_LABELS: Record<string, string> = {
+  generado: 'Pendiente',
+  iniciado: 'En progreso',
+  finalizado: 'Finalizado',
+};
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -16,6 +22,7 @@ export function InstanciasPage() {
   const [generandoEnlace, setGenerandoEnlace] = useState(false);
   const [wasValidated, setWasValidated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [deleteEnlaceModal, setDeleteEnlaceModal] = useState<string | null>(null);
 
@@ -58,7 +65,18 @@ export function InstanciasPage() {
     if (res.ok) setActividades(await res.json());
   };
 
-  useEffect(() => { load(); loadActividades(); }, []);
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/admin/instancias`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/admin/enlaces`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/methodology/actividades`).then(r => r.ok ? r.json() : []),
+    ]).then(([inst, enl, acts]) => {
+      setInstancias(inst);
+      setEnlaces(enl);
+      setActividades(acts);
+      setLoaded(true);
+    });
+  }, []);
 
   const generarEnlace = async () => {
     setGenerandoEnlace(true);
@@ -130,9 +148,36 @@ export function InstanciasPage() {
         message="Este enlace quedará desactivado. Las sesiones ya iniciadas continuarán, pero no se podrán crear nuevas."
         onConfirm={handleDeleteEnlace} onCancel={() => setDeleteEnlaceModal(null)} />
 
-      {/* Header + stats en una fila */}
+      {/* Page header */}
+      <div className="page-header" style={{ marginBottom: '1rem' }}>
+        <div>
+          <h1>Ejecuciones</h1>
+          <p className="page-description">
+            Paso 4 de 4 — Genera enlaces para distribuir actividades y monitorea el progreso de los participantes.
+          </p>
+        </div>
+      </div>
+
+      {/* Prerequisite warning */}
+      {loaded && actividades.length === 0 && (
+        <div className="prereq-banner" style={{ marginBottom: '1.25rem' }}>
+          <span className="prereq-banner-icon">⚠️</span>
+          <div className="prereq-banner-body">
+            <p className="prereq-banner-title">Primero necesitas crear una actividad</p>
+            <p className="prereq-banner-text">
+              Los enlaces de ejecución están vinculados a actividades. Ve al paso anterior y configura al menos una.
+            </p>
+          </div>
+          <Link to="/admin/actividades" className="btn btn-secondary"
+            style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
+            Ir a Actividades →
+          </Link>
+        </div>
+      )}
+
+      {/* Stats en una fila */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>Control de Ejecuciones</h1>
+        <h2 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Resumen</h2>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
           {[
             { label: 'Finalizadas', value: finalizadas, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
@@ -155,7 +200,8 @@ export function InstanciasPage() {
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
           <div style={{ width: 3, height: 16, background: 'var(--color-primary)', borderRadius: 9999 }} />
-          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>Enlace Multi-Persona</h2>
+          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>Generar Enlace</h2>
+          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>— Comparte con múltiples participantes</span>
         </div>
 
         <div className="card" style={{ padding: '1rem', background: 'linear-gradient(135deg, #FAFBFF, #F5F8FF)' }}>
@@ -301,7 +347,7 @@ export function InstanciasPage() {
               onChange={e => handleFilterEstado(e.target.value)}
             >
               <option value="">Todos los estados</option>
-              <option value="generado">Generado</option>
+              <option value="generado">Pendiente</option>
               <option value="iniciado">En progreso</option>
               <option value="finalizado">Finalizado</option>
             </select>
@@ -339,7 +385,7 @@ export function InstanciasPage() {
                         ins.estado === 'finalizado' ? 'status-success' :
                         ins.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
                       }`}>
-                        {ins.estado}
+                        {ESTADO_LABELS[ins.estado] ?? ins.estado}
                       </span>
                     </td>
                     <td>
@@ -377,8 +423,20 @@ export function InstanciasPage() {
                 ))}
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                      {search || filterEstado ? 'No hay resultados para los filtros aplicados.' : 'No hay ejecuciones registradas todavía.'}
+                    <td colSpan={5}>
+                      {search || filterEstado ? (
+                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
+                          No hay resultados para los filtros aplicados.
+                        </div>
+                      ) : (
+                        <div className="empty-state" style={{ padding: '2.5rem 2rem' }}>
+                          <div className="empty-state-icon">📋</div>
+                          <p className="empty-state-title">Aún no hay ejecuciones</p>
+                          <p className="empty-state-desc">
+                            Genera un enlace arriba y compártelo con los participantes. Cada vez que alguien lo use, aparecerá aquí.
+                          </p>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
