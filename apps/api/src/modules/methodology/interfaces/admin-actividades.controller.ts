@@ -18,10 +18,14 @@ export class AdminActividadesController {
   @Get(':id/pasos')
   async obtenerPasos(@Param('id') id: string) {
     try {
-      const pasos = await this.obtenerPasosUseCase.execute(id);
-      return pasos
-        .filter((p: any) => p.activo !== false)
-        .map(p => new PasoActividadResponseDto({
+      const actividad = await this.prisma.actividad.findUnique({
+        where: { id },
+        include: { pasos: { where: { activo: true }, orderBy: { orden: 'asc' } } },
+      });
+      if (!actividad) throw new NotFoundException('Actividad no encontrada');
+      return {
+        nombre: actividad.nombre,
+        pasos: actividad.pasos.map(p => new PasoActividadResponseDto({
           id: p.id,
           actividadId: p.actividadId,
           titulo: p.titulo,
@@ -29,8 +33,9 @@ export class AdminActividadesController {
           objetivo: p.objetivo,
           instrucciones: p.instrucciones,
           usarIa: p.usarIa,
-          promptIa: p.promptIa
-        }));
+          promptIa: p.promptIa,
+        })),
+      };
     } catch (error) {
       this.handleError(error);
     }

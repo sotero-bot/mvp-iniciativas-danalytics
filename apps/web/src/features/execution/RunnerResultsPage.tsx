@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { buildResumenHtml } from './buildResumenHtml';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -9,6 +10,7 @@ interface Paso {
     id: string;
     titulo: string;
     objetivo?: string;
+    usarIa?: boolean;
 }
 
 interface Interaccion {
@@ -60,6 +62,24 @@ export function RunnerResultsPage() {
 
     const completedCount = data.pasos.filter(p => data.interacciones.some(i => i.pasoId === p.id)).length;
 
+    const handleDescargar = () => {
+        const html = buildResumenHtml({
+            nombreActividad: data.nombreActividad,
+            descripcionActividad: data.descripcionActividad,
+            fechaInicio: data.fechaInicio,
+            fechaFin: data.fechaFin,
+            pasos: data.pasos,
+            interacciones: data.interacciones,
+        });
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `resumen-${data.nombreActividad.replace(/\s+/g, '-').toLowerCase()}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -83,7 +103,20 @@ export function RunnerResultsPage() {
                 <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
                     IA Gobernanza
                 </span>
-                <div />
+                <div style={{ justifySelf: 'end' }}>
+                    <button
+                        onClick={handleDescargar}
+                        style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '6px 14px', borderRadius: 8,
+                            background: '#2563EB', color: 'white',
+                            border: 'none', cursor: 'pointer',
+                            fontSize: '0.8rem', fontWeight: 600,
+                        }}
+                    >
+                        ⬇ Descargar HTML
+                    </button>
+                </div>
             </div>
 
             <div style={{ maxWidth: 780, margin: '0 auto', paddingTop: '2.5rem' }}>

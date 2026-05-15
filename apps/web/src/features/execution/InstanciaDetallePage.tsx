@@ -19,7 +19,7 @@ interface InstanceDetail {
   estado: string;
   fechaInicio: string | null;
   fechaFin: string | null;
-  actividad: { id: string; nombre: string };
+  actividad: { id: string; nombre: string; plantillaOrigen?: { id: string; nombre: string } | null };
   usuario?: { id: string; nombre: string };
   pasos: StepResult[];
 }
@@ -102,6 +102,14 @@ export function InstanciaDetallePage() {
             <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Actividad</label>
             <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{data.actividad.nombre}</div>
           </div>
+          {data.actividad.plantillaOrigen && (
+            <div>
+              <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Plantilla de origen</label>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📋</span> {data.actividad.plantillaOrigen.nombre}
+              </div>
+            </div>
+          )}
           <div>
             <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Usuario / Responsable</label>
             <div style={{ fontWeight: 600 }}>{data.usuario?.nombre || 'Pendiente de identificación'}</div>

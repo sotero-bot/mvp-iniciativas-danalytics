@@ -67,19 +67,49 @@ model Iniciativa {
   empresa     Empresa     @relation(fields: [empresaId], references: [id])
 }
 
+model PlantillaActividad {
+  id          String          @id @default(uuid())
+  nombre      String
+  descripcion String?
+  activo      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  pasos       PasoPlantilla[]
+  actividades Actividad[]
+}
+
+model PasoPlantilla {
+  id            String             @id @default(uuid())
+  plantillaId   String
+  titulo        String
+  objetivo      String?
+  instrucciones String?
+  usarIa        Boolean            @default(false)
+  promptIa      String?
+  orden         Int
+  activo        Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  plantilla     PlantillaActividad @relation(fields: [plantillaId], references: [id])
+
+  @@unique([plantillaId, orden])
+}
+
 model Actividad {
-  id           String               @id @default(uuid())
-  nombre       String
-  descripcion  String?
-  estado       String               @default("inactiva")
-  iniciativaId String
-  activo       Boolean              @default(true)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  iniciativa   Iniciativa           @relation(fields: [iniciativaId], references: [id])
-  enlaces      EnlaceActividad[]
-  instancias   InstanciaActividad[]
-  pasos        PasoActividad[]
+  id                String               @id @default(uuid())
+  nombre            String
+  descripcion       String?
+  estado            String               @default("inactiva")
+  iniciativaId      String
+  plantillaOrigenId String?
+  activo            Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  iniciativa        Iniciativa           @relation(fields: [iniciativaId], references: [id])
+  plantillaOrigen   PlantillaActividad?  @relation(fields: [plantillaOrigenId], references: [id])
+  enlaces           EnlaceActividad[]
+  instancias        InstanciaActividad[]
+  pasos             PasoActividad[]
 }
 
 model EnlaceActividad {

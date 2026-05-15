@@ -10,6 +10,8 @@ import { AdminExecutionController } from './modules/execution/interfaces/admin-e
 import { ExecutionController } from './modules/execution/interfaces/execution.controller';
 import { AdminActividadesController } from './modules/methodology/interfaces/admin-actividades.controller';
 import { AdminEnlaceController } from './modules/execution/interfaces/admin-enlace.controller';
+import { AdminPlantillasController } from './modules/methodology/interfaces/admin-plantillas.controller';
+import { AdminPlantillaPasosController } from './modules/methodology/interfaces/admin-plantilla-pasos.controller';
 
 // Use Cases
 import { GenerarInstanciaUseCase } from './modules/execution/application/GenerarInstanciaUseCase';
@@ -22,6 +24,7 @@ import { AsignarUsuarioPorTokenUseCase } from './modules/execution/application/A
 import { GenerarEnlaceActividadUseCase } from './modules/execution/application/GenerarEnlaceActividadUseCase';
 import { IniciarSesionPorEnlaceUseCase } from './modules/execution/application/IniciarSesionPorEnlaceUseCase';
 import { ConsultarIaPorTokenUseCase } from './modules/execution/application/ConsultarIaPorTokenUseCase';
+import { InstanciarPlantillaUseCase } from './modules/methodology/application/InstanciarPlantillaUseCase';
 
 // Repositories
 import { PrismaInstanciaRepository } from './modules/execution/infrastructure/prisma/PrismaInstanciaRepository';
@@ -46,7 +49,9 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     AdminActividadesController,
     AdminExecutionController,
     AdminEnlaceController,
-    ExecutionController
+    ExecutionController,
+    AdminPlantillasController,
+    AdminPlantillaPasosController,
   ],
   providers: [
     PrismaService,
@@ -136,7 +141,12 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
       provide: ObtenerPasosActividadUseCase,
       useFactory: (actRepo, pasoRepo) => new ObtenerPasosActividadUseCase(actRepo, pasoRepo),
       inject: ['IActividadRepository', 'IPasoActividadRepository'],
-    }
+    },
+    {
+      provide: InstanciarPlantillaUseCase,
+      useFactory: (prisma: PrismaService) => new InstanciarPlantillaUseCase(prisma),
+      inject: [PrismaService],
+    },
   ],
 })
 export class AppModule { }

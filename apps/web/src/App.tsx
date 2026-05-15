@@ -11,6 +11,8 @@ import { RunnerPage } from './features/execution/RunnerPage';
 import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
 import { RunnerResultsPage } from './features/execution/RunnerResultsPage';
 import { ActividadPasosPage } from './features/methodology/ActividadPasosPage';
+import { PlantillasPage } from './features/methodology/PlantillasPage';
+import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 
 const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) => (
   <div className="layout-container">
@@ -41,7 +43,6 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           { num: 1, label: 'Empresas', to: '/admin/empresas', color: '#3B82F6', bg: 'rgba(59,130,246,0.18)' },
           { num: 2, label: 'Iniciativas', to: '/admin/iniciativas', color: '#A78BFA', bg: 'rgba(139,92,246,0.18)' },
           { num: 3, label: 'Actividades', to: '/admin/actividades', color: '#FCD34D', bg: 'rgba(245,158,11,0.18)' },
-          { num: 4, label: 'Ejecuciones', to: '/admin/instancias', color: '#6EE7B7', bg: 'rgba(34,197,94,0.18)' },
         ].map(item => (
           <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
@@ -55,6 +56,29 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             {item.label}
           </NavLink>
         ))}
+        {/* Plantillas — sin número, herramienta transversal */}
+        <NavLink to="/admin/plantillas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <span style={{
+            width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+            background: 'rgba(244,114,182,0.18)',
+            border: '1px solid #F472B640',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.75rem',
+          }}>📋</span>
+          Plantillas
+        </NavLink>
+        {/* Ejecuciones — número 4 */}
+        <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <span style={{
+            width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+            background: 'rgba(34,197,94,0.18)',
+            border: '1px solid #6EE7B740',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.6rem', fontWeight: 800, color: '#6EE7B7',
+            letterSpacing: '-0.01em',
+          }}>4</span>
+          Ejecuciones
+        </NavLink>
       </nav>
 
       <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -109,6 +133,8 @@ function App() {
         <Route path="/admin/iniciativas" element={<AdminRoute><Layout onLogout={handleLogout}><IniciativasPage /></Layout></AdminRoute>} />
         <Route path="/admin/actividades" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadesPage /></Layout></AdminRoute>} />
         <Route path="/admin/actividades/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadPasosPage /></Layout></AdminRoute>} />
+        <Route path="/admin/plantillas" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillasPage /></Layout></AdminRoute>} />
+        <Route path="/admin/plantillas/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillaPasosPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 

@@ -21,6 +21,7 @@ export class ObtenerInstanciaDetalleUseCase {
       actividad: {
         id: raw.actividad.id,
         nombre: raw.actividad.nombre,
+        plantillaOrigen: raw.actividad.plantillaOrigen ?? null,
       },
       usuario: {
         id: raw.usuario.id,

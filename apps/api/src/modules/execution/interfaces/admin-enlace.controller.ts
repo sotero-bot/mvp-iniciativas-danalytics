@@ -1,8 +1,5 @@
-import { Controller, Get, Post, Delete, Param, Body, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { GenerarEnlaceActividadUseCase } from '../application/GenerarEnlaceActividadUseCase';
-import { IniciarSesionPorEnlaceUseCase } from '../application/IniciarSesionPorEnlaceUseCase';
-import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
-import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { PrismaService } from '../../../prisma.service';
 
 @Controller('admin/enlaces')
@@ -31,10 +28,11 @@ export class AdminEnlaceController {
             include: {
                 actividad: {
                     include: {
-                        iniciativa: { include: { empresa: true } }
-                    }
-                }
-            }
+                        iniciativa: { include: { empresa: true } },
+                        plantillaOrigen: { select: { id: true, nombre: true } },
+                    },
+                },
+            },
         });
     }
 

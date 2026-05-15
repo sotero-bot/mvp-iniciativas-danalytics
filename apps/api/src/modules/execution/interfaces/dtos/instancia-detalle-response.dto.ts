@@ -6,6 +6,7 @@ export class InstanciaDetalleResponseDto {
   actividad: {
     id: string;
     nombre: string;
+    plantillaOrigen?: { id: string; nombre: string } | null;
   };
   usuario: {
     id: string;

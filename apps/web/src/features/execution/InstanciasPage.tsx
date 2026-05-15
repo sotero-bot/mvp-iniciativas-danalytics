@@ -118,7 +118,8 @@ export function InstanciasPage() {
         ins.actividad?.nombre?.toLowerCase().includes(q) ||
         ins.actividad?.iniciativa?.nombre?.toLowerCase().includes(q) ||
         ins.usuario?.nombre?.toLowerCase().includes(q) ||
-        ins.emailReferencia?.toLowerCase().includes(q);
+        ins.emailReferencia?.toLowerCase().includes(q) ||
+        ins.actividad?.plantillaOrigen?.nombre?.toLowerCase().includes(q);
       const matchEstado = !filterEstado || ins.estado === filterEstado;
       return matchSearch && matchEstado;
     });
@@ -217,7 +218,10 @@ export function InstanciasPage() {
                 onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
                 <option value="">Seleccione una actividad</option>
                 {actividades.map(a => (
-                  <option key={a.id} value={a.id}>{a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}</option>
+                  <option key={a.id} value={a.id}>
+                    {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
+                    {a.plantillaOrigen ? ` [📋 ${a.plantillaOrigen.nombre}]` : ''}
+                  </option>
                 ))}
               </select>
               <div className="invalid-feedback">Seleccione una actividad.</div>
@@ -285,7 +289,14 @@ export function InstanciasPage() {
                         <td style={{ fontWeight: 500 }}>
                           {e.nombre || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin etiqueta</span>}
                         </td>
-                        <td>{e.actividad?.nombre || '—'}</td>
+                        <td>
+                          <div>{e.actividad?.nombre || '—'}</div>
+                          {e.actividad?.plantillaOrigen && (
+                            <span style={{ fontSize: '0.68rem', color: '#4338CA', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 4, padding: '1px 5px', marginTop: 2, display: 'inline-block' }}>
+                              📋 {e.actividad.plantillaOrigen.nombre}
+                            </span>
+                          )}
+                        </td>
                         <td>
                           <span className={`status-badge ${e.activo ? 'status-success' : 'status-neutral'}`}>
                             {e.activo ? 'Activo' : 'Inactivo'}
@@ -393,6 +404,11 @@ export function InstanciasPage() {
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
                         {ins.actividad?.iniciativa?.nombre || '—'}
                       </div>
+                      {ins.actividad?.plantillaOrigen && (
+                        <span style={{ fontSize: '0.68rem', color: '#4338CA', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 4, padding: '1px 5px', marginTop: 3, display: 'inline-block' }}>
+                          📋 {ins.actividad.plantillaOrigen.nombre}
+                        </span>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.875rem' }}>
                       {ins.usuario?.nombre || (ins.emailReferencia

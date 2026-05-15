@@ -26,13 +26,12 @@ export class AdminExecutionController {
       include: {
         actividad: {
           include: {
-            iniciativa: {
-              include: { empresa: true }
-            }
-          }
+            iniciativa: { include: { empresa: true } },
+            plantillaOrigen: { select: { id: true, nombre: true } },
+          },
         },
-        usuario: true
-      }
+        usuario: true,
+      },
     });
   }
 

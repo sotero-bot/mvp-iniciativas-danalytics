@@ -2,15 +2,15 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpS
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
+import { InstanciarPlantillaUseCase } from '../application/InstanciarPlantillaUseCase';
 import { AgregarPasoDto } from './dtos/agregar-paso.dto';
-import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
-import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 
 @Controller('methodology/actividades')
 export class ActividadesController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly agregarPasoUseCase: AgregarPasoActividadUseCase
+    private readonly agregarPasoUseCase: AgregarPasoActividadUseCase,
+    private readonly instanciarPlantillaUseCase: InstanciarPlantillaUseCase,
   ) { }
 
   @Get()
@@ -20,24 +20,26 @@ export class ActividadesController {
     }
     return this.prisma.actividad.findMany({
       where: { activo: true },
-      include: { iniciativa: { include: { empresa: true } } }
+      include: {
+        iniciativa: { include: { empresa: true } },
+        plantillaOrigen: { select: { id: true, nombre: true } },
+      },
     });
   }
 
   @Post()
-  async create(@Body() body: { nombre: string; descripcion: string; iniciativaId: string }) {
-    try {
-      return await this.prisma.actividad.create({
-        data: {
-          id: randomUUID(),
-          nombre: body.nombre,
-          descripcion: body.descripcion,
-          iniciativaId: body.iniciativaId
-        }
-      });
-    } catch (e: any) {
-      throw e;
+  async create(@Body() body: { nombre: string; descripcion?: string; iniciativaId: string; plantillaId?: string }) {
+    if (body.plantillaId) {
+      return this.instanciarPlantillaUseCase.execute(body.plantillaId, body.iniciativaId, body.nombre, body.descripcion);
     }
+    return this.prisma.actividad.create({
+      data: {
+        id: randomUUID(),
+        nombre: body.nombre,
+        descripcion: body.descripcion,
+        iniciativaId: body.iniciativaId,
+      },
+    });
   }
 
   @Put(':id')
