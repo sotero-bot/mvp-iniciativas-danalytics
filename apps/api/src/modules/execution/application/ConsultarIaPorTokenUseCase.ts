@@ -26,14 +26,39 @@ export class ConsultarIaPorTokenUseCase {
         await this.accederUseCase.execute(token);
 
         const paso = await this.prisma.pasoActividad.findUnique({
-            where: { id: pasoId }
+            where: { id: pasoId },
+            include: {
+                actividad: {
+                    include: {
+                        iniciativa: {
+                            include: { empresa: true }
+                        }
+                    }
+                }
+            }
         });
 
         if (!paso) throw new Error('Paso no encontrado');
         if (!paso.usarIa) throw new Error('El paso no tiene habilitada la IA');
 
-        const systemPrompt = customPrompt || paso.promptIa ||
+        const empresa = paso.actividad.iniciativa.empresa;
+
+        const lineas: string[] = ['CONTEXTO DE LA EMPRESA:'];
+        lineas.push(`- Nombre de la empresa: ${empresa.nombre}`);
+        if (empresa.contextoPdfTexto) {
+            const ctx = empresa.contextoPdfTexto.length > 8000
+                ? empresa.contextoPdfTexto.slice(0, 8000) + '\n[...contenido truncado...]'
+                : empresa.contextoPdfTexto;
+            lineas.push(`- Documento de contexto interno de la empresa:\n${ctx}`);
+        }
+        lineas.push('');
+        lineas.push(`Refiérete a la empresa por su nombre ("${empresa.nombre}") cuando sea pertinente y usa el documento de contexto para personalizar tus respuestas.`);
+        const contextoEmpresa = lineas.join('\n');
+
+        const promptBase = customPrompt || paso.promptIa ||
             'Eres un experto evaluando respuestas. Revisa el texto proporcionado y ofrece feedback constructivo.';
+
+        const systemPrompt = `${contextoEmpresa}\n\n---\n\n${promptBase}`;
 
         // Build user message: text + file content if provided
         let userMessage = respuestaUsuario;

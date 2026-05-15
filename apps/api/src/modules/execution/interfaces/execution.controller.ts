@@ -76,11 +76,20 @@ export class ExecutionController {
         })),
         fechaInicio: instancia.fechaInicio?.toISOString(),
         fechaFin: instancia.fechaFin?.toISOString(),
-        interacciones: instancia.interacciones.map(i => ({
+        usuario: instancia.usuarioId
+          ? await this.prisma.usuario.findUnique({ where: { id: instancia.usuarioId } })
+              .then(u => u ? { nombre: u.nombre, email: u.email, cargo: u.cargo, area: u.area } : undefined)
+          : undefined,
+        interacciones: await this.prisma.interaccion.findMany({
+          where: { instanciaId: instancia.id },
+          select: { pasoId: true, contenido: true, respuestaUsuario: true, respuestaIa: true, fecha: true },
+        }).then(rows => rows.map(i => ({
           pasoId: i.pasoId,
           contenido: i.contenido,
-          fecha: i.fecha.toISOString()
-        }))
+          respuestaUsuario: i.respuestaUsuario ?? undefined,
+          respuestaIa: i.respuestaIa ?? undefined,
+          fecha: i.fecha.toISOString(),
+        })))
       });
     } catch (error) {
       this.handleError(error);
@@ -107,7 +116,7 @@ export class ExecutionController {
     @Body() dto: RegistrarRespuestaDto
   ): Promise<void> {
     try {
-      await this.registrarUseCase.execute(token, dto.pasoId, dto.contenido);
+      await this.registrarUseCase.execute(token, dto.pasoId, dto.contenido, dto.respuestaUsuario, dto.respuestaIa);
     } catch (error) {
       this.handleError(error);
     }

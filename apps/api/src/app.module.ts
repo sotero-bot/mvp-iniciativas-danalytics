@@ -72,8 +72,8 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     },
     {
       provide: RegistrarRespuestaPorTokenUseCase,
-      useFactory: (repo) => new RegistrarRespuestaPorTokenUseCase(repo),
-      inject: ['IInstanciaRepository'],
+      useFactory: (repo, prisma) => new RegistrarRespuestaPorTokenUseCase(repo, prisma),
+      inject: ['IInstanciaRepository', PrismaService],
     },
     {
       provide: FinalizarInstanciaPorTokenUseCase,

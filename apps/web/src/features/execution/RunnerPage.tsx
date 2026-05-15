@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { Toast } from '../../components/Toast';
+import { buildResumenHtml } from './buildResumenHtml';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -20,8 +23,11 @@ interface RunnerData {
   nombreEmpresa?: string;
   logoEmpresa?: string;
   usuarioId?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   pasos: Paso[];
-  interacciones: { pasoId: string; contenido: string }[];
+  interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string }[];
 }
 
 /* ── Brand header ── */
@@ -182,9 +188,11 @@ export function RunnerPage() {
   const [archivoIa, setArchivoIa] = useState<File | null>(null);
   const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '', area: '' });
   const [wasValidated, setWasValidated] = useState(false);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [showPromptEdit, setShowPromptEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
   const editorRef = useRef<WysiwygEditorHandle>(null);
   const iaEditorRef = useRef<WysiwygEditorHandle>(null);
 
@@ -236,8 +244,6 @@ export function RunnerPage() {
   };
 
   const handleIdentificar = async () => {
-    if (!idenForm.nombre.trim()) return alert('El nombre es obligatorio');
-    if (!idenForm.email.trim()) return alert('El correo electrónico es obligatorio');
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/execution/${token}/identificar`, {
@@ -248,27 +254,36 @@ export function RunnerPage() {
       if (!res.ok) throw new Error('Error al registrar identificación');
       const result = await res.json();
 
-      // Si el usuario ya tenía una sesión previa, el backend devuelve ese token
       const activeToken: string = result.instanceToken ?? token;
 
       if (activeToken !== token) {
-        // Redirigir a la sesión existente (ya está iniciada, no llamar /iniciar)
         window.location.replace(`/runner/${activeToken}`);
         return;
       }
 
-      // Sesión nueva: iniciar y recargar
       const res2 = await fetch(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
       if (!res2.ok) {
         const errJson = await res2.json();
         throw new Error(errJson.message || 'Error al iniciar la actividad');
       }
       await loadData();
+      if (result.reutilizado) {
+        setToast({ message: `Bienvenido de vuelta, ${result.nombre}`, variant: 'info' });
+      } else {
+        setToast({ message: 'Registro exitoso', variant: 'success' });
+      }
     } catch (err: any) {
       alert(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const onSubmitIdentificacion = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setWasValidated(true);
+    if (!(e.currentTarget as HTMLFormElement).checkValidity()) return;
+    setShowEmailConfirm(true);
   };
 
   const handleSiguiente = async () => {
@@ -287,23 +302,51 @@ export function RunnerPage() {
     await fetch(`${API_URL}/execution/${token}/responder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pasoId: paso.id, contenido: respuestaFinal })
+      body: JSON.stringify({
+        pasoId: paso.id,
+        contenido: respuestaFinal,
+        respuestaUsuario: paso.usarIa ? respuesta : undefined,
+        respuestaIa: paso.usarIa ? respuestaIa : undefined,
+      })
     });
 
     if (currentStepIndex < data!.pasos.length - 1) {
-      setData(prev => prev ? {
-        ...prev,
-        interacciones: [...prev.interacciones.filter(i => i.pasoId !== paso.id),
-          { pasoId: paso.id, contenido: respuestaFinal, fecha: new Date().toISOString() } as any]
-      } : prev);
+      const interActual = {
+        pasoId: paso.id,
+        contenido: respuestaFinal,
+        respuestaUsuario: paso.usarIa ? respuesta : undefined,
+        respuestaIa: paso.usarIa ? respuestaIa : undefined,
+      };
+      const newInteracciones = [
+        ...data!.interacciones.filter(i => i.pasoId !== paso.id),
+        interActual,
+      ];
+      setData(prev => prev ? { ...prev, interacciones: newInteracciones } : prev);
+
+      const sig = data!.pasos[currentStepIndex + 1];
+      const interSig = newInteracciones.find(i => i.pasoId === sig.id);
+      if (interSig) {
+        if (sig.usarIa) {
+          setRespuesta(interSig.respuestaUsuario || '');
+          setRespuestaIa(interSig.respuestaIa || interSig.contenido || '');
+          editorRef.current?.replaceContent(interSig.respuestaUsuario || '');
+          iaEditorRef.current?.replaceContent(interSig.respuestaIa || interSig.contenido || '');
+        } else {
+          setRespuesta(interSig.contenido || '');
+          setRespuestaIa('');
+          editorRef.current?.replaceContent(interSig.contenido || '');
+          iaEditorRef.current?.replaceContent('');
+        }
+      } else {
+        setRespuesta('');
+        setRespuestaIa('');
+        editorRef.current?.replaceContent('');
+        iaEditorRef.current?.replaceContent('');
+      }
 
       setCurrentStepIndex(currentStepIndex + 1);
-      setRespuesta('');
-      setRespuestaIa('');
       setArchivoIa(null);
-      editorRef.current?.replaceContent('');
-      iaEditorRef.current?.replaceContent('');
-      setCustomPrompt(data!.pasos[currentStepIndex + 1]?.promptIa ?? '');
+      setCustomPrompt(sig.promptIa ?? '');
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -343,6 +386,61 @@ export function RunnerPage() {
     if (!data || currentStepIndex === 0) return '';
     const pasoAnterior = data.pasos[currentStepIndex - 1];
     return data.interacciones.find(i => i.pasoId === pasoAnterior.id)?.contenido ?? '';
+  };
+
+  const handleAnterior = async () => {
+    if (currentStepIndex === 0) return;
+    const pasoActual = data!.pasos[currentStepIndex];
+    const tieneAlgoEscrito = respuesta.trim() || respuestaIa.trim();
+
+    setLoading(true);
+
+    if (tieneAlgoEscrito) {
+      const contenidoFinal = pasoActual.usarIa ? (respuestaIa || respuesta) : respuesta;
+      await fetch(`${API_URL}/execution/${token}/responder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pasoId: pasoActual.id,
+          contenido: contenidoFinal,
+          respuestaUsuario: pasoActual.usarIa ? respuesta : undefined,
+          respuestaIa: pasoActual.usarIa ? respuestaIa : undefined,
+        })
+      });
+      setData(prev => prev ? {
+        ...prev,
+        interacciones: [
+          ...prev.interacciones.filter(i => i.pasoId !== pasoActual.id),
+          {
+            pasoId: pasoActual.id,
+            contenido: contenidoFinal,
+            respuestaUsuario: pasoActual.usarIa ? respuesta : undefined,
+            respuestaIa: pasoActual.usarIa ? respuestaIa : undefined,
+          }
+        ]
+      } : prev);
+    }
+
+    const nuevoIndex = currentStepIndex - 1;
+    const pasoAnterior = data!.pasos[nuevoIndex];
+    const inter = data!.interacciones.find(i => i.pasoId === pasoAnterior.id);
+
+    if (pasoAnterior.usarIa) {
+      setRespuesta(inter?.respuestaUsuario || '');
+      setRespuestaIa(inter?.respuestaIa || inter?.contenido || '');
+      editorRef.current?.replaceContent(inter?.respuestaUsuario || '');
+      iaEditorRef.current?.replaceContent(inter?.respuestaIa || inter?.contenido || '');
+    } else {
+      setRespuesta(inter?.contenido || '');
+      setRespuestaIa('');
+      editorRef.current?.replaceContent(inter?.contenido || '');
+      iaEditorRef.current?.replaceContent('');
+    }
+
+    setCurrentStepIndex(nuevoIndex);
+    setArchivoIa(null);
+    setCustomPrompt(pasoAnterior.promptIa ?? '');
+    setLoading(false);
   };
 
   /* ── Loading / Error ── */
@@ -399,7 +497,7 @@ export function RunnerPage() {
             {!data.usuarioId ? (
               <form
                 className={wasValidated ? 'was-validated' : ''}
-                onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) handleIdentificar(); }}
+                onSubmit={onSubmitIdentificacion}
                 noValidate
               >
                 <h3 style={{ marginBottom: 4 }}>Indícanos quién eres</h3>
@@ -464,11 +562,44 @@ export function RunnerPage() {
             )}
           </div>
         </div>
+
+        <ConfirmModal
+          isOpen={showEmailConfirm}
+          title="Confirma tu correo electrónico"
+          message={`Estás a punto de registrarte con:\n\n${idenForm.email}\n\nTu correo es tu llave única. Si ya estás registrado en esta empresa usaremos tu cuenta existente. Si te equivocaste, cierra y corrígelo.`}
+          confirmLabel="Confirmar y comenzar"
+          onConfirm={() => { setShowEmailConfirm(false); handleIdentificar(); }}
+          onCancel={() => setShowEmailConfirm(false)}
+        />
       </>
     );
   }
 
   /* ── Estado: finalizado ── */
+  const handleDescargarResumen = () => {
+    const html = buildResumenHtml({
+      nombreActividad: data!.nombreActividad,
+      descripcionActividad: data!.descripcionActividad,
+      nombreEmpresa: data!.nombreEmpresa,
+      logoEmpresa: data!.logoEmpresa,
+      fechaInicio: data!.fechaInicio,
+      fechaFin: data!.fechaFin,
+      usuario: data!.usuario,
+      pasos: data!.pasos,
+      interacciones: data!.interacciones,
+    });
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeNombre = data!.nombreActividad.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    a.download = `resumen-${safeNombre}-${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (data.estado === 'finalizado') {
     return (
       <>
@@ -490,10 +621,16 @@ export function RunnerPage() {
             <p style={{ color: 'var(--color-text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
               Sus respuestas han sido registradas exitosamente. Puede ver un resumen completo a continuación.
             </p>
-            <a href={`/runner/${token}/resultados`} className="btn btn-primary"
-              style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem', textDecoration: 'none', display: 'inline-flex' }}>
-              Ver mis resultados →
-            </a>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a href={`/runner/${token}/resultados`} className="btn btn-primary"
+                style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem', textDecoration: 'none', display: 'inline-flex' }}>
+                Ver mis resultados →
+              </a>
+              <button onClick={handleDescargarResumen} className="btn btn-secondary"
+                style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem' }}>
+                Descargar resumen HTML
+              </button>
+            </div>
             <p style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
               También puede cerrar esta ventana.
             </p>
@@ -704,29 +841,51 @@ export function RunnerPage() {
               </button>
 
               {/* Respuesta IA */}
-              {enviandoIa && !respuestaIa && (
+              {(respuestaIa || enviandoIa) ? (
+                <>
+                  {enviandoIa && !respuestaIa && (
+                    <div style={{
+                      padding: '1.5rem', textAlign: 'center', color: '#7C3AED',
+                      fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
+                    }}>
+                      <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                      Generando análisis con IA...
+                    </div>
+                  )}
+                  <WysiwygEditor
+                    ref={iaEditorRef}
+                    value={respuestaIa}
+                    onChange={setRespuestaIa}
+                    placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
+                    minHeight={180}
+                    borderColor="#DDD6FE"
+                  />
+                </>
+              ) : (
                 <div style={{
-                  padding: '1.5rem', textAlign: 'center', color: '#7C3AED',
-                  fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
+                  padding: '1.25rem', borderRadius: 8, background: '#FAF8FF',
+                  border: '1px dashed #DDD6FE', textAlign: 'center',
+                  color: '#7C3AED', fontSize: '0.85rem',
                 }}>
-                  <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                  Generando análisis con IA...
+                  Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.
                 </div>
               )}
-              <WysiwygEditor
-                ref={iaEditorRef}
-                value={respuestaIa}
-                onChange={setRespuestaIa}
-                placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
-                minHeight={180}
-                borderColor="#DDD6FE"
-              />
             </SectionBlock>
           )}
 
-          {/* Botón siguiente / finalizar */}
-          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Botones anterior / siguiente */}
+          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+            {currentStepIndex > 0 ? (
+              <button
+                className="btn btn-secondary"
+                onClick={handleAnterior}
+                disabled={loading}
+                style={{ padding: '0.625rem 1.25rem', fontSize: '0.9375rem' }}
+              >
+                ← Paso anterior
+              </button>
+            ) : <div />}
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}
@@ -739,6 +898,8 @@ export function RunnerPage() {
 
         </div>
       </div>
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>

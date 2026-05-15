@@ -14,6 +14,7 @@ export class RunnerResponseDto {
   }>;
   fechaInicio?: string;
   fechaFin?: string;
+  usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   interacciones: InteraccionDto[];
 
   constructor(partial: Partial<RunnerResponseDto>) {
@@ -24,6 +25,8 @@ export class RunnerResponseDto {
 export class InteraccionDto {
   pasoId: string;
   contenido: string;
+  respuestaUsuario?: string;
+  respuestaIa?: string;
   fecha: string;
 }
 
@@ -40,4 +43,6 @@ export class FinalizarResponseDto {
 export class RegistrarRespuestaDto {
   pasoId: string;
   contenido: string;
+  respuestaUsuario?: string;
+  respuestaIa?: string;
 }
