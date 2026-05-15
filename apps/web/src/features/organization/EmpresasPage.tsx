@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
+
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface Empresa {
@@ -134,6 +135,7 @@ export function EmpresasPage() {
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPdfRemove, setEditPdfRemove] = useState(false);
   const [saving, setSaving] = useState(false);
+
 
   const showToast = (msg: string) => {
     setToast(msg);

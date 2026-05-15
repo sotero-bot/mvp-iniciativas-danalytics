@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 type Plantilla = { id: string; nombre: string; descripcion?: string; _count: { pasos: number } };
+type PlantillaJson = { nombre: string; descripcion?: string; pasos?: { titulo: string; objetivo?: string; usarIa?: boolean }[] };
 
 export function PlantillasPage() {
   const [list, setList] = useState<Plantilla[]>([]);
@@ -17,6 +18,54 @@ export function PlantillasPage() {
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<PlantillaJson[] | null>(null);
+  const [importFileName, setImportFileName] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<any | null>(null);
+  const [importError, setImportError] = useState('');
+  const [importDragging, setImportDragging] = useState(false);
+
+  const openImport = () => { setImportOpen(true); setImportPreview(null); setImportFileName(''); setImportResult(null); setImportError(''); };
+
+  const parseImportFile = (file: File) => {
+    setImportResult(null); setImportError(''); setImportFileName(file.name);
+    if (!file.name.endsWith('.json')) { setImportError('Solo se aceptan archivos .json'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result as string);
+        const items: PlantillaJson[] = Array.isArray(parsed) ? parsed : [parsed];
+        if (!items[0]?.nombre) { setImportError('El JSON debe tener el campo "nombre" en cada plantilla.'); return; }
+        setImportPreview(items);
+        setImportError('');
+      } catch { setImportError('El archivo no es un JSON válido.'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = async () => {
+    if (!importPreview) return;
+    setImportLoading(true); setImportError('');
+    try {
+      const res = await fetch(`${API_URL}/admin/plantillas/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantillas: importPreview }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al importar');
+      setImportResult(data);
+      setImportPreview(null);
+      load();
+    } catch (err: any) {
+      setImportError(err.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -138,6 +187,100 @@ export function PlantillasPage() {
         </div>
       )}
 
+      {importOpen && (
+        <div className="modal-overlay" onClick={() => setImportOpen(false)}>
+          <div className="modal-box" style={{ maxWidth: 580 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0 }}>Importar Plantillas desde JSON</h3>
+              <button onClick={() => setImportOpen(false)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
+              }}>×</button>
+            </div>
+
+            {!importPreview && !importResult && (
+              <div
+                onDragOver={e => { e.preventDefault(); setImportDragging(true); }}
+                onDragLeave={() => setImportDragging(false)}
+                onDrop={e => { e.preventDefault(); setImportDragging(false); const f = e.dataTransfer.files[0]; if (f) parseImportFile(f); }}
+                onClick={() => importInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${importDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  borderRadius: 8, padding: '40px 24px', textAlign: 'center', cursor: 'pointer',
+                  background: importDragging ? 'var(--color-primary-light, #f0f7ff)' : 'var(--color-bg-secondary)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: 8 }}>📂</div>
+                <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>
+                  {importFileName || 'Arrastra un archivo .json aquí'}
+                </p>
+                <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                  o haz clic para seleccionar
+                </p>
+                <input ref={importInputRef} type="file" accept=".json" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) parseImportFile(f); }} />
+              </div>
+            )}
+
+            {importError && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 6, background: '#fee2e2', color: '#b91c1c', fontSize: '0.875rem' }}>
+                {importError}
+              </div>
+            )}
+
+            {importPreview && (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 500, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                  Vista previa — {importPreview.length} {importPreview.length === 1 ? 'plantilla' : 'plantillas'}
+                </p>
+                <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {importPreview.map((p, i) => (
+                    <div key={i} style={{ background: 'var(--color-bg-secondary)', borderRadius: 8, padding: '12px 14px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4 }}>{p.nombre}</div>
+                      {p.descripcion && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>{p.descripcion}</div>}
+                      {p.pasos && p.pasos.length > 0 && (
+                        <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {p.pasos.map((paso, j) => (
+                            <li key={j} style={{ fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
+                              {paso.titulo}
+                              {paso.usarIa && <span style={{ marginLeft: 6, fontSize: '0.7rem', background: '#dbeafe', color: '#1d4ed8', borderRadius: 4, padding: '1px 5px' }}>🤖 IA</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {(!p.pasos || p.pasos.length === 0) && (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>Sin pasos definidos</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+                  <button className="btn btn-secondary" onClick={() => { setImportPreview(null); setImportFileName(''); }}>Cambiar archivo</button>
+                  <button className="btn btn-primary" disabled={importLoading} onClick={handleImport}>
+                    {importLoading ? 'Importando...' : `Importar ${importPreview.length} ${importPreview.length === 1 ? 'plantilla' : 'plantillas'}`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {importResult && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ padding: '14px 16px', borderRadius: 8, background: '#dcfce7', color: '#15803d', marginBottom: 14 }}>
+                  <strong>Importación exitosa</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>
+                    {importResult.plantillasCreadas} {importResult.plantillasCreadas === 1 ? 'plantilla creada' : 'plantillas creadas'} · {importResult.pasosCreados} {importResult.pasosCreados === 1 ? 'paso creado' : 'pasos creados'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={() => setImportOpen(false)}>Cerrar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1>Plantillas de Actividad</h1>
@@ -145,6 +288,7 @@ export function PlantillasPage() {
             Define actividades reutilizables. Al crear una actividad, elige una plantilla y sus pasos se copian automáticamente.
           </p>
         </div>
+        <button className="btn btn-secondary" onClick={openImport}>⬆ Importar JSON</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
