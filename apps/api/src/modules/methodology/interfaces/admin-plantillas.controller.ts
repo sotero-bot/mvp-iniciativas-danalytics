@@ -11,32 +11,32 @@ export class AdminPlantillasController {
     return this.prisma.plantillaActividad.findMany({
       where: { activo: true },
       include: { _count: { select: { pasos: { where: { activo: true } } } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ orden: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
     });
   }
 
   @Post()
-  async create(@Body() body: { nombre: string; descripcion?: string }) {
+  async create(@Body() body: { nombre: string; descripcion?: string; orden?: number }) {
     return this.prisma.plantillaActividad.create({
-      data: { nombre: body.nombre, descripcion: body.descripcion },
+      data: { nombre: body.nombre, descripcion: body.descripcion, orden: body.orden ?? null },
     });
   }
 
   @Put(':id')
   async update(
     @Param('id') id: string,
-    @Body() body: { nombre: string; descripcion?: string },
+    @Body() body: { nombre: string; descripcion?: string; orden?: number | null },
   ) {
     const exists = await this.prisma.plantillaActividad.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException('Plantilla no encontrada');
     return this.prisma.plantillaActividad.update({
       where: { id },
-      data: { nombre: body.nombre, descripcion: body.descripcion },
+      data: { nombre: body.nombre, descripcion: body.descripcion, orden: body.orden ?? null },
     });
   }
 
   @Post('import')
-  async importPlantillas(@Body() body: { plantillas: { nombre: string; descripcion?: string; pasos?: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string }[] }[] }) {
+  async importPlantillas(@Body() body: { plantillas: { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; permitirArchivo?: boolean; urlPlantilla?: string }[] }[] }) {
     if (!Array.isArray(body.plantillas) || body.plantillas.length === 0) {
       throw new BadRequestException('El JSON debe contener al menos una plantilla');
     }
@@ -48,7 +48,11 @@ export class AdminPlantillasController {
         if (!item.nombre?.trim()) continue;
 
         const plantilla = await tx.plantillaActividad.create({
-          data: { nombre: item.nombre.trim(), descripcion: item.descripcion?.trim() ?? null },
+          data: {
+            nombre: item.nombre.trim(),
+            descripcion: item.descripcion?.trim() ?? null,
+            orden: item.orden ?? null,
+          },
         });
         result.plantillasCreadas++;
 
@@ -63,13 +67,15 @@ export class AdminPlantillasController {
               instrucciones: p.instrucciones?.trim() ?? null,
               usarIa: p.usarIa ?? false,
               promptIa: p.promptIa?.trim() ?? null,
+              permitirArchivo: p.permitirArchivo ?? false,
+              urlPlantilla: p.urlPlantilla?.trim() ?? null,
               orden: idx + 1,
             })),
           });
           result.pasosCreados += pasos.length;
         }
 
-        result.details.push({ nombre: plantilla.nombre, pasos: pasos.length });
+        result.details.push({ nombre: plantilla.nombre, orden: plantilla.orden, pasos: pasos.length });
       }
     });
 

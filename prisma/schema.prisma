@@ -32,6 +32,7 @@ model Interaccion {
   contenido        String
   respuestaUsuario String?
   respuestaIa      String?
+  archivoNombre    String?
   fecha            DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   instancia        InstanciaActividad @relation(fields: [instanciaId], references: [id])
@@ -71,6 +72,7 @@ model PlantillaActividad {
   id          String          @id @default(uuid())
   nombre      String
   descripcion String?
+  orden       Int?
   activo      Boolean         @default(true)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -79,18 +81,20 @@ model PlantillaActividad {
 }
 
 model PasoPlantilla {
-  id            String             @id @default(uuid())
-  plantillaId   String
-  titulo        String
-  objetivo      String?
-  instrucciones String?
-  usarIa        Boolean            @default(false)
-  promptIa      String?
-  orden         Int
-  activo        Boolean            @default(true)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  plantilla     PlantillaActividad @relation(fields: [plantillaId], references: [id])
+  id             String             @id @default(uuid())
+  plantillaId    String
+  titulo         String
+  objetivo       String?
+  instrucciones  String?
+  usarIa         Boolean            @default(false)
+  promptIa       String?
+  permitirArchivo Boolean           @default(false)
+  urlPlantilla   String?
+  orden          Int
+  activo         Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  plantilla      PlantillaActividad @relation(fields: [plantillaId], references: [id])
 
   @@unique([plantillaId, orden])
 }
@@ -124,19 +128,21 @@ model EnlaceActividad {
 }
 
 model PasoActividad {
-  id            String        @id @default(uuid())
-  actividadId   String
-  titulo        String
-  objetivo      String?
-  instrucciones String?
-  promptIa      String?
-  usarIa        Boolean       @default(false)
-  orden         Int
-  activo        Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  interacciones Interaccion[]
-  actividad     Actividad     @relation(fields: [actividadId], references: [id])
+  id              String        @id @default(uuid())
+  actividadId     String
+  titulo          String
+  objetivo        String?
+  instrucciones   String?
+  promptIa        String?
+  usarIa          Boolean       @default(false)
+  permitirArchivo Boolean       @default(false)
+  urlPlantilla    String?
+  orden           Int
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  interacciones   Interaccion[]
+  actividad       Actividad     @relation(fields: [actividadId], references: [id])
 
   @@unique([actividadId, orden])
   @@index([actividadId])

@@ -13,6 +13,8 @@ export interface AgregarPasoInput {
   objetivo?: string;
   instrucciones?: string;
   promptIa?: string;
+  permitirArchivo?: boolean;
+  urlPlantilla?: string;
 }
 
 export class AgregarPasoActividadUseCase {
@@ -55,7 +57,9 @@ export class AgregarPasoActividadUseCase {
       input.usarIa ?? false,
       input.objetivo,
       input.instrucciones,
-      input.usarIa ? input.promptIa : undefined
+      input.usarIa ? input.promptIa : undefined,
+      input.permitirArchivo ?? false,
+      input.urlPlantilla,
     );
 
     await this.pasoRepo.create(nuevoPaso);

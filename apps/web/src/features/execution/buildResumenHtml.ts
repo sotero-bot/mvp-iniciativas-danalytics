@@ -7,15 +7,54 @@ interface ResumenInput {
   fechaFin?: string;
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   pasos: Array<{ id: string; titulo: string; objetivo?: string; usarIa?: boolean }>;
-  interacciones: Array<{ pasoId: string; contenido: string }>;
+  interacciones: Array<{ pasoId: string; contenido: string; archivoNombre?: string }>;
 }
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+const markdownTableToHtml = (md: string): string => {
+  const lines = md.split('\n');
+  let html = '';
+  let inTable = false;
+  let headerDone = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const cells = trimmed.slice(1, -1).split('|').map(c => c.trim());
+      if (cells.every(c => /^[-:]+$/.test(c))) {
+        // Separator row — close thead, open tbody
+        if (inTable) html += '</thead><tbody>';
+        headerDone = true;
+        continue;
+      }
+      if (!inTable) {
+        html += '<table><thead>';
+        inTable = true;
+        headerDone = false;
+      }
+      const tag = (!headerDone) ? 'th' : 'td';
+      html += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+    } else {
+      if (inTable) { html += '</tbody></table>'; inTable = false; headerDone = false; }
+      if (trimmed.startsWith('### ')) {
+        html += `<h3>${esc(trimmed.slice(4))}</h3>`;
+      } else if (trimmed !== '') {
+        html += `<p>${esc(trimmed)}</p>`;
+      }
+    }
+  }
+  if (inTable) html += '</tbody></table>';
+  return html;
+};
+
 const renderContenido = (contenido: string) => {
   const isHtml = /<\/?[a-z][\s\S]*>/i.test(contenido);
-  return isHtml ? contenido : `<p>${esc(contenido).replace(/\n/g, '<br/>')}</p>`;
+  if (isHtml) return contenido;
+  const hasMarkdownTable = /^\|.+\|$/m.test(contenido);
+  if (hasMarkdownTable) return markdownTableToHtml(contenido);
+  return `<p>${esc(contenido).replace(/\n/g, '<br/>')}</p>`;
 };
 
 const fmtFecha = (iso?: string) =>
@@ -36,6 +75,7 @@ export function buildResumenHtml(input: ResumenInput): string {
             </div>
             ${paso.usarIa ? '<span class="badge-ia">IA</span>' : ''}
           </header>
+          ${inter?.archivoNombre ? `<div class="badge-archivo">📎 ${esc(inter.archivoNombre)}</div>` : ''}
           <div class="respuesta">${renderContenido(contenido)}</div>
         </article>
       `;
@@ -63,8 +103,14 @@ export function buildResumenHtml(input: ResumenInput): string {
   .paso h2 { margin: 0; font-size: 1.05rem; }
   .objetivo { margin: 4px 0 0; color: #2563EB; font-style: italic; font-size: 0.85rem; }
   .badge-ia { margin-left: auto; background: #F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE; padding: 2px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+  .badge-archivo { display: inline-flex; align-items: center; gap: 4px; background: #F0FDF4; color: #166534; border: 1px solid #86EFAC; padding: 3px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin-bottom: 10px; }
   .respuesta { line-height: 1.7; color: #1E293B; }
   .respuesta p { margin: 0 0 8px; }
+  .respuesta table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.85rem; }
+  .respuesta th { background: #F1F5F9; font-weight: 600; text-align: left; padding: 7px 10px; border: 1px solid #CBD5E1; }
+  .respuesta td { padding: 6px 10px; border: 1px solid #CBD5E1; vertical-align: top; }
+  .respuesta tr:nth-child(even) td { background: #F8FAFC; }
+  .respuesta h3 { font-size: 0.95rem; color: #334155; margin: 12px 0 6px; }
   footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #E2E8F0; color: #94A3B8; font-size: 0.8rem; text-align: center; }
   @media print { body { background: white; padding: 0; } }
 </style>

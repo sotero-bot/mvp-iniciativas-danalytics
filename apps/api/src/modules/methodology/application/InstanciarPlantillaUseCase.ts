@@ -36,6 +36,8 @@ export class InstanciarPlantillaUseCase {
           instrucciones: p.instrucciones,
           usarIa: p.usarIa,
           promptIa: p.promptIa,
+          permitirArchivo: p.permitirArchivo,
+          urlPlantilla: p.urlPlantilla,
           orden: p.orden,
         })),
       });

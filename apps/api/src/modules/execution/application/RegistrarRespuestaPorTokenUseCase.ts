@@ -15,20 +15,18 @@ export class RegistrarRespuestaPorTokenUseCase {
     contenido: string,
     respuestaUsuario?: string,
     respuestaIa?: string,
+    archivoNombre?: string,
   ): Promise<void> {
     const instancia = await this.repository.findByAccessToken(token);
     if (!instancia) {
       throw new ResourceNotFoundError('InstanciaActividad', token);
     }
 
-    // Domain validation: verifica que la instancia esté iniciada
     instancia.registrarRespuesta(pasoId, contenido);
 
-    // Upsert directo preservando los 3 campos sin pasar por el repositorio
-    // (el save del repo hace deleteMany+create y perdería respuestaUsuario/respuestaIa)
     await this.prisma.interaccion.upsert({
       where: { instanciaId_pasoId: { instanciaId: instancia.id, pasoId } },
-      update: { contenido, respuestaUsuario, respuestaIa, updatedAt: new Date() },
+      update: { contenido, respuestaUsuario, respuestaIa, archivoNombre, updatedAt: new Date() },
       create: {
         id: randomUUID(),
         instanciaId: instancia.id,
@@ -36,6 +34,7 @@ export class RegistrarRespuestaPorTokenUseCase {
         contenido,
         respuestaUsuario,
         respuestaIa,
+        archivoNombre,
       },
     });
   }

@@ -7,6 +7,8 @@ export class PasoActividadResponseDto {
   objetivo?: string;
   instrucciones?: string;
   promptIa?: string;
+  permitirArchivo?: boolean;
+  urlPlantilla?: string;
 
   constructor(partial: Partial<PasoActividadResponseDto>) {
     Object.assign(this, partial);

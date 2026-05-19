@@ -8,6 +8,8 @@ interface PasoInput {
   instrucciones?: string;
   usarIa?: boolean;
   promptIa?: string;
+  permitirArchivo?: boolean;
+  urlPlantilla?: string;
 }
 
 interface ActividadInput {
@@ -107,6 +109,8 @@ export class AdminImportController {
                   instrucciones: p.instrucciones?.trim() ?? null,
                   usarIa: p.usarIa ?? false,
                   promptIa: p.promptIa?.trim() ?? null,
+                  permitirArchivo: p.permitirArchivo ?? false,
+                  urlPlantilla: p.urlPlantilla?.trim() ?? null,
                   orden: idx + 1,
                 })),
               });
@@ -126,6 +130,8 @@ export class AdminImportController {
                 instrucciones: p.instrucciones,
                 usarIa: p.usarIa,
                 promptIa: p.promptIa,
+                permitirArchivo: p.permitirArchivo ?? false,
+                urlPlantilla: p.urlPlantilla ?? null,
                 orden: p.orden,
               })),
             });

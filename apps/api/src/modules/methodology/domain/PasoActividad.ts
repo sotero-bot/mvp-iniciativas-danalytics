@@ -7,6 +7,8 @@ export class PasoActividad {
     public readonly usarIa: boolean = false,
     public readonly objetivo?: string,
     public readonly instrucciones?: string,
-    public readonly promptIa?: string
+    public readonly promptIa?: string,
+    public readonly permitirArchivo: boolean = false,
+    public readonly urlPlantilla?: string,
   ) { }
 }

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Toast } from '../../components/Toast';
@@ -14,6 +16,16 @@ interface Paso {
   instrucciones?: string;
   usarIa?: boolean;
   promptIa?: string;
+  permitirArchivo?: boolean;
+  urlPlantilla?: string;
+}
+
+interface RespuestaAnterior {
+  pasoTitulo: string;
+  pasoOrden: number;
+  contenido?: string;
+  respuestaUsuario?: string;
+  respuestaIa?: string;
 }
 
 interface RunnerData {
@@ -27,7 +39,8 @@ interface RunnerData {
   fechaFin?: string;
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   pasos: Paso[];
-  interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string }[];
+  interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string }[];
+  plantillaAnterior?: { nombre: string; respuestas: RespuestaAnterior[] };
 }
 
 /* ── Brand header ── */
@@ -186,6 +199,7 @@ export function RunnerPage() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [enviandoIa, setEnviandoIa] = useState(false);
   const [archivoIa, setArchivoIa] = useState<File | null>(null);
+  const [archivoRespuesta, setArchivoRespuesta] = useState<File | null>(null);
   const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '', area: '' });
   const [wasValidated, setWasValidated] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
@@ -193,6 +207,8 @@ export function RunnerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
+  const [bloqueadoPor, setBloqueadoPor] = useState<string | null>(null);
+  const [plantillaAnteriorExpanded, setPlantillaAnteriorExpanded] = useState(false);
   const editorRef = useRef<WysiwygEditorHandle>(null);
   const iaEditorRef = useRef<WysiwygEditorHandle>(null);
 
@@ -233,6 +249,10 @@ export function RunnerPage() {
       const res = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
       if (!res.ok) {
         const errJson = await res.json();
+        if (res.status === 403) {
+          setBloqueadoPor(errJson.message || 'Debes completar la actividad anterior primero.');
+          return;
+        }
         throw new Error(errJson.message || 'Error al iniciar la actividad');
       }
       await loadData();
@@ -264,6 +284,11 @@ export function RunnerPage() {
       const res2 = await fetch(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
       if (!res2.ok) {
         const errJson = await res2.json();
+        if (res2.status === 403) {
+          setBloqueadoPor(errJson.message || 'Debes completar la actividad anterior primero.');
+          await loadData();
+          return;
+        }
         throw new Error(errJson.message || 'Error al iniciar la actividad');
       }
       await loadData();
@@ -290,25 +315,36 @@ export function RunnerPage() {
     const paso = data!.pasos[currentStepIndex];
     const respuestaFinal = paso.usarIa ? respuestaIa : respuesta;
 
-    if (!respuestaFinal.trim()) {
+    if (!respuestaFinal.trim() && !archivoRespuesta) {
       if (paso.usarIa && !respuestaIa.trim()) {
         return alert('Debes consultar a la IA antes de continuar.');
+      }
+      if (paso.permitirArchivo) {
+        return alert('Debes escribir una respuesta o adjuntar el archivo antes de continuar.');
       }
       return;
     }
 
     setLoading(true);
 
-    await fetch(`${API_URL}/execution/${token}/responder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pasoId: paso.id,
-        contenido: respuestaFinal,
-        respuestaUsuario: paso.usarIa ? respuesta : undefined,
-        respuestaIa: paso.usarIa ? respuestaIa : undefined,
-      })
-    });
+    if (archivoRespuesta) {
+      const formData = new FormData();
+      formData.append('pasoId', paso.id);
+      formData.append('contenido', respuestaFinal);
+      formData.append('archivo', archivoRespuesta);
+      await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
+    } else {
+      await fetch(`${API_URL}/execution/${token}/responder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pasoId: paso.id,
+          contenido: respuestaFinal,
+          respuestaUsuario: paso.usarIa ? respuesta : undefined,
+          respuestaIa: paso.usarIa ? respuestaIa : undefined,
+        })
+      });
+    }
 
     if (currentStepIndex < data!.pasos.length - 1) {
       const interActual = {
@@ -316,6 +352,7 @@ export function RunnerPage() {
         contenido: respuestaFinal,
         respuestaUsuario: paso.usarIa ? respuesta : undefined,
         respuestaIa: paso.usarIa ? respuestaIa : undefined,
+        archivoNombre: archivoRespuesta?.name,
       };
       const newInteracciones = [
         ...data!.interacciones.filter(i => i.pasoId !== paso.id),
@@ -346,6 +383,7 @@ export function RunnerPage() {
 
       setCurrentStepIndex(currentStepIndex + 1);
       setArchivoIa(null);
+      setArchivoRespuesta(null);
       setCustomPrompt(sig.promptIa ?? '');
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
@@ -439,6 +477,7 @@ export function RunnerPage() {
 
     setCurrentStepIndex(nuevoIndex);
     setArchivoIa(null);
+    setArchivoRespuesta(null);
     setCustomPrompt(pasoAnterior.promptIa ?? '');
     setLoading(false);
   };
@@ -493,8 +532,23 @@ export function RunnerPage() {
               </div>
             </div>
 
-            {/* Identification form or start */}
-            {!data.usuarioId ? (
+            {/* Pantalla de bloqueo */}
+            {bloqueadoPor ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%',
+                  background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 1.25rem', fontSize: '1.75rem',
+                }}>🔒</div>
+                <h3 style={{ margin: '0 0 10px', color: '#92400E' }}>Actividad bloqueada</h3>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.6 }}>
+                  {bloqueadoPor}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', margin: 0 }}>
+                  Una vez que completes la actividad anterior, regresa aquí para continuar.
+                </p>
+              </div>
+            ) : !data.usuarioId ? (
               <form
                 className={wasValidated ? 'was-validated' : ''}
                 onSubmit={onSubmitIdentificacion}
@@ -672,6 +726,52 @@ export function RunnerPage() {
             border
           />
 
+          {/* Respuestas de la plantilla anterior (desplegable) */}
+          {data.plantillaAnterior && data.plantillaAnterior.respuestas.length > 0 && (
+            <div style={{ marginBottom: 20, border: '1px solid #C7D2FE', borderRadius: 10, overflow: 'hidden' }}>
+              <button
+                onClick={() => setPlantillaAnteriorExpanded(e => !e)}
+                style={{
+                  width: '100%', background: '#EEF2FF', border: 'none',
+                  padding: '11px 16px', cursor: 'pointer',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  borderRadius: plantillaAnteriorExpanded ? '10px 10px 0 0' : 10,
+                }}
+              >
+                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#3730A3' }}>
+                  📋 Respuestas de "{data.plantillaAnterior.nombre}"
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#6366F1', flexShrink: 0 }}>
+                  {plantillaAnteriorExpanded ? '▲ Cerrar' : '▼ Ver respuestas anteriores'}
+                </span>
+              </button>
+              {plantillaAnteriorExpanded && (
+                <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {data.plantillaAnterior.respuestas.map((r, i) => {
+                    const contenido = r.respuestaIa || r.respuestaUsuario || r.contenido || '';
+                    return (
+                      <div key={i} style={{
+                        borderBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? '1px solid #E0E7FF' : 'none',
+                        paddingBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? 14 : 0,
+                      }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366F1', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Paso {r.pasoOrden}: {r.pasoTitulo}
+                        </div>
+                        {contenido ? (
+                          <div style={{ fontSize: '0.875rem', color: '#1E293B', lineHeight: 1.65 }} className="markdown-anterior">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{contenido}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin respuesta registrada</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Step meta */}
           <div style={{ marginBottom: 24 }}>
             <StepPills total={data.pasos.length} current={currentStepIndex} />
@@ -753,6 +853,55 @@ export function RunnerPage() {
               placeholder="Escriba aquí su respuesta..."
               minHeight={220}
             />
+
+            {/* Plantilla descargable + subida de archivo (pasos con permitirArchivo) */}
+            {currentPaso.permitirArchivo && (
+              <div style={{
+                marginTop: 10, padding: '12px 16px',
+                background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8,
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                {currentPaso.urlPlantilla && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
+                    <a
+                      href={currentPaso.urlPlantilla}
+                      download
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '4px 12px', fontSize: '0.78rem',
+                        background: '#DCFCE7', color: '#166534',
+                        borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      ⬇ Descargar plantilla
+                    </a>
+                    <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>
+                      Descarga, diligencia y sube el archivo completado
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Subir archivo diligenciado</span>
+                  <label style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', fontSize: '0.78rem',
+                    background: archivoRespuesta ? '#DCFCE7' : '#F0FDF4', color: '#166534',
+                    borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #86EFAC',
+                  }}>
+                    {archivoRespuesta ? `✓ ${archivoRespuesta.name}` : '📂 Seleccionar archivo'}
+                    <input type="file" accept=".xlsx,.xls,.csv"
+                      style={{ display: 'none' }}
+                      onChange={e => setArchivoRespuesta(e.target.files?.[0] || null)} />
+                  </label>
+                  {archivoRespuesta && (
+                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                      onClick={() => setArchivoRespuesta(null)}>✕ Quitar</button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Adjuntar archivo (solo si hay IA) */}
             {currentPaso.usarIa && (
@@ -889,7 +1038,7 @@ export function RunnerPage() {
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}
-              disabled={(currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading}
+              disabled={(currentPaso.usarIa ? !respuestaIa.trim() : (!respuesta.trim() && !archivoRespuesta)) || loading}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
               {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
@@ -901,7 +1050,18 @@ export function RunnerPage() {
 
       {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .markdown-anterior p { margin: 0 0 6px; }
+        .markdown-anterior p:last-child { margin-bottom: 0; }
+        .markdown-anterior table { border-collapse: collapse; width: 100%; font-size: 0.82rem; margin: 6px 0; }
+        .markdown-anterior th { background: #EEF2FF; color: #3730A3; font-weight: 600; text-align: left; padding: 6px 10px; border: 1px solid #C7D2FE; }
+        .markdown-anterior td { padding: 5px 10px; border: 1px solid #E0E7FF; vertical-align: top; }
+        .markdown-anterior tr:nth-child(even) td { background: #F5F7FF; }
+        .markdown-anterior ul, .markdown-anterior ol { margin: 4px 0; padding-left: 18px; }
+        .markdown-anterior li { margin-bottom: 2px; }
+        .markdown-anterior strong { font-weight: 600; }
+      `}</style>
     </>
   );
 }

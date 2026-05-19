@@ -4,15 +4,15 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-type Plantilla = { id: string; nombre: string; descripcion?: string; _count: { pasos: number } };
-type PlantillaJson = { nombre: string; descripcion?: string; pasos?: { titulo: string; objetivo?: string; usarIa?: boolean }[] };
+type Plantilla = { id: string; nombre: string; descripcion?: string; orden?: number | null; _count: { pasos: number } };
+type PlantillaJson = { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; usarIa?: boolean }[] };
 
 export function PlantillasPage() {
   const [list, setList] = useState<Plantilla[]>([]);
-  const [form, setForm] = useState({ nombre: '', descripcion: '' });
+  const [form, setForm] = useState({ nombre: '', descripcion: '', orden: '' });
   const [wasValidated, setWasValidated] = useState(false);
   const [editModal, setEditModal] = useState<Plantilla | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: '', descripcion: '' });
+  const [editForm, setEditForm] = useState({ nombre: '', descripcion: '', orden: '' });
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
@@ -86,11 +86,15 @@ export function PlantillasPage() {
       const res = await fetch(`${API_URL}/admin/plantillas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: form.nombre, descripcion: form.descripcion || undefined }),
+        body: JSON.stringify({
+          nombre: form.nombre,
+          descripcion: form.descripcion || undefined,
+          orden: form.orden ? parseInt(form.orden) : undefined,
+        }),
       });
       if (res.ok) {
         load();
-        setForm({ nombre: '', descripcion: '' });
+        setForm({ nombre: '', descripcion: '', orden: '' });
         setWasValidated(false);
         showToast('Plantilla creada correctamente');
       } else {
@@ -103,7 +107,7 @@ export function PlantillasPage() {
 
   const openEdit = (p: Plantilla) => {
     setEditModal(p);
-    setEditForm({ nombre: p.nombre, descripcion: p.descripcion || '' });
+    setEditForm({ nombre: p.nombre, descripcion: p.descripcion || '', orden: p.orden != null ? String(p.orden) : '' });
     setEditWasValidated(false);
   };
 
@@ -117,7 +121,11 @@ export function PlantillasPage() {
       await fetch(`${API_URL}/admin/plantillas/${editModal!.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: editForm.nombre, descripcion: editForm.descripcion || undefined }),
+        body: JSON.stringify({
+          nombre: editForm.nombre,
+          descripcion: editForm.descripcion || undefined,
+          orden: editForm.orden ? parseInt(editForm.orden) : null,
+        }),
       });
       load();
       setEditModal(null);
@@ -175,6 +183,23 @@ export function PlantillasPage() {
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Descripción</label>
                 <textarea className="input" rows={4} value={editForm.descripcion}
                   onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>
+                  Orden en la secuencia <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span>
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  placeholder="Ej: 1, 2, 3..."
+                  value={editForm.orden}
+                  onChange={e => setEditForm({ ...editForm, orden: e.target.value })}
+                  style={{ maxWidth: 160 }}
+                />
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
+                  Define el orden en que deben completarse las plantillas. La plantilla anterior debe finalizarse antes de iniciar esta.
+                </p>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancelar</button>
@@ -237,7 +262,14 @@ export function PlantillasPage() {
                 <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {importPreview.map((p, i) => (
                     <div key={i} style={{ background: 'var(--color-bg-secondary)', borderRadius: 8, padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4 }}>{p.nombre}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        {p.orden != null && (
+                          <span style={{ fontSize: '0.7rem', background: '#e0e7ff', color: '#3730a3', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
+                            #{p.orden}
+                          </span>
+                        )}
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.nombre}</div>
+                      </div>
                       {p.descripcion && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>{p.descripcion}</div>}
                       {p.pasos && p.pasos.length > 0 && (
                         <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -285,7 +317,7 @@ export function PlantillasPage() {
         <div>
           <h1>Plantillas de Actividad</h1>
           <p className="page-description">
-            Define actividades reutilizables. Al crear una actividad, elige una plantilla y sus pasos se copian automáticamente.
+            Define actividades reutilizables con un orden de secuencia. El participante debe completar cada plantilla antes de avanzar a la siguiente.
           </p>
         </div>
         <button className="btn btn-secondary" onClick={openImport}>⬆ Importar JSON</button>
@@ -320,7 +352,23 @@ export function PlantillasPage() {
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>
               <textarea className="input" placeholder="¿Qué trabajará el participante en esta actividad?"
                 value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
-                rows={4} />
+                rows={3} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 5 }}>
+                Orden en la secuencia <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span>
+              </label>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                placeholder="Ej: 1, 2, 3..."
+                value={form.orden}
+                onChange={e => setForm({ ...form, orden: e.target.value })}
+              />
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
+                Define el paso en la secuencia. La plantilla anterior debe completarse antes de iniciar esta.
+              </p>
             </div>
             <button type="submit" className="btn btn-primary">Guardar Plantilla</button>
           </form>
@@ -343,7 +391,15 @@ export function PlantillasPage() {
               <div key={p.id} className="card" style={{ marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ marginBottom: 6 }}>
+                    <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {p.orden != null && (
+                        <span style={{
+                          fontSize: '0.7rem', background: '#e0e7ff', color: '#3730a3',
+                          borderRadius: 4, padding: '2px 8px', fontWeight: 700,
+                        }}>
+                          Paso {p.orden}
+                        </span>
+                      )}
                       {p._count.pasos > 0 ? (
                         <span className="status-badge status-info" style={{ fontSize: '0.7rem' }}>
                           {p._count.pasos} {p._count.pasos === 1 ? 'paso' : 'pasos'}

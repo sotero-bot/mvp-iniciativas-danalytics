@@ -18,7 +18,7 @@ export class AdminPlantillaPasosController {
   @Post()
   async create(
     @Param('plantillaId') plantillaId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; urlPlantilla?: string },
   ) {
     const plantilla = await this.prisma.plantillaActividad.findUnique({ where: { id: plantillaId, activo: true } });
     if (!plantilla) throw new NotFoundException('Plantilla no encontrada');
@@ -37,6 +37,8 @@ export class AdminPlantillaPasosController {
         usarIa: body.usarIa ?? false,
         promptIa: body.promptIa,
         orden: body.orden,
+        permitirArchivo: body.permitirArchivo ?? false,
+        urlPlantilla: body.urlPlantilla ?? null,
       },
     });
   }
@@ -45,7 +47,7 @@ export class AdminPlantillaPasosController {
   async update(
     @Param('plantillaId') plantillaId: string,
     @Param('pasoId') pasoId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; urlPlantilla?: string },
   ) {
     const existe = await this.prisma.pasoPlantilla.findFirst({
       where: { plantillaId, orden: body.orden, activo: true, NOT: { id: pasoId } },
@@ -61,6 +63,8 @@ export class AdminPlantillaPasosController {
         usarIa: body.usarIa ?? false,
         promptIa: body.promptIa,
         orden: body.orden,
+        permitirArchivo: body.permitirArchivo ?? false,
+        urlPlantilla: body.urlPlantilla ?? null,
       },
     });
   }

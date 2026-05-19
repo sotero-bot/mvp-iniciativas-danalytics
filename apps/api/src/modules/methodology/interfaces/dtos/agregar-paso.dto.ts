@@ -5,4 +5,6 @@ export class AgregarPasoDto {
   objetivo?: string;
   instrucciones?: string;
   promptIa?: string;
+  permitirArchivo?: boolean;
+  urlPlantilla?: string;
 }

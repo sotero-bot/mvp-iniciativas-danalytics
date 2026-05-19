@@ -1,3 +1,16 @@
+export class RespuestaPlantillaAnteriorDto {
+  pasoTitulo: string;
+  pasoOrden: number;
+  contenido?: string;
+  respuestaUsuario?: string;
+  respuestaIa?: string;
+}
+
+export class PlantillaAnteriorDto {
+  nombre: string;
+  respuestas: RespuestaPlantillaAnteriorDto[];
+}
+
 export class RunnerResponseDto {
   estado: string;
   nombreActividad: string;
@@ -10,12 +23,16 @@ export class RunnerResponseDto {
     titulo: string;
     objetivo?: string;
     instrucciones?: string;
+    usarIa?: boolean;
     promptIa?: string;
+    permitirArchivo?: boolean;
+    urlPlantilla?: string;
   }>;
   fechaInicio?: string;
   fechaFin?: string;
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   interacciones: InteraccionDto[];
+  plantillaAnterior?: PlantillaAnteriorDto;
 
   constructor(partial: Partial<RunnerResponseDto>) {
     Object.assign(this, partial);
@@ -27,6 +44,7 @@ export class InteraccionDto {
   contenido: string;
   respuestaUsuario?: string;
   respuestaIa?: string;
+  archivoNombre?: string;
   fecha: string;
 }
 
@@ -45,4 +63,5 @@ export class RegistrarRespuestaDto {
   contenido: string;
   respuestaUsuario?: string;
   respuestaIa?: string;
+  archivoNombre?: string;
 }

@@ -34,6 +34,8 @@ export class AdminActividadesController {
           instrucciones: p.instrucciones,
           usarIa: p.usarIa,
           promptIa: p.promptIa,
+          permitirArchivo: (p as any).permitirArchivo ?? false,
+          urlPlantilla: (p as any).urlPlantilla || undefined,
         })),
       };
     } catch (error) {
@@ -93,7 +95,9 @@ export class AdminActividadesController {
           instrucciones: dto.instrucciones,
           usarIa: dto.usarIa,
           promptIa: dto.promptIa,
-          orden: dto.orden
+          orden: dto.orden,
+          permitirArchivo: dto.permitirArchivo ?? false,
+          urlPlantilla: dto.urlPlantilla ?? null,
         }
       });
       return res;

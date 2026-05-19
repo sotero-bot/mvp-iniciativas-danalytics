@@ -23,6 +23,8 @@ export function PlantillaPasosPage() {
     instrucciones: '',
     usarIa: false,
     promptIa: '',
+    permitirArchivo: false,
+    urlPlantilla: '',
     orden: 0,
   });
 
@@ -61,7 +63,7 @@ export function PlantillaPasosPage() {
       if (res.status === 400) { alert(data.message || 'Error en los datos'); return; }
       if (res.status === 404) { alert('Plantilla/Paso no encontrado'); return; }
       if (res.ok) {
-        setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', orden: pasos.length + (editingId ? 1 : 2) });
+        setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', permitirArchivo: false, urlPlantilla: '', orden: pasos.length + (editingId ? 1 : 2) });
         setShowForm(false);
         setEditingId(null);
         setWasValidated(false);
@@ -74,7 +76,7 @@ export function PlantillaPasosPage() {
 
   const handleEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', usarIa: p.usarIa || false, promptIa: p.promptIa || '', orden: p.orden });
+    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', usarIa: p.usarIa || false, promptIa: p.promptIa || '', permitirArchivo: p.permitirArchivo || false, urlPlantilla: p.urlPlantilla || '', orden: p.orden });
     setShowForm(true);
   };
 
@@ -82,7 +84,7 @@ export function PlantillaPasosPage() {
     setEditingId(null);
     setShowForm(false);
     const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-    setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', orden: maxOrden + 1 });
+    setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', permitirArchivo: false, urlPlantilla: '', orden: maxOrden + 1 });
     setWasValidated(false);
   };
 
@@ -184,6 +186,32 @@ export function PlantillaPasosPage() {
               </div>
             )}
 
+            <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                <input type="checkbox" checked={form.permitirArchivo}
+                  onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, urlPlantilla: e.target.checked ? form.urlPlantilla : '' })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#16a34a' }} />
+                <span style={{ fontWeight: 600 }}>Permitir subida de archivo en este paso</span>
+              </label>
+              {form.permitirArchivo && (
+                <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.7rem' }}>
+                  📎 Archivo activo
+                </span>
+              )}
+            </div>
+
+            {form.permitirArchivo && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <label>URL plantilla descargable</label>
+                <input className="input" value={form.urlPlantilla}
+                  onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
+                  placeholder="Ej: /templates/plantilla-priorizacion-mapa-oportunidades.xlsx" />
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                  Ruta relativa al archivo Excel que el participante puede descargar como plantilla.
+                </div>
+              </div>
+            )}
+
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>Cancelar</button>
               <button type="submit" className="btn btn-primary">{editingId ? 'Guardar Cambios' : 'Guardar Paso'}</button>
@@ -205,6 +233,7 @@ export function PlantillaPasosPage() {
                 <th style={{ padding: '12px' }}>Título</th>
                 <th style={{ padding: '12px' }}>Objetivo</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>IA</th>
+                <th style={{ padding: '12px', textAlign: 'center' }}>Archivo</th>
                 <th style={{ padding: '12px' }}>Acciones</th>
               </tr>
             </thead>
@@ -219,6 +248,13 @@ export function PlantillaPasosPage() {
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {p.usarIa ? (
                       <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.7rem' }}>🤖 Sí</span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                    {p.permitirArchivo ? (
+                      <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.7rem' }}>📎 Sí</span>
                     ) : (
                       <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>—</span>
                     )}
