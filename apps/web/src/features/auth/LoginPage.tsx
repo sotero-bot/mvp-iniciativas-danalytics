@@ -24,7 +24,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         onLogin(data.access_token);
       } else {
         const errData = await res.json().catch(() => ({}));
-        setError(errData.message || 'Credenciales inválidas');
+        setError(errData.message || 'Usuario o contraseña incorrectos. Revisá tus datos.');
       }
     } catch (err: any) {
       setError('Error de conexión. Intentá nuevamente.');
@@ -55,7 +55,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             objectFit: 'contain'
           }} />
           <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>Bienvenido</h1>
-          <p style={{ color: '#64748B', marginTop: 8 }}>Inicia sesión en el panel de IAGobernanza</p>
+          <p style={{ color: '#64748B', marginTop: 8 }}>Inicia sesión en el panel de Desicion IA</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

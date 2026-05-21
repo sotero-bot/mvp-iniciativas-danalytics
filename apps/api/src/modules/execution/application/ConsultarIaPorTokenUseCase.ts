@@ -23,7 +23,7 @@ export class ConsultarIaPorTokenUseCase {
         customPrompt?: string,
         file?: { path: string; mimetype: string; originalname: string }
     ): Promise<string> {
-        await this.accederUseCase.execute(token);
+        const instancia = await this.accederUseCase.execute(token);
 
         const paso = await this.prisma.pasoActividad.findUnique({
             where: { id: pasoId },
@@ -88,4 +88,5 @@ export class ConsultarIaPorTokenUseCase {
             throw new Error('Error al procesar la solicitud con IA');
         }
     }
+
 }

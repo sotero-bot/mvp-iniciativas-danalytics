@@ -66,7 +66,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
       />
 
       <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-        IA Gobernanza
+        Desicion IA
       </span>
 
       {(nombreEmpresa || nombreActividad) ? (
@@ -190,6 +190,34 @@ function StepPills({ total, current }: { total: number; current: number }) {
   );
 }
 
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+}
+
+function interpolarPrompt(
+  prompt: string,
+  pasos: Paso[],
+  interacciones: RunnerData['interacciones']
+): string {
+  if (!prompt.includes('{{paso_')) return prompt;
+  return prompt.replace(/\{\{paso_(\d+)\}\}/g, (_match, nStr) => {
+    const n = parseInt(nStr, 10);
+    const paso = pasos[n - 1];
+    if (!paso) return `[paso ${n} no encontrado]`;
+    const interaccion = interacciones.find(i => i.pasoId === paso.id);
+    if (!interaccion) return '[sin respuesta]';
+    return stripHtmlToText(interaccion.contenido);
+  });
+}
+
 export function RunnerPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<RunnerData | null>(null);
@@ -226,13 +254,13 @@ export function RunnerPage() {
         if (lastAnsweredIndex !== -1) {
           setCurrentStepIndex(lastAnsweredIndex);
           if (json.pasos[lastAnsweredIndex].promptIa) {
-            setCustomPrompt(json.pasos[lastAnsweredIndex].promptIa);
+            setCustomPrompt(interpolarPrompt(json.pasos[lastAnsweredIndex].promptIa, json.pasos, json.interacciones));
           }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
         }
       } else if (json.pasos.length > 0 && json.pasos[0].promptIa) {
-        setCustomPrompt(json.pasos[0].promptIa);
+        setCustomPrompt(interpolarPrompt(json.pasos[0].promptIa, json.pasos, json.interacciones));
       }
     } catch (err: any) {
       setError(err.message);
@@ -250,14 +278,14 @@ export function RunnerPage() {
       if (!res.ok) {
         const errJson = await res.json();
         if (res.status === 403) {
-          setBloqueadoPor(errJson.message || 'Debes completar la actividad anterior primero.');
+          setBloqueadoPor(errJson.message || 'Para acceder, primero completá la actividad anterior.');
           return;
         }
-        throw new Error(errJson.message || 'Error al iniciar la actividad');
+        throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
       }
       await loadData();
     } catch (err: any) {
-      alert('Error al comenzar: ' + err.message);
+      alert('Algo salió mal al iniciar. Intentá de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -285,11 +313,11 @@ export function RunnerPage() {
       if (!res2.ok) {
         const errJson = await res2.json();
         if (res2.status === 403) {
-          setBloqueadoPor(errJson.message || 'Debes completar la actividad anterior primero.');
+          setBloqueadoPor(errJson.message || 'Para acceder, primero completá la actividad anterior.');
           await loadData();
           return;
         }
-        throw new Error(errJson.message || 'Error al iniciar la actividad');
+        throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
       }
       await loadData();
       if (result.reutilizado) {
@@ -317,10 +345,10 @@ export function RunnerPage() {
 
     if (!respuestaFinal.trim() && !archivoRespuesta) {
       if (paso.usarIa && !respuestaIa.trim()) {
-        return alert('Debes consultar a la IA antes de continuar.');
+        return alert('Consultá al asistente antes de continuar.');
       }
       if (paso.permitirArchivo) {
-        return alert('Debes escribir una respuesta o adjuntar el archivo antes de continuar.');
+        return alert('Escribí tu respuesta o adjuntá el archivo para continuar.');
       }
       return;
     }
@@ -384,7 +412,7 @@ export function RunnerPage() {
       setCurrentStepIndex(currentStepIndex + 1);
       setArchivoIa(null);
       setArchivoRespuesta(null);
-      setCustomPrompt(sig.promptIa ?? '');
+      setCustomPrompt(interpolarPrompt(sig.promptIa ?? '', data!.pasos, newInteracciones));
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -393,7 +421,7 @@ export function RunnerPage() {
   };
 
   const handleEnviarIA = async () => {
-    if (!respuesta.trim() && !archivoIa) return alert('Por favor escriba su respuesta o adjunte un archivo antes de consultar a la IA');
+    if (!respuesta.trim() && !archivoIa) return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
     setEnviandoIa(true);
     setRespuestaIa('');
     iaEditorRef.current?.replaceContent('');
@@ -414,7 +442,7 @@ export function RunnerPage() {
       setRespuestaIa(json.respuestaIa);
       iaEditorRef.current?.replaceContent(json.respuestaIa);
     } catch (err: any) {
-      alert('Error en Asistente IA: ' + err.message);
+      alert('No pudimos conectar con el asistente. Intentá de nuevo.');
     } finally {
       setEnviandoIa(false);
     }
@@ -478,7 +506,7 @@ export function RunnerPage() {
     setCurrentStepIndex(nuevoIndex);
     setArchivoIa(null);
     setArchivoRespuesta(null);
-    setCustomPrompt(pasoAnterior.promptIa ?? '');
+    setCustomPrompt(interpolarPrompt(pasoAnterior.promptIa ?? '', data!.pasos, data!.interacciones));
     setLoading(false);
   };
 
@@ -540,7 +568,7 @@ export function RunnerPage() {
                   background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 1.25rem', fontSize: '1.75rem',
                 }}>🔒</div>
-                <h3 style={{ margin: '0 0 10px', color: '#92400E' }}>Actividad bloqueada</h3>
+                <h3 style={{ margin: '0 0 10px', color: '#92400E' }}>Aún no disponible</h3>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.6 }}>
                   {bloqueadoPor}
                 </p>
@@ -576,14 +604,14 @@ export function RunnerPage() {
                         } catch { /* sin usuario previo, no hacer nada */ }
                       }}
                       placeholder="ejemplo@empresa.com" />
-                    <div className="invalid-feedback">Un correo electrónico válido es requerido.</div>
+                    <div className="invalid-feedback">Ingresá un correo electrónico válido.</div>
                   </div>
                   <div>
                     <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Nombre Completo</label>
                     <input className="input" required value={idenForm.nombre}
                       onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
                       placeholder="Su nombre completo" />
-                    <div className="invalid-feedback">El nombre completo es requerido.</div>
+                    <div className="invalid-feedback">Ingresá tu nombre completo.</div>
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1 }}>
@@ -861,27 +889,39 @@ export function RunnerPage() {
                 background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8,
                 display: 'flex', flexDirection: 'column', gap: 10,
               }}>
-                {currentPaso.urlPlantilla && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
-                    <a
-                      href={currentPaso.urlPlantilla}
-                      download
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '4px 12px', fontSize: '0.78rem',
-                        background: '#DCFCE7', color: '#166534',
-                        borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      ⬇ Descargar plantilla
-                    </a>
-                    <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>
-                      Descarga, diligencia y sube el archivo completado
-                    </span>
-                  </div>
-                )}
+                {currentPaso.urlPlantilla && (() => {
+                  const prevIaPaso = data!.pasos
+                    .slice(0, currentStepIndex)
+                    .reverse()
+                    .find(p => p.usarIa);
+                  const prevIaRespondido = prevIaPaso
+                    ? data!.interacciones.some(i => i.pasoId === prevIaPaso.id)
+                    : false;
+                  const plantillaHref = prevIaRespondido
+                    ? `${API_URL}/execution/${token}/plantilla-prefilled/${currentPaso.id}`
+                    : currentPaso.urlPlantilla;
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
+                      <a
+                        href={plantillaHref}
+                        download={!prevIaRespondido}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '4px 12px', fontSize: '0.78rem',
+                          background: '#DCFCE7', color: '#166534',
+                          borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        ⬇ Descargar plantilla {prevIaRespondido ? 'pre-diligenciada' : ''}
+                      </a>
+                      <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>
+                        Descarga, diligencia y sube el archivo completado
+                      </span>
+                    </div>
+                  );
+                })()}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Subir archivo diligenciado</span>
                   <label style={{

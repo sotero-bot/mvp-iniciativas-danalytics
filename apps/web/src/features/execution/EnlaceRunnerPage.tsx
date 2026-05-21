@@ -25,7 +25,7 @@ export function EnlaceRunnerPage() {
                 // Redirigir al runner normal con el token de instancia personal
                 navigate(`/runner/${instanceToken}`, { replace: true });
             } catch {
-                setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+                setError('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.');
             }
         };
 

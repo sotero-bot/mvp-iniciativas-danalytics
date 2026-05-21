@@ -152,12 +152,12 @@ export function IniciativasPage() {
                     <option key={emp.id} value={emp.id}>{emp.nombre}</option>
                   ))}
                 </select>
-                <div className="invalid-feedback">Debe seleccionar una empresa.</div>
+                <div className="invalid-feedback">Seleccioná una empresa.</div>
               </div>
               <div>
                 <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
-                <div className="invalid-feedback">El nombre es requerido.</div>
+                <div className="invalid-feedback">El nombre es necesario.</div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Descripción</label>
@@ -238,7 +238,7 @@ export function IniciativasPage() {
               <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
               <input className="input" value={nombre} onChange={e => setNombre(e.target.value)}
                 placeholder="Ej: Transformación Digital" required disabled={empresas.length === 0} />
-              <div className="invalid-feedback">El nombre es requerido.</div>
+              <div className="invalid-feedback">El nombre es necesario.</div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>

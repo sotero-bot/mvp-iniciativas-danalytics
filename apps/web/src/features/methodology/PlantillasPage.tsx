@@ -177,7 +177,7 @@ export function PlantillasPage() {
                 <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" required value={editForm.nombre}
                   onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
-                <div className="invalid-feedback">El nombre es requerido.</div>
+                <div className="invalid-feedback">El nombre es necesario.</div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Descripción</label>
@@ -346,7 +346,7 @@ export function PlantillasPage() {
               <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
               <input className="input" required placeholder="Ej: Mapa de Oportunidades"
                 value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-              <div className="invalid-feedback">El nombre es requerido.</div>
+              <div className="invalid-feedback">El nombre es necesario.</div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 5 }}>Descripción <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>

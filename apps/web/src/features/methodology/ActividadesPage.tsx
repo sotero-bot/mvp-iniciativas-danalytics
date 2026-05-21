@@ -177,7 +177,7 @@ export function ActividadesPage() {
                 <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" required value={editForm.nombre}
                   onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
-                <div className="invalid-feedback">El nombre es requerido.</div>
+                <div className="invalid-feedback">El nombre es necesario.</div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Descripción</label>

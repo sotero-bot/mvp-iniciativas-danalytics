@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, ForbiddenException, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, ForbiddenException, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
@@ -6,6 +7,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { extractTextFromFile } from '../../../shared/utils/extractTextFromFile';
 import { excelToMarkdown } from '../../../shared/utils/excelToMarkdown';
+import { parseTableFromContent } from '../../../shared/utils/parseTableFromContent';
 import { AccederInstanciaPorTokenUseCase } from '../application/AccederInstanciaPorTokenUseCase';
 import { IniciarInstanciaPorTokenUseCase } from '../application/IniciarInstanciaPorTokenUseCase';
 import { RegistrarRespuestaPorTokenUseCase } from '../application/RegistrarRespuestaPorTokenUseCase';
@@ -114,6 +116,80 @@ export class ExecutionController {
       this.handleError(error);
       throw error;
     }
+  }
+
+  @Get(':token/plantilla-prefilled/:pasoId')
+  async plantillaPrefilled(
+    @Param('token') token: string,
+    @Param('pasoId') pasoId: string,
+    @Res() res: Response
+  ): Promise<void> {
+    const instancia = await this.prisma.instanciaActividad.findUnique({
+      where: { accessToken: token },
+      include: { interacciones: true },
+    });
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+
+    const pasoActual = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
+    if (!pasoActual) throw new NotFoundException('Paso no encontrado');
+
+    // Busca el paso IA anterior más cercano
+    const pasoIaAnterior = await this.prisma.pasoActividad.findFirst({
+      where: { actividadId: pasoActual.actividadId, usarIa: true, orden: { lt: pasoActual.orden } },
+      orderBy: { orden: 'desc' },
+    });
+
+    const HEADERS = [
+      'Tipo de IA', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?',
+      'Valor potencial', 'Disponibilidad de datos', 'Esfuerzo técnico / complejidad',
+      'Alineación estratégica', 'Escalabilidad / replicabilidad', 'Patrocinio / apoyo interno', 'TOTAL',
+    ];
+
+    // Mapeo: columna del Excel → columna del AI response
+    const COLUMN_MAP: Record<string, string> = {
+      'Tipo de IA':                   'Tipo de IA',
+      'Idea de Proyecto':             'Oportunidad de IA',
+      '¿Qué permite o resuelve?':     'Por qué ese tipo',
+      '¿Qué valor tendría?':          'Impacto potencial',
+    };
+
+    const wsData: (string | number)[][] = [HEADERS];
+
+    if (pasoIaAnterior) {
+      const interaccion = instancia.interacciones.find(i => i.pasoId === pasoIaAnterior.id);
+      const contenido = (interaccion as any)?.respuestaIa || interaccion?.contenido || '';
+
+      if (contenido) {
+        const filas = parseTableFromContent(contenido);
+        for (const fila of filas) {
+          if (Object.values(fila).every(v => !v)) continue;
+          wsData.push(HEADERS.map(h => COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : ''));
+        }
+      }
+    }
+
+    // Si no se parsearon filas de datos, agregar filas vacías de ejemplo
+    if (wsData.length === 1) {
+      wsData.push(Array(HEADERS.length).fill(''));
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const XLSX = require('xlsx');
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Ancho de columnas
+    ws['!cols'] = [20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ wch: w }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Priorización');
+
+    const buffer: Buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="plantilla-priorizacion.xlsx"',
+    });
+    res.send(buffer);
   }
 
   @Post(':token/iniciar')

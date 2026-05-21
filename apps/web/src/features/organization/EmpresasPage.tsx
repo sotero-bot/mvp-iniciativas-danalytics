@@ -247,7 +247,7 @@ export function EmpresasPage() {
               <div>
                 <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
-                <div className="invalid-feedback">El nombre es requerido.</div>
+                <div className="invalid-feedback">El nombre es necesario.</div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo</label>

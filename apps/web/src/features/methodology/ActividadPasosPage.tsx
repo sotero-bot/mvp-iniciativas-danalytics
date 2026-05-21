@@ -203,7 +203,7 @@ export function ActividadPasosPage() {
                 onChange={e => setForm({ ...form, titulo: e.target.value })}
                 placeholder="Ej: Entrevista de Stakeholders"
               />
-              <div className="invalid-feedback">El título del paso es requerido.</div>
+              <div className="invalid-feedback">El título del paso es necesario.</div>
             </div>
             <div>
               <label className="required-label">Orden</label>
@@ -214,7 +214,7 @@ export function ActividadPasosPage() {
                 value={form.orden}
                 onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })}
               />
-              <div className="invalid-feedback">El orden es requerido.</div>
+              <div className="invalid-feedback">Definí el orden del paso.</div>
             </div>
             <div>
               <label>Objetivo</label>
@@ -266,7 +266,7 @@ export function ActividadPasosPage() {
                   onChange={e => setForm({ ...form, promptIa: e.target.value })}
                   placeholder="Instrucciones para la IA (contexto, tono, objetivo del paso)..."
                 />
-                <div className="invalid-feedback">El prompt IA es requerido cuando la IA está activa.</div>
+                <div className="invalid-feedback">Agregá las instrucciones para el asistente.</div>
               </div>
             )}
 

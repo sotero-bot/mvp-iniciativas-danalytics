@@ -54,7 +54,7 @@ export function DashboardPage() {
       count: stats.iniciativas,
       link: '/admin/iniciativas',
       locked: stats.empresas === 0,
-      lockedMsg: 'Requiere al menos 1 empresa',
+      lockedMsg: 'Primero necesitás agregar una empresa',
       colorClass: 'step-2',
       iconBg: 'rgba(139,92,246,0.1)',
       iconColor: '#8B5CF6',
@@ -67,7 +67,7 @@ export function DashboardPage() {
       count: stats.actividades,
       link: '/admin/actividades',
       locked: stats.iniciativas === 0,
-      lockedMsg: 'Requiere al menos 1 iniciativa',
+      lockedMsg: 'Primero necesitás agregar una iniciativa',
       colorClass: 'step-3',
       iconBg: 'rgba(245,158,11,0.1)',
       iconColor: '#F59E0B',
@@ -80,7 +80,7 @@ export function DashboardPage() {
       count: stats.instancias,
       link: '/admin/instancias',
       locked: stats.actividades === 0,
-      lockedMsg: 'Requiere al menos 1 actividad',
+      lockedMsg: 'Primero necesitás agregar una actividad',
       colorClass: 'step-4',
       iconBg: 'rgba(34,197,94,0.1)',
       iconColor: '#22C55E',
@@ -101,7 +101,7 @@ export function DashboardPage() {
               Panel de control
             </p>
             <h1 style={{ color: 'white', fontSize: '1.75rem', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
-              Bienvenido a IAGobernanza
+              Bienvenido a Desicion IA
             </h1>
             <p style={{ color: '#94A3B8', margin: 0, maxWidth: 460, lineHeight: 1.65, fontSize: '0.875rem' }}>
               Diseña, distribuye y monitorea actividades metodológicas con asistencia de inteligencia artificial.
