@@ -104,6 +104,7 @@ export class ExecutionController {
           usarIa: p.usarIa,
           promptIa: p.promptIa || undefined,
           permitirArchivo: (p as any).permitirArchivo || false,
+          soloArchivo: (p as any).soloArchivo || false,
           urlPlantilla: (p as any).urlPlantilla || undefined,
         })),
         fechaInicio: instancia.fechaInicio?.toISOString(),
@@ -153,7 +154,15 @@ export class ExecutionController {
       '¿Qué valor tendría?':          'Impacto potencial',
     };
 
-    const wsData: (string | number)[][] = [HEADERS];
+    const DESCRIPTIONS: (string | number)[] = [
+      'Ej: IA Tradicional / IA Generativa',
+      'Nombre o descripción breve de la iniciativa',
+      'Problema o necesidad que aborda',
+      'Beneficio esperado para la empresa',
+      '1-3', '1-3', '1-3', '1-3', '1-3', '1-3', '',
+    ];
+
+    const wsData: (string | number)[][] = [HEADERS, DESCRIPTIONS];
 
     if (pasoIaAnterior) {
       const interaccion = instancia.interacciones.find(i => i.pasoId === pasoIaAnterior.id);
@@ -169,21 +178,76 @@ export class ExecutionController {
     }
 
     // Si no se parsearon filas de datos, agregar filas vacías de ejemplo
-    if (wsData.length === 1) {
+    if (wsData.length === 2) {
       wsData.push(Array(HEADERS.length).fill(''));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const XLSX = require('xlsx');
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
 
-    // Ancho de columnas
-    ws['!cols'] = [20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ wch: w }));
+    // --- Hoja Priorización ---
+    const ws = wb.addWorksheet('Priorización');
+    ws.columns = [20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ width: w }));
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Priorización');
+    wsData.forEach((rowValues, rowIndex) => {
+      const row = ws.addRow(rowValues);
+      if (rowIndex === 0) {
+        row.height = 22;
+        for (let c = 1; c <= HEADERS.length; c++) {
+          const cell = row.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+        }
+      } else if (rowIndex === 1) {
+        row.height = 18;
+        for (let c = 1; c <= HEADERS.length; c++) {
+          const cell = row.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+          cell.font = { italic: true, color: { argb: 'FF444444' } };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+        }
+      }
+    });
 
-    const buffer: Buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    // --- Hoja Criterios ---
+    const wsCriterios = wb.addWorksheet('Criterios');
+    wsCriterios.columns = [28, 10, 45].map(w => ({ width: w }));
+
+    const criteriosData: (string | number)[][] = [
+      ['Criterio', 'Puntaje', 'Descripción'],
+      ['Valor potencial', 1, 'Impacto marginal'],
+      ['Valor potencial', 2, 'Mejoras moderadas'],
+      ['Valor potencial', 3, 'Beneficios claros, medibles y estratégicos'],
+      ['Disponibilidad de datos', 1, 'No hay datos o son de mala calidad'],
+      ['Disponibilidad de datos', 2, 'Algunos disponibles pero incompletos'],
+      ['Disponibilidad de datos', 3, 'Datos existentes, accesibles y confiables'],
+      ['Esfuerzo técnico / complejidad', 1, 'Gran esfuerzo o desarrollo especializado'],
+      ['Esfuerzo técnico / complejidad', 2, 'Trabajo medio, con apoyo técnico'],
+      ['Esfuerzo técnico / complejidad', 3, 'Fácil o rápido con recursos actuales'],
+      ['Alineación estratégica', 1, 'Aporte indirecto o limitado'],
+      ['Alineación estratégica', 2, 'Alineada parcialmente'],
+      ['Alineación estratégica', 3, 'Altamente alineada con objetivos clave'],
+      ['Escalabilidad / replicabilidad', 1, 'Aplicación muy puntual'],
+      ['Escalabilidad / replicabilidad', 2, 'Replicable con ajustes menores'],
+      ['Escalabilidad / replicabilidad', 3, 'Altamente escalable'],
+      ['Patrocinio / apoyo interno', 1, 'Bajo o incierto'],
+      ['Patrocinio / apoyo interno', 2, 'Interés parcial o condicional'],
+      ['Patrocinio / apoyo interno', 3, 'Alto respaldo de liderazgo'],
+    ];
+    criteriosData.forEach((rowValues, rowIndex) => {
+      const row = wsCriterios.addRow(rowValues);
+      if (rowIndex === 0) {
+        for (let c = 1; c <= 3; c++) {
+          const cell = row.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        }
+      }
+    });
+
+    const buffer: Buffer = await wb.xlsx.writeBuffer();
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

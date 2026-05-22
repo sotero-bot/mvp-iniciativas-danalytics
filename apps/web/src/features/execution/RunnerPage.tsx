@@ -66,7 +66,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
       />
 
       <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-        Desicion IA
+        Decisión IA
       </span>
 
       {(nombreEmpresa || nombreActividad) ? (
@@ -166,7 +166,7 @@ function ActivityBranding({ nombreActividad, nombreEmpresa, logoEmpresa, border 
         </div>
       ) : null}
       <h2 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-        {nombreActividad}
+        {nombreEmpresa || nombreActividad}
       </h2>
     </div>
   );
@@ -648,7 +648,7 @@ export function RunnerPage() {
         <ConfirmModal
           isOpen={showEmailConfirm}
           title="Confirma tu correo electrónico"
-          message={`Estás a punto de registrarte con:\n\n${idenForm.email}\n\nTu correo es tu llave única. Si ya estás registrado en esta empresa usaremos tu cuenta existente. Si te equivocaste, cierra y corrígelo.`}
+          message={`Estás a punto de registrarte con:\n\n${idenForm.email}\n\nTu correo es tu llave única. Si ya estás registrado, usaremos tu cuenta existente. Si este no es tu correo, haz clic en cancelar y corrígelo.`}
           confirmLabel="Confirmar y comenzar"
           onConfirm={() => { setShowEmailConfirm(false); handleIdentificar(); }}
           onCancel={() => setShowEmailConfirm(false)}
@@ -846,9 +846,11 @@ export function RunnerPage() {
             number={respSecNum}
             title="Tu respuesta"
             description={
-              currentPaso.usarIa
-                ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA antes de guardar.'
-                : 'Escribe aquí tu análisis o respuesta para avanzar al siguiente paso.'
+              (currentPaso.permitirArchivo || currentPaso.soloArchivo)
+                ? 'Sube el documento completado para avanzar al siguiente paso.'
+                : currentPaso.usarIa
+                  ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA antes de guardar.'
+                  : 'Escribe aquí tu análisis o respuesta para avanzar al siguiente paso.'
             }
             color="blue"
           >
@@ -867,23 +869,27 @@ export function RunnerPage() {
                     {respuestaAnterior}
                   </p>
                 </div>
-                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0, alignSelf: 'center' }}
-                  onClick={() => editorRef.current?.insertContent(respuestaAnterior)}>
-                  Usar en respuesta
-                </button>
+                {!currentPaso.permitirArchivo && !currentPaso.soloArchivo && (
+                  <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0, alignSelf: 'center' }}
+                    onClick={() => editorRef.current?.insertContent(respuestaAnterior)}>
+                    Usar en respuesta
+                  </button>
+                )}
               </div>
             )}
 
-            <WysiwygEditor
-              ref={editorRef}
-              value={respuesta}
-              onChange={setRespuesta}
-              placeholder="Escriba aquí su respuesta..."
-              minHeight={220}
-            />
+            {!currentPaso.permitirArchivo && !currentPaso.soloArchivo && (
+              <WysiwygEditor
+                ref={editorRef}
+                value={respuesta}
+                onChange={setRespuesta}
+                placeholder="Escriba aquí su respuesta..."
+                minHeight={220}
+              />
+            )}
 
-            {/* Plantilla descargable + subida de archivo (pasos con permitirArchivo) */}
-            {currentPaso.permitirArchivo && (
+            {/* Plantilla descargable + subida de archivo (pasos con permitirArchivo o soloArchivo) */}
+            {(currentPaso.permitirArchivo || currentPaso.soloArchivo) && (
               <div style={{
                 marginTop: 10, padding: '12px 16px',
                 background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8,
@@ -1078,7 +1084,7 @@ export function RunnerPage() {
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}
-              disabled={(currentPaso.usarIa ? !respuestaIa.trim() : (!respuesta.trim() && !archivoRespuesta)) || loading}
+              disabled={((currentPaso.soloArchivo || currentPaso.permitirArchivo) ? !archivoRespuesta : currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
               {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
