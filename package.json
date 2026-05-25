@@ -22,7 +22,8 @@
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",
     "seed:admin": "npx ts-node -e 'import { PrismaClient } from \"@prisma/client\"; import * as bcrypt from \"bcrypt\"; const prisma = new PrismaClient(); async function run() { const password = \"dax1973*\"; const hashedPassword = await bcrypt.hash(password, 10); await prisma.admin.upsert({ where: { username: \"admin\" }, update: { activo: true }, create: { username: \"admin\", nombre: \"Admin Principal\", password: hashedPassword, activo: true } }); console.log(\"Admin verificado/creado y activado\"); await prisma.$disconnect(); } run();'",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
-    "vercel-build": "prisma generate && prisma db push --accept-data-loss && npx tsx scripts/reset-data.ts && tsc -p tsconfig.json && vite build && npm run seed:admin"
+    "reset-data": "npx tsx scripts/reset-data.ts",
+    "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:admin"
   },
   "dependencies": {
     "@nestjs/jwt": "^11.0.2",
