@@ -26,6 +26,7 @@ export class RunnerResponseDto {
     usarIa?: boolean;
     promptIa?: string;
     permitirArchivo?: boolean;
+    soloArchivo?: boolean;
     urlPlantilla?: string;
   }>;
   fechaInicio?: string;

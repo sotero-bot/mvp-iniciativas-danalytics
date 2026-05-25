@@ -17,6 +17,7 @@ export class PrismaPasoActividadRepository implements IPasoActividadRepository {
         instrucciones: paso.instrucciones,
         promptIa: paso.promptIa,
         permitirArchivo: paso.permitirArchivo,
+        soloArchivo: paso.soloArchivo,
         urlPlantilla: paso.urlPlantilla,
       },
     });
@@ -40,6 +41,7 @@ export class PrismaPasoActividadRepository implements IPasoActividadRepository {
           raw.instrucciones || undefined,
           raw.promptIa || undefined,
           (raw as any).permitirArchivo ?? false,
+          (raw as any).soloArchivo ?? false,
           (raw as any).urlPlantilla || undefined,
         )
     );

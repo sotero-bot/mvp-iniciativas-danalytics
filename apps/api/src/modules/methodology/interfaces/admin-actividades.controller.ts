@@ -35,6 +35,7 @@ export class AdminActividadesController {
           usarIa: p.usarIa,
           promptIa: p.promptIa,
           permitirArchivo: (p as any).permitirArchivo ?? false,
+          soloArchivo: (p as any).soloArchivo ?? false,
           urlPlantilla: (p as any).urlPlantilla || undefined,
         })),
       };
@@ -97,6 +98,7 @@ export class AdminActividadesController {
           promptIa: dto.promptIa,
           orden: dto.orden,
           permitirArchivo: dto.permitirArchivo ?? false,
+          soloArchivo: dto.soloArchivo ?? false,
           urlPlantilla: dto.urlPlantilla ?? null,
         }
       });

@@ -9,6 +9,7 @@ export class PasoActividad {
     public readonly instrucciones?: string,
     public readonly promptIa?: string,
     public readonly permitirArchivo: boolean = false,
+    public readonly soloArchivo: boolean = false,
     public readonly urlPlantilla?: string,
   ) { }
 }

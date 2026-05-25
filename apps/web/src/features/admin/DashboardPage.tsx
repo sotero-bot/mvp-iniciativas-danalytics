@@ -101,7 +101,7 @@ export function DashboardPage() {
               Panel de control
             </p>
             <h1 style={{ color: 'white', fontSize: '1.75rem', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
-              Bienvenido a Desicion IA
+              Bienvenido a Decisión IA
             </h1>
             <p style={{ color: '#94A3B8', margin: 0, maxWidth: 460, lineHeight: 1.65, fontSize: '0.875rem' }}>
               Diseña, distribuye y monitorea actividades metodológicas con asistencia de inteligencia artificial.

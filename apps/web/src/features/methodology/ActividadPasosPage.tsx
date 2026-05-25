@@ -24,6 +24,7 @@ export function ActividadPasosPage() {
     usarIa: false,
     promptIa: '',
     permitirArchivo: false,
+    soloArchivo: false,
     urlPlantilla: '',
     orden: 0
   });
@@ -90,6 +91,7 @@ export function ActividadPasosPage() {
           usarIa: false,
           promptIa: '',
           permitirArchivo: false,
+          soloArchivo: false,
           urlPlantilla: '',
           orden: pasos.length + (editingId ? 1 : 2)
         });
@@ -112,6 +114,7 @@ export function ActividadPasosPage() {
       usarIa: p.usarIa || false,
       promptIa: p.promptIa || '',
       permitirArchivo: p.permitirArchivo || false,
+      soloArchivo: p.soloArchivo || false,
       urlPlantilla: p.urlPlantilla || '',
       orden: p.orden
     });
@@ -129,6 +132,7 @@ export function ActividadPasosPage() {
       usarIa: false,
       promptIa: '',
       permitirArchivo: false,
+      soloArchivo: false,
       urlPlantilla: '',
       orden: maxOrden + 1
     });
@@ -276,7 +280,7 @@ export function ActividadPasosPage() {
                 <input
                   type="checkbox"
                   checked={form.permitirArchivo}
-                  onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, urlPlantilla: e.target.checked ? form.urlPlantilla : '' })}
+                  onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false, urlPlantilla: e.target.checked ? form.urlPlantilla : '' })}
                   style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#16a34a' }}
                 />
                 <span style={{ fontWeight: 600 }}>Permitir subida de archivo en este paso</span>
@@ -287,6 +291,26 @@ export function ActividadPasosPage() {
                 </span>
               )}
             </div>
+
+            {/* Toggle Solo archivo — visible solo si permitirArchivo === true */}
+            {form.permitirArchivo && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: -4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.soloArchivo}
+                    onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0369a1' }}
+                  />
+                  <span style={{ fontWeight: 600 }}>La respuesta es solo el documento (sin texto)</span>
+                </label>
+                {form.soloArchivo && (
+                  <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.7rem' }}>
+                    📄 Solo documento
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* URL plantilla — visible solo si permitirArchivo === true */}
             {form.permitirArchivo && (
@@ -350,7 +374,11 @@ export function ActividadPasosPage() {
                       )}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
-                      {p.permitirArchivo ? (
+                      {p.soloArchivo ? (
+                        <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.7rem' }}>
+                          📄 Solo doc.
+                        </span>
+                      ) : p.permitirArchivo ? (
                         <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.7rem' }}>
                           📎 Sí
                         </span>

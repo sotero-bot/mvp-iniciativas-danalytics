@@ -14,6 +14,7 @@ export interface AgregarPasoInput {
   instrucciones?: string;
   promptIa?: string;
   permitirArchivo?: boolean;
+  soloArchivo?: boolean;
   urlPlantilla?: string;
 }
 
@@ -59,6 +60,7 @@ export class AgregarPasoActividadUseCase {
       input.instrucciones,
       input.usarIa ? input.promptIa : undefined,
       input.permitirArchivo ?? false,
+      input.soloArchivo ?? false,
       input.urlPlantilla,
     );
 

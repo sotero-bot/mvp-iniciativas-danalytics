@@ -9,6 +9,7 @@ interface PasoInput {
   usarIa?: boolean;
   promptIa?: string;
   permitirArchivo?: boolean;
+  soloArchivo?: boolean;
   urlPlantilla?: string;
 }
 
@@ -110,6 +111,7 @@ export class AdminImportController {
                   usarIa: p.usarIa ?? false,
                   promptIa: p.promptIa?.trim() ?? null,
                   permitirArchivo: p.permitirArchivo ?? false,
+                  soloArchivo: p.soloArchivo ?? false,
                   urlPlantilla: p.urlPlantilla?.trim() ?? null,
                   orden: idx + 1,
                 })),
@@ -131,6 +133,7 @@ export class AdminImportController {
                 usarIa: p.usarIa,
                 promptIa: p.promptIa,
                 permitirArchivo: p.permitirArchivo ?? false,
+                soloArchivo: p.soloArchivo ?? false,
                 urlPlantilla: p.urlPlantilla ?? null,
                 orden: p.orden,
               })),

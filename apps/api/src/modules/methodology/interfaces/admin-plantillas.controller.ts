@@ -36,7 +36,7 @@ export class AdminPlantillasController {
   }
 
   @Post('import')
-  async importPlantillas(@Body() body: { plantillas: { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; permitirArchivo?: boolean; urlPlantilla?: string }[] }[] }) {
+  async importPlantillas(@Body() body: { plantillas: { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string }[] }[] }) {
     if (!Array.isArray(body.plantillas) || body.plantillas.length === 0) {
       throw new BadRequestException('El JSON debe contener al menos una plantilla');
     }
@@ -68,6 +68,7 @@ export class AdminPlantillasController {
               usarIa: p.usarIa ?? false,
               promptIa: p.promptIa?.trim() ?? null,
               permitirArchivo: p.permitirArchivo ?? false,
+              soloArchivo: p.soloArchivo ?? false,
               urlPlantilla: p.urlPlantilla?.trim() ?? null,
               orden: idx + 1,
             })),

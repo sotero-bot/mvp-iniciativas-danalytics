@@ -8,6 +8,7 @@ export class PasoActividadResponseDto {
   instrucciones?: string;
   promptIa?: string;
   permitirArchivo?: boolean;
+  soloArchivo?: boolean;
   urlPlantilla?: string;
 
   constructor(partial: Partial<PasoActividadResponseDto>) {

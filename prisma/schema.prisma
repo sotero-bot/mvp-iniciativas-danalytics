@@ -89,6 +89,7 @@ model PasoPlantilla {
   usarIa         Boolean            @default(false)
   promptIa       String?
   permitirArchivo Boolean           @default(false)
+  soloArchivo     Boolean           @default(false)
   urlPlantilla   String?
   orden          Int
   activo         Boolean            @default(true)
@@ -136,6 +137,7 @@ model PasoActividad {
   promptIa        String?
   usarIa          Boolean       @default(false)
   permitirArchivo Boolean       @default(false)
+  soloArchivo     Boolean       @default(false)
   urlPlantilla    String?
   orden           Int
   activo          Boolean       @default(true)

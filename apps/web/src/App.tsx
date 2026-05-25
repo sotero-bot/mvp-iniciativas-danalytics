@@ -19,7 +19,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
     <aside className="sidebar">
       <div className="sidebar-title">
         <img src="/logo-simbolo.png" alt="Danalytics Logo" className="sidebar-logo" />
-        <span>Desicion IA</span>
+        <span>Decisión IA</span>
       </div>
 
       {/* Inicio */}

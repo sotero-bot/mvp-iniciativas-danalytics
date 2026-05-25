@@ -37,6 +37,7 @@ export class InstanciarPlantillaUseCase {
           usarIa: p.usarIa,
           promptIa: p.promptIa,
           permitirArchivo: p.permitirArchivo,
+          soloArchivo: (p as any).soloArchivo ?? false,
           urlPlantilla: p.urlPlantilla,
           orden: p.orden,
         })),

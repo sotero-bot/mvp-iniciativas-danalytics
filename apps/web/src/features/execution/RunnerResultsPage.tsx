@@ -101,7 +101,7 @@ export function RunnerResultsPage() {
                     style={{ height: 36, objectFit: 'contain', justifySelf: 'start' }}
                 />
                 <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-                    Desicion IA
+                    Decisión IA
                 </span>
                 <div style={{ justifySelf: 'end' }}>
                     <button
