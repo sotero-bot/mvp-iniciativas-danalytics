@@ -205,7 +205,7 @@ export function InstanciaDetallePage() {
                 }}>
                   <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
                   <a
-                    href={`${API_URL}/admin/instancias/${data.id}/archivo/${p.pasoId}`}
+                    href={`${API_URL}/admin/instancias/${data.id}/excel/${p.pasoId}`}
                     download={p.archivoNombre}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,

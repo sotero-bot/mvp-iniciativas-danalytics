@@ -16,7 +16,6 @@ export class RegistrarRespuestaPorTokenUseCase {
     respuestaUsuario?: string,
     respuestaIa?: string,
     archivoNombre?: string,
-    archivoContenido?: Buffer,
   ): Promise<void> {
     const instancia = await this.repository.findByAccessToken(token);
     if (!instancia) {
@@ -27,10 +26,7 @@ export class RegistrarRespuestaPorTokenUseCase {
 
     await this.prisma.interaccion.upsert({
       where: { instanciaId_pasoId: { instanciaId: instancia.id, pasoId } },
-      update: {
-        contenido, respuestaUsuario, respuestaIa, archivoNombre, updatedAt: new Date(),
-        ...(archivoContenido ? { archivoContenido } : {}),
-      },
+      update: { contenido, respuestaUsuario, respuestaIa, archivoNombre, updatedAt: new Date() },
       create: {
         id: randomUUID(),
         instanciaId: instancia.id,
@@ -39,7 +35,6 @@ export class RegistrarRespuestaPorTokenUseCase {
         respuestaUsuario,
         respuestaIa,
         archivoNombre,
-        ...(archivoContenido ? { archivoContenido } : {}),
       },
     });
   }

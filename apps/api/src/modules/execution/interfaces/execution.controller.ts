@@ -316,12 +316,10 @@ export class ExecutionController {
     try {
       let contenido = body.contenido;
       let archivoNombre: string | undefined;
-      let archivoContenido: Buffer | undefined;
 
       if (file) {
         archivoNombre = file.originalname;
         try {
-          archivoContenido = fs.readFileSync(file.path);
           const ext = path.extname(file.originalname).toLowerCase();
           const isExcel = ['.xlsx', '.xls'].includes(ext);
           const textoArchivo = isExcel
@@ -333,7 +331,7 @@ export class ExecutionController {
         }
       }
 
-      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre, archivoContenido);
+      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre);
     } catch (error) {
       this.handleError(error);
     }
