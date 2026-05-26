@@ -18,6 +18,7 @@ interface Paso {
   iaAutomatica?: boolean;
   promptIa?: string;
   permitirArchivo?: boolean;
+  soloArchivo?: boolean;
   urlPlantilla?: string;
 }
 
@@ -465,14 +466,15 @@ export function RunnerPage() {
 
     setLoading(true);
 
+    let responderRes: Response;
     if (archivoRespuesta) {
       const formData = new FormData();
       formData.append('pasoId', paso.id);
       formData.append('contenido', respuestaFinal);
       formData.append('archivo', archivoRespuesta);
-      await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
+      responderRes = await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
     } else {
-      await fetch(`${API_URL}/execution/${token}/responder`, {
+      responderRes = await fetch(`${API_URL}/execution/${token}/responder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -482,6 +484,11 @@ export function RunnerPage() {
           respuestaIa: paso.usarIa ? respuestaIa : undefined,
         })
       });
+    }
+
+    if (!responderRes.ok) {
+      setLoading(false);
+      return alert('Error al guardar la respuesta. Por favor intentá de nuevo.');
     }
 
     if (currentStepIndex < data!.pasos.length - 1) {
