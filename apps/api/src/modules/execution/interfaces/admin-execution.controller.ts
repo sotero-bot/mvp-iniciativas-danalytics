@@ -33,6 +33,10 @@ export class AdminExecutionController {
           },
         },
         usuario: true,
+        interacciones: {
+          where: { archivoNombre: { not: null } },
+          select: { pasoId: true, archivoNombre: true },
+        },
       },
     });
   }

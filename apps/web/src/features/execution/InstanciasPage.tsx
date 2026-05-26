@@ -384,6 +384,8 @@ export function InstanciasPage() {
                   <th>Estado</th>
                   <th>Actividad</th>
                   <th>Usuario</th>
+                  <th>Área</th>
+                  <th>Archivos</th>
                   <th>Última actualización</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
@@ -415,11 +417,35 @@ export function InstanciasPage() {
                         ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
                         : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Pendiente</span>
                       )}
-                      {ins.usuario?.area && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                          {ins.usuario.area}
-                          {ins.usuario.cargo ? ` · ${ins.usuario.cargo}` : ''}
+                      {ins.usuario?.cargo && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.cargo}</div>
+                      )}
+                    </td>
+                    <td style={{ fontSize: '0.82rem', color: 'var(--color-text-main)' }}>
+                      {ins.usuario?.area || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>—</span>}
+                    </td>
+                    <td>
+                      {ins.interacciones?.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {ins.interacciones.map((inter: any) => (
+                            <a
+                              key={inter.pasoId}
+                              href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
+                              download={inter.archivoNombre}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                padding: '3px 8px', fontSize: '0.72rem',
+                                background: '#EFF6FF', color: '#1D4ED8',
+                                borderRadius: 5, fontWeight: 600, textDecoration: 'none',
+                                border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ⬇ {inter.archivoNombre}
+                            </a>
+                          ))}
                         </div>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>
                       )}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
@@ -445,7 +471,7 @@ export function InstanciasPage() {
                 ))}
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={7}>
                       {search || filterEstado ? (
                         <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
                           No hay resultados para los filtros aplicados.
