@@ -425,9 +425,9 @@ export function InstanciasPage() {
                       {ins.usuario?.area || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>—</span>}
                     </td>
                     <td>
-                      {ins.interacciones?.length > 0 ? (
+                      {ins.interacciones?.filter((i: any) => i.archivoNombre).length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ins.interacciones.map((inter: any) => (
+                          {ins.interacciones.filter((i: any) => i.archivoNombre).map((inter: any) => (
                             <a
                               key={inter.pasoId}
                               href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
