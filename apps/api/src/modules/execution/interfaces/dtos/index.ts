@@ -4,6 +4,7 @@ export class RespuestaPlantillaAnteriorDto {
   contenido?: string;
   respuestaUsuario?: string;
   respuestaIa?: string;
+  contenidoArchivo?: string;
 }
 
 export class PlantillaAnteriorDto {
@@ -47,6 +48,7 @@ export class InteraccionDto {
   respuestaUsuario?: string;
   respuestaIa?: string;
   archivoNombre?: string;
+  contenidoArchivo?: string;
   fecha: string;
 }
 

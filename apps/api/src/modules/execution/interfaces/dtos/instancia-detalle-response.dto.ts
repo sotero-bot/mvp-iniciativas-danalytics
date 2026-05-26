@@ -25,6 +25,7 @@ export class InstanciaDetalleResponseDto {
     respuesta: string | null;
     fechaRespuesta: Date | null;
     archivoNombre?: string | null;
+    contenidoArchivo?: string | null;
   }>;
 
   constructor(partial: Partial<InstanciaDetalleResponseDto>) {

@@ -79,13 +79,14 @@ export class ExecutionController {
 
       const interacciones = await this.prisma.interaccion.findMany({
         where: { instanciaId: instancia.id },
-        select: { pasoId: true, contenido: true, respuestaUsuario: true, respuestaIa: true, archivoNombre: true, fecha: true },
+        select: { pasoId: true, contenido: true, respuestaUsuario: true, respuestaIa: true, archivoNombre: true, contenidoArchivo: true, fecha: true },
       }).then(rows => rows.map(i => ({
         pasoId: i.pasoId,
         contenido: i.contenido,
         respuestaUsuario: i.respuestaUsuario ?? undefined,
         respuestaIa: i.respuestaIa ?? undefined,
         archivoNombre: i.archivoNombre ?? undefined,
+        contenidoArchivo: i.contenidoArchivo ?? undefined,
         fecha: i.fecha.toISOString(),
       })));
 
@@ -316,6 +317,7 @@ export class ExecutionController {
     try {
       let contenido = body.contenido;
       let archivoNombre: string | undefined;
+      let contenidoArchivo: string | undefined;
 
       if (file) {
         archivoNombre = file.originalname;
@@ -325,13 +327,14 @@ export class ExecutionController {
           const textoArchivo = isExcel
             ? excelToMarkdown(file.path)
             : await extractTextFromFile(file.path, file.mimetype, file.originalname);
+          contenidoArchivo = textoArchivo;
           contenido = contenido?.trim() ? `${contenido}\n\n---\n\n${textoArchivo}` : textoArchivo;
         } finally {
           fs.unlink(file.path, () => {});
         }
       }
 
-      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre);
+      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre, contenidoArchivo);
     } catch (error) {
       this.handleError(error);
     }
@@ -494,6 +497,7 @@ export class ExecutionController {
         contenido: i.contenido ?? undefined,
         respuestaUsuario: i.respuestaUsuario ?? undefined,
         respuestaIa: i.respuestaIa ?? undefined,
+        contenidoArchivo: i.contenidoArchivo ?? undefined,
       }))
     };
   }

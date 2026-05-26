@@ -28,6 +28,7 @@ interface RespuestaAnterior {
   contenido?: string;
   respuestaUsuario?: string;
   respuestaIa?: string;
+  contenidoArchivo?: string;
 }
 
 interface RunnerData {
@@ -41,7 +42,7 @@ interface RunnerData {
   fechaFin?: string;
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   pasos: Paso[];
-  interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string }[];
+  interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string }[];
   plantillaAnterior?: { nombre: string; respuestas: RespuestaAnterior[] };
 }
 
@@ -903,7 +904,7 @@ export function RunnerPage() {
               {plantillaAnteriorExpanded && (
                 <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {data.plantillaAnterior.respuestas.map((r, i) => {
-                    const contenido = r.respuestaIa || r.respuestaUsuario || r.contenido || '';
+                    const contenido = r.contenidoArchivo || r.respuestaUsuario || r.respuestaIa || r.contenido || '';
                     return (
                       <div key={i} style={{
                         borderBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? '1px solid #E0E7FF' : 'none',

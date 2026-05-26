@@ -16,6 +16,7 @@ interface Paso {
 interface Interaccion {
     pasoId: string;
     contenido: string;
+    contenidoArchivo?: string;
     fecha: string;
 }
 
@@ -234,7 +235,7 @@ export function RunnerResultsPage() {
                                                         p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7, textAlign: 'justify' }} {...props} />,
                                                     }}
                                                 >
-                                                    {interaccion.contenido}
+                                                    {interaccion.contenidoArchivo || interaccion.contenido}
                                                 </ReactMarkdown>
                                             </div>
                                             <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--color-text-tertiary)', textAlign: 'right' }}>

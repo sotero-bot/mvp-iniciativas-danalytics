@@ -63,6 +63,7 @@ export class AdminExecutionController {
       select: {
         contenido: true,
         archivoNombre: true,
+        contenidoArchivo: true,
         instancia: {
           select: {
             actividad: {
@@ -77,12 +78,17 @@ export class AdminExecutionController {
         paso: { select: { titulo: true } },
       },
     });
-    if (!interaccion?.contenido) throw new NotFoundException('Sin datos para este paso');
+    if (!interaccion?.contenido && !interaccion?.contenidoArchivo) throw new NotFoundException('Sin datos para este paso');
 
-    // El contenido puede tener la forma: "{respuesta IA}\n\n---\n\n{excel subido por usuario}"
-    // En ese caso queremos la sección del archivo subido, no la respuesta IA.
-    const secciones = interaccion.contenido.split('\n\n---\n\n');
-    const contenidoArchivo = secciones[secciones.length - 1];
+    // Preferir contenidoArchivo (campo dedicado para el Excel subido por el usuario).
+    // Fallback al workaround anterior: split del contenido por separador.
+    let contenidoArchivo: string;
+    if (interaccion.contenidoArchivo) {
+      contenidoArchivo = interaccion.contenidoArchivo;
+    } else {
+      const secciones = interaccion.contenido!.split('\n\n---\n\n');
+      contenidoArchivo = secciones[secciones.length - 1];
+    }
 
     // Si el Excel tiene múltiples hojas (ej. "### Priorización\n...\n### Criterios\n..."),
     // usar solo la primera sección para no mezclar datos del usuario con la hoja de criterios.

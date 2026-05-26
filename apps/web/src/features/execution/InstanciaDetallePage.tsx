@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -13,6 +15,7 @@ interface StepResult {
   respuesta: string | null;
   fechaRespuesta: string | null;
   archivoNombre?: string | null;
+  contenidoArchivo?: string | null;
 }
 
 interface InstanceDetail {
@@ -220,20 +223,28 @@ export function InstanciaDetallePage() {
               )}
 
               <div style={{ marginTop: '1rem' }}>
-                <strong style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>RESPUESTA DEL USUARIO:</strong>
+                <strong style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                  {p.contenidoArchivo ? 'CONTENIDO DEL ARCHIVO SUBIDO:' : 'RESPUESTA DEL USUARIO:'}
+                </strong>
                 {p.respuesta ? (
                   <div style={{
                     padding: '1.5rem',
                     backgroundColor: 'white',
                     border: '1px solid var(--color-bg-page)',
                     borderRadius: '8px',
-                    whiteSpace: 'pre-wrap',
                     lineHeight: '1.6',
                     fontSize: '1.05rem',
                     color: '#1e293b',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
+                    overflowX: 'auto',
                   }}>
-                    {p.respuesta}
+                    {p.contenidoArchivo ? (
+                      <div className="markdown-anterior">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.respuesta}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{p.respuesta}</span>
+                    )}
                     <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'right' }}>
                       Respondido el: {new Date(p.fechaRespuesta!).toLocaleString()}
                     </div>

@@ -39,9 +39,10 @@ export class ObtenerInstanciaDetalleUseCase {
           objetivo: paso.objetivo,
           instrucciones: paso.instrucciones,
           promptIa: paso.promptIa,
-          respuesta: interaccion ? interaccion.contenido : null,
+          respuesta: interaccion ? (interaccion.contenidoArchivo || interaccion.contenido) : null,
           fechaRespuesta: interaccion ? interaccion.fecha : null,
           archivoNombre: interaccion?.archivoNombre ?? null,
+          contenidoArchivo: interaccion?.contenidoArchivo ?? null,
         };
       }),
     });
