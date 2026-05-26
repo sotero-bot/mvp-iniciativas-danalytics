@@ -427,22 +427,30 @@ export function InstanciasPage() {
                     <td>
                       {ins.interacciones?.filter((i: any) => i.archivoNombre).length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ins.interacciones.filter((i: any) => i.archivoNombre).map((inter: any) => (
-                            <a
-                              key={inter.pasoId}
-                              href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
-                              download={inter.archivoNombre}
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                padding: '3px 8px', fontSize: '0.72rem',
-                                background: '#EFF6FF', color: '#1D4ED8',
-                                borderRadius: 5, fontWeight: 600, textDecoration: 'none',
-                                border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
-                              }}
-                            >
-                              ⬇ {inter.archivoNombre}
-                            </a>
-                          ))}
+                          {ins.interacciones.filter((i: any) => i.archivoNombre).map((inter: any) => {
+                            const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                            const label = [
+                              slug(ins.actividad?.iniciativa?.empresa?.nombre || ''),
+                              slug(ins.actividad?.nombre || ''),
+                              slug(ins.usuario?.area || ''),
+                              slug(inter.paso?.titulo || ''),
+                            ].filter(Boolean).join('_') + '.xlsx';
+                            return (
+                              <a
+                                key={inter.pasoId}
+                                href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  padding: '3px 8px', fontSize: '0.72rem',
+                                  background: '#EFF6FF', color: '#1D4ED8',
+                                  borderRadius: 5, fontWeight: 600, textDecoration: 'none',
+                                  border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
+                                }}
+                              >
+                                ⬇ {label}
+                              </a>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>

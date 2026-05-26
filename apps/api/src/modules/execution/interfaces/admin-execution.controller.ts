@@ -34,7 +34,7 @@ export class AdminExecutionController {
         },
         usuario: true,
         interacciones: {
-          select: { pasoId: true, archivoNombre: true },
+          select: { pasoId: true, archivoNombre: true, paso: { select: { titulo: true } } },
         },
       },
     });
@@ -60,11 +60,34 @@ export class AdminExecutionController {
   ) {
     const interaccion = await this.prisma.interaccion.findFirst({
       where: { instanciaId: id, pasoId },
-      select: { contenido: true, archivoNombre: true },
+      select: {
+        contenido: true,
+        archivoNombre: true,
+        instancia: {
+          select: {
+            actividad: {
+              select: {
+                nombre: true,
+                iniciativa: { select: { empresa: { select: { nombre: true } } } },
+              },
+            },
+            usuario: { select: { area: true } },
+          },
+        },
+        paso: { select: { titulo: true } },
+      },
     });
     if (!interaccion?.contenido) throw new NotFoundException('Sin datos para este paso');
 
-    const filas = parseTableFromContent(interaccion.contenido);
+    // El contenido puede tener la forma: "{respuesta IA}\n\n---\n\n{excel subido por usuario}"
+    // En ese caso queremos la sección del archivo subido, no la respuesta IA.
+    const secciones = interaccion.contenido.split('\n\n---\n\n');
+    const contenidoArchivo = secciones[secciones.length - 1];
+
+    // Si el Excel tiene múltiples hojas (ej. "### Priorización\n...\n### Criterios\n..."),
+    // usar solo la primera sección para no mezclar datos del usuario con la hoja de criterios.
+    const primeraSección = contenidoArchivo.split(/\n### /)[0];
+    const filas = parseTableFromContent(primeraSección);
     if (filas.length === 0) throw new NotFoundException('No se encontró tabla en el contenido del paso');
 
     const headers = Object.keys(filas[0]);
@@ -97,7 +120,12 @@ export class AdminExecutionController {
       }
     }
 
-    const nombre = interaccion.archivoNombre || 'priorizacion.xlsx';
+    const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    const empresa = slug(interaccion.instancia?.actividad?.iniciativa?.empresa?.nombre || '');
+    const actividad = slug(interaccion.instancia?.actividad?.nombre || '');
+    const area = slug(interaccion.instancia?.usuario?.area || '');
+    const paso = slug(interaccion.paso?.titulo || '');
+    const nombre = [empresa, actividad, area, paso].filter(Boolean).join('_') + '.xlsx';
     const buffer: Buffer = await wb.xlsx.writeBuffer();
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

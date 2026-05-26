@@ -86,16 +86,8 @@ export class PrismaInstanciaRepository implements IInstanciaRepository {
         fechaInicio: data.fechaInicio,
         fechaFin: data.fechaFin,
         emailReferencia: data.emailReferencia,
-        // Estrategia simplificada: Borrar e insertar interacciones para actualización completa
-        // O usar updateMany si se tienen IDs. Como son VOs mutables, deleteMany + create es seguro en transacción.
-        interacciones: {
-          deleteMany: {},
-          create: data.interacciones.map(i => ({
-             pasoId: i.pasoId,
-             contenido: i.contenido,
-             fecha: i.fecha
-          }))
-        }
+        // Las interacciones se gestionan directamente desde RegistrarRespuestaPorTokenUseCase
+        // No tocarlas aquí: deleteMany borraría archivoNombre, respuestaUsuario, respuestaIa
       },
     });
   }
