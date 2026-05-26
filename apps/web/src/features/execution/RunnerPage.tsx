@@ -1012,17 +1012,13 @@ export function RunnerPage() {
 
             {/* Plantilla descargable + subida de archivo (pasos con permitirArchivo o soloArchivo) */}
             {(currentPaso.permitirArchivo || currentPaso.soloArchivo) && (
-              <div style={{
-                marginTop: 10, padding: '12px 16px',
-                background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8,
-                display: 'flex', flexDirection: 'column', gap: 10,
-              }}>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* PASO 1 — Descargar plantilla */}
                 {currentPaso.urlPlantilla && (() => {
-                  // Paso con IA propia (iaAutomatica): usa interacción del mismo paso
                   const selfIaRespondido = currentPaso.usarIa
                     ? data!.interacciones.some(i => i.pasoId === currentPaso.id)
                     : false;
-                  // Paso con IA en paso anterior (flujo clásico)
                   const prevIaPaso = !currentPaso.usarIa
                     ? data!.pasos.slice(0, currentStepIndex).reverse().find(p => p.usarIa)
                     : null;
@@ -1030,77 +1026,107 @@ export function RunnerPage() {
                     ? data!.interacciones.some(i => i.pasoId === prevIaPaso.id)
                     : false;
                   const iaRespondido = selfIaRespondido || prevIaRespondido;
-                  const plantillaHref = iaRespondido
-                    ? `${API_URL}/execution/${token}/plantilla-prefilled/${currentPaso.id}`
-                    : currentPaso.urlPlantilla;
 
-                  // Si la IA es automática y aún está generando o no hay resultado, mostrar pending
-                  if (currentPaso.iaAutomatica && !iaRespondido) {
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
-                        <span style={{ fontSize: '0.78rem', color: '#6D28D9', fontStyle: 'italic' }}>
-                          {enviandoIa ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente genere las ideas'}
+                  return (
+                    <div style={{
+                      padding: '16px 20px',
+                      background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <div style={{
+                          width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                          background: '#16A34A', color: 'white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.75rem', fontWeight: 700,
+                        }}>1</div>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>
+                          Descarga la plantilla de priorización
                         </span>
                       </div>
-                    );
-                  }
-                  return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
-                      {iaRespondido ? (
-                        <button
-                          onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id)}
-                          disabled={descargandoExcel}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '4px 12px', fontSize: '0.78rem',
-                            background: descargandoExcel ? '#F0FDF4' : '#DCFCE7', color: '#166534',
-                            borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
-                            cursor: descargandoExcel ? 'wait' : 'pointer',
-                          }}
-                        >
-                          {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
-                        </button>
-                      ) : (
-                        <a
-                          href={plantillaHref}
-                          download
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '4px 12px', fontSize: '0.78rem',
-                            background: '#DCFCE7', color: '#166534',
-                            borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          ⬇ Descargar plantilla
-                        </a>
-                      )}
-                      <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>
-                        Descarga, diligencia y sube el archivo completado
-                      </span>
+                      <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
+                        La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
+                      </p>
+                      <div style={{ marginLeft: 34 }}>
+                        {currentPaso.iaAutomatica && !iaRespondido ? (
+                          <span style={{ fontSize: '0.82rem', color: '#6D28D9', fontStyle: 'italic' }}>
+                            {enviandoIa ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente termine de generar las ideas'}
+                          </span>
+                        ) : iaRespondido ? (
+                          <button
+                            onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id)}
+                            disabled={descargandoExcel}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 8,
+                              padding: '8px 18px', fontSize: '0.85rem',
+                              background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white',
+                              borderRadius: 8, fontWeight: 600, border: 'none',
+                              cursor: descargandoExcel ? 'wait' : 'pointer',
+                              boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)',
+                            }}
+                          >
+                            {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
+                          </button>
+                        ) : (
+                          <a
+                            href={currentPaso.urlPlantilla}
+                            download
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 8,
+                              padding: '8px 18px', fontSize: '0.85rem',
+                              background: '#16A34A', color: 'white',
+                              borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none',
+                              boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
+                            }}
+                          >
+                            ⬇ Descargar plantilla vacía
+                          </a>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Subir archivo diligenciado</span>
-                  <label style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '4px 12px', fontSize: '0.78rem',
-                    background: archivoRespuesta ? '#DCFCE7' : '#F0FDF4', color: '#166534',
-                    borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #86EFAC',
-                  }}>
-                    {archivoRespuesta ? `✓ ${archivoRespuesta.name}` : '📂 Seleccionar archivo'}
-                    <input type="file" accept=".xlsx,.xls,.csv"
-                      style={{ display: 'none' }}
-                      onChange={e => setArchivoRespuesta(e.target.files?.[0] || null)} />
-                  </label>
-                  {archivoRespuesta && (
-                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                      onClick={() => setArchivoRespuesta(null)}>✕ Quitar</button>
-                  )}
+
+                {/* PASO 2 — Subir archivo diligenciado */}
+                <div style={{
+                  padding: '16px 20px',
+                  background: archivoRespuesta ? '#EFF6FF' : '#F8FAFC',
+                  border: `2px ${archivoRespuesta ? 'solid #93C5FD' : 'dashed #CBD5E1'}`,
+                  borderRadius: 10,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                      background: archivoRespuesta ? '#2563EB' : '#94A3B8', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.75rem', fontWeight: 700,
+                    }}>2</div>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoRespuesta ? '#1E3A8A' : '#475569' }}>
+                      Sube el archivo completado
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#64748B', lineHeight: 1.5 }}>
+                    Una vez que hayas completado la tabla de priorización, sube el archivo aquí para finalizar el taller.
+                  </p>
+                  <div style={{ marginLeft: 34, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <label style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '8px 18px', fontSize: '0.85rem',
+                      background: archivoRespuesta ? '#DBEAFE' : 'white', color: archivoRespuesta ? '#1D4ED8' : '#475569',
+                      borderRadius: 8, cursor: 'pointer', fontWeight: 600,
+                      border: `1px solid ${archivoRespuesta ? '#93C5FD' : '#CBD5E1'}`,
+                    }}>
+                      {archivoRespuesta ? `✓ ${archivoRespuesta.name}` : '📂 Seleccionar archivo (.xlsx)'}
+                      <input type="file" accept=".xlsx,.xls,.csv"
+                        style={{ display: 'none' }}
+                        onChange={e => setArchivoRespuesta(e.target.files?.[0] || null)} />
+                    </label>
+                    {archivoRespuesta && (
+                      <button className="btn btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}
+                        onClick={() => setArchivoRespuesta(null)}>✕ Quitar</button>
+                    )}
+                  </div>
                 </div>
+
               </div>
             )}
 
