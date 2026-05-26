@@ -146,13 +146,14 @@ export class ExecutionController {
         });
 
     const HEADERS = [
-      'Tipo de IA', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?',
+      'Dolor identificado', 'Tipo de IA', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?',
       'Valor potencial', 'Disponibilidad de datos', 'Esfuerzo técnico / complejidad',
       'Alineación estratégica', 'Escalabilidad / replicabilidad', 'Patrocinio / apoyo interno', 'TOTAL',
     ];
 
     // Mapeo: columna del Excel → columna del AI response
     const COLUMN_MAP: Record<string, string> = {
+      'Dolor identificado':           'Dolor identificado',
       'Tipo de IA':                   'Tipo de IA',
       'Idea de Proyecto':             'Oportunidad de IA',
       '¿Qué permite o resuelve?':     'Por qué ese tipo',
@@ -160,6 +161,7 @@ export class ExecutionController {
     };
 
     const DESCRIPTIONS: (string | number)[] = [
+      'Problema o necesidad que motivó esta idea',
       'Ej: IA Tradicional / IA Generativa',
       'Nombre o descripción breve de la iniciativa',
       'Problema o necesidad que aborda',
@@ -199,7 +201,9 @@ export class ExecutionController {
 
     // --- Hoja Priorización ---
     const ws = wb.addWorksheet('Priorización');
-    ws.columns = [20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ width: w }));
+    ws.columns = [28, 20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ width: w }));
+
+    const TEXT_COLS = new Set(['Dolor identificado', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?']);
 
     wsData.forEach((rowValues, rowIndex) => {
       const row = ws.addRow(rowValues);
@@ -218,6 +222,16 @@ export class ExecutionController {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
           cell.font = { italic: true, color: { argb: 'FF444444' } };
           cell.alignment = { vertical: 'middle', wrapText: true };
+        }
+      } else {
+        row.height = 60;
+        for (let c = 1; c <= HEADERS.length; c++) {
+          const cell = row.getCell(c);
+          if (TEXT_COLS.has(HEADERS[c - 1])) {
+            cell.alignment = { vertical: 'top', wrapText: true };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          }
         }
       }
     });

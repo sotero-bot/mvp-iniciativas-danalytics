@@ -250,20 +250,45 @@ export function RunnerPage() {
       const json = await res.json();
       setData(json);
 
+      let stepIndexToLoad = 0;
+
       if (json.estado !== 'generado') {
         const lastAnsweredIndex = json.pasos.findIndex((p: Paso) =>
           !json.interacciones.some((i: any) => i.pasoId === p.id)
         );
         if (lastAnsweredIndex !== -1) {
+          stepIndexToLoad = lastAnsweredIndex;
           setCurrentStepIndex(lastAnsweredIndex);
           if (json.pasos[lastAnsweredIndex].promptIa) {
             setCustomPrompt(interpolarPrompt(json.pasos[lastAnsweredIndex].promptIa, json.pasos, json.interacciones));
           }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
+          stepIndexToLoad = -1;
+        } else {
+          // Todos los pasos respondidos pero aún no finalizado → ir al último paso
+          const lastIdx = json.pasos.length - 1;
+          stepIndexToLoad = lastIdx;
+          setCurrentStepIndex(lastIdx);
+          if (json.pasos[lastIdx]?.promptIa) {
+            setCustomPrompt(interpolarPrompt(json.pasos[lastIdx].promptIa, json.pasos, json.interacciones));
+          }
         }
       } else if (json.pasos.length > 0 && json.pasos[0].promptIa) {
         setCustomPrompt(interpolarPrompt(json.pasos[0].promptIa, json.pasos, json.interacciones));
+      }
+
+      if (stepIndexToLoad >= 0 && json.pasos[stepIndexToLoad]) {
+        const paso = json.pasos[stepIndexToLoad];
+        const inter = json.interacciones.find((i: any) => i.pasoId === paso.id);
+        if (inter) {
+          if (paso.usarIa && !paso.iaAutomatica) {
+            setRespuesta(inter.respuestaUsuario || '');
+            setRespuestaIa(inter.respuestaIa || inter.contenido || '');
+          } else if (!paso.usarIa) {
+            setRespuesta(inter.contenido || '');
+          }
+        }
       }
     } catch (err: any) {
       setError(err.message);
