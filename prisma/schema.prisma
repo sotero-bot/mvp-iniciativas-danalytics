@@ -33,6 +33,7 @@ model Interaccion {
   respuestaUsuario String?
   respuestaIa      String?
   archivoNombre    String?
+  archivoContenido Bytes?
   fecha            DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   instancia        InstanciaActividad @relation(fields: [instanciaId], references: [id])

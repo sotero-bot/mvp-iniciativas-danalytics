@@ -12,6 +12,7 @@ interface StepResult {
   promptIa?: string | null;
   respuesta: string | null;
   fechaRespuesta: string | null;
+  archivoNombre?: string | null;
 }
 
 interface InstanceDetail {
@@ -20,7 +21,7 @@ interface InstanceDetail {
   fechaInicio: string | null;
   fechaFin: string | null;
   actividad: { id: string; nombre: string; plantillaOrigen?: { id: string; nombre: string } | null };
-  usuario?: { id: string; nombre: string };
+  usuario?: { id: string; nombre: string; email?: string; cargo?: string; area?: string };
   pasos: StepResult[];
 }
 
@@ -113,6 +114,14 @@ export function InstanciaDetallePage() {
           <div>
             <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Usuario / Responsable</label>
             <div style={{ fontWeight: 600 }}>{data.usuario?.nombre || 'Pendiente de identificación'}</div>
+            {data.usuario?.area && (
+              <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                {data.usuario.area}{data.usuario.cargo ? ` · ${data.usuario.cargo}` : ''}
+              </div>
+            )}
+            {data.usuario?.email && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', marginTop: 1 }}>{data.usuario.email}</div>
+            )}
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Fecha de Inicio</label>
@@ -186,6 +195,27 @@ export function InstanciaDetallePage() {
                 }}>
                   <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prompt IA Configurado:</strong>
                   <div style={{ color: '#334155', fontStyle: 'normal' }}>{p.promptIa}</div>
+                </div>
+              )}
+
+              {p.archivoNombre && (
+                <div style={{
+                  marginTop: '1rem', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8,
+                }}>
+                  <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
+                  <a
+                    href={`${API_URL}/admin/instancias/${data.id}/archivo/${p.pasoId}`}
+                    download={p.archivoNombre}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '4px 12px', fontSize: '0.78rem',
+                      background: '#2563EB', color: 'white',
+                      borderRadius: 6, fontWeight: 600, textDecoration: 'none',
+                    }}
+                  >
+                    ⬇ Descargar
+                  </a>
                 </div>
               )}
 

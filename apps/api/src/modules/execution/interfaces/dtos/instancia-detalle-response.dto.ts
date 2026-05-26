@@ -24,6 +24,7 @@ export class InstanciaDetalleResponseDto {
     promptIa?: string | null;
     respuesta: string | null;
     fechaRespuesta: Date | null;
+    archivoNombre?: string | null;
   }>;
 
   constructor(partial: Partial<InstanciaDetalleResponseDto>) {

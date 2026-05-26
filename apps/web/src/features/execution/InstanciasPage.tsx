@@ -415,6 +415,12 @@ export function InstanciasPage() {
                         ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
                         : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Pendiente</span>
                       )}
+                      {ins.usuario?.area && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                          {ins.usuario.area}
+                          {ins.usuario.cargo ? ` · ${ins.usuario.cargo}` : ''}
+                        </div>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
                       {new Date(ins.updatedAt).toLocaleString()}

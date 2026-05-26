@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Delete, Body, Param, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, NotFoundException, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { GenerarInstanciaUseCase } from '../application/GenerarInstanciaUseCase';
 import { ObtenerInstanciaDetalleUseCase } from '../application/ObtenerInstanciaDetalleUseCase';
 import { PrismaService } from '../../../prisma.service';
@@ -45,6 +46,25 @@ export class AdminExecutionController {
       }
       throw error;
     }
+  }
+
+  @Get(':id/archivo/:pasoId')
+  async descargarArchivo(
+    @Param('id') id: string,
+    @Param('pasoId') pasoId: string,
+    @Res() res: Response,
+  ) {
+    const interaccion = await this.prisma.interaccion.findFirst({
+      where: { instanciaId: id, pasoId },
+      select: { archivoNombre: true, archivoContenido: true },
+    });
+    if (!interaccion?.archivoContenido) throw new NotFoundException('Archivo no disponible');
+    const nombre = interaccion.archivoNombre || 'archivo.xlsx';
+    res.set({
+      'Content-Disposition': `attachment; filename="${nombre}"`,
+      'Content-Type': 'application/octet-stream',
+    });
+    res.send(interaccion.archivoContenido);
   }
 
   @Delete(':id')
