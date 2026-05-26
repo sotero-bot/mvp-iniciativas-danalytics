@@ -22,6 +22,7 @@ export function ActividadPasosPage() {
     objetivo: '',
     instrucciones: '',
     usarIa: false,
+    iaAutomatica: false,
     promptIa: '',
     permitirArchivo: false,
     soloArchivo: false,
@@ -89,6 +90,7 @@ export function ActividadPasosPage() {
           objetivo: '',
           instrucciones: '',
           usarIa: false,
+          iaAutomatica: false,
           promptIa: '',
           permitirArchivo: false,
           soloArchivo: false,
@@ -112,6 +114,7 @@ export function ActividadPasosPage() {
       objetivo: p.objetivo || '',
       instrucciones: p.instrucciones || '',
       usarIa: p.usarIa || false,
+      iaAutomatica: p.iaAutomatica || false,
       promptIa: p.promptIa || '',
       permitirArchivo: p.permitirArchivo || false,
       soloArchivo: p.soloArchivo || false,
@@ -130,6 +133,7 @@ export function ActividadPasosPage() {
       objetivo: '',
       instrucciones: '',
       usarIa: false,
+      iaAutomatica: false,
       promptIa: '',
       permitirArchivo: false,
       soloArchivo: false,
@@ -258,6 +262,26 @@ export function ActividadPasosPage() {
               )}
             </div>
 
+            {/* IA Automática — visible solo si usarIa === true */}
+            {form.usarIa && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: -4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.iaAutomatica}
+                    onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#7C3AED' }}
+                  />
+                  <span style={{ fontWeight: 600 }}>IA automática al entrar al paso</span>
+                </label>
+                {form.iaAutomatica && (
+                  <span className="status-badge" style={{ background: '#7C3AED', color: '#fff', fontSize: '0.7rem' }}>
+                    ⚡ Auto
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Prompt IA — visible solo si usarIa === true */}
             {form.usarIa && (
               <div style={{ gridColumn: 'span 2' }}>
@@ -366,9 +390,16 @@ export function ActividadPasosPage() {
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       {p.usarIa ? (
-                        <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.7rem' }}>
-                          🤖 Sí
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                          <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.7rem' }}>
+                            🤖 Sí
+                          </span>
+                          {p.iaAutomatica && (
+                            <span className="status-badge" style={{ background: '#7C3AED', color: '#fff', fontSize: '0.65rem' }}>
+                              ⚡ Auto
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>—</span>
                       )}

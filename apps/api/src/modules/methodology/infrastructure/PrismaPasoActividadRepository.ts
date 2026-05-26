@@ -13,6 +13,7 @@ export class PrismaPasoActividadRepository implements IPasoActividadRepository {
         titulo: paso.titulo,
         orden: paso.orden,
         usarIa: paso.usarIa,
+        iaAutomatica: paso.iaAutomatica,
         objetivo: paso.objetivo,
         instrucciones: paso.instrucciones,
         promptIa: paso.promptIa,
@@ -43,6 +44,7 @@ export class PrismaPasoActividadRepository implements IPasoActividadRepository {
           (raw as any).permitirArchivo ?? false,
           (raw as any).soloArchivo ?? false,
           (raw as any).urlPlantilla || undefined,
+          (raw as any).iaAutomatica ?? false,
         )
     );
   }

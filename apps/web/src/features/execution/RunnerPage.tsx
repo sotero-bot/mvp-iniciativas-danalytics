@@ -15,6 +15,7 @@ interface Paso {
   objetivo?: string;
   instrucciones?: string;
   usarIa?: boolean;
+  iaAutomatica?: boolean;
   promptIa?: string;
   permitirArchivo?: boolean;
   urlPlantilla?: string;
@@ -233,12 +234,14 @@ export function RunnerPage() {
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [showPromptEdit, setShowPromptEdit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
   const [bloqueadoPor, setBloqueadoPor] = useState<string | null>(null);
   const [plantillaAnteriorExpanded, setPlantillaAnteriorExpanded] = useState(false);
   const editorRef = useRef<WysiwygEditorHandle>(null);
   const iaEditorRef = useRef<WysiwygEditorHandle>(null);
+  const autoIaRunRef = useRef<Set<string>>(new Set());
 
   const loadData = async () => {
     try {
@@ -270,6 +273,61 @@ export function RunnerPage() {
   };
 
   useEffect(() => { loadData(); }, [token]);
+
+  useEffect(() => {
+    if (!data) return;
+    const paso = data.pasos[currentStepIndex];
+    if (!paso?.usarIa || !paso?.iaAutomatica) return;
+    if (autoIaRunRef.current.has(paso.id)) return;
+    const interExistente = data.interacciones.find(i => i.pasoId === paso.id);
+    if (interExistente?.respuestaIa) {
+      setRespuestaIa(interExistente.respuestaIa);
+      iaEditorRef.current?.replaceContent(interExistente.respuestaIa);
+      return;
+    }
+    autoIaRunRef.current.add(paso.id);
+    const runAutoIa = async () => {
+      setEnviandoIa(true);
+      setRespuestaIa('');
+      iaEditorRef.current?.replaceContent('');
+      try {
+        const interpolado = interpolarPrompt(paso.promptIa ?? '', data.pasos, data.interacciones);
+        const formData = new FormData();
+        formData.append('pasoId', paso.id);
+        formData.append('respuesta', '');
+        if (interpolado) formData.append('customPrompt', interpolado);
+        const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        setRespuestaIa(json.respuestaIa);
+        iaEditorRef.current?.replaceContent(json.respuestaIa);
+
+        // Si el paso también tiene subida de archivo, auto-guardamos la respuesta IA
+        // para que el endpoint de pre-llenado del Excel pueda leerla desde la BD
+        if (paso.soloArchivo || paso.permitirArchivo) {
+          await fetch(`${API_URL}/execution/${token}/responder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pasoId: paso.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa }),
+          });
+          setData(prev => prev ? {
+            ...prev,
+            interacciones: [
+              ...prev.interacciones.filter(i => i.pasoId !== paso.id),
+              { pasoId: paso.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa },
+            ],
+          } : prev);
+        }
+      } catch {
+        autoIaRunRef.current.delete(paso.id);
+        setEnviandoIa(false);
+      } finally {
+        setEnviandoIa(false);
+      }
+    };
+    runAutoIa();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStepIndex, data?.estado]);
 
   const handleIniciar = async () => {
     setLoading(true);
@@ -337,6 +395,33 @@ export function RunnerPage() {
     setWasValidated(true);
     if (!(e.currentTarget as HTMLFormElement).checkValidity()) return;
     setShowEmailConfirm(true);
+  };
+
+  const handleDescargarPlantillaPrediligenciada = async (pasoId: string) => {
+    setDescargandoExcel(true);
+    try {
+      const res = await fetch(`${API_URL}/execution/${token}/plantilla-prefilled/${pasoId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respuestaIa: respuestaIa || undefined }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert((err as any).message || 'No se pudo generar la plantilla. Espera a que el asistente IA finalice.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plantilla-priorizacion.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Error al descargar la plantilla. Intentá de nuevo.');
+    } finally {
+      setDescargandoExcel(false);
+    }
   };
 
   const handleSiguiente = async () => {
@@ -421,12 +506,11 @@ export function RunnerPage() {
   };
 
   const handleEnviarIA = async () => {
-    if (!respuesta.trim() && !archivoIa) return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
+    const paso = data!.pasos[currentStepIndex];
+    if (!paso.iaAutomatica && !respuesta.trim() && !archivoIa) return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
     setEnviandoIa(true);
     setRespuestaIa('');
     iaEditorRef.current?.replaceContent('');
-
-    const paso = data!.pasos[currentStepIndex];
 
     try {
       const formData = new FormData();
@@ -728,11 +812,22 @@ export function RunnerPage() {
   const respuestaAnterior = getRespuestaPasoAnterior();
   const isLastStep = currentStepIndex === data.pasos.length - 1;
 
+  // Cuando el paso es iaAutomatica + archivo, la IA va primero (genera → descarga → sube)
+  const iaFirst = !!(currentPaso.iaAutomatica && (currentPaso.soloArchivo || currentPaso.permitirArchivo));
+  const showRespuesta = !currentPaso.iaAutomatica || currentPaso.permitirArchivo || currentPaso.soloArchivo;
+
   // Numeración dinámica de secciones
   let secNum = 0;
   const instrSecNum = currentPaso.instrucciones ? ++secNum : null;
-  const respSecNum = ++secNum;
-  const iaSecNum = currentPaso.usarIa ? ++secNum : null;
+  let iaSecNum: number | null = null;
+  let respSecNum: number | null = null;
+  if (iaFirst) {
+    iaSecNum = currentPaso.usarIa ? ++secNum : null;
+    respSecNum = showRespuesta ? ++secNum : null;
+  } else {
+    respSecNum = showRespuesta ? ++secNum : null;
+    iaSecNum = currentPaso.usarIa ? ++secNum : null;
+  }
 
   return (
     <>
@@ -841,9 +936,11 @@ export function RunnerPage() {
             </SectionBlock>
           )}
 
-          {/* SECCIÓN: Tu respuesta */}
-          <SectionBlock
-            number={respSecNum}
+          {/* SECCIÓN: Tu respuesta + Asistente IA — orden invertido cuando iaFirst */}
+          <div style={iaFirst ? { display: 'flex', flexDirection: 'column' } : undefined}>
+
+          {showRespuesta && <div style={iaFirst ? { order: 2 } : undefined}><SectionBlock
+            number={respSecNum!}
             title="Tu respuesta"
             description={
               (currentPaso.permitirArchivo || currentPaso.soloArchivo)
@@ -854,8 +951,8 @@ export function RunnerPage() {
             }
             color="blue"
           >
-            {/* Respuesta del paso anterior */}
-            {respuestaAnterior && (
+            {/* Respuesta del paso anterior — solo en pasos sin IA automática */}
+            {respuestaAnterior && !currentPaso.iaAutomatica && (
               <div style={{
                 marginBottom: 14, padding: '0.75rem 1rem',
                 background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8,
@@ -896,32 +993,65 @@ export function RunnerPage() {
                 display: 'flex', flexDirection: 'column', gap: 10,
               }}>
                 {currentPaso.urlPlantilla && (() => {
-                  const prevIaPaso = data!.pasos
-                    .slice(0, currentStepIndex)
-                    .reverse()
-                    .find(p => p.usarIa);
+                  // Paso con IA propia (iaAutomatica): usa interacción del mismo paso
+                  const selfIaRespondido = currentPaso.usarIa
+                    ? data!.interacciones.some(i => i.pasoId === currentPaso.id)
+                    : false;
+                  // Paso con IA en paso anterior (flujo clásico)
+                  const prevIaPaso = !currentPaso.usarIa
+                    ? data!.pasos.slice(0, currentStepIndex).reverse().find(p => p.usarIa)
+                    : null;
                   const prevIaRespondido = prevIaPaso
                     ? data!.interacciones.some(i => i.pasoId === prevIaPaso.id)
                     : false;
-                  const plantillaHref = prevIaRespondido
+                  const iaRespondido = selfIaRespondido || prevIaRespondido;
+                  const plantillaHref = iaRespondido
                     ? `${API_URL}/execution/${token}/plantilla-prefilled/${currentPaso.id}`
                     : currentPaso.urlPlantilla;
+
+                  // Si la IA es automática y aún está generando o no hay resultado, mostrar pending
+                  if (currentPaso.iaAutomatica && !iaRespondido) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
+                        <span style={{ fontSize: '0.78rem', color: '#6D28D9', fontStyle: 'italic' }}>
+                          {enviandoIa ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente genere las ideas'}
+                        </span>
+                      </div>
+                    );
+                  }
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 600 }}>Plantilla Excel</span>
-                      <a
-                        href={plantillaHref}
-                        download={!prevIaRespondido}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          padding: '4px 12px', fontSize: '0.78rem',
-                          background: '#DCFCE7', color: '#166534',
-                          borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        ⬇ Descargar plantilla {prevIaRespondido ? 'pre-diligenciada' : ''}
-                      </a>
+                      {iaRespondido ? (
+                        <button
+                          onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id)}
+                          disabled={descargandoExcel}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '4px 12px', fontSize: '0.78rem',
+                            background: descargandoExcel ? '#F0FDF4' : '#DCFCE7', color: '#166534',
+                            borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
+                            cursor: descargandoExcel ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
+                        </button>
+                      ) : (
+                        <a
+                          href={plantillaHref}
+                          download
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '4px 12px', fontSize: '0.78rem',
+                            background: '#DCFCE7', color: '#166534',
+                            borderRadius: 6, fontWeight: 500, border: '1px solid #86EFAC',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          ⬇ Descargar plantilla
+                        </a>
+                      )}
                       <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>
                         Descarga, diligencia y sube el archivo completado
                       </span>
@@ -949,8 +1079,8 @@ export function RunnerPage() {
               </div>
             )}
 
-            {/* Adjuntar archivo (solo si hay IA) */}
-            {currentPaso.usarIa && (
+            {/* Adjuntar archivo (solo si hay IA no automática) */}
+            {currentPaso.usarIa && !currentPaso.iaAutomatica && (
               <div style={{
                 marginTop: 10, padding: '10px 14px',
                 background: '#FAFAFE', border: '1px dashed #C4B5FD', borderRadius: 8,
@@ -975,16 +1105,33 @@ export function RunnerPage() {
                 )}
               </div>
             )}
-          </SectionBlock>
+          </SectionBlock></div>}
 
           {/* SECCIÓN: Asistente IA */}
           {currentPaso.usarIa && iaSecNum !== null && (
-            <SectionBlock
+            <div style={iaFirst ? { order: 1 } : undefined}><SectionBlock
               number={iaSecNum}
               title="Asistente IA"
-              description="Envía tu respuesta al asistente para recibir análisis y retroalimentación. Podrás editar el resultado antes de guardar."
+              description={
+                currentPaso.iaAutomatica
+                  ? 'El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.'
+                  : 'Envía tu respuesta al asistente para recibir análisis y retroalimentación. Podrás editar el resultado antes de guardar.'
+              }
               color="purple"
             >
+              {/* Indicador de modo automático */}
+              {currentPaso.iaAutomatica && (
+                <div style={{
+                  marginBottom: 14, padding: '8px 14px',
+                  background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  fontSize: '0.82rem', color: '#6D28D9', fontWeight: 500,
+                }}>
+                  <span>⚡</span>
+                  <span>Generación automática activada — el asistente usa el contexto de los pasos anteriores.</span>
+                </div>
+              )}
+
               {/* Prompt personalizable (colapsable) */}
               {customPrompt && (
                 <div style={{ marginBottom: 14 }}>
@@ -1025,14 +1172,14 @@ export function RunnerPage() {
                   marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6,
                 }}
                 onClick={handleEnviarIA}
-                disabled={(!respuesta.trim() && !archivoIa) || enviandoIa}
+                disabled={(!currentPaso.iaAutomatica && !respuesta.trim() && !archivoIa) || enviandoIa}
               >
                 {enviandoIa ? (
                   <>
                     <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
                     Consultando...
                   </>
-                ) : '✨ Enviar a Asistente IA'}
+                ) : currentPaso.iaAutomatica ? '↺ Volver a consultar' : '✨ Enviar a Asistente IA'}
               </button>
 
               {/* Respuesta IA */}
@@ -1063,11 +1210,15 @@ export function RunnerPage() {
                   border: '1px dashed #DDD6FE', textAlign: 'center',
                   color: '#7C3AED', fontSize: '0.85rem',
                 }}>
-                  Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.
+                  {currentPaso.iaAutomatica
+                    ? 'El asistente generará el análisis automáticamente al ingresar al paso.'
+                    : <>Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.</>}
                 </div>
               )}
-            </SectionBlock>
+            </SectionBlock></div>
           )}
+
+          </div>{/* end iaFirst flex wrapper */}
 
           {/* Botones anterior / siguiente */}
           <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -1084,7 +1235,7 @@ export function RunnerPage() {
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}
-              disabled={((currentPaso.soloArchivo || currentPaso.permitirArchivo) ? !archivoRespuesta : currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading}
+              disabled={((currentPaso.soloArchivo || currentPaso.permitirArchivo) ? !archivoRespuesta : currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading || (currentPaso.iaAutomatica ? enviandoIa : false)}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
               {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}

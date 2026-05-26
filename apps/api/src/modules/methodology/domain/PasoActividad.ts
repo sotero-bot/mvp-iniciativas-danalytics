@@ -11,5 +11,6 @@ export class PasoActividad {
     public readonly permitirArchivo: boolean = false,
     public readonly soloArchivo: boolean = false,
     public readonly urlPlantilla?: string,
+    public readonly iaAutomatica: boolean = false,
   ) { }
 }

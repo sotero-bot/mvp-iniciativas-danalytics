@@ -24,6 +24,7 @@ export class RunnerResponseDto {
     objetivo?: string;
     instrucciones?: string;
     usarIa?: boolean;
+    iaAutomatica?: boolean;
     promptIa?: string;
     permitirArchivo?: boolean;
     soloArchivo?: boolean;

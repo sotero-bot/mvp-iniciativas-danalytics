@@ -22,8 +22,10 @@ export function PlantillaPasosPage() {
     objetivo: '',
     instrucciones: '',
     usarIa: false,
+    iaAutomatica: false,
     promptIa: '',
     permitirArchivo: false,
+    soloArchivo: false,
     urlPlantilla: '',
     orden: 0,
   });
@@ -63,7 +65,7 @@ export function PlantillaPasosPage() {
       if (res.status === 400) { alert(data.message || 'Error en los datos'); return; }
       if (res.status === 404) { alert('Plantilla/Paso no encontrado'); return; }
       if (res.ok) {
-        setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', permitirArchivo: false, urlPlantilla: '', orden: pasos.length + (editingId ? 1 : 2) });
+        setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, iaAutomatica: false, promptIa: '', permitirArchivo: false, soloArchivo: false, urlPlantilla: '', orden: pasos.length + (editingId ? 1 : 2) });
         setShowForm(false);
         setEditingId(null);
         setWasValidated(false);
@@ -76,7 +78,7 @@ export function PlantillaPasosPage() {
 
   const handleEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', usarIa: p.usarIa || false, promptIa: p.promptIa || '', permitirArchivo: p.permitirArchivo || false, urlPlantilla: p.urlPlantilla || '', orden: p.orden });
+    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', usarIa: p.usarIa || false, iaAutomatica: p.iaAutomatica || false, promptIa: p.promptIa || '', permitirArchivo: p.permitirArchivo || false, soloArchivo: p.soloArchivo || false, urlPlantilla: p.urlPlantilla || '', orden: p.orden });
     setShowForm(true);
   };
 
@@ -84,7 +86,7 @@ export function PlantillaPasosPage() {
     setEditingId(null);
     setShowForm(false);
     const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-    setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, promptIa: '', permitirArchivo: false, urlPlantilla: '', orden: maxOrden + 1 });
+    setForm({ titulo: '', objetivo: '', instrucciones: '', usarIa: false, iaAutomatica: false, promptIa: '', permitirArchivo: false, soloArchivo: false, urlPlantilla: '', orden: maxOrden + 1 });
     setWasValidated(false);
   };
 
@@ -177,6 +179,22 @@ export function PlantillaPasosPage() {
             </div>
 
             {form.usarIa && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: -4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                  <input type="checkbox" checked={form.iaAutomatica}
+                    onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#7C3AED' }} />
+                  <span style={{ fontWeight: 600 }}>IA automática al entrar al paso</span>
+                </label>
+                {form.iaAutomatica && (
+                  <span className="status-badge" style={{ background: '#7C3AED', color: '#fff', fontSize: '0.7rem' }}>
+                    ⚡ Auto
+                  </span>
+                )}
+              </div>
+            )}
+
+            {form.usarIa && (
               <div style={{ gridColumn: 'span 2' }}>
                 <label className="required-label">Prompt IA</label>
                 <textarea className="input" rows={3} required={form.usarIa} value={form.promptIa}
@@ -199,6 +217,20 @@ export function PlantillaPasosPage() {
                 </span>
               )}
             </div>
+
+            {form.permitirArchivo && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: -4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                  <input type="checkbox" checked={form.soloArchivo}
+                    onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0369a1' }} />
+                  <span style={{ fontWeight: 600 }}>La respuesta es solo el documento (sin texto)</span>
+                </label>
+                {form.soloArchivo && (
+                  <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.7rem' }}>📄 Solo documento</span>
+                )}
+              </div>
+            )}
 
             {form.permitirArchivo && (
               <div style={{ gridColumn: 'span 2' }}>
@@ -247,13 +279,20 @@ export function PlantillaPasosPage() {
                   <td style={{ padding: '12px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>{p.objetivo || '-'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {p.usarIa ? (
-                      <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.7rem' }}>🤖 Sí</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                        <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.7rem' }}>🤖 Sí</span>
+                        {p.iaAutomatica && (
+                          <span className="status-badge" style={{ background: '#7C3AED', color: '#fff', fontSize: '0.65rem' }}>⚡ Auto</span>
+                        )}
+                      </div>
                     ) : (
                       <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    {p.permitirArchivo ? (
+                    {p.soloArchivo ? (
+                      <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.7rem' }}>📄 Solo doc.</span>
+                    ) : p.permitirArchivo ? (
                       <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.7rem' }}>📎 Sí</span>
                     ) : (
                       <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>—</span>

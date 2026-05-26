@@ -10,6 +10,7 @@ export interface AgregarPasoInput {
   titulo: string;
   orden: number;
   usarIa?: boolean;
+  iaAutomatica?: boolean;
   objetivo?: string;
   instrucciones?: string;
   promptIa?: string;
@@ -62,6 +63,7 @@ export class AgregarPasoActividadUseCase {
       input.permitirArchivo ?? false,
       input.soloArchivo ?? false,
       input.urlPlantilla,
+      input.usarIa ? (input.iaAutomatica ?? false) : false,
     );
 
     await this.pasoRepo.create(nuevoPaso);

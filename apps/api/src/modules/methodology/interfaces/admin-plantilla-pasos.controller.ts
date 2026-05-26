@@ -18,7 +18,7 @@ export class AdminPlantillaPasosController {
   @Post()
   async create(
     @Param('plantillaId') plantillaId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
   ) {
     const plantilla = await this.prisma.plantillaActividad.findUnique({ where: { id: plantillaId, activo: true } });
     if (!plantilla) throw new NotFoundException('Plantilla no encontrada');
@@ -35,6 +35,7 @@ export class AdminPlantillaPasosController {
         objetivo: body.objetivo,
         instrucciones: body.instrucciones,
         usarIa: body.usarIa ?? false,
+        iaAutomatica: body.usarIa ? (body.iaAutomatica ?? false) : false,
         promptIa: body.promptIa,
         orden: body.orden,
         permitirArchivo: body.permitirArchivo ?? false,
@@ -48,7 +49,7 @@ export class AdminPlantillaPasosController {
   async update(
     @Param('plantillaId') plantillaId: string,
     @Param('pasoId') pasoId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
   ) {
     const existe = await this.prisma.pasoPlantilla.findFirst({
       where: { plantillaId, orden: body.orden, activo: true, NOT: { id: pasoId } },
@@ -62,6 +63,7 @@ export class AdminPlantillaPasosController {
         objetivo: body.objetivo,
         instrucciones: body.instrucciones,
         usarIa: body.usarIa ?? false,
+        iaAutomatica: body.usarIa ? (body.iaAutomatica ?? false) : false,
         promptIa: body.promptIa,
         orden: body.orden,
         permitirArchivo: body.permitirArchivo ?? false,

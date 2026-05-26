@@ -35,6 +35,7 @@ export class InstanciarPlantillaUseCase {
           objetivo: p.objetivo,
           instrucciones: p.instrucciones,
           usarIa: p.usarIa,
+          iaAutomatica: (p as any).iaAutomatica ?? false,
           promptIa: p.promptIa,
           permitirArchivo: p.permitirArchivo,
           soloArchivo: (p as any).soloArchivo ?? false,

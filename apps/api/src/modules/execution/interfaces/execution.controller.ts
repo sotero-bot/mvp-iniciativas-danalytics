@@ -102,6 +102,7 @@ export class ExecutionController {
           objetivo: p.objetivo || undefined,
           instrucciones: p.instrucciones || undefined,
           usarIa: p.usarIa,
+          iaAutomatica: (p as any).iaAutomatica || false,
           promptIa: p.promptIa || undefined,
           permitirArchivo: (p as any).permitirArchivo || false,
           soloArchivo: (p as any).soloArchivo || false,
@@ -119,10 +120,12 @@ export class ExecutionController {
     }
   }
 
-  @Get(':token/plantilla-prefilled/:pasoId')
+  @Post(':token/plantilla-prefilled/:pasoId')
+  @HttpCode(HttpStatus.OK)
   async plantillaPrefilled(
     @Param('token') token: string,
     @Param('pasoId') pasoId: string,
+    @Body() body: { respuestaIa?: string },
     @Res() res: Response
   ): Promise<void> {
     const instancia = await this.prisma.instanciaActividad.findUnique({
@@ -134,11 +137,13 @@ export class ExecutionController {
     const pasoActual = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
     if (!pasoActual) throw new NotFoundException('Paso no encontrado');
 
-    // Busca el paso IA anterior más cercano
-    const pasoIaAnterior = await this.prisma.pasoActividad.findFirst({
-      where: { actividadId: pasoActual.actividadId, usarIa: true, orden: { lt: pasoActual.orden } },
-      orderBy: { orden: 'desc' },
-    });
+    // Si el paso actual ya tiene IA, usa su propia interacción; si no, busca el anterior más cercano
+    const pasoIaSource = pasoActual.usarIa
+      ? pasoActual
+      : await this.prisma.pasoActividad.findFirst({
+          where: { actividadId: pasoActual.actividadId, usarIa: true, orden: { lt: pasoActual.orden } },
+          orderBy: { orden: 'desc' },
+        });
 
     const HEADERS = [
       'Tipo de IA', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?',
@@ -162,22 +167,28 @@ export class ExecutionController {
       '1-3', '1-3', '1-3', '1-3', '1-3', '1-3', '',
     ];
 
-    const wsData: (string | number)[][] = [HEADERS, DESCRIPTIONS];
+    // Prioridad 1: parámetro enviado en el body (sesión actual, IA recién ejecutada)
+    // Prioridad 2: interacción ya guardada en BD (sesión anterior)
+    let contenidoIa = body?.respuestaIa?.trim() ?? '';
 
-    if (pasoIaAnterior) {
-      const interaccion = instancia.interacciones.find(i => i.pasoId === pasoIaAnterior.id);
-      const contenido = (interaccion as any)?.respuestaIa || interaccion?.contenido || '';
-
-      if (contenido) {
-        const filas = parseTableFromContent(contenido);
-        for (const fila of filas) {
-          if (Object.values(fila).every(v => !v)) continue;
-          wsData.push(HEADERS.map(h => COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : ''));
-        }
-      }
+    if (!contenidoIa && pasoIaSource) {
+      const interaccion = instancia.interacciones.find(i => i.pasoId === pasoIaSource.id);
+      contenidoIa = (interaccion as any)?.respuestaIa || interaccion?.contenido || '';
     }
 
-    // Si no se parsearon filas de datos, agregar filas vacías de ejemplo
+    if (!contenidoIa) {
+      res.status(422).json({ message: 'El asistente IA aún no ha generado una respuesta para este paso.' });
+      return;
+    }
+
+    const wsData: (string | number)[][] = [HEADERS, DESCRIPTIONS];
+
+    const filas = parseTableFromContent(contenidoIa);
+    for (const fila of filas) {
+      if (Object.values(fila).every(v => !v)) continue;
+      wsData.push(HEADERS.map(h => COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : ''));
+    }
+
     if (wsData.length === 2) {
       wsData.push(Array(HEADERS.length).fill(''));
     }
