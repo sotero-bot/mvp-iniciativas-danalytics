@@ -119,7 +119,7 @@ export function RunnerResultsPage() {
                 </div>
             </div>
 
-            <div style={{ maxWidth: 780, margin: '0 auto', paddingTop: '2.5rem' }}>
+            <div style={{ maxWidth: 1560, margin: '0 auto', paddingTop: '2.5rem' }}>
 
                 {/* Header */}
                 <div style={{
