@@ -106,6 +106,35 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
 import { LoginPage } from './features/auth/LoginPage';
 
+function AiDisclaimerFooter() {
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 14,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '8px 18px',
+      background: 'rgba(254, 243, 199, 0.97)',
+      backdropFilter: 'blur(8px)',
+      color: '#78350F',
+      fontSize: '0.8rem',
+      fontWeight: 500,
+      borderRadius: 9999,
+      border: '1px solid #FCD34D',
+      boxShadow: '0 4px 12px rgba(217, 119, 6, 0.18)',
+      zIndex: 1000,
+      pointerEvents: 'none',
+      whiteSpace: 'nowrap',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+    }}>
+      <span style={{ fontSize: '0.95rem' }}>⚠️</span>
+      El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+    </div>
+  );
+}
+
 function App() {
   const [token, setToken] = React.useState<string | null>(localStorage.getItem('admin_token'));
 
@@ -126,6 +155,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AiDisclaimerFooter />
       <Routes>
         {/* Admin Routes (Protected) */}
         <Route path="/admin/inicio" element={<AdminRoute><Layout onLogout={handleLogout}><DashboardPage /></Layout></AdminRoute>} />

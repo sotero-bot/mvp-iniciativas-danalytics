@@ -23,6 +23,7 @@ model InstanciaActividad {
   actividad       Actividad     @relation(fields: [actividadId], references: [id])
   usuario         Usuario?      @relation(fields: [usuarioId], references: [id])
   interacciones   Interaccion[]
+  respuestas      Respuesta[]
 }
 
 model Interaccion {
@@ -46,6 +47,8 @@ model Interaccion {
 model Empresa {
   id                       String       @id @default(uuid())
   nombre                   String
+  sector                   String?
+  tipoOrganizacion         String?
   activo                   Boolean      @default(true)
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
@@ -93,13 +96,37 @@ model PasoPlantilla {
   permitirArchivo Boolean           @default(false)
   soloArchivo     Boolean           @default(false)
   urlPlantilla   String?
+  ejemploKey     String?
   orden          Int
   activo         Boolean            @default(true)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   plantilla      PlantillaActividad @relation(fields: [plantillaId], references: [id])
+  preguntas      PreguntaPlantilla[]
 
   @@unique([plantillaId, orden])
+}
+
+model PreguntaPlantilla {
+  id              String        @id @default(uuid())
+  pasoId          String
+  orden           Int
+  enunciado       String        @db.Text
+  permitirArchivo Boolean       @default(false)
+  soloArchivo     Boolean       @default(false)
+  subirArchivoS3  Boolean       @default(false)
+  usarIa          Boolean       @default(false)
+  iaAutomatica    Boolean       @default(false)
+  promptIa          String?       @db.Text
+  urlPlantilla      String?
+  urlPromptTemplate String?
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  paso            PasoPlantilla @relation(fields: [pasoId], references: [id])
+
+  @@unique([pasoId, orden])
+  @@index([pasoId])
 }
 
 model Actividad {
@@ -142,15 +169,59 @@ model PasoActividad {
   permitirArchivo Boolean       @default(false)
   soloArchivo     Boolean       @default(false)
   urlPlantilla    String?
+  ejemploKey      String?
   orden           Int
   activo          Boolean       @default(true)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   interacciones   Interaccion[]
   actividad       Actividad     @relation(fields: [actividadId], references: [id])
+  preguntas       PreguntaActividad[]
 
   @@unique([actividadId, orden])
   @@index([actividadId])
+}
+
+model PreguntaActividad {
+  id              String        @id @default(uuid())
+  pasoId          String
+  orden           Int
+  enunciado       String        @db.Text
+  permitirArchivo Boolean       @default(false)
+  soloArchivo     Boolean       @default(false)
+  subirArchivoS3  Boolean       @default(false)
+  usarIa          Boolean       @default(false)
+  iaAutomatica    Boolean       @default(false)
+  promptIa          String?       @db.Text
+  urlPlantilla      String?
+  urlPromptTemplate String?
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  paso            PasoActividad @relation(fields: [pasoId], references: [id])
+  respuestas      Respuesta[]
+
+  @@unique([pasoId, orden])
+  @@index([pasoId])
+}
+
+model Respuesta {
+  id               String             @id @default(uuid())
+  instanciaId      String
+  preguntaId       String
+  contenido        String?            @db.Text
+  respuestaUsuario String?            @db.Text
+  respuestaIa      String?            @db.Text
+  archivoNombre    String?
+  contenidoArchivo String?            @db.Text
+  archivoKey       String?
+  fecha            DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  instancia        InstanciaActividad @relation(fields: [instanciaId], references: [id])
+  pregunta         PreguntaActividad  @relation(fields: [preguntaId], references: [id])
+
+  @@unique([instanciaId, preguntaId])
+  @@index([instanciaId])
 }
 
 model Usuario {

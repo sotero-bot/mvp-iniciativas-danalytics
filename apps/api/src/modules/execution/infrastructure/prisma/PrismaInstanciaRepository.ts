@@ -23,12 +23,16 @@ export class PrismaInstanciaRepository implements IInstanciaRepository {
       include: {
         actividad: {
           include: {
-            pasos: { orderBy: { orden: 'asc' } },
+            pasos: {
+              orderBy: { orden: 'asc' },
+              include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
+            },
             plantillaOrigen: { select: { id: true, nombre: true } },
           },
         },
         usuario: true,
         interacciones: true,
+        respuestas: true,
       },
     });
   }

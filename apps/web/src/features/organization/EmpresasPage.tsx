@@ -8,6 +8,8 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 interface Empresa {
   id: string;
   nombre: string;
+  sector?: string | null;
+  tipoOrganizacion?: string | null;
   logoUrl?: string | null;
   createdAt: string;
   contextoPdfNombre?: string | null;
@@ -122,6 +124,8 @@ function LogoUploadField({
 export function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [nombre, setNombre] = useState('');
+  const [sector, setSector] = useState('');
+  const [tipoOrganizacion, setTipoOrganizacion] = useState('');
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [createPdfFile, setCreatePdfFile] = useState<File | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
@@ -130,6 +134,8 @@ export function EmpresasPage() {
 
   const [editModal, setEditModal] = useState<Empresa | null>(null);
   const [editNombre, setEditNombre] = useState('');
+  const [editSector, setEditSector] = useState('');
+  const [editTipoOrganizacion, setEditTipoOrganizacion] = useState('');
   const [editLogoBase64, setEditLogoBase64] = useState<string | null | undefined>(undefined);
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
@@ -151,7 +157,7 @@ export function EmpresasPage() {
 
   const create = async () => {
     if (!nombre) return;
-    const body: any = { nombre };
+    const body: any = { nombre, sector, tipoOrganizacion };
     if (logoBase64 !== null) body.logoUrl = logoBase64;
     const res = await fetch(`${API_URL}/organization/empresas`, {
       method: 'POST',
@@ -165,6 +171,8 @@ export function EmpresasPage() {
       await fetch(`${API_URL}/organization/empresas/${created.id}/contexto-pdf`, { method: 'POST', body: fd });
     }
     setNombre('');
+    setSector('');
+    setTipoOrganizacion('');
     setLogoBase64(null);
     setCreatePdfFile(null);
     setWasValidated(false);
@@ -183,6 +191,8 @@ export function EmpresasPage() {
   const openEdit = (emp: Empresa) => {
     setEditModal(emp);
     setEditNombre(emp.nombre);
+    setEditSector(emp.sector ?? '');
+    setEditTipoOrganizacion(emp.tipoOrganizacion ?? '');
     setEditLogoBase64(undefined);
     setEditWasValidated(false);
     setEditPdfFile(null);
@@ -196,7 +206,7 @@ export function EmpresasPage() {
     if (!form.checkValidity()) return;
     if (!editModal) return;
     setSaving(true);
-    const body: any = { nombre: editNombre };
+    const body: any = { nombre: editNombre, sector: editSector, tipoOrganizacion: editTipoOrganizacion };
     if (editLogoBase64 !== undefined) body.logoUrl = editLogoBase64;
     await fetch(`${API_URL}/organization/empresas/${editModal.id}`, {
       method: 'PATCH',
@@ -248,6 +258,28 @@ export function EmpresasPage() {
                 <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
                 <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
                 <div className="invalid-feedback">El nombre es necesario.</div>
+              </div>
+              <div>
+                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Sector</label>
+                <input
+                  className="input"
+                  required
+                  value={editSector}
+                  onChange={e => setEditSector(e.target.value)}
+                  placeholder="Ej: Manufactura, Salud, Financiero, Retail..."
+                />
+                <div className="invalid-feedback">El sector es requerido.</div>
+              </div>
+              <div>
+                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Tipo de organización</label>
+                <input
+                  className="input"
+                  required
+                  value={editTipoOrganizacion}
+                  onChange={e => setEditTipoOrganizacion(e.target.value)}
+                  placeholder="Ej: Empresa privada, Entidad pública, ONG, Cooperativa..."
+                />
+                <div className="invalid-feedback">El tipo de organización es requerido.</div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo</label>
@@ -358,6 +390,28 @@ export function EmpresasPage() {
               placeholder="Ej: Empresa ABC S.A."
             />
             <div className="invalid-feedback">El nombre de la empresa es requerido.</div>
+          </div>
+          <div>
+            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Sector</label>
+            <input
+              className="input"
+              required
+              value={sector}
+              onChange={e => setSector(e.target.value)}
+              placeholder="Ej: Manufactura, Salud, Financiero, Retail..."
+            />
+            <div className="invalid-feedback">El sector es requerido.</div>
+          </div>
+          <div>
+            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Tipo de organización</label>
+            <input
+              className="input"
+              required
+              value={tipoOrganizacion}
+              onChange={e => setTipoOrganizacion(e.target.value)}
+              placeholder="Ej: Empresa privada, Entidad pública, ONG, Cooperativa..."
+            />
+            <div className="invalid-feedback">El tipo de organización es requerido.</div>
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span></label>

@@ -16,6 +16,8 @@ export class ConsultarIaPorTokenUseCase {
         });
     }
 
+    // TODO(IA-por-pregunta): revisar al implementar — pasoId debe reemplazarse por preguntaId;
+    // el prompt, usarIa y iaAutomatica deben leerse de PreguntaActividad, no de PasoActividad.
     async execute(
         token: string,
         pasoId: string,

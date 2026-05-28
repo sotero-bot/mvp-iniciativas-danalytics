@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { S3Service } from './modules/storage/S3Service';
 
 // Controllers
 import { EmpresasController } from './modules/organization/interfaces/empresas.controller';
@@ -57,6 +58,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
   ],
   providers: [
     PrismaService,
+    S3Service,
     {
       provide: 'IInstanciaRepository',
       useFactory: (prisma: PrismaService) => new PrismaInstanciaRepository(prisma as any),

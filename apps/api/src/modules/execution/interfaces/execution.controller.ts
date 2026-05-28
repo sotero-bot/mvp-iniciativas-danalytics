@@ -20,6 +20,7 @@ import { IdentificarResult } from '../application/AsignarUsuarioPorTokenUseCase'
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
 import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { PrismaService } from '../../../prisma.service';
+import { S3Service } from '../../storage/S3Service';
 
 @Controller('execution')
 export class ExecutionController {
@@ -31,7 +32,8 @@ export class ExecutionController {
     private readonly identificarUseCase: AsignarUsuarioPorTokenUseCase,
     private readonly sesionPorEnlaceUseCase: IniciarSesionPorEnlaceUseCase,
     private readonly consultarIaUseCase: ConsultarIaPorTokenUseCase,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
   ) { }
 
   /** Resuelve un enlace permanente → crea una nueva InstanciaActividad y devuelve su token */
@@ -54,7 +56,10 @@ export class ExecutionController {
       const actividad = await this.prisma.actividad.findUnique({
         where: { id: instancia.actividadId },
         include: {
-          pasos: { orderBy: { orden: 'asc' } },
+          pasos: {
+            orderBy: { orden: 'asc' },
+            include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
+          },
           iniciativa: { include: { empresa: true } }
         }
       });
@@ -90,11 +95,27 @@ export class ExecutionController {
         fecha: i.fecha.toISOString(),
       })));
 
+      const respuestas = await this.prisma.respuesta.findMany({
+        where: { instanciaId: instancia.id },
+        select: { preguntaId: true, contenido: true, respuestaUsuario: true, respuestaIa: true, archivoNombre: true, contenidoArchivo: true, archivoKey: true, fecha: true },
+      }).then(rows => rows.map(r => ({
+        preguntaId: r.preguntaId,
+        contenido: r.contenido ?? undefined,
+        respuestaUsuario: r.respuestaUsuario ?? undefined,
+        respuestaIa: r.respuestaIa ?? undefined,
+        archivoNombre: r.archivoNombre ?? undefined,
+        contenidoArchivo: r.contenidoArchivo ?? undefined,
+        archivoKey: r.archivoKey ?? undefined,
+        fecha: r.fecha.toISOString(),
+      })));
+
       return new RunnerResponseDto({
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
         descripcionActividad: actividad.descripcion || undefined,
         nombreEmpresa: (actividad as any).iniciativa?.empresa?.nombre || undefined,
+        sectorEmpresa: (actividad as any).iniciativa?.empresa?.sector || undefined,
+        tipoOrganizacionEmpresa: (actividad as any).iniciativa?.empresa?.tipoOrganizacion || undefined,
         logoEmpresa: (actividad as any).iniciativa?.empresa?.logoUrl || undefined,
         usuarioId: instancia.usuarioId,
         pasos: actividad.pasos.map(p => ({
@@ -103,16 +124,30 @@ export class ExecutionController {
           objetivo: p.objetivo || undefined,
           instrucciones: p.instrucciones || undefined,
           usarIa: p.usarIa,
-          iaAutomatica: (p as any).iaAutomatica || false,
+          iaAutomatica: p.iaAutomatica || false,
           promptIa: p.promptIa || undefined,
-          permitirArchivo: (p as any).permitirArchivo || false,
-          soloArchivo: (p as any).soloArchivo || false,
-          urlPlantilla: (p as any).urlPlantilla || undefined,
+          permitirArchivo: p.permitirArchivo || false,
+          soloArchivo: p.soloArchivo || false,
+          urlPlantilla: p.urlPlantilla || undefined,
+          ejemploKey: (p as any).ejemploKey || undefined,
+          preguntas: (p as any).preguntas?.map((q: any) => ({
+            id: q.id,
+            orden: q.orden,
+            enunciado: q.enunciado,
+            permitirArchivo: q.permitirArchivo,
+            soloArchivo: q.soloArchivo,
+            usarIa: q.usarIa,
+            iaAutomatica: q.iaAutomatica,
+            promptIa: q.promptIa || undefined,
+            urlPlantilla: q.urlPlantilla || undefined,
+            urlPromptTemplate: q.urlPromptTemplate || undefined,
+          })) ?? [],
         })),
         fechaInicio: instancia.fechaInicio?.toISOString(),
         fechaFin: instancia.fechaFin?.toISOString(),
         usuario: usuarioData,
         interacciones,
+        respuestas,
         plantillaAnterior: plantillaAnteriorData ?? undefined,
       });
     } catch (error) {
@@ -147,28 +182,41 @@ export class ExecutionController {
         });
 
     const HEADERS = [
-      'Dolor identificado', 'Tipo de IA', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?',
-      'Valor potencial', 'Disponibilidad de datos', 'Esfuerzo técnico / complejidad',
-      'Alineación estratégica', 'Escalabilidad / replicabilidad', 'Patrocinio / apoyo interno', 'TOTAL',
+      'Área',
+      'Dolor identificado',
+      'Proceso relacionado',
+      'Tipo de problema',
+      'Oportunidad de mejora',
+      'Tipo de solución sugerida',
+      '¿Requiere IA?',
+      '¿IA generativa aplica?',
+      'Justificación de la solución sugerida',
+      'Alternativa más simple a evaluar',
+      'Qué debe estar ordenado antes de implementar',
+      'Qué aportaría la IA si esas condiciones existen',
+      'Datos, documentos o insumos necesarios',
+      'Orientación sobre esfuerzo técnico',
+      'Hipótesis de impacto esperado',
     ];
 
-    // Mapeo: columna del Excel → columna del AI response
+    // Mapeo 1:1 — el prompt genera las columnas con los mismos nombres que los headers
     const COLUMN_MAP: Record<string, string> = {
-      'Dolor identificado':           'Dolor identificado',
-      'Tipo de IA':                   'Tipo de IA',
-      'Idea de Proyecto':             'Oportunidad de IA',
-      '¿Qué permite o resuelve?':     'Por qué ese tipo',
-      '¿Qué valor tendría?':          'Impacto potencial',
+      'Área':                                            'Área',
+      'Dolor identificado':                              'Dolor identificado',
+      'Proceso relacionado':                             'Proceso relacionado',
+      'Tipo de problema':                                'Tipo de problema',
+      'Oportunidad de mejora':                           'Oportunidad de mejora',
+      'Tipo de solución sugerida':                       'Tipo de solución sugerida',
+      '¿Requiere IA?':                                   '¿Requiere IA?',
+      '¿IA generativa aplica?':                          '¿IA generativa aplica?',
+      'Justificación de la solución sugerida':           'Justificación de la solución sugerida',
+      'Alternativa más simple a evaluar':                'Alternativa más simple a evaluar',
+      'Qué debe estar ordenado antes de implementar':    'Qué debe estar ordenado antes de implementar',
+      'Qué aportaría la IA si esas condiciones existen': 'Qué aportaría la IA si esas condiciones existen',
+      'Datos, documentos o insumos necesarios':          'Datos, documentos o insumos necesarios',
+      'Orientación sobre esfuerzo técnico':              'Orientación sobre esfuerzo técnico',
+      'Hipótesis de impacto esperado':                   'Hipótesis de impacto esperado',
     };
-
-    const DESCRIPTIONS: (string | number)[] = [
-      'Problema o necesidad que motivó esta idea',
-      'Ej: IA Tradicional / IA Generativa',
-      'Nombre o descripción breve de la iniciativa',
-      'Problema o necesidad que aborda',
-      'Beneficio esperado para la empresa',
-      '1-3', '1-3', '1-3', '1-3', '1-3', '1-3', '',
-    ];
 
     // Prioridad 1: parámetro enviado en el body (sesión actual, IA recién ejecutada)
     // Prioridad 2: interacción ya guardada en BD (sesión anterior)
@@ -184,93 +232,36 @@ export class ExecutionController {
       return;
     }
 
-    const wsData: (string | number)[][] = [HEADERS, DESCRIPTIONS];
-
-    const filas = parseTableFromContent(contenidoIa);
-    for (const fila of filas) {
-      if (Object.values(fila).every(v => !v)) continue;
-      wsData.push(HEADERS.map(h => COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : ''));
-    }
-
-    if (wsData.length === 2) {
-      wsData.push(Array(HEADERS.length).fill(''));
-    }
-
+    // Cargar plantilla base — conserva hoja 2 "Criterios", estilos, columnas 16-27, etc.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ExcelJS = require('exceljs');
     const wb = new ExcelJS.Workbook();
+    const templatePath = path.resolve(process.cwd(), 'apps/web/public/templates/plantilla-priorizacion-mapa-oportunidades.xlsx');
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Plantilla base no encontrada en ${templatePath}`);
+    }
+    await wb.xlsx.readFile(templatePath);
 
-    // --- Hoja Priorización ---
-    const ws = wb.addWorksheet('Priorización');
-    ws.columns = [28, 20, 30, 30, 30, 12, 18, 18, 16, 16, 14, 8].map(w => ({ width: w }));
+    const ws = wb.worksheets[0]; // Primera hoja: "Priorización"
+    if (!ws) {
+      throw new Error('La plantilla base no tiene hojas');
+    }
 
-    const TEXT_COLS = new Set(['Dolor identificado', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?']);
+    // Filas 1 y 2 son cabeceras/descripciones de la plantilla → empezamos a escribir en fila 3.
+    // Solo escribimos columnas 1..15 (las que llena la IA); 16..27 quedan intactas para el equipo.
+    const filas = parseTableFromContent(contenidoIa);
+    const filasNoVacias = filas.filter(fila => !Object.values(fila).every(v => !v));
 
-    wsData.forEach((rowValues, rowIndex) => {
-      const row = ws.addRow(rowValues);
-      if (rowIndex === 0) {
-        row.height = 22;
-        for (let c = 1; c <= HEADERS.length; c++) {
-          const cell = row.getCell(c);
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { vertical: 'middle', wrapText: true };
-        }
-      } else if (rowIndex === 1) {
-        row.height = 18;
-        for (let c = 1; c <= HEADERS.length; c++) {
-          const cell = row.getCell(c);
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
-          cell.font = { italic: true, color: { argb: 'FF444444' } };
-          cell.alignment = { vertical: 'middle', wrapText: true };
-        }
-      } else {
-        row.height = 60;
-        for (let c = 1; c <= HEADERS.length; c++) {
-          const cell = row.getCell(c);
-          if (TEXT_COLS.has(HEADERS[c - 1])) {
-            cell.alignment = { vertical: 'top', wrapText: true };
-          } else {
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          }
-        }
-      }
-    });
-
-    // --- Hoja Criterios ---
-    const wsCriterios = wb.addWorksheet('Criterios');
-    wsCriterios.columns = [28, 10, 45].map(w => ({ width: w }));
-
-    const criteriosData: (string | number)[][] = [
-      ['Criterio', 'Puntaje', 'Descripción'],
-      ['Valor potencial', 1, 'Impacto marginal'],
-      ['Valor potencial', 2, 'Mejoras moderadas'],
-      ['Valor potencial', 3, 'Beneficios claros, medibles y estratégicos'],
-      ['Disponibilidad de datos', 1, 'No hay datos o son de mala calidad'],
-      ['Disponibilidad de datos', 2, 'Algunos disponibles pero incompletos'],
-      ['Disponibilidad de datos', 3, 'Datos existentes, accesibles y confiables'],
-      ['Esfuerzo técnico / complejidad', 1, 'Gran esfuerzo o desarrollo especializado'],
-      ['Esfuerzo técnico / complejidad', 2, 'Trabajo medio, con apoyo técnico'],
-      ['Esfuerzo técnico / complejidad', 3, 'Fácil o rápido con recursos actuales'],
-      ['Alineación estratégica', 1, 'Aporte indirecto o limitado'],
-      ['Alineación estratégica', 2, 'Alineada parcialmente'],
-      ['Alineación estratégica', 3, 'Altamente alineada con objetivos clave'],
-      ['Escalabilidad / replicabilidad', 1, 'Aplicación muy puntual'],
-      ['Escalabilidad / replicabilidad', 2, 'Replicable con ajustes menores'],
-      ['Escalabilidad / replicabilidad', 3, 'Altamente escalable'],
-      ['Patrocinio / apoyo interno', 1, 'Bajo o incierto'],
-      ['Patrocinio / apoyo interno', 2, 'Interés parcial o condicional'],
-      ['Patrocinio / apoyo interno', 3, 'Alto respaldo de liderazgo'],
-    ];
-    criteriosData.forEach((rowValues, rowIndex) => {
-      const row = wsCriterios.addRow(rowValues);
-      if (rowIndex === 0) {
-        for (let c = 1; c <= 3; c++) {
-          const cell = row.getCell(c);
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        }
-      }
+    filasNoVacias.forEach((fila, i) => {
+      const row = ws.getRow(3 + i);
+      HEADERS.forEach((h, c) => {
+        const valor = COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : '';
+        const cell = row.getCell(c + 1);
+        cell.value = valor;
+        cell.alignment = { vertical: 'top', wrapText: true };
+      });
+      row.height = 60;
+      row.commit();
     });
 
     const buffer: Buffer = await wb.xlsx.writeBuffer();
@@ -311,13 +302,14 @@ export class ExecutionController {
   )
   async responder(
     @Param('token') token: string,
-    @Body() body: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string },
+    @Body() body: { pasoId: string; preguntaId?: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string },
     @UploadedFile() file?: Express.Multer.File
   ): Promise<void> {
     try {
       let contenido = body.contenido;
       let archivoNombre: string | undefined;
       let contenidoArchivo: string | undefined;
+      let archivoKey: string | undefined;
 
       if (file) {
         archivoNombre = file.originalname;
@@ -329,12 +321,50 @@ export class ExecutionController {
             : await extractTextFromFile(file.path, file.mimetype, file.originalname);
           contenidoArchivo = textoArchivo;
           contenido = contenido?.trim() ? `${contenido}\n\n---\n\n${textoArchivo}` : textoArchivo;
+
+          // Solo subir a S3 si la pregunta lo tiene marcado (típicamente la pregunta final/entregable).
+          // Para preguntas intermedias, contenidoArchivo en BD ya es suficiente.
+          let subirAS3 = false;
+          let actividadCtx: any = null;
+          if (body.preguntaId) {
+            const pregunta = await this.prisma.preguntaActividad.findUnique({
+              where: { id: body.preguntaId },
+              select: {
+                subirArchivoS3: true,
+                paso: {
+                  select: {
+                    actividad: {
+                      select: {
+                        nombre: true,
+                        plantillaOrigen: { select: { nombre: true } },
+                        iniciativa: { select: { empresa: { select: { nombre: true } } } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            subirAS3 = !!pregunta?.subirArchivoS3;
+            actividadCtx = pregunta?.paso?.actividad;
+          }
+
+          if (this.s3.isConfigured && subirAS3 && actividadCtx) {
+            // Path S3: <empresa>/<plantilla|actividad>/respuesta/<archivo>
+            const empresa = S3Service.slugifyPathSegment(actividadCtx?.iniciativa?.empresa?.nombre || '') || 'empresa';
+            const plantillaOActividad = S3Service.slugifyPathSegment(
+              actividadCtx?.plantillaOrigen?.nombre || actividadCtx?.nombre || ''
+            ) || 'actividad';
+            const prefix = `${empresa}/${plantillaOActividad}/respuesta`;
+            const key = this.s3.generateKey(prefix, file.originalname);
+            await this.s3.uploadFile(key, file.path, file.mimetype);
+            archivoKey = key;
+          }
         } finally {
           fs.unlink(file.path, () => {});
         }
       }
 
-      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre, contenidoArchivo);
+      await this.registrarUseCase.execute(token, body.pasoId, contenido, body.respuestaUsuario, body.respuestaIa, archivoNombre, contenidoArchivo, body.preguntaId, archivoKey);
     } catch (error) {
       this.handleError(error);
     }
@@ -354,6 +384,7 @@ export class ExecutionController {
       limits: { fileSize: 10 * 1024 * 1024 } // 10 MB
     })
   )
+  // TODO(IA-por-pregunta): revisar al implementar — añadir preguntaId al body y pasarlo a ConsultarIaPorTokenUseCase.
   async consultarIa(
     @Param('token') token: string,
     @Body() body: { pasoId: string; respuesta: string; customPrompt?: string },
@@ -509,6 +540,50 @@ export class ExecutionController {
       return u?.email;
     }
     return undefined;
+  }
+
+  /** Presigned PUT URL para que el admin suba archivo de ejemplo de un paso directamente a S3 */
+  @Post(':token/presign-ejemplo')
+  @HttpCode(HttpStatus.OK)
+  async presignEjemplo(
+    @Body() body: { filename: string; contentType: string }
+  ): Promise<{ uploadUrl: string; key: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const key = this.s3.generateKey('ejemplos', body.filename);
+    const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
+    return { uploadUrl, key };
+  }
+
+  /** Presigned GET URL para descargar el archivo de ejemplo de un paso */
+  @Get(':token/pasos/:pasoId/ejemplo-url')
+  async pasoEjemploUrl(
+    @Param('token') token: string,
+    @Param('pasoId') pasoId: string,
+  ): Promise<{ url: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
+    if (!paso?.ejemploKey) throw new NotFoundException('Archivo de ejemplo no encontrado');
+    const url = await this.s3.getPresignedGetUrl(paso.ejemploKey);
+    return { url };
+  }
+
+  /** Presigned GET URL para descargar el archivo de respuesta de una pregunta */
+  @Get(':token/respuestas/:preguntaId/archivo-url')
+  async archivoUrl(
+    @Param('token') token: string,
+    @Param('preguntaId') preguntaId: string
+  ): Promise<{ url: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    const respuesta = await this.prisma.respuesta.findUnique({
+      where: { instanciaId_preguntaId: { instanciaId: instancia.id, preguntaId } },
+    });
+    if (!respuesta?.archivoKey) throw new NotFoundException('Archivo no encontrado');
+    const url = await this.s3.getPresignedGetUrl(respuesta.archivoKey);
+    return { url };
   }
 
   private handleError(error: unknown): void {

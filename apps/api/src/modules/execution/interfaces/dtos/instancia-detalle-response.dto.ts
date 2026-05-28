@@ -26,6 +26,17 @@ export class InstanciaDetalleResponseDto {
     fechaRespuesta: Date | null;
     archivoNombre?: string | null;
     contenidoArchivo?: string | null;
+    preguntas: Array<{
+      preguntaId: string;
+      orden: number;
+      enunciado: string;
+      respuesta?: string | null;
+      respuestaUsuario?: string | null;
+      respuestaIa?: string | null;
+      archivoNombre?: string | null;
+      contenidoArchivo?: string | null;
+      fechaRespuesta?: Date | null;
+    }>;
   }>;
 
   constructor(partial: Partial<InstanciaDetalleResponseDto>) {

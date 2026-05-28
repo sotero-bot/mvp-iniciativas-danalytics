@@ -425,17 +425,53 @@ export function InstanciasPage() {
                       {ins.usuario?.area || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>—</span>}
                     </td>
                     <td>
-                      {ins.interacciones?.filter((i: any) => i.archivoNombre).length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ins.interacciones.filter((i: any) => i.archivoNombre).map((inter: any) => {
-                            const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-                            const label = [
-                              slug(ins.actividad?.iniciativa?.empresa?.nombre || ''),
-                              slug(ins.actividad?.nombre || ''),
-                              slug(ins.usuario?.area || ''),
-                              slug(inter.paso?.titulo || ''),
-                            ].filter(Boolean).join('_') + '.xlsx';
-                            return (
+                      {(() => {
+                        const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                        const respArchivos = (ins.respuestas ?? []).filter((r: any) => r.archivoNombre);
+                        const interArchivos = (ins.interacciones ?? []).filter((i: any) => i.archivoNombre);
+                        if (respArchivos.length === 0 && interArchivos.length === 0) {
+                          return <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>;
+                        }
+                        const labelFor = (titulo: string) => [
+                          slug(ins.actividad?.iniciativa?.empresa?.nombre || ''),
+                          slug(ins.actividad?.nombre || ''),
+                          slug(ins.usuario?.area || ''),
+                          slug(titulo || ''),
+                        ].filter(Boolean).join('_') + '.xlsx';
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {respArchivos.map((r: any) => (
+                              <button
+                                key={r.preguntaId}
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`${API_URL}/admin/instancias/${ins.id}/respuestas/${r.preguntaId}/archivo-url`);
+                                    if (!res.ok) { alert('No se pudo obtener el enlace de descarga'); return; }
+                                    const json = await res.json();
+                                    if (!json.url) return;
+                                    const a = document.createElement('a');
+                                    a.href = json.url;
+                                    a.download = json.archivoNombre ?? '';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                  } catch { alert('Error de conexión al descargar'); }
+                                }}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  padding: '3px 8px', fontSize: '0.72rem',
+                                  background: '#F0FDF4', color: '#166534',
+                                  borderRadius: 5, fontWeight: 600,
+                                  border: '1px solid #86EFAC', whiteSpace: 'nowrap',
+                                  cursor: 'pointer',
+                                }}
+                                title={r.archivoNombre}
+                              >
+                                ⬇ {labelFor(r.pregunta?.paso?.titulo)}
+                              </button>
+                            ))}
+                            {interArchivos.map((inter: any) => (
                               <a
                                 key={inter.pasoId}
                                 href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
@@ -446,15 +482,14 @@ export function InstanciasPage() {
                                   borderRadius: 5, fontWeight: 600, textDecoration: 'none',
                                   border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
                                 }}
+                                title="Reconstruido desde el contenido guardado (legacy)"
                               >
-                                ⬇ {label}
+                                ⬇ {labelFor(inter.paso?.titulo)}
                               </a>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>
-                      )}
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
                       {new Date(ins.updatedAt).toLocaleString()}

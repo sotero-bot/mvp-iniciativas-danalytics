@@ -2,10 +2,24 @@ import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
 
+interface PreguntaInput {
+  orden?: number;
+  enunciado: string;
+  permitirArchivo?: boolean;
+  soloArchivo?: boolean;
+  usarIa?: boolean;
+  iaAutomatica?: boolean;
+  promptIa?: string;
+  urlPlantilla?: string;
+  urlPromptTemplate?: string;
+}
+
 interface PasoInput {
   titulo: string;
   objetivo?: string;
   instrucciones?: string;
+  preguntas?: PreguntaInput[];
+  // legacy fields (ignored — now live on Pregunta)
   usarIa?: boolean;
   promptIa?: string;
   permitirArchivo?: boolean;
@@ -101,23 +115,43 @@ export class AdminImportController {
           if (actInput.pasos && actInput.pasos.length > 0) {
             console.log(`[import] Creando ${actInput.pasos.length} pasos para actividad "${actividad.nombre}"`);
             try {
-              await tx.pasoActividad.createMany({
-                data: actInput.pasos.map((p, idx) => ({
-                  id: randomUUID(),
-                  actividadId: actividad.id,
-                  titulo: p.titulo.trim(),
-                  objetivo: p.objetivo?.trim() ?? null,
-                  instrucciones: p.instrucciones?.trim() ?? null,
-                  usarIa: p.usarIa ?? false,
-                  promptIa: p.promptIa?.trim() ?? null,
-                  permitirArchivo: p.permitirArchivo ?? false,
-                  soloArchivo: p.soloArchivo ?? false,
-                  urlPlantilla: p.urlPlantilla?.trim() ?? null,
-                  orden: idx + 1,
-                })),
-              });
+              const pasosData = actInput.pasos.map((p, idx) => ({
+                id: randomUUID(),
+                actividadId: actividad.id,
+                titulo: p.titulo.trim(),
+                objetivo: p.objetivo?.trim() ?? null,
+                instrucciones: p.instrucciones?.trim() ?? null,
+                orden: idx + 1,
+              }));
+              await tx.pasoActividad.createMany({ data: pasosData });
+
+              const preguntasData: any[] = [];
+              for (let i = 0; i < actInput.pasos.length; i++) {
+                const p = actInput.pasos[i];
+                const pasoId = pasosData[i].id;
+                const preguntas = p.preguntas ?? [];
+                preguntas.forEach((q, qIdx) => {
+                  preguntasData.push({
+                    id: randomUUID(),
+                    pasoId,
+                    orden: q.orden ?? qIdx + 1,
+                    enunciado: q.enunciado.trim(),
+                    permitirArchivo: q.permitirArchivo ?? false,
+                    soloArchivo: q.soloArchivo ?? false,
+                    usarIa: q.usarIa ?? false,
+                    iaAutomatica: q.iaAutomatica ?? false,
+                    promptIa: q.promptIa?.trim() ?? null,
+                    urlPlantilla: q.urlPlantilla?.trim() ?? null,
+                    urlPromptTemplate: q.urlPromptTemplate?.trim() ?? null,
+                  });
+                });
+              }
+              if (preguntasData.length > 0) {
+                await tx.preguntaActividad.createMany({ data: preguntasData });
+              }
+
               pasosCreados = actInput.pasos.length;
-              console.log(`[import] ✓ ${pasosCreados} pasos creados`);
+              console.log(`[import] ✓ ${pasosCreados} pasos, ${preguntasData.length} preguntas creadas`);
             } catch (e) {
               console.error(`[import] ERROR al crear pasos:`, e);
               throw e;

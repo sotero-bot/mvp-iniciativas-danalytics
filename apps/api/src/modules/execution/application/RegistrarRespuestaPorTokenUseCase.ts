@@ -17,6 +17,8 @@ export class RegistrarRespuestaPorTokenUseCase {
     respuestaIa?: string,
     archivoNombre?: string,
     contenidoArchivo?: string,
+    preguntaId?: string,
+    archivoKey?: string,
   ): Promise<void> {
     const instancia = await this.repository.findByAccessToken(token);
     if (!instancia) {
@@ -25,19 +27,38 @@ export class RegistrarRespuestaPorTokenUseCase {
 
     instancia.registrarRespuesta(pasoId, contenido);
 
-    await this.prisma.interaccion.upsert({
-      where: { instanciaId_pasoId: { instanciaId: instancia.id, pasoId } },
-      update: { contenido, respuestaUsuario, respuestaIa, archivoNombre, contenidoArchivo, updatedAt: new Date() },
-      create: {
-        id: randomUUID(),
-        instanciaId: instancia.id,
-        pasoId,
-        contenido,
-        respuestaUsuario,
-        respuestaIa,
-        archivoNombre,
-        contenidoArchivo,
-      },
-    });
+    if (preguntaId) {
+      await this.prisma.respuesta.upsert({
+        where: { instanciaId_preguntaId: { instanciaId: instancia.id, preguntaId } },
+        update: { contenido, respuestaUsuario, respuestaIa, archivoNombre, contenidoArchivo, archivoKey, updatedAt: new Date() },
+        create: {
+          id: randomUUID(),
+          instanciaId: instancia.id,
+          preguntaId,
+          contenido,
+          respuestaUsuario,
+          respuestaIa,
+          archivoNombre,
+          contenidoArchivo,
+          archivoKey,
+        },
+      });
+    } else {
+      // Legacy: paso sin preguntas (compat con instancias anteriores al REQ-07)
+      await this.prisma.interaccion.upsert({
+        where: { instanciaId_pasoId: { instanciaId: instancia.id, pasoId } },
+        update: { contenido, respuestaUsuario, respuestaIa, archivoNombre, contenidoArchivo, updatedAt: new Date() },
+        create: {
+          id: randomUUID(),
+          instanciaId: instancia.id,
+          pasoId,
+          contenido,
+          respuestaUsuario,
+          respuestaIa,
+          archivoNombre,
+          contenidoArchivo,
+        },
+      });
+    }
   }
 }

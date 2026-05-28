@@ -5,6 +5,18 @@ import remarkGfm from 'remark-gfm';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+interface PreguntaResult {
+  preguntaId: string;
+  orden: number;
+  enunciado: string;
+  respuesta?: string | null;
+  respuestaUsuario?: string | null;
+  respuestaIa?: string | null;
+  archivoNombre?: string | null;
+  contenidoArchivo?: string | null;
+  fechaRespuesta?: string | null;
+}
+
 interface StepResult {
   pasoId: string;
   orden: number;
@@ -16,6 +28,7 @@ interface StepResult {
   fechaRespuesta: string | null;
   archivoNombre?: string | null;
   contenidoArchivo?: string | null;
+  preguntas?: PreguntaResult[];
 }
 
 interface InstanceDetail {
@@ -201,60 +214,73 @@ export function InstanciaDetallePage() {
                 </div>
               )}
 
-              {p.archivoNombre && (
-                <div style={{
-                  marginTop: '1rem', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 14px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8,
-                }}>
-                  <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
-                  <a
-                    href={`${API_URL}/admin/instancias/${data.id}/excel/${p.pasoId}`}
-                    download={p.archivoNombre}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '4px 12px', fontSize: '0.78rem',
-                      background: '#2563EB', color: 'white',
-                      borderRadius: 6, fontWeight: 600, textDecoration: 'none',
-                    }}
-                  >
-                    ⬇ Descargar
-                  </a>
+              {/* Per-pregunta answers (new model) */}
+              {(p.preguntas ?? []).length > 0 ? (
+                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {(p.preguntas ?? []).map((q, qIdx) => (
+                    <div key={q.preguntaId} style={{ paddingBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1.25rem' : 0, borderBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                      {(p.preguntas?.length ?? 0) > 1 && (
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Pregunta {qIdx + 1}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: 10 }}>{q.enunciado}</div>
+                      {q.archivoNombre && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {q.archivoNombre}</span>
+                        </div>
+                      )}
+                      {q.respuesta ? (
+                        <div style={{ padding: '1rem 1.25rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '0.95rem', color: '#1e293b', overflowX: 'auto' }}>
+                          <div className="markdown-anterior">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.respuesta}</ReactMarkdown>
+                          </div>
+                          {q.fechaRespuesta && (
+                            <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem', color: '#94a3b8', textAlign: 'right' }}>
+                              Respondido el: {new Date(q.fechaRespuesta).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '1.25rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.875rem' }}>
+                          Sin responder todavía
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              <div style={{ marginTop: '1rem' }}>
-                <strong style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                  {p.contenidoArchivo ? 'CONTENIDO DEL ARCHIVO SUBIDO:' : 'RESPUESTA DEL USUARIO:'}
-                </strong>
-                {p.respuesta ? (
-                  <div style={{
-                    padding: '1.5rem',
-                    backgroundColor: 'white',
-                    border: '1px solid var(--color-bg-page)',
-                    borderRadius: '8px',
-                    lineHeight: '1.6',
-                    fontSize: '1.05rem',
-                    color: '#1e293b',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
-                    overflowX: 'auto',
-                  }}>
-                    {p.contenidoArchivo ? (
-                      <div className="markdown-anterior">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.respuesta}</ReactMarkdown>
+              ) : (
+                /* Legacy: pasos sin preguntas */
+                <>
+                  {p.archivoNombre && (
+                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8 }}>
+                      <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
+                      <a href={`${API_URL}/admin/instancias/${data.id}/excel/${p.pasoId}`} download={p.archivoNombre}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', fontSize: '0.78rem', background: '#2563EB', color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none' }}>
+                        ⬇ Descargar
+                      </a>
+                    </div>
+                  )}
+                  <div style={{ marginTop: '1rem' }}>
+                    {p.respuesta ? (
+                      <div style={{ padding: '1.5rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '1.05rem', color: '#1e293b', overflowX: 'auto' }}>
+                        <div className="markdown-anterior">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.respuesta}</ReactMarkdown>
+                        </div>
+                        {p.fechaRespuesta && (
+                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'right' }}>
+                            Respondido el: {new Date(p.fechaRespuesta).toLocaleString()}
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <span style={{ whiteSpace: 'pre-wrap' }}>{p.respuesta}</span>
+                      <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#94a3b8', fontStyle: 'italic' }}>
+                        Sin responder todavía
+                      </div>
                     )}
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'right' }}>
-                      Respondido el: {new Date(p.fechaRespuesta!).toLocaleString()}
-                    </div>
                   </div>
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#94a3b8', fontStyle: 'italic' }}>
-                    Sin responder todavía
-                  </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
         ))}

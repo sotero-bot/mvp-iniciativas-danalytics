@@ -15,6 +15,9 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🗑  Iniciando limpieza de datos (Admin conservado)...\n');
 
+  const respuestas       = await prisma.respuesta.deleteMany();
+  console.log(`  Respuestas eliminadas      : ${respuestas.count}`);
+
   const interacciones    = await prisma.interaccion.deleteMany();
   console.log(`  Interacciones eliminadas   : ${interacciones.count}`);
 
@@ -24,11 +27,17 @@ async function main() {
   const enlaces          = await prisma.enlaceActividad.deleteMany();
   console.log(`  EnlaceActividad eliminados : ${enlaces.count}`);
 
+  const preguntaActividad = await prisma.preguntaActividad.deleteMany();
+  console.log(`  PreguntaActividad eliminadas: ${preguntaActividad.count}`);
+
   const pasoActividad    = await prisma.pasoActividad.deleteMany();
   console.log(`  PasoActividad eliminados   : ${pasoActividad.count}`);
 
   const actividades      = await prisma.actividad.deleteMany();
   console.log(`  Actividades eliminadas     : ${actividades.count}`);
+
+  const preguntaPlantilla = await prisma.preguntaPlantilla.deleteMany();
+  console.log(`  PreguntaPlantilla eliminadas: ${preguntaPlantilla.count}`);
 
   const pasoPlantilla    = await prisma.pasoPlantilla.deleteMany();
   console.log(`  PasoPlantilla eliminados   : ${pasoPlantilla.count}`);

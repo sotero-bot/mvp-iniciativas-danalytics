@@ -32,6 +32,15 @@ POSTGRES_URL_NON_POOLING="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${P
 # App Config
 PORT=3000
 NODE_ENV=development
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# AWS S3 — Storage de archivos (opcional en local; requerido en prod)
+AWS_REGION=us-west-2
+AWS_S3_BUCKET=nombre-del-bucket
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
 ```
 
 ### 2. Instalación de Dependencias
@@ -53,7 +62,14 @@ npm run seed:admin
 *(Crea el usuario `admin` con contraseña `dax1973*`)*
 
 
-### 5. Ejecutar la Aplicación
+### 5. Borrar y Recargar Datos de Prueba
+Para limpiar toda la data (instancias, respuestas, usuarios, empresas, etc.) y volver al estado inicial con los seeds:
+```bash
+npm run reset-data
+```
+> ⚠️ Borra **todo** excepto el usuario admin. Útil para demo o desarrollo.
+
+### 6. Ejecutar la Aplicación
 Inicia tanto la API como el Frontend concurrentemente:
 ```bash
 npm run start:dev

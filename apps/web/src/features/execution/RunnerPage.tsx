@@ -9,6 +9,19 @@ import { buildResumenHtml } from './buildResumenHtml';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+interface Pregunta {
+  id: string;
+  orden: number;
+  enunciado: string;
+  permitirArchivo: boolean;
+  soloArchivo: boolean;
+  usarIa: boolean;
+  iaAutomatica: boolean;
+  promptIa?: string;
+  urlPlantilla?: string;
+  urlPromptTemplate?: string;
+}
+
 interface Paso {
   id: string;
   titulo: string;
@@ -20,6 +33,8 @@ interface Paso {
   permitirArchivo?: boolean;
   soloArchivo?: boolean;
   urlPlantilla?: string;
+  ejemploKey?: string;
+  preguntas: Pregunta[];
 }
 
 interface RespuestaAnterior {
@@ -31,11 +46,21 @@ interface RespuestaAnterior {
   contenidoArchivo?: string;
 }
 
+interface RespuestaPorPregunta {
+  contenido?: string;
+  respuestaUsuario?: string;
+  respuestaIa?: string;
+  archivoNombre?: string;
+  contenidoArchivo?: string;
+}
+
 interface RunnerData {
   estado: string;
   nombreActividad: string;
   descripcionActividad?: string;
   nombreEmpresa?: string;
+  sectorEmpresa?: string;
+  tipoOrganizacionEmpresa?: string;
   logoEmpresa?: string;
   usuarioId?: string;
   fechaInicio?: string;
@@ -43,6 +68,7 @@ interface RunnerData {
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
   pasos: Paso[];
   interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string }[];
+  respuestas: { preguntaId: string; contenido?: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string; archivoKey?: string }[];
   plantillaAnterior?: { nombre: string; respuestas: RespuestaAnterior[] };
 }
 
@@ -205,19 +231,41 @@ function stripHtmlToText(html: string): string {
     .trim();
 }
 
+// TODO(IA-por-pregunta): revisar al implementar — la interpolación debe soportar referencias
+// por pregunta (p.ej. {{paso_2.pregunta_1}}) además del agregado actual por paso.
+interface PromptCtx {
+  empresa?: { nombre?: string; sector?: string; tipoOrganizacion?: string };
+  usuario?: { area?: string; cargo?: string };
+}
+
 function interpolarPrompt(
   prompt: string,
   pasos: Paso[],
-  interacciones: RunnerData['interacciones']
+  respuestas: RunnerData['respuestas'],
+  ctx?: PromptCtx
 ): string {
-  if (!prompt.includes('{{paso_')) return prompt;
-  return prompt.replace(/\{\{paso_(\d+)\}\}/g, (_match, nStr) => {
+  let result = prompt;
+
+  result = result
+    .replace(/\{\{empresa\.nombre\}\}/g, ctx?.empresa?.nombre || '[nombre de organización no disponible]')
+    .replace(/\{\{empresa\.sector\}\}/g, ctx?.empresa?.sector || '[sector no disponible]')
+    .replace(/\{\{empresa\.tipoOrganizacion\}\}/g, ctx?.empresa?.tipoOrganizacion || '[tipo de organización no disponible]')
+    .replace(/\{\{idenForm\.area\}\}/g, ctx?.usuario?.area || '[área no disponible]')
+    .replace(/\{\{idenForm\.cargo\}\}/g, ctx?.usuario?.cargo || '[cargo no disponible]');
+
+  if (!result.includes('{{paso_')) return result;
+
+  return result.replace(/\{\{paso_(\d+)\}\}/g, (_match, nStr) => {
     const n = parseInt(nStr, 10);
     const paso = pasos[n - 1];
     if (!paso) return `[paso ${n} no encontrado]`;
-    const interaccion = interacciones.find(i => i.pasoId === paso.id);
-    if (!interaccion) return '[sin respuesta]';
-    return stripHtmlToText(interaccion.contenido);
+    const textos: string[] = [];
+    for (const pregunta of (paso.preguntas ?? [])) {
+      const r = respuestas.find(r => r.preguntaId === pregunta.id);
+      const texto = r?.contenido || r?.respuestaUsuario || r?.contenidoArchivo || '';
+      if (texto.trim()) textos.push(stripHtmlToText(texto));
+    }
+    return textos.length > 0 ? textos.join('\n\n') : '[sin respuesta]';
   });
 }
 
@@ -225,73 +273,113 @@ export function RunnerPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<RunnerData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [respuesta, setRespuesta] = useState('');
-  const [respuestaIa, setRespuestaIa] = useState('');
-  const [customPrompt, setCustomPrompt] = useState('');
-  const [enviandoIa, setEnviandoIa] = useState(false);
-  const [archivoIa, setArchivoIa] = useState<File | null>(null);
-  const [archivoRespuesta, setArchivoRespuesta] = useState<File | null>(null);
+
+  // Per-pregunta state maps (keyed by preguntaId)
+  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+  const [respuestasIa, setRespuestasIa] = useState<Record<string, string>>({});
+  const [archivosRespuesta, setArchivosRespuesta] = useState<Record<string, File | null>>({});
+  const [archivosIa, setArchivosIa] = useState<Record<string, File | null>>({});
+  const [customPrompts, setCustomPrompts] = useState<Record<string, string>>({});
+  const [enviandoIa, setEnviandoIa] = useState<Record<string, boolean>>({});
+
   const [idenForm, setIdenForm] = useState({ nombre: '', email: '', cargo: '', area: '' });
   const [wasValidated, setWasValidated] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
-  const [showPromptEdit, setShowPromptEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
   const [bloqueadoPor, setBloqueadoPor] = useState<string | null>(null);
   const [plantillaAnteriorExpanded, setPlantillaAnteriorExpanded] = useState(false);
-  const editorRef = useRef<WysiwygEditorHandle>(null);
-  const iaEditorRef = useRef<WysiwygEditorHandle>(null);
+
+  // Refs por preguntaId
+  const editorRefs = useRef<Record<string, WysiwygEditorHandle | null>>({});
+  const iaEditorRefs = useRef<Record<string, WysiwygEditorHandle | null>>({});
   const autoIaRunRef = useRef<Set<string>>(new Set());
+  const rawTemplatesRef = useRef<Record<string, string>>({});
+
+  async function prefetchTemplates(pasos: Paso[]): Promise<void> {
+    const fetches: Promise<void>[] = [];
+    for (const paso of pasos) {
+      for (const q of (paso.preguntas ?? [])) {
+        if (q.urlPromptTemplate && !rawTemplatesRef.current[q.id]) {
+          fetches.push(
+            fetch(q.urlPromptTemplate)
+              .then(r => r.text())
+              .then(text => { rawTemplatesRef.current[q.id] = text; })
+              .catch(() => {})
+          );
+        }
+      }
+    }
+    await Promise.all(fetches);
+  }
+
+  function getBasePrompt(q: Pregunta): string | null {
+    if (q.urlPromptTemplate && rawTemplatesRef.current[q.id]) {
+      return rawTemplatesRef.current[q.id];
+    }
+    return q.promptIa ?? null;
+  }
 
   const loadData = async () => {
     try {
       const res = await fetch(`${API_URL}/execution/${token}`);
       if (!res.ok) throw new Error('No se pudo cargar la actividad');
       const json = await res.json();
+      await prefetchTemplates(json.pasos);
       setData(json);
 
-      let stepIndexToLoad = 0;
+      // Populate per-pregunta state from saved respuestas
+      const rMap: Record<string, string> = {};
+      const rIaMap: Record<string, string> = {};
+      const promptsMap: Record<string, string> = {};
+      for (const r of (json.respuestas ?? [])) {
+        if (r.respuestaIa) {
+          rIaMap[r.preguntaId] = r.respuestaIa;
+          rMap[r.preguntaId] = r.respuestaUsuario || '';
+        } else {
+          rMap[r.preguntaId] = r.contenido || '';
+        }
+      }
+      setRespuestas(rMap);
+      setRespuestasIa(rIaMap);
+
+      // Determine which step to show
+      const pasoRespondido = (p: Paso) =>
+        p.preguntas.length > 0
+          ? p.preguntas.every(q => (json.respuestas ?? []).some((r: any) => r.preguntaId === q.id))
+          : (json.interacciones ?? []).some((i: any) => i.pasoId === p.id);
 
       if (json.estado !== 'generado') {
-        const lastAnsweredIndex = json.pasos.findIndex((p: Paso) =>
-          !json.interacciones.some((i: any) => i.pasoId === p.id)
-        );
+        const lastAnsweredIndex = json.pasos.findIndex((p: Paso) => !pasoRespondido(p));
         if (lastAnsweredIndex !== -1) {
-          stepIndexToLoad = lastAnsweredIndex;
           setCurrentStepIndex(lastAnsweredIndex);
-          if (json.pasos[lastAnsweredIndex].promptIa) {
-            setCustomPrompt(interpolarPrompt(json.pasos[lastAnsweredIndex].promptIa, json.pasos, json.interacciones));
+          // Interpolate prompts for first unanswered step
+          const paso = json.pasos[lastAnsweredIndex];
+          for (const q of (paso.preguntas ?? [])) {
+            const base = getBasePrompt(q);
+            if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
           }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
-          stepIndexToLoad = -1;
         } else {
-          // Todos los pasos respondidos pero aún no finalizado → ir al último paso
           const lastIdx = json.pasos.length - 1;
-          stepIndexToLoad = lastIdx;
           setCurrentStepIndex(lastIdx);
-          if (json.pasos[lastIdx]?.promptIa) {
-            setCustomPrompt(interpolarPrompt(json.pasos[lastIdx].promptIa, json.pasos, json.interacciones));
+          const paso = json.pasos[lastIdx];
+          for (const q of (paso?.preguntas ?? [])) {
+            const base = getBasePrompt(q);
+            if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
           }
         }
-      } else if (json.pasos.length > 0 && json.pasos[0].promptIa) {
-        setCustomPrompt(interpolarPrompt(json.pasos[0].promptIa, json.pasos, json.interacciones));
-      }
-
-      if (stepIndexToLoad >= 0 && json.pasos[stepIndexToLoad]) {
-        const paso = json.pasos[stepIndexToLoad];
-        const inter = json.interacciones.find((i: any) => i.pasoId === paso.id);
-        if (inter) {
-          if (paso.usarIa && !paso.iaAutomatica) {
-            setRespuesta(inter.respuestaUsuario || '');
-            setRespuestaIa(inter.respuestaIa || inter.contenido || '');
-          } else if (!paso.usarIa) {
-            setRespuesta(inter.contenido || '');
-          }
+      } else if (json.pasos.length > 0) {
+        const paso = json.pasos[0];
+        for (const q of (paso.preguntas ?? [])) {
+          const base = getBasePrompt(q);
+          if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
         }
       }
+      setCustomPrompts(promptsMap);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -304,55 +392,59 @@ export function RunnerPage() {
   useEffect(() => {
     if (!data) return;
     const paso = data.pasos[currentStepIndex];
-    if (!paso?.usarIa || !paso?.iaAutomatica) return;
-    if (autoIaRunRef.current.has(paso.id)) return;
-    const interExistente = data.interacciones.find(i => i.pasoId === paso.id);
-    if (interExistente?.respuestaIa) {
-      setRespuestaIa(interExistente.respuestaIa);
-      iaEditorRef.current?.replaceContent(interExistente.respuestaIa);
-      return;
-    }
-    autoIaRunRef.current.add(paso.id);
-    const runAutoIa = async () => {
-      setEnviandoIa(true);
-      setRespuestaIa('');
-      iaEditorRef.current?.replaceContent('');
-      try {
-        const interpolado = interpolarPrompt(paso.promptIa ?? '', data.pasos, data.interacciones);
-        const formData = new FormData();
-        formData.append('pasoId', paso.id);
-        formData.append('respuesta', '');
-        if (interpolado) formData.append('customPrompt', interpolado);
-        const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
-        if (!res.ok) throw new Error();
-        const json = await res.json();
-        setRespuestaIa(json.respuestaIa);
-        iaEditorRef.current?.replaceContent(json.respuestaIa);
+    if (!paso) return;
 
-        // Si el paso también tiene subida de archivo, auto-guardamos la respuesta IA
-        // para que el endpoint de pre-llenado del Excel pueda leerla desde la BD
-        if (paso.soloArchivo || paso.permitirArchivo) {
-          await fetch(`${API_URL}/execution/${token}/responder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pasoId: paso.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa }),
-          });
-          setData(prev => prev ? {
-            ...prev,
-            interacciones: [
-              ...prev.interacciones.filter(i => i.pasoId !== paso.id),
-              { pasoId: paso.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa },
-            ],
-          } : prev);
-        }
-      } catch {
-        autoIaRunRef.current.delete(paso.id);
-        setEnviandoIa(false);
-      } finally {
-        setEnviandoIa(false);
+    for (const pregunta of (paso.preguntas ?? [])) {
+      if (!pregunta.usarIa || !pregunta.iaAutomatica) continue;
+      if (autoIaRunRef.current.has(pregunta.id)) continue;
+      const yaRespondida = data.respuestas.find(r => r.preguntaId === pregunta.id);
+      if (yaRespondida?.respuestaIa) {
+        setRespuestasIa(prev => ({ ...prev, [pregunta.id]: yaRespondida.respuestaIa! }));
+        iaEditorRefs.current[pregunta.id]?.replaceContent(yaRespondida.respuestaIa!);
+        continue;
       }
-    };
-    runAutoIa();
+      autoIaRunRef.current.add(pregunta.id);
+      const runAutoIa = async (q: Pregunta) => {
+        setEnviandoIa(prev => ({ ...prev, [q.id]: true }));
+        setRespuestasIa(prev => ({ ...prev, [q.id]: '' }));
+        iaEditorRefs.current[q.id]?.replaceContent('');
+        try {
+          const base = getBasePrompt(q) ?? '';
+          const interpolado = interpolarPrompt(base, data.pasos, data.respuestas, { empresa: { nombre: data.nombreEmpresa, sector: data.sectorEmpresa, tipoOrganizacion: data.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } });
+          const formData = new FormData();
+          formData.append('pasoId', paso.id);
+          // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId en lugar de (o además de) pasoId.
+          formData.append('respuesta', '');
+          if (interpolado) formData.append('customPrompt', interpolado);
+          const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
+          if (!res.ok) throw new Error();
+          const json = await res.json();
+          setRespuestasIa(prev => ({ ...prev, [q.id]: json.respuestaIa }));
+          iaEditorRefs.current[q.id]?.replaceContent(json.respuestaIa);
+
+          // Auto-save when question also requires file upload (for Excel prefill endpoint)
+          if (q.soloArchivo || q.permitirArchivo) {
+            await fetch(`${API_URL}/execution/${token}/responder`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pasoId: paso.id, preguntaId: q.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa }),
+            });
+            setData(prev => prev ? {
+              ...prev,
+              respuestas: [
+                ...prev.respuestas.filter(r => r.preguntaId !== q.id),
+                { preguntaId: q.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa },
+              ],
+            } : prev);
+          }
+        } catch {
+          autoIaRunRef.current.delete(q.id);
+        } finally {
+          setEnviandoIa(prev => ({ ...prev, [q.id]: false }));
+        }
+      };
+      runAutoIa(pregunta);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStepIndex, data?.estado]);
 
@@ -424,13 +516,13 @@ export function RunnerPage() {
     setShowEmailConfirm(true);
   };
 
-  const handleDescargarPlantillaPrediligenciada = async (pasoId: string) => {
+  const handleDescargarPlantillaPrediligenciada = async (pasoId: string, preguntaId: string) => {
     setDescargandoExcel(true);
     try {
       const res = await fetch(`${API_URL}/execution/${token}/plantilla-prefilled/${pasoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ respuestaIa: respuestaIa || undefined }),
+        body: JSON.stringify({ respuestaIa: respuestasIa[preguntaId] || undefined }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -453,84 +545,75 @@ export function RunnerPage() {
 
   const handleSiguiente = async () => {
     const paso = data!.pasos[currentStepIndex];
-    const respuestaFinal = paso.usarIa ? respuestaIa : respuesta;
 
-    if (!respuestaFinal.trim() && !archivoRespuesta) {
-      if (paso.usarIa && !respuestaIa.trim()) {
-        return alert('Consultá al asistente antes de continuar.');
+    // Validate all questions answered
+    for (const q of (paso.preguntas ?? [])) {
+      const tieneTexto = (q.usarIa ? respuestasIa[q.id] : respuestas[q.id])?.trim();
+      const tieneArchivo = !!archivosRespuesta[q.id];
+      if (!tieneTexto && !tieneArchivo) {
+        if (q.usarIa && !respuestasIa[q.id]?.trim()) {
+          return alert(`Consultá al asistente para la pregunta "${q.enunciado.slice(0, 60)}..." antes de continuar.`);
+        }
+        if (q.soloArchivo || q.permitirArchivo) {
+          return alert(`Adjuntá el archivo requerido para continuar.`);
+        }
+        return alert(`Respondé todas las preguntas antes de continuar.`);
       }
-      if (paso.permitirArchivo) {
-        return alert('Escribí tu respuesta o adjuntá el archivo para continuar.');
-      }
-      return;
     }
 
     setLoading(true);
 
-    let responderRes: Response;
-    if (archivoRespuesta) {
-      const formData = new FormData();
-      formData.append('pasoId', paso.id);
-      formData.append('contenido', respuestaFinal);
-      formData.append('archivo', archivoRespuesta);
-      responderRes = await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
-    } else {
-      responderRes = await fetch(`${API_URL}/execution/${token}/responder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pasoId: paso.id,
-          contenido: respuestaFinal,
-          respuestaUsuario: paso.usarIa ? respuesta : undefined,
-          respuestaIa: paso.usarIa ? respuestaIa : undefined,
-        })
-      });
+    // Save each question's answer
+    const newRespuestas = [...data!.respuestas];
+    for (const q of (paso.preguntas ?? [])) {
+      const textoRespuesta = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
+      const archivo = archivosRespuesta[q.id];
+      let responderRes: Response;
+      if (archivo) {
+        const formData = new FormData();
+        formData.append('pasoId', paso.id);
+        formData.append('preguntaId', q.id);
+        formData.append('contenido', textoRespuesta ?? '');
+        formData.append('archivo', archivo);
+        responderRes = await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
+      } else {
+        responderRes = await fetch(`${API_URL}/execution/${token}/responder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pasoId: paso.id,
+            preguntaId: q.id,
+            contenido: textoRespuesta ?? '',
+            respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
+            respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
+          })
+        });
+      }
+      if (!responderRes.ok) {
+        setLoading(false);
+        return alert('Error al guardar la respuesta. Por favor intentá de nuevo.');
+      }
+      const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
+      const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
+      if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
     }
 
-    if (!responderRes.ok) {
-      setLoading(false);
-      return alert('Error al guardar la respuesta. Por favor intentá de nuevo.');
-    }
+    setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
 
     if (currentStepIndex < data!.pasos.length - 1) {
-      const interActual = {
-        pasoId: paso.id,
-        contenido: respuestaFinal,
-        respuestaUsuario: paso.usarIa ? respuesta : undefined,
-        respuestaIa: paso.usarIa ? respuestaIa : undefined,
-        archivoNombre: archivoRespuesta?.name,
-      };
-      const newInteracciones = [
-        ...data!.interacciones.filter(i => i.pasoId !== paso.id),
-        interActual,
-      ];
-      setData(prev => prev ? { ...prev, interacciones: newInteracciones } : prev);
-
       const sig = data!.pasos[currentStepIndex + 1];
-      const interSig = newInteracciones.find(i => i.pasoId === sig.id);
-      if (interSig) {
-        if (sig.usarIa) {
-          setRespuesta(interSig.respuestaUsuario || '');
-          setRespuestaIa(interSig.respuestaIa || interSig.contenido || '');
-          editorRef.current?.replaceContent(interSig.respuestaUsuario || '');
-          iaEditorRef.current?.replaceContent(interSig.respuestaIa || interSig.contenido || '');
-        } else {
-          setRespuesta(interSig.contenido || '');
-          setRespuestaIa('');
-          editorRef.current?.replaceContent(interSig.contenido || '');
-          iaEditorRef.current?.replaceContent('');
-        }
-      } else {
-        setRespuesta('');
-        setRespuestaIa('');
-        editorRef.current?.replaceContent('');
-        iaEditorRef.current?.replaceContent('');
+
+      // Build prompts for next step
+      const promptsMap: Record<string, string> = { ...customPrompts };
+      for (const q of (sig.preguntas ?? [])) {
+        const base = getBasePrompt(q);
+        if (base) promptsMap[q.id] = interpolarPrompt(base, data!.pasos, newRespuestas, { empresa: { nombre: data!.nombreEmpresa, sector: data!.sectorEmpresa, tipoOrganizacion: data!.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } });
       }
+      setCustomPrompts(promptsMap);
 
       setCurrentStepIndex(currentStepIndex + 1);
-      setArchivoIa(null);
-      setArchivoRespuesta(null);
-      setCustomPrompt(interpolarPrompt(sig.promptIa ?? '', data!.pasos, newInteracciones));
+      setArchivosRespuesta({});
+      setArchivosIa({});
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -538,92 +621,70 @@ export function RunnerPage() {
     setLoading(false);
   };
 
-  const handleEnviarIA = async () => {
-    const paso = data!.pasos[currentStepIndex];
-    if (!paso.iaAutomatica && !respuesta.trim() && !archivoIa) return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
-    setEnviandoIa(true);
-    setRespuestaIa('');
-    iaEditorRef.current?.replaceContent('');
+  // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId junto a pasoId para que
+  // el backend lea usarIa/promptIa de PreguntaActividad en lugar de PasoActividad.
+  const handleEnviarIA = async (paso: Paso, pregunta: Pregunta) => {
+    if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim() && !archivosIa[pregunta.id]) {
+      return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
+    }
+    setEnviandoIa(prev => ({ ...prev, [pregunta.id]: true }));
+    setRespuestasIa(prev => ({ ...prev, [pregunta.id]: '' }));
+    iaEditorRefs.current[pregunta.id]?.replaceContent('');
 
     try {
       const formData = new FormData();
       formData.append('pasoId', paso.id);
-      formData.append('respuesta', respuesta);
-      if (customPrompt) formData.append('customPrompt', customPrompt);
+      formData.append('respuesta', respuestas[pregunta.id] ?? '');
+      const prompt = customPrompts[pregunta.id] ?? '';
+      if (prompt) formData.append('customPrompt', prompt);
+      const archivoIa = archivosIa[pregunta.id];
       if (archivoIa) formData.append('archivo', archivoIa);
 
       const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Error al consultar la IA');
 
       const json = await res.json();
-      setRespuestaIa(json.respuestaIa);
-      iaEditorRef.current?.replaceContent(json.respuestaIa);
-    } catch (err: any) {
+      setRespuestasIa(prev => ({ ...prev, [pregunta.id]: json.respuestaIa }));
+      iaEditorRefs.current[pregunta.id]?.replaceContent(json.respuestaIa);
+    } catch {
       alert('No pudimos conectar con el asistente. Intentá de nuevo.');
     } finally {
-      setEnviandoIa(false);
+      setEnviandoIa(prev => ({ ...prev, [pregunta.id]: false }));
     }
-  };
-
-  const getRespuestaPasoAnterior = (): string => {
-    if (!data || currentStepIndex === 0) return '';
-    const pasoAnterior = data.pasos[currentStepIndex - 1];
-    return data.interacciones.find(i => i.pasoId === pasoAnterior.id)?.contenido ?? '';
   };
 
   const handleAnterior = async () => {
     if (currentStepIndex === 0) return;
     const pasoActual = data!.pasos[currentStepIndex];
-    const tieneAlgoEscrito = respuesta.trim() || respuestaIa.trim();
 
     setLoading(true);
 
-    if (tieneAlgoEscrito) {
-      const contenidoFinal = pasoActual.usarIa ? (respuestaIa || respuesta) : respuesta;
+    // Auto-save any partial answers before going back
+    const newRespuestas = [...data!.respuestas];
+    for (const q of (pasoActual.preguntas ?? [])) {
+      const texto = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
+      if (!texto?.trim() && !archivosRespuesta[q.id]) continue;
       await fetch(`${API_URL}/execution/${token}/responder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pasoId: pasoActual.id,
-          contenido: contenidoFinal,
-          respuestaUsuario: pasoActual.usarIa ? respuesta : undefined,
-          respuestaIa: pasoActual.usarIa ? respuestaIa : undefined,
+          preguntaId: q.id,
+          contenido: texto ?? '',
+          respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
+          respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
         })
       });
-      setData(prev => prev ? {
-        ...prev,
-        interacciones: [
-          ...prev.interacciones.filter(i => i.pasoId !== pasoActual.id),
-          {
-            pasoId: pasoActual.id,
-            contenido: contenidoFinal,
-            respuestaUsuario: pasoActual.usarIa ? respuesta : undefined,
-            respuestaIa: pasoActual.usarIa ? respuestaIa : undefined,
-          }
-        ]
-      } : prev);
+      const entry = { preguntaId: q.id, contenido: texto, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined };
+      const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
+      if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
     }
+    setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
 
     const nuevoIndex = currentStepIndex - 1;
-    const pasoAnterior = data!.pasos[nuevoIndex];
-    const inter = data!.interacciones.find(i => i.pasoId === pasoAnterior.id);
-
-    if (pasoAnterior.usarIa) {
-      setRespuesta(inter?.respuestaUsuario || '');
-      setRespuestaIa(inter?.respuestaIa || inter?.contenido || '');
-      editorRef.current?.replaceContent(inter?.respuestaUsuario || '');
-      iaEditorRef.current?.replaceContent(inter?.respuestaIa || inter?.contenido || '');
-    } else {
-      setRespuesta(inter?.contenido || '');
-      setRespuestaIa('');
-      editorRef.current?.replaceContent(inter?.contenido || '');
-      iaEditorRef.current?.replaceContent('');
-    }
-
     setCurrentStepIndex(nuevoIndex);
-    setArchivoIa(null);
-    setArchivoRespuesta(null);
-    setCustomPrompt(interpolarPrompt(pasoAnterior.promptIa ?? '', data!.pasos, data!.interacciones));
+    setArchivosRespuesta({});
+    setArchivosIa({});
     setLoading(false);
   };
 
@@ -786,6 +847,7 @@ export function RunnerPage() {
       usuario: data!.usuario,
       pasos: data!.pasos,
       interacciones: data!.interacciones,
+      respuestas: data!.respuestas,
     });
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -842,25 +904,16 @@ export function RunnerPage() {
   /* ── Estado: iniciado (ejecución paso a paso) ── */
   const currentPaso = data.pasos[currentStepIndex];
   const progress = (currentStepIndex / data.pasos.length) * 100;
-  const respuestaAnterior = getRespuestaPasoAnterior();
   const isLastStep = currentStepIndex === data.pasos.length - 1;
 
-  // Cuando el paso es iaAutomatica + archivo, la IA va primero (genera → descarga → sube)
-  const iaFirst = !!(currentPaso.iaAutomatica && (currentPaso.soloArchivo || currentPaso.permitirArchivo));
-  const showRespuesta = !currentPaso.iaAutomatica || currentPaso.permitirArchivo || currentPaso.soloArchivo;
+  const anyEnviando = currentPaso.preguntas.some(q => !!enviandoIa[q.id]);
 
-  // Numeración dinámica de secciones
-  let secNum = 0;
-  const instrSecNum = currentPaso.instrucciones ? ++secNum : null;
-  let iaSecNum: number | null = null;
-  let respSecNum: number | null = null;
-  if (iaFirst) {
-    iaSecNum = currentPaso.usarIa ? ++secNum : null;
-    respSecNum = showRespuesta ? ++secNum : null;
-  } else {
-    respSecNum = showRespuesta ? ++secNum : null;
-    iaSecNum = currentPaso.usarIa ? ++secNum : null;
-  }
+  // "Siguiente" habilitado when every question has an answer
+  const pasoCompleto = currentPaso.preguntas.every(q => {
+    if (q.soloArchivo || q.permitirArchivo) return !!archivosRespuesta[q.id];
+    if (q.usarIa) return !!respuestasIa[q.id]?.trim();
+    return !!respuestas[q.id]?.trim();
+  });
 
   return (
     <>
@@ -945,9 +998,7 @@ export function RunnerPage() {
 
           {/* Step title & objective */}
           <div style={{ marginBottom: currentPaso.objetivo ? 8 : 20 }}>
-            <h2 style={{ fontSize: '1.375rem', margin: 0 }}>
-              {currentPaso.titulo}
-            </h2>
+            <h2 style={{ fontSize: '1.375rem', margin: 0 }}>{currentPaso.titulo}</h2>
           </div>
           {currentPaso.objetivo && (
             <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontStyle: 'italic', marginBottom: 24, fontWeight: 500 }}>
@@ -955,346 +1006,347 @@ export function RunnerPage() {
             </p>
           )}
 
-          {/* SECCIÓN: Instrucciones */}
-          {currentPaso.instrucciones && instrSecNum !== null && (
-            <SectionBlock
-              number={instrSecNum}
-              title="Instrucciones"
-              description="Lee atentamente antes de comenzar tu respuesta"
-              color="violet"
-            >
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#4C1D95', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                {currentPaso.instrucciones}
-              </p>
+          {/* SECCIÓN: Instrucciones (+ archivo de ejemplo si hay) */}
+          {(currentPaso.instrucciones || currentPaso.ejemploKey) && (
+            <SectionBlock number={1} title="Instrucciones" description="Lee atentamente antes de comenzar" color="violet">
+              {currentPaso.instrucciones && (
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#4C1D95', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                  {currentPaso.instrucciones}
+                </p>
+              )}
+              {currentPaso.ejemploKey && (
+                <div style={{
+                  marginTop: currentPaso.instrucciones ? 14 : 0,
+                  padding: '10px 14px',
+                  background: '#F0FDF4',
+                  border: '1px solid #86EFAC',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#14532D' }}>📎 Archivo de ejemplo</span>
+                  <span style={{ fontSize: '0.78rem', color: '#166534', flex: 1, minWidth: 160 }}>
+                    Material de referencia para este paso.
+                  </span>
+                  <button
+                    className="btn"
+                    style={{ padding: '5px 14px', fontSize: '0.82rem', background: '#16A34A', color: 'white', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
+                        const json = await res.json();
+                        if (json.url) window.open(json.url, '_blank');
+                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                    }}
+                  >
+                    ⬇ Descargar ejemplo
+                  </button>
+                </div>
+              )}
             </SectionBlock>
           )}
 
-          {/* SECCIÓN: Tu respuesta + Asistente IA — orden invertido cuando iaFirst */}
-          <div style={iaFirst ? { display: 'flex', flexDirection: 'column' } : undefined}>
+          {/* PREGUNTAS — one card per pregunta pairing question + answer */}
+          {currentPaso.preguntas.map((pregunta, qIdx) => {
+            const iaFirst = !!(pregunta.iaAutomatica && (pregunta.soloArchivo || pregunta.permitirArchivo));
+            const showRespuesta = !pregunta.iaAutomatica || pregunta.permitirArchivo || pregunta.soloArchivo;
+            const archivoResp = archivosRespuesta[pregunta.id];
+            const archivoIa = archivosIa[pregunta.id];
 
-          {showRespuesta && <div style={iaFirst ? { order: 2 } : undefined}><SectionBlock
-            number={respSecNum!}
-            title="Tu respuesta"
-            description={
-              (currentPaso.permitirArchivo || currentPaso.soloArchivo)
-                ? 'Sube el documento completado para avanzar al siguiente paso.'
-                : currentPaso.usarIa
-                  ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA antes de guardar.'
-                  : 'Escribe aquí tu análisis o respuesta para avanzar al siguiente paso.'
-            }
-            color="blue"
-          >
-            {/* Respuesta del paso anterior — solo en pasos sin IA automática */}
-            {respuestaAnterior && !currentPaso.iaAutomatica && (
-              <div style={{
-                marginBottom: 14, padding: '0.75rem 1rem',
-                background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8,
-                display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap',
+            return (
+              <div key={pregunta.id} style={{
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                overflow: 'hidden',
+                marginBottom: 16,
               }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#B45309', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>
-                    Respuesta del paso anterior
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400E', lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {respuestaAnterior}
+                {/* Pregunta header */}
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                  padding: '12px 20px',
+                  background: '#F8FAFC',
+                  borderBottom: '1px solid #E2E8F0',
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                    background: '#0F172A', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.7rem', fontWeight: 700, marginTop: 2,
+                  }}>{qIdx + 1}</div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.6, fontWeight: 500 }}>
+                    {pregunta.enunciado}
                   </p>
                 </div>
-                {!currentPaso.permitirArchivo && !currentPaso.soloArchivo && (
-                  <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0, alignSelf: 'center' }}
-                    onClick={() => editorRef.current?.insertContent(respuestaAnterior)}>
-                    Usar en respuesta
-                  </button>
-                )}
-              </div>
-            )}
 
-            {!currentPaso.permitirArchivo && !currentPaso.soloArchivo && (
-              <WysiwygEditor
-                ref={editorRef}
-                value={respuesta}
-                onChange={setRespuesta}
-                placeholder="Escriba aquí su respuesta..."
-                minHeight={220}
-              />
-            )}
+                {/* Respuesta body */}
+                <div style={{ padding: '16px 20px' }}>
+                  <div style={iaFirst ? { display: 'flex', flexDirection: 'column' } : undefined}>
 
-            {/* Plantilla descargable + subida de archivo (pasos con permitirArchivo o soloArchivo) */}
-            {(currentPaso.permitirArchivo || currentPaso.soloArchivo) && (
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-                {/* PASO 1 — Descargar plantilla */}
-                {currentPaso.urlPlantilla && (() => {
-                  const selfIaRespondido = currentPaso.usarIa
-                    ? data!.interacciones.some(i => i.pasoId === currentPaso.id)
-                    : false;
-                  const prevIaPaso = !currentPaso.usarIa
-                    ? data!.pasos.slice(0, currentStepIndex).reverse().find(p => p.usarIa)
-                    : null;
-                  const prevIaRespondido = prevIaPaso
-                    ? data!.interacciones.some(i => i.pasoId === prevIaPaso.id)
-                    : false;
-                  const iaRespondido = selfIaRespondido || prevIaRespondido;
-
-                  return (
-                    <div style={{
-                      padding: '16px 20px',
-                      background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                        <div style={{
-                          width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                          background: '#16A34A', color: 'white',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.75rem', fontWeight: 700,
-                        }}>1</div>
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>
-                          Descarga la plantilla de priorización
+                  {/* Tu respuesta */}
+                  {showRespuesta && (
+                    <div style={iaFirst ? { order: 2 } : undefined}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 700, color: '#1D4ED8',
+                          background: '#EFF6FF', border: '1px solid #BFDBFE',
+                          padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
+                        }}>Tu respuesta</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                          {(pregunta.permitirArchivo || pregunta.soloArchivo)
+                            ? 'Sube el documento completado para avanzar al siguiente paso.'
+                            : pregunta.usarIa
+                              ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA.'
+                              : 'Escribe aquí tu análisis o respuesta.'}
                         </span>
                       </div>
-                      <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
-                        La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
-                      </p>
-                      <div style={{ marginLeft: 34 }}>
-                        {currentPaso.iaAutomatica && !iaRespondido ? (
-                          <span style={{ fontSize: '0.82rem', color: '#6D28D9', fontStyle: 'italic' }}>
-                            {enviandoIa ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente termine de generar las ideas'}
-                          </span>
-                        ) : iaRespondido ? (
-                          <button
-                            onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id)}
-                            disabled={descargandoExcel}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 8,
-                              padding: '8px 18px', fontSize: '0.85rem',
-                              background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white',
-                              borderRadius: 8, fontWeight: 600, border: 'none',
-                              cursor: descargandoExcel ? 'wait' : 'pointer',
-                              boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)',
-                            }}
-                          >
-                            {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
-                          </button>
-                        ) : (
-                          <a
-                            href={currentPaso.urlPlantilla}
-                            download
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 8,
-                              padding: '8px 18px', fontSize: '0.85rem',
-                              background: '#16A34A', color: 'white',
-                              borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none',
-                              boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
-                            }}
-                          >
-                            ⬇ Descargar plantilla vacía
-                          </a>
-                        )}
+
+                      {!pregunta.permitirArchivo && !pregunta.soloArchivo && (
+                        <WysiwygEditor
+                          ref={el => { editorRefs.current[pregunta.id] = el; }}
+                          value={respuestas[pregunta.id] ?? ''}
+                          onChange={v => setRespuestas(prev => ({ ...prev, [pregunta.id]: v }))}
+                          placeholder="Escriba aquí su respuesta..."
+                          minHeight={180}
+                        />
+                      )}
+
+                      {/* Plantilla + archivo upload */}
+                      {(pregunta.permitirArchivo || pregunta.soloArchivo) && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                          {pregunta.urlPlantilla && (() => {
+                            const iaRespondida = !!data.respuestas.find(r => r.preguntaId === pregunta.id)?.respuestaIa;
+                            const estaGenerando = !!enviandoIa[pregunta.id];
+                            return (
+                              <div style={{ padding: '16px 20px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: '#16A34A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
+                                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>Descarga la plantilla de priorización</span>
+                                </div>
+                                <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
+                                  La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
+                                </p>
+                                <div style={{ marginLeft: 34 }}>
+                                  {pregunta.iaAutomatica && !iaRespondida ? (
+                                    <span style={{ fontSize: '0.82rem', color: '#6D28D9', fontStyle: 'italic' }}>
+                                      {estaGenerando ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente termine de generar las ideas'}
+                                    </span>
+                                  ) : iaRespondida ? (
+                                    <button
+                                      onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id, pregunta.id)}
+                                      disabled={descargandoExcel}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '8px 18px', fontSize: '0.85rem',
+                                        background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white',
+                                        borderRadius: 8, fontWeight: 600, border: 'none', cursor: descargandoExcel ? 'wait' : 'pointer',
+                                        boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)',
+                                      }}
+                                    >
+                                      {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
+                                    </button>
+                                  ) : (
+                                    <a href={pregunta.urlPlantilla} download style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                                      padding: '8px 18px', fontSize: '0.85rem',
+                                      background: '#16A34A', color: 'white',
+                                      borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none',
+                                      boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
+                                    }}>⬇ Descargar plantilla vacía</a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Subir archivo */}
+                          <div style={{
+                            padding: '16px 20px',
+                            background: archivoResp ? '#EFF6FF' : '#F8FAFC',
+                            border: `2px ${archivoResp ? 'solid #93C5FD' : 'dashed #CBD5E1'}`,
+                            borderRadius: 10,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                              <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: archivoResp ? '#2563EB' : '#94A3B8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {pregunta.urlPlantilla ? '2' : '1'}
+                              </div>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoResp ? '#1E3A8A' : '#475569' }}>Sube el archivo completado</span>
+                            </div>
+                            <div style={{ marginLeft: 34, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                              <label style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 8,
+                                padding: '8px 18px', fontSize: '0.85rem',
+                                background: archivoResp ? '#DBEAFE' : 'white', color: archivoResp ? '#1D4ED8' : '#475569',
+                                borderRadius: 8, cursor: 'pointer', fontWeight: 600,
+                                border: `1px solid ${archivoResp ? '#93C5FD' : '#CBD5E1'}`,
+                              }}>
+                                {archivoResp ? `✓ ${archivoResp.name}` : '📂 Seleccionar archivo (.xlsx)'}
+                                <input type="file" accept=".xlsx,.xls,.csv"
+                                  style={{ display: 'none' }}
+                                  onChange={e => setArchivosRespuesta(prev => ({ ...prev, [pregunta.id]: e.target.files?.[0] || null }))} />
+                              </label>
+                              {archivoResp && (
+                                <button className="btn btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}
+                                  onClick={() => setArchivosRespuesta(prev => ({ ...prev, [pregunta.id]: null }))}>✕ Quitar</button>
+                              )}
+                            </div>
+                            {/* Download link for previously uploaded S3 file */}
+                            {(() => {
+                              const prev = data.respuestas.find(r => r.preguntaId === pregunta.id);
+                              if (!prev?.archivoNombre || !prev?.archivoKey) return null;
+                              return (
+                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>📎 Archivo enviado: <strong>{prev.archivoNombre}</strong></span>
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
+                                        const json = await res.json();
+                                        if (json.url) window.open(json.url, '_blank');
+                                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                                    }}
+                                  >
+                                    ⬇ Descargar
+                                  </button>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                        </div>
+                      )}
+
+                      {/* Adjuntar archivo para IA (solo si hay IA no automática) */}
+                      {pregunta.usarIa && !pregunta.iaAutomatica && (
+                        <div style={{
+                          marginTop: 10, padding: '10px 14px',
+                          background: '#FAFAFE', border: '1px dashed #C4B5FD', borderRadius: 8,
+                          display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
+                        }}>
+                          <span style={{ fontSize: '0.8rem', color: '#6D28D9', fontWeight: 500 }}>Adjuntar archivo</span>
+                          <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>PDF, Word, Excel — máx. 10 MB</span>
+                          <label style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '4px 12px', fontSize: '0.78rem',
+                            background: '#EDE9FE', color: '#5B21B6',
+                            borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #C4B5FD',
+                          }}>
+                            {archivoIa ? `✓ ${archivoIa.name}` : '📂 Seleccionar archivo'}
+                            <input type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
+                              style={{ display: 'none' }}
+                              onChange={e => setArchivosIa(prev => ({ ...prev, [pregunta.id]: e.target.files?.[0] || null }))} />
+                          </label>
+                          {archivoIa && (
+                            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                              onClick={() => setArchivosIa(prev => ({ ...prev, [pregunta.id]: null }))}>✕ Quitar</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Asistente IA */}
+                  {pregunta.usarIa && (
+                    <div style={iaFirst ? { order: 1 } : { marginTop: 20, paddingTop: 20, borderTop: '1px solid #EDE9FE' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 700, color: '#7C3AED',
+                          background: '#F5F3FF', border: '1px solid #DDD6FE',
+                          padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
+                        }}>Asistente IA</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                          {pregunta.iaAutomatica
+                            ? 'El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.'
+                            : 'Envía tu respuesta al asistente para recibir análisis y retroalimentación.'}
+                        </span>
                       </div>
-                    </div>
-                  );
-                })()}
 
-                {/* PASO 2 — Subir archivo diligenciado */}
-                <div style={{
-                  padding: '16px 20px',
-                  background: archivoRespuesta ? '#EFF6FF' : '#F8FAFC',
-                  border: `2px ${archivoRespuesta ? 'solid #93C5FD' : 'dashed #CBD5E1'}`,
-                  borderRadius: 10,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                      background: archivoRespuesta ? '#2563EB' : '#94A3B8', color: 'white',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '0.75rem', fontWeight: 700,
-                    }}>2</div>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoRespuesta ? '#1E3A8A' : '#475569' }}>
-                      Sube el archivo completado
-                    </span>
-                  </div>
-                  <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#64748B', lineHeight: 1.5 }}>
-                    Una vez que hayas completado la tabla de priorización, sube el archivo aquí para finalizar el taller.
-                  </p>
-                  <div style={{ marginLeft: 34, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <label style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '8px 18px', fontSize: '0.85rem',
-                      background: archivoRespuesta ? '#DBEAFE' : 'white', color: archivoRespuesta ? '#1D4ED8' : '#475569',
-                      borderRadius: 8, cursor: 'pointer', fontWeight: 600,
-                      border: `1px solid ${archivoRespuesta ? '#93C5FD' : '#CBD5E1'}`,
-                    }}>
-                      {archivoRespuesta ? `✓ ${archivoRespuesta.name}` : '📂 Seleccionar archivo (.xlsx)'}
-                      <input type="file" accept=".xlsx,.xls,.csv"
-                        style={{ display: 'none' }}
-                        onChange={e => setArchivoRespuesta(e.target.files?.[0] || null)} />
-                    </label>
-                    {archivoRespuesta && (
-                      <button className="btn btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}
-                        onClick={() => setArchivoRespuesta(null)}>✕ Quitar</button>
-                    )}
-                  </div>
-                </div>
+                      {pregunta.iaAutomatica && (
+                        <div style={{
+                          marginBottom: 14, padding: '8px 14px',
+                          background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8,
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          fontSize: '0.82rem', color: '#6D28D9', fontWeight: 500,
+                        }}>
+                          <span>⚡</span>
+                          <span>Generación automática activada — el asistente usa el contexto de los pasos anteriores.</span>
+                        </div>
+                      )}
 
-              </div>
-            )}
+                      <button
+                        className="btn btn-primary"
+                        style={{
+                          background: '#7C3AED', boxShadow: '0 1px 2px rgba(109,40,217,0.3)',
+                          marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                        onClick={() => handleEnviarIA(currentPaso, pregunta)}
+                        disabled={(!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim() && !archivosIa[pregunta.id]) || !!enviandoIa[pregunta.id]}
+                      >
+                        {enviandoIa[pregunta.id] ? (
+                          <>
+                            <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                            Consultando...
+                          </>
+                        ) : pregunta.iaAutomatica ? '↺ Volver a consultar' : '✨ Enviar a Asistente IA'}
+                      </button>
 
-            {/* Adjuntar archivo (solo si hay IA no automática) */}
-            {currentPaso.usarIa && !currentPaso.iaAutomatica && (
-              <div style={{
-                marginTop: 10, padding: '10px 14px',
-                background: '#FAFAFE', border: '1px dashed #C4B5FD', borderRadius: 8,
-                display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
-              }}>
-                <span style={{ fontSize: '0.8rem', color: '#6D28D9', fontWeight: 500 }}>Adjuntar archivo</span>
-                <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>PDF, Word, Excel — máx. 10 MB</span>
-                <label style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '4px 12px', fontSize: '0.78rem',
-                  background: '#EDE9FE', color: '#5B21B6',
-                  borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #C4B5FD',
-                }}>
-                  {archivoIa ? `✓ ${archivoIa.name}` : '📂 Seleccionar archivo'}
-                  <input type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
-                    style={{ display: 'none' }}
-                    onChange={e => setArchivoIa(e.target.files?.[0] || null)} />
-                </label>
-                {archivoIa && (
-                  <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                    onClick={() => setArchivoIa(null)}>✕ Quitar</button>
-                )}
-              </div>
-            )}
-          </SectionBlock></div>}
-
-          {/* SECCIÓN: Asistente IA */}
-          {currentPaso.usarIa && iaSecNum !== null && (
-            <div style={iaFirst ? { order: 1 } : undefined}><SectionBlock
-              number={iaSecNum}
-              title="Asistente IA"
-              description={
-                currentPaso.iaAutomatica
-                  ? 'El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.'
-                  : 'Envía tu respuesta al asistente para recibir análisis y retroalimentación. Podrás editar el resultado antes de guardar.'
-              }
-              color="purple"
-            >
-              {/* Indicador de modo automático */}
-              {currentPaso.iaAutomatica && (
-                <div style={{
-                  marginBottom: 14, padding: '8px 14px',
-                  background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8,
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  fontSize: '0.82rem', color: '#6D28D9', fontWeight: 500,
-                }}>
-                  <span>⚡</span>
-                  <span>Generación automática activada — el asistente usa el contexto de los pasos anteriores.</span>
-                </div>
-              )}
-
-              {/* Prompt personalizable (colapsable) */}
-              {customPrompt && (
-                <div style={{ marginBottom: 14 }}>
-                  <button
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: '0.78rem', color: '#7C3AED', fontWeight: 600,
-                      display: 'flex', alignItems: 'center', gap: 4, padding: 0,
-                      marginBottom: showPromptEdit ? 8 : 0,
-                    }}
-                    onClick={() => setShowPromptEdit(p => !p)}
-                  >
-                    <span style={{ fontSize: '0.7rem' }}>{showPromptEdit ? '▲' : '▼'}</span>
-                    {showPromptEdit ? 'Ocultar instrucciones al asistente' : 'Personalizar instrucciones al asistente'}
-                  </button>
-                  {showPromptEdit && (
-                    <>
-                      <textarea
-                        className="input"
-                        rows={6}
-                        value={customPrompt}
-                        onChange={(e) => setCustomPrompt(e.target.value)}
-                        style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, resize: 'vertical' }}
-                      />
-                      <p style={{ margin: '4px 0 0', fontSize: '0.73rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
-                        Ajusta estas instrucciones para que el asistente se enfoque en lo que necesitas.
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Botón enviar */}
-              <button
-                className="btn btn-primary"
-                style={{
-                  background: '#7C3AED', boxShadow: '0 1px 2px rgba(109,40,217,0.3)',
-                  marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6,
-                }}
-                onClick={handleEnviarIA}
-                disabled={(!currentPaso.iaAutomatica && !respuesta.trim() && !archivoIa) || enviandoIa}
-              >
-                {enviandoIa ? (
-                  <>
-                    <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                    Consultando...
-                  </>
-                ) : currentPaso.iaAutomatica ? '↺ Volver a consultar' : '✨ Enviar a Asistente IA'}
-              </button>
-
-              {/* Respuesta IA */}
-              {(respuestaIa || enviandoIa) ? (
-                <>
-                  {enviandoIa && !respuestaIa && (
-                    <div style={{
-                      padding: '1.5rem', textAlign: 'center', color: '#7C3AED',
-                      fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
-                    }}>
-                      <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                      Generando análisis con IA...
+                      {(respuestasIa[pregunta.id] || enviandoIa[pregunta.id]) ? (
+                        <>
+                          {enviandoIa[pregunta.id] && !respuestasIa[pregunta.id] && (
+                            <div style={{
+                              padding: '1.5rem', textAlign: 'center', color: '#7C3AED',
+                              fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                              background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
+                            }}>
+                              <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                              Generando análisis con IA...
+                            </div>
+                          )}
+                          <WysiwygEditor
+                            ref={el => { iaEditorRefs.current[pregunta.id] = el; }}
+                            value={respuestasIa[pregunta.id] ?? ''}
+                            onChange={v => setRespuestasIa(prev => ({ ...prev, [pregunta.id]: v }))}
+                            placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
+                            minHeight={180}
+                            borderColor="#DDD6FE"
+                          />
+                        </>
+                      ) : (
+                        <div style={{
+                          padding: '1.25rem', borderRadius: 8, background: '#FAF8FF',
+                          border: '1px dashed #DDD6FE', textAlign: 'center',
+                          color: '#7C3AED', fontSize: '0.85rem',
+                        }}>
+                          {pregunta.iaAutomatica
+                            ? 'El asistente generará el análisis automáticamente al ingresar al paso.'
+                            : <>Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.</>}
+                        </div>
+                      )}
                     </div>
                   )}
-                  <WysiwygEditor
-                    ref={iaEditorRef}
-                    value={respuestaIa}
-                    onChange={setRespuestaIa}
-                    placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
-                    minHeight={180}
-                    borderColor="#DDD6FE"
-                  />
-                </>
-              ) : (
-                <div style={{
-                  padding: '1.25rem', borderRadius: 8, background: '#FAF8FF',
-                  border: '1px dashed #DDD6FE', textAlign: 'center',
-                  color: '#7C3AED', fontSize: '0.85rem',
-                }}>
-                  {currentPaso.iaAutomatica
-                    ? 'El asistente generará el análisis automáticamente al ingresar al paso.'
-                    : <>Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.</>}
-                </div>
-              )}
-            </SectionBlock></div>
-          )}
 
-          </div>{/* end iaFirst flex wrapper */}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
           {/* Botones anterior / siguiente */}
           <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
             {currentStepIndex > 0 ? (
-              <button
-                className="btn btn-secondary"
-                onClick={handleAnterior}
-                disabled={loading}
-                style={{ padding: '0.625rem 1.25rem', fontSize: '0.9375rem' }}
-              >
+              <button className="btn btn-secondary" onClick={handleAnterior} disabled={loading}
+                style={{ padding: '0.625rem 1.25rem', fontSize: '0.9375rem' }}>
                 ← Paso anterior
               </button>
             ) : <div />}
             <button
               className="btn btn-primary"
               onClick={handleSiguiente}
-              disabled={((currentPaso.soloArchivo || currentPaso.permitirArchivo) ? !archivoRespuesta : currentPaso.usarIa ? !respuestaIa.trim() : !respuesta.trim()) || loading || (currentPaso.iaAutomatica ? enviandoIa : false)}
+              disabled={!pasoCompleto || loading || anyEnviando}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
               {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}

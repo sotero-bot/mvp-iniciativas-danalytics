@@ -6,8 +6,15 @@ interface ResumenInput {
   fechaInicio?: string;
   fechaFin?: string;
   usuario?: { nombre: string; email: string; cargo?: string | null; area?: string | null };
-  pasos: Array<{ id: string; titulo: string; objetivo?: string; usarIa?: boolean }>;
+  pasos: Array<{
+    id: string;
+    titulo: string;
+    objetivo?: string;
+    usarIa?: boolean;
+    preguntas?: Array<{ id: string; enunciado: string; usarIa?: boolean; soloArchivo?: boolean; permitirArchivo?: boolean }>;
+  }>;
   interacciones: Array<{ pasoId: string; contenido: string; archivoNombre?: string }>;
+  respuestas?: Array<{ preguntaId: string; contenido?: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string }>;
 }
 
 const esc = (s: string) =>
@@ -61,10 +68,40 @@ const fmtFecha = (iso?: string) =>
   iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' }) : '—';
 
 export function buildResumenHtml(input: ResumenInput): string {
-  const respuestas = input.pasos
+  const respuestasPorPregunta = new Map((input.respuestas ?? []).map(r => [r.preguntaId, r]));
+
+  const cuerpo = input.pasos
     .map((paso, idx) => {
-      const inter = input.interacciones.find(i => i.pasoId === paso.id);
-      const contenido = inter?.contenido || '<em>Sin respuesta registrada</em>';
+      const preguntas = paso.preguntas ?? [];
+      const tienePreguntas = preguntas.length > 0;
+
+      let contenidoPaso: string;
+      if (tienePreguntas) {
+        contenidoPaso = preguntas.map((q, qIdx) => {
+          const r = respuestasPorPregunta.get(q.id);
+          // Solo-archivo: el contenido del archivo subido es la respuesta canónica.
+          const texto = q.soloArchivo
+            ? (r?.contenidoArchivo || r?.contenido)
+            : (r?.respuestaIa || r?.contenidoArchivo || r?.respuestaUsuario || r?.contenido);
+          return `
+            <div class="pregunta">
+              ${preguntas.length > 1 ? `<div class="pregunta-num">${qIdx + 1}</div>` : ''}
+              <div class="pregunta-enunciado">${esc(q.enunciado)}</div>
+              ${r?.archivoNombre ? `<div class="badge-archivo">📎 ${esc(r.archivoNombre)}</div>` : ''}
+              <div class="respuesta">${texto ? renderContenido(texto) : '<em style="color:#94A3B8">Sin respuesta registrada</em>'}</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // Legacy: pasos sin preguntas
+        const inter = input.interacciones.find(i => i.pasoId === paso.id);
+        const contenido = inter?.contenido || '';
+        contenidoPaso = `
+          ${inter?.archivoNombre ? `<div class="badge-archivo">📎 ${esc(inter.archivoNombre)}</div>` : ''}
+          <div class="respuesta">${contenido ? renderContenido(contenido) : '<em style="color:#94A3B8">Sin respuesta registrada</em>'}</div>
+        `;
+      }
+
       return `
         <article class="paso">
           <header>
@@ -75,8 +112,7 @@ export function buildResumenHtml(input: ResumenInput): string {
             </div>
             ${paso.usarIa ? '<span class="badge-ia">IA</span>' : ''}
           </header>
-          ${inter?.archivoNombre ? `<div class="badge-archivo">📎 ${esc(inter.archivoNombre)}</div>` : ''}
-          <div class="respuesta">${renderContenido(contenido)}</div>
+          ${contenidoPaso}
         </article>
       `;
     })
@@ -111,6 +147,10 @@ export function buildResumenHtml(input: ResumenInput): string {
   .respuesta td { padding: 6px 10px; border: 1px solid #CBD5E1; vertical-align: top; }
   .respuesta tr:nth-child(even) td { background: #F8FAFC; }
   .respuesta h3 { font-size: 0.95rem; color: #334155; margin: 12px 0 6px; }
+  .pregunta { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #F1F5F9; }
+  .pregunta:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .pregunta-num { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #0F172A; color: white; font-size: 0.65rem; font-weight: 700; text-align: center; line-height: 20px; margin-bottom: 6px; }
+  .pregunta-enunciado { font-size: 0.88rem; font-weight: 600; color: #334155; margin-bottom: 10px; }
   footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #E2E8F0; color: #94A3B8; font-size: 0.8rem; text-align: center; }
   @media print { body { background: white; padding: 0; } }
 </style>
@@ -135,7 +175,7 @@ export function buildResumenHtml(input: ResumenInput): string {
     <div><dt>Finalización</dt><dd>${fmtFecha(input.fechaFin)}</dd></div>
   </dl>
 
-  ${respuestas}
+  ${cuerpo}
 
   <footer>Resumen generado el ${new Date().toLocaleString('es-CO')} · DAnalytics</footer>
 </body>

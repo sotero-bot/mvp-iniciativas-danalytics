@@ -32,6 +32,20 @@ export class ObtenerInstanciaDetalleUseCase {
       },
       pasos: raw.actividad.pasos.map((paso: any) => {
         const interaccion = raw.interacciones.find((i: any) => i.pasoId === paso.id);
+        const preguntas = (paso.preguntas ?? []).map((q: any) => {
+          const r = (raw.respuestas ?? []).find((resp: any) => resp.preguntaId === q.id);
+          return {
+            preguntaId: q.id,
+            orden: q.orden,
+            enunciado: q.enunciado,
+            respuesta: r ? (r.respuestaIa || r.contenidoArchivo || r.respuestaUsuario || r.contenido) : null,
+            respuestaUsuario: r?.respuestaUsuario ?? null,
+            respuestaIa: r?.respuestaIa ?? null,
+            archivoNombre: r?.archivoNombre ?? null,
+            contenidoArchivo: r?.contenidoArchivo ?? null,
+            fechaRespuesta: r?.fecha ?? null,
+          };
+        });
         return {
           pasoId: paso.id,
           orden: paso.orden,
@@ -43,6 +57,7 @@ export class ObtenerInstanciaDetalleUseCase {
           fechaRespuesta: interaccion ? interaccion.fecha : null,
           archivoNombre: interaccion?.archivoNombre ?? null,
           contenidoArchivo: interaccion?.contenidoArchivo ?? null,
+          preguntas,
         };
       }),
     });

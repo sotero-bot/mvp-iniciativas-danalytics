@@ -26,6 +26,8 @@
     "vercel-build": "prisma generate && prisma db push --accept-data-loss && npm run reset-data && tsc -p tsconfig.json && vite build && npm run seed:admin"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1055.0",
+    "@aws-sdk/s3-request-presigner": "^3.1055.0",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@prisma/client": "^5.22.0",

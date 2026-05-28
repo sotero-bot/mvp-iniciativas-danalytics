@@ -19,6 +19,8 @@ export class EmpresasController {
       select: {
         id: true,
         nombre: true,
+        sector: true,
+        tipoOrganizacion: true,
         logoUrl: true,
         activo: true,
         createdAt: true,
@@ -30,20 +32,24 @@ export class EmpresasController {
   }
 
   @Post()
-  async create(@Body() body: { nombre: string; logoUrl?: string }) {
+  async create(@Body() body: { nombre: string; sector?: string; tipoOrganizacion?: string; logoUrl?: string }) {
     return this.prisma.empresa.create({
       data: {
         id: randomUUID(),
         nombre: body.nombre,
+        sector: body.sector ?? null,
+        tipoOrganizacion: body.tipoOrganizacion ?? null,
         logoUrl: body.logoUrl ?? null,
       }
     });
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: { nombre?: string; logoUrl?: string | null }) {
+  async update(@Param('id') id: string, @Body() body: { nombre?: string; sector?: string; tipoOrganizacion?: string; logoUrl?: string | null }) {
     const data: any = {};
     if (body.nombre !== undefined) data.nombre = body.nombre;
+    if (body.sector !== undefined) data.sector = body.sector;
+    if (body.tipoOrganizacion !== undefined) data.tipoOrganizacion = body.tipoOrganizacion;
     if ('logoUrl' in body) data.logoUrl = body.logoUrl ?? null;
     return this.prisma.empresa.update({ where: { id }, data });
   }

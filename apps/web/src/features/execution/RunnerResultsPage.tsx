@@ -6,16 +6,35 @@ import { buildResumenHtml } from './buildResumenHtml';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+interface Pregunta {
+    id: string;
+    enunciado: string;
+    usarIa?: boolean;
+    soloArchivo?: boolean;
+    permitirArchivo?: boolean;
+}
+
 interface Paso {
     id: string;
     titulo: string;
     objetivo?: string;
     usarIa?: boolean;
+    preguntas?: Pregunta[];
 }
 
 interface Interaccion {
     pasoId: string;
     contenido: string;
+    contenidoArchivo?: string;
+    fecha: string;
+}
+
+interface RespuestaPregunta {
+    preguntaId: string;
+    contenido?: string;
+    respuestaUsuario?: string;
+    respuestaIa?: string;
+    archivoNombre?: string;
     contenidoArchivo?: string;
     fecha: string;
 }
@@ -26,6 +45,7 @@ interface RunnerData {
     descripcionActividad?: string;
     pasos: Paso[];
     interacciones: Interaccion[];
+    respuestas?: RespuestaPregunta[];
     fechaInicio?: string;
     fechaFin?: string;
 }
@@ -61,7 +81,14 @@ export function RunnerResultsPage() {
     if (error) return <div className="runner-center" style={{ color: '#EF4444' }}>⚠ {error}</div>;
     if (!data) return null;
 
-    const completedCount = data.pasos.filter(p => data.interacciones.some(i => i.pasoId === p.id)).length;
+    const respuestasPorPregunta = new Map((data.respuestas ?? []).map(r => [r.preguntaId, r]));
+
+    const pasoRespondido = (p: Paso) =>
+        p.preguntas && p.preguntas.length > 0
+            ? p.preguntas.every(q => respuestasPorPregunta.has(q.id))
+            : data.interacciones.some(i => i.pasoId === p.id);
+
+    const completedCount = data.pasos.filter(pasoRespondido).length;
 
     const handleDescargar = () => {
         const html = buildResumenHtml({
@@ -71,6 +98,7 @@ export function RunnerResultsPage() {
             fechaFin: data.fechaFin,
             pasos: data.pasos,
             interacciones: data.interacciones,
+            respuestas: data.respuestas,
         });
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -170,7 +198,8 @@ export function RunnerResultsPage() {
                 {/* Steps */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {data.pasos.map((paso, idx) => {
-                        const interaccion = data.interacciones.find(i => i.pasoId === paso.id);
+                        const preguntas = paso.preguntas ?? [];
+                        const respondido = pasoRespondido(paso);
                         return (
                             <div key={paso.id} style={{
                                 background: 'white', borderRadius: 10,
@@ -187,12 +216,12 @@ export function RunnerResultsPage() {
                                 }}>
                                     <div style={{
                                         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                                        background: interaccion ? 'var(--color-primary)' : 'var(--color-border)',
+                                        background: respondido ? 'var(--color-primary)' : 'var(--color-border)',
                                         color: 'white',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: '0.78rem', fontWeight: 700,
                                     }}>
-                                        {interaccion ? idx + 1 : '—'}
+                                        {respondido ? idx + 1 : '—'}
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text-main)' }}>
@@ -208,49 +237,72 @@ export function RunnerResultsPage() {
 
                                 {/* Step response */}
                                 <div style={{ padding: '1.25rem' }}>
-                                    {interaccion ? (
-                                        <>
-                                            <div style={{
-                                                fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-tertiary)',
-                                                textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10,
-                                            }}>
-                                                Respuesta
-                                            </div>
-                                            <div style={{
-                                                padding: '1rem 1.25rem',
-                                                background: '#FAFBFF',
-                                                border: '1px solid var(--color-border)',
-                                                borderRadius: 8,
-                                                fontSize: '0.9rem',
-                                                color: '#1E293B',
-                                                lineHeight: 1.7,
-                                                overflowX: 'auto',
-                                            }}>
-                                                <ReactMarkdown
-                                                    remarkPlugins={[remarkGfm]}
-                                                    components={{
-                                                        table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0.75rem 0', fontSize: '0.875rem' }} {...props} />,
-                                                        th: ({ node, ...props }) => <th style={{ border: '1px solid #CBD5E1', padding: '8px 12px', background: '#F1F5F9', textAlign: 'left', fontWeight: 600 }} {...props} />,
-                                                        td: ({ node, ...props }) => <td style={{ border: '1px solid #CBD5E1', padding: '8px 12px' }} {...props} />,
-                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7, textAlign: 'justify' }} {...props} />,
-                                                    }}
-                                                >
-                                                    {interaccion.contenidoArchivo || interaccion.contenido}
-                                                </ReactMarkdown>
-                                            </div>
-                                            <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
-                                                {new Date(interaccion.fecha).toLocaleString('es-AR')}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div style={{
-                                            padding: '1.5rem', textAlign: 'center',
-                                            background: '#FAFAFA', border: '1px dashed var(--color-border)',
-                                            borderRadius: 8, color: 'var(--color-text-tertiary)',
-                                            fontSize: '0.875rem', fontStyle: 'italic',
-                                        }}>
-                                            Sin respuesta registrada
+                                    {preguntas.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                            {preguntas.map((q, qIdx) => {
+                                                const r = respuestasPorPregunta.get(q.id);
+                                                // Para preguntas solo-archivo, el contenido del archivo subido es la respuesta;
+                                                // ignorar respuestaIa (puede traer ruido tipo "no recibí mensaje").
+                                                const texto = q.soloArchivo
+                                                    ? (r?.contenidoArchivo || r?.contenido)
+                                                    : (r?.respuestaIa || r?.contenidoArchivo || r?.respuestaUsuario || r?.contenido);
+                                                return (
+                                                    <div key={q.id} style={{
+                                                        paddingBottom: qIdx < preguntas.length - 1 ? 16 : 0,
+                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid #F1F5F9' : 'none',
+                                                    }}>
+                                                        {preguntas.length > 1 && (
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                                Pregunta {qIdx + 1}
+                                                            </div>
+                                                        )}
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 10 }}>
+                                                            {q.enunciado}
+                                                        </div>
+                                                        {r?.archivoNombre && (
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#F0FDF4', color: '#166534', border: '1px solid #86EFAC', padding: '3px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 500, marginBottom: 8 }}>
+                                                                📎 {r.archivoNombre}
+                                                            </div>
+                                                        )}
+                                                        {texto ? (
+                                                            <div style={{ padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.7, overflowX: 'auto' }}>
+                                                                <ReactMarkdown
+                                                                    remarkPlugins={[remarkGfm]}
+                                                                    components={{
+                                                                        table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0.75rem 0', fontSize: '0.875rem' }} {...props} />,
+                                                                        th: ({ node, ...props }) => <th style={{ border: '1px solid #CBD5E1', padding: '8px 12px', background: '#F1F5F9', textAlign: 'left', fontWeight: 600 }} {...props} />,
+                                                                        td: ({ node, ...props }) => <td style={{ border: '1px solid #CBD5E1', padding: '8px 12px' }} {...props} />,
+                                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7, textAlign: 'justify' }} {...props} />,
+                                                                    }}
+                                                                >
+                                                                    {texto}
+                                                                </ReactMarkdown>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ padding: '1rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                                Sin respuesta registrada
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
+                                    ) : (
+                                        // Legacy: pasos sin preguntas
+                                        (() => {
+                                            const interaccion = data.interacciones.find(i => i.pasoId === paso.id);
+                                            return interaccion ? (
+                                                <div style={{ padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.7, overflowX: 'auto' }}>
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {interaccion.contenidoArchivo || interaccion.contenido}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            ) : (
+                                                <div style={{ padding: '1.5rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                    Sin respuesta registrada
+                                                </div>
+                                            );
+                                        })()
                                     )}
                                 </div>
                             </div>

@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Delete, Body, Param, NotFoundException, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { parseTableFromContent } from '../../../shared/utils/parseTableFromContent';
 import { GenerarInstanciaUseCase } from '../application/GenerarInstanciaUseCase';
 import { ObtenerInstanciaDetalleUseCase } from '../application/ObtenerInstanciaDetalleUseCase';
 import { PrismaService } from '../../../prisma.service';
+import { S3Service } from '../../storage/S3Service';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
 
 @Controller('admin/instancias')
@@ -11,7 +12,8 @@ export class AdminExecutionController {
   constructor(
     private readonly generarUseCase: GenerarInstanciaUseCase,
     private readonly obtenerDetalleUseCase: ObtenerInstanciaDetalleUseCase,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
   ) { }
 
   @Post('generar')
@@ -36,8 +38,65 @@ export class AdminExecutionController {
         interacciones: {
           select: { pasoId: true, archivoNombre: true, paso: { select: { titulo: true } } },
         },
+        respuestas: {
+          where: { archivoNombre: { not: null } },
+          select: {
+            preguntaId: true,
+            archivoNombre: true,
+            archivoKey: true,
+            pregunta: {
+              select: {
+                orden: true,
+                paso: { select: { titulo: true, orden: true } },
+              },
+            },
+          },
+        },
       },
     });
+  }
+
+  /** Presigned GET URL para descargar el archivo original subido como respuesta */
+  @Get(':id/respuestas/:preguntaId/archivo-url')
+  async respuestaArchivoUrl(
+    @Param('id') instanciaId: string,
+    @Param('preguntaId') preguntaId: string,
+  ): Promise<{ url: string; archivoNombre: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const respuesta = await this.prisma.respuesta.findUnique({
+      where: { instanciaId_preguntaId: { instanciaId, preguntaId } },
+      select: {
+        archivoKey: true,
+        archivoNombre: true,
+        instancia: {
+          select: {
+            usuario: { select: { area: true } },
+            actividad: {
+              select: {
+                nombre: true,
+                plantillaOrigen: { select: { nombre: true } },
+                iniciativa: { select: { empresa: { select: { nombre: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!respuesta?.archivoKey) throw new NotFoundException('Archivo no encontrado para esta respuesta');
+
+    // Nombre amigable: <empresa>_<plantilla|actividad>_<area>.xlsx (preserva caso, slugifica el resto)
+    const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    const ext = (respuesta.archivoNombre?.match(/\.[a-z0-9]+$/i)?.[0]) || '.xlsx';
+    const plantillaOActividadNombre =
+      respuesta.instancia?.actividad?.plantillaOrigen?.nombre || respuesta.instancia?.actividad?.nombre || '';
+    const downloadName = [
+      slug(respuesta.instancia?.actividad?.iniciativa?.empresa?.nombre || ''),
+      slug(plantillaOActividadNombre),
+      slug(respuesta.instancia?.usuario?.area || ''),
+    ].filter(Boolean).join('_') + ext;
+
+    const url = await this.s3.getPresignedGetUrl(respuesta.archivoKey, 3600, downloadName);
+    return { url, archivoNombre: downloadName };
   }
 
   @Get(':id')
