@@ -75,6 +75,13 @@ export class ConsultarIaPorTokenUseCase {
             }
         }
 
+        // Si no hay input del usuario (caso iaAutomatica: la IA debe generar todo
+        // siguiendo las instrucciones del system prompt), mandamos un placeholder
+        // explícito. Sin esto, gpt-4o responde "no recibí ninguna pregunta".
+        if (!userMessage?.trim()) {
+            userMessage = 'Genera la respuesta solicitada siguiendo estrictamente las instrucciones del system prompt y el contexto de la empresa. No me pidas más información: usá todo lo que ya tenés.';
+        }
+
         try {
             const response = await this.openai.chat.completions.create({
                 model: 'gpt-4o',

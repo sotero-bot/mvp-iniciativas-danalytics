@@ -1288,6 +1288,32 @@ export function RunnerPage() {
                         </div>
                       )}
 
+                      {/* DEBUG: prompt interpolado que se enviará al asistente. Útil para validar
+                          que el .md de template se cargó correctamente y la interpolación quedó bien. */}
+                      <details style={{ marginBottom: 14, fontSize: '0.78rem' }}>
+                        <summary style={{
+                          cursor: 'pointer', color: '#7C3AED', fontWeight: 600,
+                          padding: '6px 12px', background: '#FAF8FF',
+                          border: '1px solid #DDD6FE', borderRadius: 6,
+                          userSelect: 'none',
+                        }}>
+                          🔍 Ver prompt que se enviará al asistente
+                          <span style={{ marginLeft: 8, color: '#94A3B8', fontWeight: 400 }}>
+                            ({(customPrompts[pregunta.id] ?? '').length.toLocaleString()} caracteres · ~{Math.round((customPrompts[pregunta.id] ?? '').split(/\s+/).filter(Boolean).length).toLocaleString()} palabras)
+                          </span>
+                        </summary>
+                        <pre style={{
+                          marginTop: 8, padding: '12px 14px',
+                          background: '#0F172A', color: '#E2E8F0',
+                          borderRadius: 6, maxHeight: 360, overflow: 'auto',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                          fontSize: '0.72rem', lineHeight: 1.55,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        }}>
+                          {customPrompts[pregunta.id] || '(vacío — el template del .md no se cargó, o el paso no tiene urlPromptTemplate / promptIa)'}
+                        </pre>
+                      </details>
+
                       <button
                         className="btn btn-primary"
                         style={{
