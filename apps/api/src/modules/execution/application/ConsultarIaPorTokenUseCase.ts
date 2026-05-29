@@ -77,12 +77,15 @@ export class ConsultarIaPorTokenUseCase {
 
         try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: 'gpt-4o',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage }
                 ],
             });
+
+            console.log('[OpenAI] modelo solicitado: gpt-4o | modelo usado:', response.model,
+                '| tokens:', JSON.stringify(response.usage));
 
             return response.choices[0].message?.content || 'Sin respuesta de IA';
         } catch (error) {
