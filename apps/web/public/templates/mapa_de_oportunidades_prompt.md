@@ -50,6 +50,11 @@ Cuando algo no esté confirmado, usa expresiones como:
 
 {{paso_2}}
 
+Un mismo dolor puede generar más de una oportunidad si el problema
+tiene dimensiones distintas (ej: una de automatización y otra de
+analítica). Busca activamente esas subdivisiones. El mínimo de
+oportunidades a identificar es 7.
+
 ---
 
 # Objetivo del análisis
