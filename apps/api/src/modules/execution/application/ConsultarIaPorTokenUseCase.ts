@@ -89,10 +89,14 @@ export class ConsultarIaPorTokenUseCase {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage }
                 ],
+                max_completion_tokens: 16384,
             });
 
-            console.log('[OpenAI] modelo solicitado: gpt-4o | modelo usado:', response.model,
-                '| tokens:', JSON.stringify(response.usage));
+            console.log(
+                '[OpenAI] modelo solicitado: gpt-4o | modelo usado:', response.model,
+                '| finish_reason:', response.choices[0].finish_reason,
+                '| tokens:', JSON.stringify(response.usage),
+            );
 
             return response.choices[0].message?.content || 'Sin respuesta de IA';
         } catch (error) {

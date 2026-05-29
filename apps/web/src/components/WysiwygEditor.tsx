@@ -163,7 +163,14 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
 
     const setContentMarkdownAware = (text: string) => {
         if (!editor) return;
-        const content = looksLikeMarkdown(text) ? markdownToHtml(text) : text;
+        const isMd = looksLikeMarkdown(text);
+        const content = isMd ? markdownToHtml(text) : text;
+        if (isMd) {
+            const rows = (text.match(/^\s*\|.+\|\s*$/mg) || []).length;
+            const tableRowsHtml = (content.match(/<tr>/g) || []).length;
+            // eslint-disable-next-line no-console
+            console.log('[WysiwygEditor] markdown detected | input rows:', rows, '| html <tr>:', tableRowsHtml, '| input chars:', text.length);
+        }
         editor.commands.setContent(content);
     };
 

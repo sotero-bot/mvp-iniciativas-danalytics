@@ -46,7 +46,7 @@ Cuando algo no esté confirmado, usa expresiones como:
 
 ---
 
-# Retos identificados (5 ángulos de exploración)
+# Retos identificados
 
 {{paso_2}}
 
@@ -196,7 +196,6 @@ Ejemplos:
 - "Puede requerir integración entre sistemas o extracción periódica de información."
 - "Antes de automatizar, sería necesario estandarizar el flujo y definir reglas de negocio."
 - "Requiere personal calificado, como un científico de datos o un ingeniero de datos"
-
 
 ---
 
