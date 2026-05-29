@@ -186,7 +186,7 @@ Para cada dolor identificado:
 
 No debes calificar el esfuerzo técnico real como alto, medio o bajo.
 
-En su lugar, entrega una orientación descriptiva.
+En su lugar, entrega una orientación descriptiva que indique que tan complejo a nivel técnico (infraestructura, arquitectura de TI, técnicas de IA si aplica) requiere la solución.
 
 Ejemplos:
 
@@ -310,6 +310,8 @@ Siempre justifica la respuesta.
 ---
 
 # Reglas de calidad
+
+Respuesta debe ser 100% en español
 
 Evita respuestas genéricas como:
 
