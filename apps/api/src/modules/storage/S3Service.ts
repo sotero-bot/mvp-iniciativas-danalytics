@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 
 export class S3Service {
@@ -72,10 +73,18 @@ export class S3Service {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  /**
+   * Genera una key S3 con la forma `<prefix>/<base-slug>-<uuid><ext>`.
+   * El nombre original se preserva (slugificado a [a-z0-9-_]) para que el objeto
+   * sea legible al navegar el bucket. El UUID al final garantiza unicidad
+   * incluso si varios usuarios suben archivos con el mismo nombre simultáneamente.
+   */
   generateKey(prefix: string, filename: string): string {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = filename.includes('.') ? filename.slice(filename.lastIndexOf('.')) : '';
-    return `${prefix}/${unique}${ext}`;
+    const dotIdx = filename.lastIndexOf('.');
+    const rawBase = dotIdx > 0 ? filename.slice(0, dotIdx) : filename;
+    const ext = dotIdx > 0 ? filename.slice(dotIdx) : '';
+    const baseSlug = S3Service.slugifyPathSegment(rawBase) || 'archivo';
+    return `${prefix}/${baseSlug}-${randomUUID()}${ext}`;
   }
 
   /**

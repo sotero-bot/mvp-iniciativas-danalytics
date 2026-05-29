@@ -181,6 +181,8 @@ export class ExecutionController {
           orderBy: { orden: 'desc' },
         });
 
+    // 14 columnas que la IA genera (cols 1-14 del Excel).
+    // Col 15 "Hipótesis de impacto esperado" se deja vacía: la diligencia el equipo.
     const HEADERS = [
       'Área',
       'Dolor identificado',
@@ -196,7 +198,6 @@ export class ExecutionController {
       'Qué aportaría la IA si esas condiciones existen',
       'Datos, documentos o insumos necesarios',
       'Orientación sobre esfuerzo técnico',
-      'Hipótesis de impacto esperado',
     ];
 
     // Mapeo 1:1 — el prompt genera las columnas con los mismos nombres que los headers
@@ -215,7 +216,6 @@ export class ExecutionController {
       'Qué aportaría la IA si esas condiciones existen': 'Qué aportaría la IA si esas condiciones existen',
       'Datos, documentos o insumos necesarios':          'Datos, documentos o insumos necesarios',
       'Orientación sobre esfuerzo técnico':              'Orientación sobre esfuerzo técnico',
-      'Hipótesis de impacto esperado':                   'Hipótesis de impacto esperado',
     };
 
     // Prioridad 1: parámetro enviado en el body (sesión actual, IA recién ejecutada)

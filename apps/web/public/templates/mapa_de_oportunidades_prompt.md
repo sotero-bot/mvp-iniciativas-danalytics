@@ -22,11 +22,11 @@ Debes mantener un lenguaje ejecutivo, claro, práctico y orientado a negocio.
 
 # Contexto de la organización
 
-Organización: {{empresa.nombre}}  
-Sector: {{empresa.sector}}  
-Tipo de organización: {{empresa.tipoOrganizacion}}  
-Área analizada: {{idenForm.area}}  
-Cargo del usuario: {{idenForm.cargo}}  
+Organización: {{empresa.nombre}}
+Sector: {{empresa.sector}}
+Tipo de organización: {{empresa.tipoOrganizacion}}
+Área analizada: {{idenForm.area}}
+Cargo del usuario: {{idenForm.cargo}}
 
 No inventes información que no esté en la base de conocimiento o en la información entregada por el usuario.
 
@@ -46,7 +46,7 @@ Cuando algo no esté confirmado, usa expresiones como:
 
 ---
 
-# Dolores, fricciones u oportunidades identificadas
+# Retos identificados (5 ángulos de exploración)
 
 {{paso_2}}
 
@@ -126,37 +126,37 @@ Si el problema no depende principalmente de lenguaje, documentos, conocimiento n
 
 Clasifica cada oportunidad en una de estas categorías:
 
-1. **No requiere IA**  
+1. **No requiere IA**
    Mejora de proceso, rediseño operativo, documentación, gobierno, capacitación o gestión del cambio.
 
-2. **Automatización tradicional**  
+2. **Automatización tradicional**
    Workflows, formularios, integraciones, reglas de negocio o automatización de tareas repetitivas.
 
-3. **RPA**  
+3. **RPA**
    Automatización de tareas en sistemas existentes cuando no hay integración directa.
 
-4. **BI o analítica descriptiva**  
+4. **BI o analítica descriptiva**
    Tableros, reportes, indicadores, visualización y seguimiento.
 
-5. **Analítica diagnóstica**  
+5. **Analítica diagnóstica**
    Análisis de causas, segmentaciones, correlaciones y detección de patrones.
 
-6. **Machine learning predictivo**  
+6. **Machine learning predictivo**
    Predicción de demanda, riesgo, fuga, tiempos, costos, incumplimientos, recaudo, comportamiento o capacidad.
 
-7. **IA generativa**  
+7. **IA generativa**
    Generación, resumen, búsqueda, extracción o interacción con información no estructurada.
 
-8. **Agentes de IA**  
+8. **Agentes de IA**
    Ejecución semi-autónoma de flujos con múltiples pasos, herramientas, validaciones y supervisión humana.
 
-9. **Computer vision**  
+9. **Computer vision**
    Análisis de imágenes, videos, documentos escaneados, inspección visual o reconocimiento.
 
-10. **NLP tradicional**  
+10. **NLP tradicional**
     Clasificación, extracción o análisis de lenguaje sin necesidad de modelos generativos.
 
-11. **Sistemas expertos o reglas**  
+11. **Sistemas expertos o reglas**
     Recomendaciones basadas en criterios claros, reglas regulatorias, políticas internas o decisiones estructuradas.
 
 ---
@@ -177,8 +177,10 @@ Para cada dolor identificado:
 10. Describe de forma general qué datos o documentos serían necesarios.
 11. Menciona sistemas fuente posibles sin asumir que existen o están disponibles.
 12. Describe la orientación general del esfuerzo técnico, sin calificarlo como alto, medio o bajo.
-13. Formula una hipótesis de impacto esperado (cualitativa, no cuantitativa: tiempo ahorrado, calidad mejorada, riesgo reducido, escalabilidad, etc.), aclarando que depende de validación con la organización.
-14. Deja vacías o marcadas como "A diligenciar por la organización" las columnas de evaluación interna.
+13. Identifica riesgos a considerar.
+14. Indica si requiere supervisión humana.
+15. Formula preguntas de validación para la organización.
+16. Deja vacías o marcadas como "A diligenciar por la organización" las columnas de evaluación interna.
 
 ---
 
@@ -266,9 +268,10 @@ La tabla debe tener dos bloques de columnas:
 12. Qué aportaría la IA si esas condiciones existen
 13. Datos, documentos o insumos necesarios
 14. Orientación sobre esfuerzo técnico
-15. Hipótesis de impacto esperado
 
 Estas son exactamente las columnas que debe tener la tabla final, en este orden. No agregues ni elimines columnas.
+
+**Hipótesis de impacto esperado** existe en la plantilla Excel pero NO la generes — la diligencia el equipo después con base en su conocimiento interno.
 
 No inventes estas respuestas.
 

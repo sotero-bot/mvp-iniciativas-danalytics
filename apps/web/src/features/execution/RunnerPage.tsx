@@ -259,13 +259,24 @@ function interpolarPrompt(
     const n = parseInt(nStr, 10);
     const paso = pasos[n - 1];
     if (!paso) return `[paso ${n} no encontrado]`;
-    const textos: string[] = [];
-    for (const pregunta of (paso.preguntas ?? [])) {
+    const preguntas = paso.preguntas ?? [];
+    const bloques: string[] = [];
+    for (let i = 0; i < preguntas.length; i++) {
+      const pregunta = preguntas[i];
       const r = respuestas.find(r => r.preguntaId === pregunta.id);
       const texto = r?.contenido || r?.respuestaUsuario || r?.contenidoArchivo || '';
-      if (texto.trim()) textos.push(stripHtmlToText(texto));
+      if (!texto.trim()) continue;
+      const respuestaTexto = stripHtmlToText(texto);
+      // Si el paso tiene varias preguntas, etiquetar cada respuesta con el enunciado
+      // (recortado) para que la IA sepa a qué corresponde cada bloque.
+      if (preguntas.length > 1) {
+        const enunciadoCorto = stripHtmlToText(pregunta.enunciado || '').split('\n')[0].slice(0, 140);
+        bloques.push(`[Pregunta ${i + 1}: ${enunciadoCorto}]\n${respuestaTexto}`);
+      } else {
+        bloques.push(respuestaTexto);
+      }
     }
-    return textos.length > 0 ? textos.join('\n\n') : '[sin respuesta]';
+    return bloques.length > 0 ? bloques.join('\n\n') : '[sin respuesta]';
   });
 }
 
