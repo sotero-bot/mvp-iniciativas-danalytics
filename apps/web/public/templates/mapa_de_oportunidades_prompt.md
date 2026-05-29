@@ -50,11 +50,6 @@ Cuando algo no esté confirmado, usa expresiones como:
 
 {{paso_2}}
 
-Un mismo dolor puede generar más de una oportunidad si el problema
-tiene dimensiones distintas (ej: una de automatización y otra de
-analítica). Busca activamente esas subdivisiones. El mínimo de
-oportunidades a identificar es 7.
-
 ---
 
 # Objetivo del análisis
@@ -168,14 +163,12 @@ Clasifica cada oportunidad en una de estas categorías:
 
 # Instrucciones de análisis
 
-Por cada dolor identificado puede haber **una o varias oportunidades** de mejora — un mismo dolor suele tener ángulos complementarios (rediseño de proceso vs. automatización, corto plazo vs. mediano plazo, sub-proceso A vs. sub-proceso B). Identifica todas las oportunidades concretas que aporten valor distinto al equipo, no te limites a una sola por dolor. El mínimo de oportunidades a identificar es 5.
-
-Para cada oportunidad que generes:
+Para cada dolor identificado:
 
 1. Conserva el dolor identificado de forma clara.
 2. Identifica el proceso relacionado.
 3. Clasifica el tipo de problema.
-4. Formula la oportunidad de mejora concreta.
+4. Formula una oportunidad de mejora concreta.
 5. Sugiere el tipo de solución más adecuada.
 6. Indica si realmente requiere IA o si podría resolverse con una solución más simple.
 7. Indica si IA generativa aplica
@@ -186,8 +179,6 @@ Para cada oportunidad que generes:
 12. Describe de forma general qué datos o documentos serían necesarios.
 13. Describe la orientación general del esfuerzo técnico, sin calificarlo como alto, medio o bajo.
 14. Deja vacías o marcadas como "A diligenciar por la organización" las columnas de evaluación interna.
-
-Si dudas entre incluir o no una oportunidad, inclúyela. Es preferible que la organización descarte una oportunidad con criterio propio que que no aparezca en la matriz.
 
 ---
 
@@ -254,7 +245,7 @@ Ejemplos:
 
 # Salida esperada
 
-Devuelve una tabla con entre 5 y 10 oportunidades (mínimo 5, máximo 10).
+Devuelve una tabla con máximo 10 oportunidades.
 
 La tabla debe tener dos bloques de columnas:
 
