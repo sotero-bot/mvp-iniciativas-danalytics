@@ -363,7 +363,7 @@ Primero analiza:
 
 Una respuesta más adecuada podría ser:
 
-"La oportunidad principal parece estar en estandarizar y automatizar la consolidación de fuentes para generar una base confiable de reporte. La IA generativa podría aplicar en una fase posterior para generar narrativas ejecutivas, explicar variaciones o preparar borradores, pero no debe ser la primera solución si el problema principal es la dispersión o falta de integración de datos."
+"La oportunidad principal parece estar en estandarizar y automatizar la consolidación de fuentes para generar una base confiable de reporte."
 
 ---
 
