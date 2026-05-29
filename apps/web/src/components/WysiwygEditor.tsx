@@ -16,6 +16,101 @@ interface WysiwygEditorProps {
     borderColor?: string;
 }
 
+/** Convierte markdown básico (tablas, headings, párrafos, listas) a HTML.
+ *  Necesario porque tiptap-markdown@0.9 no siempre parsea markdown en setContent. */
+function markdownToHtml(md: string): string {
+    if (!md) return '';
+    const esc = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const inline = (s: string) =>
+        esc(s)
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(?<!\*)\*([^\s*][^*]*?)\*(?!\*)/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Strip wrapping fenced code block: ```markdown ... ``` o ``` ... ```
+    // (gpt-4o a veces envuelve toda la tabla en un fence).
+    let src = md.trim();
+    const fenceMatch = src.match(/^```[a-zA-Z]*\s*\n([\s\S]*?)\n```\s*$/);
+    if (fenceMatch) src = fenceMatch[1];
+
+    // Split por celda en una fila markdown, respetando `\|` escapados.
+    const splitRow = (row: string): string[] =>
+        row.split(/(?<!\\)\|/).map(c => c.replace(/\\\|/g, '|').trim());
+
+    const lines = src.split(/\r?\n/);
+    let html = '';
+    let inTable = false;
+    let headerDone = false;
+    let inList = false;
+    let listTag: 'ul' | 'ol' | null = null;
+
+    const closeList = () => {
+        if (inList && listTag) { html += `</${listTag}>`; inList = false; listTag = null; }
+    };
+    const closeTable = () => {
+        if (inTable) { html += '</tbody></table>'; inTable = false; headerDone = false; }
+    };
+
+    for (const raw of lines) {
+        const line = raw.trim();
+        // Table row
+        if (line.startsWith('|') && line.endsWith('|') && line.length > 1) {
+            closeList();
+            const cells = splitRow(line.slice(1, -1));
+            if (cells.every(c => /^[-:]+$/.test(c))) {
+                if (inTable && !headerDone) { html += '</thead><tbody>'; headerDone = true; }
+                continue;
+            }
+            if (!inTable) { html += '<table><thead>'; inTable = true; headerDone = false; }
+            const tag = headerDone ? 'td' : 'th';
+            html += '<tr>' + cells.map(c => `<${tag}>${inline(c)}</${tag}>`).join('') + '</tr>';
+            continue;
+        }
+        closeTable();
+
+        // Headings
+        const hMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        if (hMatch) {
+            closeList();
+            const level = hMatch[1].length;
+            html += `<h${level}>${inline(hMatch[2])}</h${level}>`;
+            continue;
+        }
+        // Unordered list
+        if (/^[-*+]\s+/.test(line)) {
+            if (!inList || listTag !== 'ul') { closeList(); html += '<ul>'; inList = true; listTag = 'ul'; }
+            html += `<li>${inline(line.replace(/^[-*+]\s+/, ''))}</li>`;
+            continue;
+        }
+        // Ordered list
+        if (/^\d+\.\s+/.test(line)) {
+            if (!inList || listTag !== 'ol') { closeList(); html += '<ol>'; inList = true; listTag = 'ol'; }
+            html += `<li>${inline(line.replace(/^\d+\.\s+/, ''))}</li>`;
+            continue;
+        }
+        closeList();
+
+        // Paragraph / blank
+        if (line === '') continue;
+        html += `<p>${inline(line)}</p>`;
+    }
+    closeList();
+    closeTable();
+    return html;
+}
+
+/** Heurística: si el texto contiene una tabla markdown o headings/listas, lo tratamos como markdown. */
+function looksLikeMarkdown(s: string): boolean {
+    if (!s) return false;
+    return (
+        /^\s*\|.+\|\s*$/m.test(s) ||      // table row
+        /^\s*#{1,6}\s+/m.test(s) ||       // heading
+        /^\s*[-*+]\s+/m.test(s) ||        // bullet list
+        /^\s*\d+\.\s+/m.test(s)           // ordered list
+    );
+}
+
 export interface WysiwygEditorHandle {
     insertContent: (text: string) => void;
     replaceContent: (text: string) => void;
@@ -66,18 +161,24 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
         }
     });
 
+    const setContentMarkdownAware = (text: string) => {
+        if (!editor) return;
+        const content = looksLikeMarkdown(text) ? markdownToHtml(text) : text;
+        editor.commands.setContent(content);
+    };
+
     useImperativeHandle(ref, () => ({
         insertContent: (text: string) => {
             if (!editor) return;
             const current = (editor.storage as any).markdown.getMarkdown();
             const newContent = current.trim() ? current + '\n\n' + text : text;
             isInternalChange.current = false;
-            editor.commands.setContent(newContent);
+            setContentMarkdownAware(newContent);
         },
         replaceContent: (text: string) => {
             if (!editor) return;
             isInternalChange.current = false;
-            editor.commands.setContent(text);
+            setContentMarkdownAware(text);
         }
     }), [editor]);
 
@@ -91,7 +192,7 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const current = (editor.storage as any).markdown.getMarkdown();
         if (current !== value) {
-            editor.commands.setContent(value);
+            setContentMarkdownAware(value);
         }
     }, [value, editor]);
 
