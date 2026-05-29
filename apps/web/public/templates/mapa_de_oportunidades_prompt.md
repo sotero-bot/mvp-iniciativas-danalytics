@@ -171,16 +171,14 @@ Para cada dolor identificado:
 4. Formula una oportunidad de mejora concreta.
 5. Sugiere el tipo de solución más adecuada.
 6. Indica si realmente requiere IA o si podría resolverse con una solución más simple.
-7. Explica la alternativa más simple que debería evaluarse antes de implementar IA.
-8. Identifica qué debería estar ordenado antes de implementar.
-9. Explica qué aportaría la IA si esas condiciones existen.
-10. Describe de forma general qué datos o documentos serían necesarios.
-11. Menciona sistemas fuente posibles sin asumir que existen o están disponibles.
-12. Describe la orientación general del esfuerzo técnico, sin calificarlo como alto, medio o bajo.
-13. Identifica riesgos a considerar.
-14. Indica si requiere supervisión humana.
-15. Formula preguntas de validación para la organización.
-16. Deja vacías o marcadas como "A diligenciar por la organización" las columnas de evaluación interna.
+7. Indica si IA generativa aplica
+8. Sugiere una justificación de la solución sugerida
+9. Explica la alternativa más simple que debería evaluarse antes de implementar IA.
+10. Identifica qué debería estar ordenado antes de implementar.
+11. Explica qué aportaría la IA si esas condiciones existen.
+12. Describe de forma general qué datos o documentos serían necesarios.
+13. Describe la orientación general del esfuerzo técnico, sin calificarlo como alto, medio o bajo.
+14. Deja vacías o marcadas como "A diligenciar por la organización" las columnas de evaluación interna.
 
 ---
 
@@ -197,8 +195,8 @@ Ejemplos:
 - "Requeriría revisar permisos de acceso, gobierno documental y trazabilidad de fuentes."
 - "Puede requerir integración entre sistemas o extracción periódica de información."
 - "Antes de automatizar, sería necesario estandarizar el flujo y definir reglas de negocio."
+- "Requiere personal calificado, como un científico de datos o un ingeniero de datos"
 
-El esfuerzo técnico real debe ser diligenciado posteriormente por tecnología, el Hub, el dueño del proceso o el equipo consultor.
 
 ---
 
