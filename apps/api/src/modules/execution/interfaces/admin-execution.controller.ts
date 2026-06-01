@@ -6,6 +6,7 @@ import { ObtenerInstanciaDetalleUseCase } from '../application/ObtenerInstanciaD
 import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
+import { generatePdfBuffer, loadInstanciaForPdf, buildBaseFilename, buildZipFilename, slugSegment } from './pdfDetalleGenerator';
 
 @Controller('admin/instancias')
 export class AdminExecutionController {
@@ -197,6 +198,123 @@ export class AdminExecutionController {
       'Content-Disposition': `attachment; filename="${nombre}"`,
     });
     res.send(buffer);
+  }
+
+  @Get(':id/pdf')
+  async descargarPdfDetalle(@Param('id') id: string, @Res() res: Response) {
+    const instancia = await loadInstanciaForPdf(this.prisma, id);
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+
+    const filename = buildBaseFilename(instancia);
+    const pdfBuffer = await generatePdfBuffer(instancia);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+      'Content-Length': pdfBuffer.length.toString(),
+    });
+    res.send(pdfBuffer);
+  }
+
+  @Get(':id/zip')
+  async descargarZipDetalle(@Param('id') id: string, @Res() res: Response) {
+    const instancia = await loadInstanciaForPdf(this.prisma, id);
+    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+
+    const zipFilename = buildZipFilename(instancia);
+    const pdfFilename = buildBaseFilename(instancia);
+    const pdfBuffer = await generatePdfBuffer(instancia);
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const archiver = require('archiver');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${zipFilename}.zip"`,
+    });
+    archive.pipe(res);
+    archive.on('warning', (err: any) => { if (err.code !== 'ENOENT') throw err; });
+    archive.on('error', (err: any) => { throw err; });
+
+    // 1) PDF
+    archive.append(pdfBuffer, { name: `${pdfFilename}.pdf` });
+
+    // 2) Archivos en S3 (modelo nuevo: respuestas con archivoKey)
+    const usados = new Set<string>();
+    const nombreUnico = (base: string): string => {
+      if (!usados.has(base)) { usados.add(base); return base; }
+      const dotIdx = base.lastIndexOf('.');
+      const stem = dotIdx > 0 ? base.slice(0, dotIdx) : base;
+      const ext = dotIdx > 0 ? base.slice(dotIdx) : '';
+      for (let i = 2; ; i++) {
+        const candidato = `${stem}_${i}${ext}`;
+        if (!usados.has(candidato)) { usados.add(candidato); return candidato; }
+      }
+    };
+    usados.add(`${pdfFilename}.pdf`);
+
+    const respConArchivo = (instancia.respuestas ?? []).filter((r) => r.archivoKey && r.archivoNombre);
+    if (respConArchivo.length > 0 && this.s3.isConfigured) {
+      for (const r of respConArchivo) {
+        try {
+          const buffer = await this.s3.getObjectBuffer(r.archivoKey!);
+          const ext = (r.archivoNombre!.match(/\.[a-z0-9]+$/i)?.[0]) || '';
+          const tituloPaso = r.pregunta?.paso?.titulo || '';
+          const ordenPaso = r.pregunta?.paso?.orden;
+          const baseName =
+            (ordenPaso != null ? `paso${ordenPaso}_` : '') +
+            (slugSegment(tituloPaso) || 'archivo') + ext;
+          archive.append(buffer, { name: nombreUnico(baseName) });
+        } catch {
+          // Si falla descargar uno, seguir con los demás.
+        }
+      }
+    }
+
+    // 3) Archivos legacy (interacciones con contenidoArchivo) reconstruidos a Excel
+    const interConArchivo = (instancia.interacciones ?? []).filter((it) => it.archivoNombre && (it.contenidoArchivo || it.contenido));
+    for (const inter of interConArchivo) {
+      try {
+        const contenidoArchivo = inter.contenidoArchivo || inter.contenido!.split('\n\n---\n\n').pop() || '';
+        const primeraSección = contenidoArchivo.split(/\n### /)[0];
+        const filas = parseTableFromContent(primeraSección);
+        if (filas.length === 0) continue;
+        const headers = Object.keys(filas[0]);
+        const TEXT_COLS = new Set(['Dolor identificado', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?', 'Oportunidad de IA', 'Por qué ese tipo', 'Impacto potencial']);
+
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const ExcelJS = require('exceljs');
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Priorización');
+        ws.columns = headers.map((h: string) => ({ width: TEXT_COLS.has(h) ? 35 : 14 }));
+        const headerRow = ws.addRow(headers);
+        headerRow.height = 22;
+        for (let c = 1; c <= headers.length; c++) {
+          const cell = headerRow.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+        }
+        for (const fila of filas) {
+          const row = ws.addRow(headers.map((h: string) => fila[h] ?? ''));
+          row.height = 55;
+          for (let c = 1; c <= headers.length; c++) {
+            row.getCell(c).alignment = TEXT_COLS.has(headers[c - 1])
+              ? { vertical: 'top', wrapText: true }
+              : { vertical: 'middle', horizontal: 'center' };
+          }
+        }
+        const excelBuffer: Buffer = await wb.xlsx.writeBuffer();
+        const tituloPaso = inter.paso?.titulo || 'paso';
+        const baseName = `${slugSegment(tituloPaso) || 'archivo'}.xlsx`;
+        archive.append(excelBuffer, { name: nombreUnico(baseName) });
+      } catch {
+        // continuar
+      }
+    }
+
+    await archive.finalize();
   }
 
   @Delete(':id')

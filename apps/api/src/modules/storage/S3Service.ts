@@ -73,6 +73,17 @@ export class S3Service {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  async getObjectBuffer(key: string): Promise<Buffer> {
+    if (!this.client) throw new Error('S3 no configurado');
+    const response = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const body = response.Body as NodeJS.ReadableStream;
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
   /**
    * Genera una key S3 con la forma `<prefix>/<base-slug>-<uuid><ext>`.
    * El nombre original se preserva (slugificado a [a-z0-9-_]) para que el objeto

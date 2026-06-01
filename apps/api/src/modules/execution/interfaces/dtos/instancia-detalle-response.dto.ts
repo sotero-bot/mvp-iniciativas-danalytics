@@ -14,7 +14,8 @@ export class InstanciaDetalleResponseDto {
     email?: string;
     cargo?: string;
     area?: string;
-  };
+  } | null;
+  emailReferencia?: string | null;
   pasos: Array<{
     pasoId: string;
     orden: number;

@@ -110,6 +110,14 @@ export function InstanciasPage() {
     showToast('Enlace copiado al portapapeles');
   };
 
+  const descargarPdf = (instanciaId: string) => {
+    window.location.href = `${API_URL}/admin/instancias/${instanciaId}/pdf`;
+  };
+
+  const descargarZip = (instanciaId: string) => {
+    window.location.href = `${API_URL}/admin/instancias/${instanciaId}/zip`;
+  };
+
   // Datatable logic
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -500,6 +508,16 @@ export function InstanciasPage() {
                           style={{ padding: '4px 10px', fontSize: '0.78rem', textDecoration: 'none' }}>
                           Ver resultados
                         </Link>
+                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          onClick={() => descargarPdf(ins.id)}
+                          title="Descargar preguntas y respuestas en PDF">
+                          📄 PDF
+                        </button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          onClick={() => descargarZip(ins.id)}
+                          title="Descargar ZIP con PDF y archivos adjuntos">
+                          📦 ZIP
+                        </button>
                         <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                           onClick={() => copyLink(ins.accessToken)}>
                           Copiar enlace
