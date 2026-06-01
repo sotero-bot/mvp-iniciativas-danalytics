@@ -198,7 +198,7 @@ export function PlantillasPage() {
                   style={{ maxWidth: 160 }}
                 />
                 <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
-                  Define el orden en que deben completarse las plantillas. La plantilla anterior debe finalizarse antes de iniciar esta.
+                  Define el orden en la secuencia. Si la plantilla anterior tiene respuestas registradas, se mostrarán al iniciar esta (no es obligatorio completarla primero).
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
@@ -367,7 +367,7 @@ export function PlantillasPage() {
                 onChange={e => setForm({ ...form, orden: e.target.value })}
               />
               <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
-                Define el paso en la secuencia. La plantilla anterior debe completarse antes de iniciar esta.
+                Define el paso en la secuencia. Si la plantilla anterior tiene respuestas registradas, se mostrarán al iniciar esta (no es obligatorio completarla primero).
               </p>
             </div>
             <button type="submit" className="btn btn-primary">Guardar Plantilla</button>

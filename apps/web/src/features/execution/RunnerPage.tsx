@@ -289,7 +289,6 @@ export function RunnerPage() {
   const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
-  const [bloqueadoPor, setBloqueadoPor] = useState<string | null>(null);
   const [plantillaAnteriorExpanded, setPlantillaAnteriorExpanded] = useState(false);
 
   // Refs por preguntaId
@@ -454,10 +453,6 @@ export function RunnerPage() {
       const res = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
       if (!res.ok) {
         const errJson = await res.json();
-        if (res.status === 403) {
-          setBloqueadoPor(errJson.message || 'Para acceder, primero completá la actividad anterior.');
-          return;
-        }
         throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
       }
       await loadData();
@@ -489,11 +484,6 @@ export function RunnerPage() {
       const res2 = await fetch(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
       if (!res2.ok) {
         const errJson = await res2.json();
-        if (res2.status === 403) {
-          setBloqueadoPor(errJson.message || 'Para acceder, primero completá la actividad anterior.');
-          await loadData();
-          return;
-        }
         throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
       }
       await loadData();
@@ -738,23 +728,7 @@ export function RunnerPage() {
               </div>
             </div>
 
-            {/* Pantalla de bloqueo */}
-            {bloqueadoPor ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%',
-                  background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 1.25rem', fontSize: '1.75rem',
-                }}>🔒</div>
-                <h3 style={{ margin: '0 0 10px', color: '#92400E' }}>Aún no disponible</h3>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.6 }}>
-                  {bloqueadoPor}
-                </p>
-                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', margin: 0 }}>
-                  Una vez que completes la actividad anterior, regresa aquí para continuar.
-                </p>
-              </div>
-            ) : !data.usuarioId ? (
+            {!data.usuarioId ? (
               <form
                 className={wasValidated ? 'was-validated' : ''}
                 onSubmit={onSubmitIdentificacion}

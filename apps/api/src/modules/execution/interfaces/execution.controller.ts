@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, ForbiddenException, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -277,7 +277,6 @@ export class ExecutionController {
   @HttpCode(HttpStatus.OK)
   async iniciar(@Param('token') token: string): Promise<IniciarResponseDto> {
     try {
-      await this.verificarBloqueoPlantillaAnterior(token);
       const fechaInicio = await this.iniciarUseCase.execute(token);
       return { estado: 'iniciado', fechaInicio: fechaInicio.toISOString() };
     } catch (error) {
@@ -449,38 +448,6 @@ export class ExecutionController {
       return await this.identificarUseCase.execute(token, body);
     } catch (error) {
       this.handleError(error);
-    }
-  }
-
-  private async verificarBloqueoPlantillaAnterior(token: string): Promise<void> {
-    const instanciaRaw = await this.prisma.instanciaActividad.findUnique({
-      where: { accessToken: token },
-      include: { actividad: { include: { plantillaOrigen: true, iniciativa: true } } }
-    });
-    if (!instanciaRaw) return;
-
-    const plantilla = instanciaRaw.actividad.plantillaOrigen;
-    if (!plantilla || plantilla.orden === null || plantilla.orden <= 1) return;
-
-    const plantillaAnterior = await this.prisma.plantillaActividad.findFirst({
-      where: { orden: plantilla.orden - 1, activo: true }
-    });
-    if (!plantillaAnterior) return;
-
-    const emailRef = await this.resolverEmailInstancia(instanciaRaw.emailReferencia, instanciaRaw.usuarioId);
-    if (!emailRef) return;
-
-    const empresaId = instanciaRaw.actividad.iniciativa.empresaId;
-    const instanciaAnteriorFinalizada = await this.prisma.instanciaActividad.findFirst({
-      where: {
-        estado: 'finalizado',
-        actividad: { plantillaOrigenId: plantillaAnterior.id, iniciativa: { empresaId } },
-        OR: [{ emailReferencia: emailRef }, { usuario: { email: emailRef } }]
-      }
-    });
-
-    if (!instanciaAnteriorFinalizada) {
-      throw new ForbiddenException(`Debes completar primero la actividad "${plantillaAnterior.nombre}" antes de iniciar esta.`);
     }
   }
 
