@@ -90,9 +90,11 @@ Sigue estrictamente los pasos 1-8 de `sdd/workflows/new-req.md`:
 El usuario describe el REQ en una frase ("quiero un requisito para login con Google"). Tú:
 
 1. **Inferes al máximo** posible la información necesaria de esa frase + `docs/vision.md` + `docs/personas.md`.
-2. **Propones la estructura completa** del REQ con valores rellenos.
-3. **Preguntas solo lo que sea CRÍTICO** y no se puede inferir (ej. si no hay criterios de aceptación claros).
-4. **Ejecutas** una vez aprobado.
+2. **Ejecutas directamente** — crea los archivos sin pedir aprobación previa. No propongas, no esperes confirmación.
+3. **Preguntas solo lo BLOQUEANTE**: si no puedes inferir el dominio ni el título, pregunta una sola vez antes de empezar. Todo lo demás (criterios de aceptación, entidades, dependencias) lo infiere y lo pone en el `initial.md` — el usuario puede editarlo después.
+4. **Si el usuario ya hizo cambios en código sin REQ previo:** crea igualmente el REQ documentando lo que ya existe. No debatas si era correcto o no — solo documenta y continúa.
+
+**El comando SIEMPRE termina con archivos creados.** Nunca en modo pregunta indefinido.
 
 No interrogues. Complementa.
 
