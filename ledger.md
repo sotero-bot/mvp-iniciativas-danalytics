@@ -13,4 +13,4 @@
 | 2026-06-02 | REQ-009 | reverse-engineer | initial | e7245a7 | Documentación inicial por ingeniería inversa |
 | 2026-06-02 | REQ-010 | reverse-engineer | initial | e7245a7 | Documentación inicial por ingeniería inversa |
 | 2026-06-02 | REQ-011 | new-req | initial | c92d15f | Creación del requisito: Vista resumen y descarga del Canvas |
-| 2026-06-02 | REQ-011 | change-req | change-001 | — | Implementación completa — Vista resumen y descarga del Canvas |
+| 2026-06-02 | REQ-011 | change-req | change-001 | d1164de | Implementación completa — Vista resumen y descarga del Canvas |
