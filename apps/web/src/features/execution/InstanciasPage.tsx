@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
@@ -20,6 +20,7 @@ export function InstanciasPage() {
   const [formEnlace, setFormEnlace] = useState({ actividadId: '', nombre: '' });
   const [enlaceGenerado, setEnlaceGenerado] = useState<string | null>(null);
   const [generandoEnlace, setGenerandoEnlace] = useState(false);
+  const generandoEnlaceRef = useRef(false);
   const [wasValidated, setWasValidated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -81,6 +82,8 @@ export function InstanciasPage() {
   }, []);
 
   const generarEnlace = async () => {
+    if (generandoEnlaceRef.current) return;
+    generandoEnlaceRef.current = true;
     setGenerandoEnlace(true);
     setEnlaceGenerado(null);
     try {
@@ -103,6 +106,7 @@ export function InstanciasPage() {
     } catch (err: any) {
       alert('Error al generar el enlace: ' + err.message);
     } finally {
+      generandoEnlaceRef.current = false;
       setGenerandoEnlace(false);
     }
   };

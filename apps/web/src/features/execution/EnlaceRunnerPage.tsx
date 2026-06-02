@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -7,8 +7,12 @@ export function EnlaceRunnerPage() {
     const { token } = useParams<{ token: string }>();
     const navigate = useNavigate();
     const [error, setError] = useState('');
+    const hasStarted = useRef(false);
 
     useEffect(() => {
+        if (hasStarted.current) return;
+        hasStarted.current = true;
+
         const iniciarSesion = async () => {
             try {
                 const res = await fetch(`${API_URL}/execution/enlace/${token}/sesion`, {
