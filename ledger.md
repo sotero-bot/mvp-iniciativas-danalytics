@@ -12,3 +12,4 @@
 | 2026-06-02 | REQ-008 | reverse-engineer | initial | e7245a7 | Documentación inicial por ingeniería inversa |
 | 2026-06-02 | REQ-009 | reverse-engineer | initial | e7245a7 | Documentación inicial por ingeniería inversa |
 | 2026-06-02 | REQ-010 | reverse-engineer | initial | e7245a7 | Documentación inicial por ingeniería inversa |
+| 2026-06-02 | REQ-005 | change-req | change-001 | TBD | Filtros globales (empresa/actividad) en `/admin/instancias` |
