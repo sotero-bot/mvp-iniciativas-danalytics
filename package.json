@@ -18,7 +18,8 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.8"
   },
   "scripts": {
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",

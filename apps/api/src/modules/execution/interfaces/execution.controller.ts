@@ -15,6 +15,7 @@ import { FinalizarInstanciaPorTokenUseCase } from '../application/FinalizarInsta
 import { AsignarUsuarioPorTokenUseCase } from '../application/AsignarUsuarioPorTokenUseCase';
 import { IniciarSesionPorEnlaceUseCase } from '../application/IniciarSesionPorEnlaceUseCase';
 import { ConsultarIaPorTokenUseCase } from '../application/ConsultarIaPorTokenUseCase';
+import { SintetizarCanvasPorTokenUseCase } from '../application/SintetizarCanvasPorTokenUseCase';
 import { RunnerResponseDto, IniciarResponseDto, FinalizarResponseDto, RegistrarRespuestaDto } from './dtos';
 import { IdentificarResult } from '../application/AsignarUsuarioPorTokenUseCase';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
@@ -32,6 +33,7 @@ export class ExecutionController {
     private readonly identificarUseCase: AsignarUsuarioPorTokenUseCase,
     private readonly sesionPorEnlaceUseCase: IniciarSesionPorEnlaceUseCase,
     private readonly consultarIaUseCase: ConsultarIaPorTokenUseCase,
+    private readonly sintetizarCanvasUseCase: SintetizarCanvasPorTokenUseCase,
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
   ) { }
@@ -60,7 +62,8 @@ export class ExecutionController {
             orderBy: { orden: 'asc' },
             include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
           },
-          iniciativa: { include: { empresa: true } }
+          iniciativa: { include: { empresa: true } },
+          plantillaOrigen: true,
         }
       });
 
@@ -113,6 +116,8 @@ export class ExecutionController {
       // a su contenido inline, para que el runner no tenga que hacer fetch a S3 directamente.
       const promptInlineByPreguntaId = await this.resolverPromptsS3(actividad.pasos as any[]);
 
+      const esCanvas = ((actividad as any).plantillaOrigen?.nombre ?? '').includes('Analytics Canvas');
+
       return new RunnerResponseDto({
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
@@ -122,9 +127,11 @@ export class ExecutionController {
         tipoOrganizacionEmpresa: (actividad as any).iniciativa?.empresa?.tipoOrganizacion || undefined,
         logoEmpresa: (actividad as any).iniciativa?.empresa?.logoUrl || undefined,
         usuarioId: instancia.usuarioId,
+        esCanvas,
         pasos: actividad.pasos.map(p => ({
           id: p.id,
           titulo: p.titulo,
+          orden: p.orden,
           objetivo: p.objetivo || undefined,
           instrucciones: p.instrucciones || undefined,
           usarIa: p.usarIa,
@@ -155,6 +162,18 @@ export class ExecutionController {
         respuestas,
         plantillaAnterior: plantillaAnteriorData ?? undefined,
       });
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  @Post(':token/canvas')
+  @HttpCode(HttpStatus.OK)
+  async sintetizarCanvas(@Param('token') token: string): Promise<{ bloques: Record<string, string> }> {
+    try {
+      const bloques = await this.sintetizarCanvasUseCase.execute(token);
+      return { bloques };
     } catch (error) {
       this.handleError(error);
       throw error;

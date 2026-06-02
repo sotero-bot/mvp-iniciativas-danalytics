@@ -31,6 +31,7 @@ export class PreguntaDto {
 export class PasoRunnerDto {
   id: string;
   titulo: string;
+  orden: number;
   objetivo?: string;
   instrucciones?: string;
   usarIa?: boolean;
@@ -52,6 +53,7 @@ export class RunnerResponseDto {
   tipoOrganizacionEmpresa?: string;
   logoEmpresa?: string;
   usuarioId?: string;
+  esCanvas: boolean;
   pasos: PasoRunnerDto[];
   fechaInicio?: string;
   fechaFin?: string;

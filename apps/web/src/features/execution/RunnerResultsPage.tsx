@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { buildResumenHtml } from './buildResumenHtml';
+import { CanvasGrid } from './CanvasGrid';
+import { buildCanvasHtml } from './buildCanvasHtml';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -17,6 +19,7 @@ interface Pregunta {
 interface Paso {
     id: string;
     titulo: string;
+    orden: number;
     objetivo?: string;
     usarIa?: boolean;
     preguntas?: Pregunta[];
@@ -43,6 +46,8 @@ interface RunnerData {
     estado: string;
     nombreActividad: string;
     descripcionActividad?: string;
+    esCanvas: boolean;
+    nombreEmpresa?: string;
     pasos: Paso[];
     interacciones: Interaccion[];
     respuestas?: RespuestaPregunta[];
@@ -55,13 +60,32 @@ export function RunnerResultsPage() {
     const [data, setData] = useState<RunnerData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [canvasBloques, setCanvasBloques] = useState<Record<string, string>>({});
+    const [canvasLoading, setCanvasLoading] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const res = await fetch(`${API_URL}/execution/${token}`);
                 if (!res.ok) throw new Error('No se pudo cargar los resultados');
-                setData(await res.json());
+                const json: RunnerData = await res.json();
+                setData(json);
+
+                // Si es Analytics Canvas, cargar síntesis automáticamente
+                if (json.esCanvas) {
+                    setCanvasLoading(true);
+                    try {
+                        const canvasRes = await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+                        if (canvasRes.ok) {
+                            const canvasJson = await canvasRes.json();
+                            setCanvasBloques(canvasJson.bloques ?? {});
+                        }
+                    } catch {
+                        // No bloquear el render si falla la síntesis
+                    } finally {
+                        setCanvasLoading(false);
+                    }
+                }
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -109,6 +133,27 @@ export function RunnerResultsPage() {
         URL.revokeObjectURL(url);
     };
 
+    const handleDescargarCanvas = () => {
+        const fechaStr = data.fechaFin
+            ? new Date(data.fechaFin).toLocaleDateString('es-AR')
+            : new Date().toLocaleDateString('es-AR');
+        const html = buildCanvasHtml({
+            bloques: canvasBloques,
+            pasos: data.pasos.map(p => ({ id: p.id, titulo: p.titulo, orden: p.orden })),
+            empresa: data.nombreEmpresa || 'N/A',
+            area: 'N/A',
+            proyecto: data.nombreActividad,
+            fecha: fechaStr,
+        });
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `canvas-${data.nombreActividad.replace(/\s+/g, '-').toLowerCase()}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -132,19 +177,35 @@ export function RunnerResultsPage() {
                 <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
                     Decisión IA
                 </span>
-                <div style={{ justifySelf: 'end' }}>
-                    <button
-                        onClick={handleDescargar}
-                        style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '6px 14px', borderRadius: 8,
-                            background: '#2563EB', color: 'white',
-                            border: 'none', cursor: 'pointer',
-                            fontSize: '0.8rem', fontWeight: 600,
-                        }}
-                    >
-                        ⬇ Descargar HTML
-                    </button>
+                <div style={{ justifySelf: 'end', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {data.esCanvas ? (
+                        <button
+                            onClick={handleDescargarCanvas}
+                            disabled={canvasLoading || Object.keys(canvasBloques).length === 0}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                padding: '6px 14px', borderRadius: 8,
+                                background: canvasLoading ? '#94A3B8' : '#7C3AED', color: 'white',
+                                border: 'none', cursor: canvasLoading ? 'not-allowed' : 'pointer',
+                                fontSize: '0.8rem', fontWeight: 600,
+                            }}
+                        >
+                            {canvasLoading ? 'Generando...' : 'Descargar Canvas'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleDescargar}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                padding: '6px 14px', borderRadius: 8,
+                                background: '#2563EB', color: 'white',
+                                border: 'none', cursor: 'pointer',
+                                fontSize: '0.8rem', fontWeight: 600,
+                            }}
+                        >
+                            Descargar HTML
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -194,6 +255,26 @@ export function RunnerResultsPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Canvas Grid — solo si es Analytics Canvas */}
+                {data.esCanvas && (
+                    <div style={{
+                        background: 'white', borderRadius: 12, border: '1px solid var(--color-border)',
+                        padding: '2rem', marginBottom: '1.5rem',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
+                    }}>
+                        {canvasLoading ? (
+                            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem', padding: '2rem' }}>
+                                Generando síntesis IA...
+                            </div>
+                        ) : (
+                            <CanvasGrid
+                                bloques={canvasBloques}
+                                pasos={data.pasos.map(p => ({ id: p.id, titulo: p.titulo, orden: p.orden }))}
+                            />
+                        )}
+                    </div>
+                )}
 
                 {/* Steps */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
