@@ -26,6 +26,7 @@ import { AsignarUsuarioPorTokenUseCase } from './modules/execution/application/A
 import { GenerarEnlaceActividadUseCase } from './modules/execution/application/GenerarEnlaceActividadUseCase';
 import { IniciarSesionPorEnlaceUseCase } from './modules/execution/application/IniciarSesionPorEnlaceUseCase';
 import { ConsultarIaPorTokenUseCase } from './modules/execution/application/ConsultarIaPorTokenUseCase';
+import { SintetizarCanvasPorTokenUseCase } from './modules/execution/application/SintetizarCanvasPorTokenUseCase';
 import { InstanciarPlantillaUseCase } from './modules/methodology/application/InstanciarPlantillaUseCase';
 
 // Repositories
@@ -103,6 +104,11 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
       provide: ConsultarIaPorTokenUseCase,
       useFactory: (accederUseCase, prisma) => new ConsultarIaPorTokenUseCase(accederUseCase, prisma),
       inject: [AccederInstanciaPorTokenUseCase, PrismaService],
+    },
+    {
+      provide: SintetizarCanvasPorTokenUseCase,
+      useFactory: (prisma: PrismaService) => new SintetizarCanvasPorTokenUseCase(prisma),
+      inject: [PrismaService],
     },
     // Enlace multi-persona
     {

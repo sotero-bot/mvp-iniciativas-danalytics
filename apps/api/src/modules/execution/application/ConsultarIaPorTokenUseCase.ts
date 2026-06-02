@@ -82,9 +82,10 @@ export class ConsultarIaPorTokenUseCase {
             userMessage = 'Genera la respuesta solicitada siguiendo estrictamente las instrucciones del system prompt y el contexto de la empresa. No me pidas más información: usá todo lo que ya tenés.';
         }
 
+        const model = process.env.OPENAI_MODEL || 'gpt-4o';
         try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o',
+                model,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage }
@@ -93,7 +94,7 @@ export class ConsultarIaPorTokenUseCase {
             });
 
             console.log(
-                '[OpenAI] modelo solicitado: gpt-4o | modelo usado:', response.model,
+                `[OpenAI] modelo solicitado: ${model} | modelo usado:`, response.model,
                 '| finish_reason:', response.choices[0].finish_reason,
                 '| tokens:', JSON.stringify(response.usage),
             );

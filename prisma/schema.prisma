@@ -24,6 +24,7 @@ model InstanciaActividad {
   usuario         Usuario?      @relation(fields: [usuarioId], references: [id])
   interacciones   Interaccion[]
   respuestas      Respuesta[]
+  canvasBloques   CanvasBloque[]
 }
 
 model Interaccion {
@@ -177,6 +178,7 @@ model PasoActividad {
   interacciones   Interaccion[]
   actividad       Actividad     @relation(fields: [actividadId], references: [id])
   preguntas       PreguntaActividad[]
+  canvasBloques   CanvasBloque[]
 
   @@unique([actividadId, orden])
   @@index([actividadId])
@@ -249,4 +251,18 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   activo    Boolean  @default(true)
+}
+
+model CanvasBloque {
+  id          String             @id @default(uuid())
+  instanciaId String
+  pasoId      String
+  resumen     String             @db.Text
+  generadoEn  DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  instancia   InstanciaActividad @relation(fields: [instanciaId], references: [id])
+  paso        PasoActividad      @relation(fields: [pasoId], references: [id])
+
+  @@unique([instanciaId, pasoId])
+  @@index([instanciaId])
 }
