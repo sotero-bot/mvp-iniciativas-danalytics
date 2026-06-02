@@ -23,14 +23,46 @@ Recibes una descripción del REQ en lenguaje natural (puede venir directa del us
 4. Detectar dependencias con REQs existentes.
 5. Generar la carpeta completa del REQ.
 
-## Setup de git (antes de todo)
+## Setup de git (OBLIGATORIO — ejecutar antes de crear cualquier archivo)
 
-Si el proyecto está versionado con git (`git rev-parse --git-dir` retorna sin error):
-1. Verificar árbol limpio. Si hay cambios sin commitear, preguntar al usuario.
-2. Asegurar estar en rama base (`main`).
-3. Crear y cambiar a `req/<REQ-ID>-<slug>` antes de crear archivos.
+1. Detectar si hay git:
 
-Si NO hay git, saltar este setup. Ver `sdd/workflows/new-req.md` sección "Setup de git".
+   ```bash
+   git rev-parse --git-dir 2>/dev/null
+   ```
+
+   - Si el comando falla → no hay git. Saltar al siguiente bloque.
+   - Si el comando tiene éxito → continuar con los pasos siguientes.
+
+2. Verificar árbol limpio:
+
+   ```bash
+   git status --porcelain
+   ```
+
+   Si hay cambios sin commitear, preguntar al usuario antes de continuar.
+
+3. Detectar rama base real del repositorio:
+
+   ```bash
+   git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'
+   ```
+
+   Si no hay remote, usar `git branch --show-current`. Usar ese nombre como rama base.
+
+4. Hacer checkout a la rama base:
+
+   ```bash
+   git checkout <rama-base>
+   ```
+
+5. Crear y cambiar a la rama del REQ (usar el ID calculado en Paso 2 de los pasos abajo):
+   ```bash
+   git checkout -b req/<REQ-ID>-<slug>
+   ```
+   Si la rama ya existe, preguntar al usuario (¿continuar en ella o abortar?).
+
+**Todos los archivos creados en los pasos siguientes van en esta rama.**
 
 ## Pasos
 

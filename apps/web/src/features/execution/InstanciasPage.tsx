@@ -29,6 +29,8 @@ export function InstanciasPage() {
   // Datatable
   const [search, setSearch] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  const [filterEmpresa, setFilterEmpresa] = useState('');
+  const [filterActividad, setFilterActividad] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -118,6 +120,30 @@ export function InstanciasPage() {
     window.location.href = `${API_URL}/admin/instancias/${instanciaId}/zip`;
   };
 
+  // Opciones únicas para filtros globales
+  const empresaOptions = useMemo(() => {
+    const set = new Set<string>();
+    instancias.forEach(i => { if (i.actividad?.iniciativa?.empresa?.nombre) set.add(i.actividad.iniciativa.empresa.nombre); });
+    enlaces.forEach(e => { if (e.actividad?.iniciativa?.empresa?.nombre) set.add(e.actividad.iniciativa.empresa.nombre); });
+    return [...set].sort();
+  }, [instancias, enlaces]);
+
+  const actividadOptions = useMemo(() => {
+    const set = new Set<string>();
+    instancias.forEach(i => { if (i.actividad?.nombre) set.add(i.actividad.nombre); });
+    enlaces.forEach(e => { if (e.actividad?.nombre) set.add(e.actividad.nombre); });
+    return [...set].sort();
+  }, [instancias, enlaces]);
+
+  // Filtros globales aplicados a enlaces
+  const filteredEnlaces = useMemo(() => {
+    return enlaces.filter(e => {
+      const matchEmpresa = !filterEmpresa || e.actividad?.iniciativa?.empresa?.nombre === filterEmpresa;
+      const matchActividad = !filterActividad || e.actividad?.nombre === filterActividad;
+      return matchEmpresa && matchActividad;
+    });
+  }, [enlaces, filterEmpresa, filterActividad]);
+
   // Datatable logic
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -129,9 +155,11 @@ export function InstanciasPage() {
         ins.emailReferencia?.toLowerCase().includes(q) ||
         ins.actividad?.plantillaOrigen?.nombre?.toLowerCase().includes(q);
       const matchEstado = !filterEstado || ins.estado === filterEstado;
-      return matchSearch && matchEstado;
+      const matchEmpresa = !filterEmpresa || ins.actividad?.iniciativa?.empresa?.nombre === filterEmpresa;
+      const matchActividad = !filterActividad || ins.actividad?.nombre === filterActividad;
+      return matchSearch && matchEstado && matchEmpresa && matchActividad;
     });
-  }, [instancias, search, filterEstado]);
+  }, [instancias, search, filterEstado, filterEmpresa, filterActividad]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -205,6 +233,39 @@ export function InstanciasPage() {
         </div>
       </div>
 
+      {/* ── Filtros globales ── */}
+      {(empresaOptions.length > 0 || actividadOptions.length > 0) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+          <select
+            className="input"
+            style={{ maxWidth: 200, fontSize: '0.82rem' }}
+            value={filterEmpresa}
+            onChange={e => { setFilterEmpresa(e.target.value); setPage(1); }}
+          >
+            <option value="">Todas las empresas</option>
+            {empresaOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select
+            className="input"
+            style={{ maxWidth: 220, fontSize: '0.82rem' }}
+            value={filterActividad}
+            onChange={e => { setFilterActividad(e.target.value); setPage(1); }}
+          >
+            <option value="">Todas las actividades</option>
+            {actividadOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          {(filterEmpresa || filterActividad) && (
+            <button
+              className="btn btn-secondary"
+              style={{ fontSize: '0.78rem', padding: '0.375rem 0.75rem' }}
+              onClick={() => { setFilterEmpresa(''); setFilterActividad(''); setPage(1); }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ── Sección 1: Generar enlace ── */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
@@ -274,7 +335,7 @@ export function InstanciasPage() {
             <span style={{
               background: '#EDE9FE', color: '#6D28D9', border: '1px solid #DDD6FE',
               borderRadius: 9999, padding: '1px 8px', fontSize: '0.7rem', fontWeight: 600,
-            }}>{enlaces.length}</span>
+            }}>{filteredEnlaces.length}</span>
           </div>
 
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -290,7 +351,11 @@ export function InstanciasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {enlaces.map((e: any) => {
+                  {filteredEnlaces.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
+                      No hay enlaces para los filtros aplicados.
+                    </td></tr>
+                  ) : filteredEnlaces.map((e: any) => {
                     const url = `${window.location.origin}/runner/enlace/${e.accessToken}`;
                     return (
                       <tr key={e.id}>
@@ -533,7 +598,7 @@ export function InstanciasPage() {
                 {paginated.length === 0 && (
                   <tr>
                     <td colSpan={7}>
-                      {search || filterEstado ? (
+                      {search || filterEstado || filterEmpresa || filterActividad ? (
                         <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
                           No hay resultados para los filtros aplicados.
                         </div>

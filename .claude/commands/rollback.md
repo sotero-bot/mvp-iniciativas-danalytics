@@ -14,6 +14,7 @@ description: Revierte un change aplicado. Operación destructiva — checkpoint 
 ## Tu rol
 
 Revertir el último (o N últimos) change(s) de un REQ. Esto implica:
+
 - `git revert` de commits asociados.
 - Ejecutar migración inversa.
 - Actualizar `INDEX.md` apuntando a la versión objetivo.
@@ -72,26 +73,30 @@ a. **(Si hay git)** Crear rama: `git checkout -b rollback/<REQ-ID>-to-<version-o
 b. `git revert <commits>` (orden inverso a creación).
 c. Ejecutar migración inversa.
 d. Actualizar `INDEX.md`:
-   - `current_state` → versión objetivo.
-   - **Reescribir "Estado consolidado actual"** reflejando el estado de la versión objetivo.
-   - Añadir nota: "Rollback aplicado YYYY-MM-DD desde change-NNN por motivo X. Ver `change-NNN.md` para detalles del cambio revertido."
-e. **NO borrar** el `change-NNN.md` revertido. Marcarlo con un nuevo banner al inicio del cuerpo:
-   ```
-   > ⚠️ **REVERTIDO.** Este change fue aplicado y posteriormente revertido el YYYY-MM-DD. Ver INDEX.md para el estado actual.
-   ```
+
+- `current_state` → versión objetivo.
+- **Reescribir "Estado consolidado actual"** reflejando el estado de la versión objetivo.
+- Añadir nota: "Rollback aplicado YYYY-MM-DD desde change-NNN por motivo X. Ver `change-NNN.md` para detalles del cambio revertido."
+  e. **NO borrar** el `change-NNN.md` revertido. Marcarlo con un nuevo banner al inicio del cuerpo:
+
+```
+> ⚠️ **REVERTIDO.** Este change fue aplicado y posteriormente revertido el YYYY-MM-DD. Ver INDEX.md para el estado actual.
+```
+
 f. Añadir fila tipo `rollback` en `ledger.md` global y en `ledger.md` del REQ.
 g. **(Si hay git)** Commit: `git commit -m "revert(REQ-<ID>): rollback de change-<NNN> a <objetivo>"`. Próximo: push + PR de emergencia. Tras mergear: `/cleanup-branches`.
 
 ### 6. Si el rollback fue por bug en producción
 
 Ofrecer al usuario:
+
 > El rollback se hizo porque el cambio rompía algo en producción. ¿Quieres que cree un `ERR-NNN.md` ahora con la causa raíz? [Sí / No / Después]
 
 Si sí, derivar a la skill `sdd-classify-issue` o crear el ERR directamente con categoría `regresion`.
 
 ## Modo de operación
 
-Operación de **emergencia**. El usuario dice algo como *"revierte el último cambio de auth"*:
+Operación de **emergencia**. El usuario dice algo como _"revierte el último cambio de auth"_:
 
 1. Muestras el plan completo **antes de tocar nada**.
 2. AVISO explícito si hay pérdida de datos.

@@ -15,18 +15,46 @@ description: EL flujo crítico de SDD. Orquesta 3 subagentes (planner → review
 
 Eres **ORQUESTADOR**. NO haces tú el análisis, ni la revisión, ni la implementación. Coordinas a los 3 subagentes y gestionas los 2 checkpoints humanos.
 
-## Setup de git (preámbulo)
+## Setup de git (OBLIGATORIO — ejecutar antes de fase 1)
 
-Antes de la fase 1, detectar git:
-- `git rev-parse --git-dir 2>/dev/null` → si retorna sin error, hay git.
-- **Si hay git:** verificar árbol limpio + estar en rama base. NO crear rama todavía (el planner es read-only). La rama se crea en paso 7, cuando ya sabemos REQ principal + NNN del change.
-- **Si NO hay git:** saltar todo el flujo de ramas. Las modificaciones van directo al filesystem y NO hay commits.
+1. Detectar git:
+
+   ```bash
+   git rev-parse --git-dir 2>/dev/null
+   ```
+
+   - Si falla → no hay git. Saltar todo el flujo de ramas.
+   - Si tiene éxito → continuar.
+
+2. Verificar árbol limpio:
+
+   ```bash
+   git status --porcelain
+   ```
+
+   Si hay cambios sin commitear, preguntar al usuario antes de continuar.
+
+3. Detectar rama base real:
+
+   ```bash
+   git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'
+   ```
+
+   Si no hay remote, usar `git branch --show-current`. Guardar como `<rama-base>`.
+
+4. Hacer checkout a la rama base:
+   ```bash
+   git checkout <rama-base>
+   ```
+
+**NO crear rama todavía** — el planner es read-only. La rama se crea en paso 7, cuando ya se conoce REQ principal + NNN del change.
 
 ## Flujo
 
 ### Fase 1 — Planner
 
 Invoca al subagente `planner` con la descripción del cambio del usuario:
+
 ```
 Cambio solicitado: $ARGUMENTS
 ```
@@ -34,6 +62,7 @@ Cambio solicitado: $ARGUMENTS
 Recibes del planner: grafo de impacto + Delta Specs borrador + riesgos.
 
 **Importante:** si el planner reporta que el problema es en realidad un **bug** (corrección de error, no cambio de requisito), detén el flujo y deriva:
+
 > Esto parece una corrección de error, no un cambio de requisito.
 > Sugerencia: usa la skill `sdd-classify-issue` o crea un `ERR-NNN.md` siguiendo `sdd/concepts/error-management.md`.
 
@@ -72,12 +101,14 @@ Presenta al usuario un resumen compacto:
 
 Espera respuesta EXPLÍCITA del usuario.
 
-**Si APROBAR:** ejecuta los cambios de papel:
-0. **(Si hay git)** Crear rama ahora que conocemos REQ principal + NNN:
-   ```
-   git checkout -b req/<REQ-ID>-change-<NNN>-<slug>
-   ```
-   (Multi-REQ: `req/<PRIMARY-REQ-ID>-change-<NNN>-multi-<slug>`.)
+**Si APROBAR:** ejecuta los cambios de papel: 0. **(Si hay git)** Crear rama ahora que conocemos REQ principal + NNN:
+
+```
+git checkout -b req/<REQ-ID>-change-<NNN>-<slug>
+```
+
+(Multi-REQ: `req/<PRIMARY-REQ-ID>-change-<NNN>-multi-<slug>`.)
+
 1. Crear `change-NNN.md` en cada REQ afectado (formato Delta Spec — `sdd/templates/change.md`).
 2. **Reescribir la sección "Estado consolidado actual"** del `INDEX.md` de cada REQ con el comportamiento completo tras aplicar el delta. NO basta con cambiar `current_state`.
 3. Marcar el `change-NNN.md` anterior como `status: superseded`, añadir `superseded_by: <nuevo>` en su frontmatter, e insertar banner ⚠️ al inicio del cuerpo.
@@ -119,7 +150,8 @@ Presenta al usuario:
 Marca el checklist a ojo y aprueba para commit. [COMMIT / AJUSTAR / ABORTAR]
 ```
 
-**Si COMMIT:** 
+**Si COMMIT:**
+
 1. Actualizar status del REQ a `implementado` en INDEX.
 2. Actualizar status del `change-NNN.md` aprobado a `implementado`.
 3. **(Si hay git)** Commit del código sobre la misma rama:
