@@ -109,6 +109,10 @@ export class ExecutionController {
         fecha: r.fecha.toISOString(),
       })));
 
+      // Resolver prompts que vivan en S3 (urlPromptTemplate que NO empieza con '/')
+      // a su contenido inline, para que el runner no tenga que hacer fetch a S3 directamente.
+      const promptInlineByPreguntaId = await this.resolverPromptsS3(actividad.pasos as any[]);
+
       return new RunnerResponseDto({
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
@@ -141,6 +145,7 @@ export class ExecutionController {
             promptIa: q.promptIa || undefined,
             urlPlantilla: q.urlPlantilla || undefined,
             urlPromptTemplate: q.urlPromptTemplate || undefined,
+            promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
           })) ?? [],
         })),
         fechaInicio: instancia.fechaInicio?.toISOString(),
@@ -498,6 +503,36 @@ export class ExecutionController {
         contenidoArchivo: i.contenidoArchivo ?? undefined,
       }))
     };
+  }
+
+  /**
+   * Para cada pregunta con `urlPromptTemplate` que apunte a una key S3
+   * (cualquier valor que NO empiece con '/'), descarga el objeto y devuelve
+   * un mapa preguntaId → texto del prompt. Falla silenciosamente por pregunta
+   * para no romper toda la carga si un objeto está corrupto.
+   */
+  private async resolverPromptsS3(pasos: Array<{ preguntas?: Array<{ id: string; urlPromptTemplate?: string | null }> }>): Promise<Record<string, string>> {
+    if (!this.s3.isConfigured) return {};
+    const tareas: Array<Promise<[string, string] | null>> = [];
+    for (const paso of pasos) {
+      for (const q of (paso.preguntas ?? [])) {
+        const key = q.urlPromptTemplate;
+        if (key && !key.startsWith('/')) {
+          tareas.push(
+            this.s3.getObjectBuffer(key)
+              .then(buf => [q.id, buf.toString('utf-8')] as [string, string])
+              .catch(err => {
+                console.error(`[ExecutionController] No se pudo leer prompt S3 ${key}:`, err);
+                return null;
+              })
+          );
+        }
+      }
+    }
+    const resultados = await Promise.all(tareas);
+    const mapa: Record<string, string> = {};
+    for (const r of resultados) if (r) mapa[r[0]] = r[1];
+    return mapa;
   }
 
   private async resolverEmailInstancia(emailReferencia: string | undefined, usuarioId: string | undefined): Promise<string | undefined> {

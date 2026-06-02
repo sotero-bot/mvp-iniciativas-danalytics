@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read(**/*)",
+      "Glob(**/*)",
+      "Grep(**/*)",
+      "Edit(requirements/**)",
+      "Edit(database/schema.sql)",
+      "Edit(database/migrations/**)",
+      "Edit(brand/**)",
+      "Edit(decisions/**)",
+      "Edit(docs/**)",
+      "Edit(ledger.md)",
+      "Write(requirements/**)",
+      "Write(database/schema.sql)",
+      "Write(database/migrations/**)",
+      "Write(brand/**)",
+      "Write(decisions/**)",
+      "Write(docs/**)",
+      "Write(ledger.md)",
+      "Bash(git status)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git revert:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:*)",
+      "Bash(pytest:*)",
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(alembic upgrade head)",
+      "Bash(alembic downgrade:*)"
+    ],
+    "ask": [
+      "Edit(.claude/**)",
+      "Edit(sdd/**)",
+      "Edit(requisitos.md)",
+      "Edit(CLAUDE.md)",
+      "Edit(database/diagram.mmd)",
+      "Edit(requirements/**/initial.md)",
+      "Write(.claude/**)",
+      "Write(sdd/**)",
+      "Write(requisitos.md)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(prisma migrate reset:*)",
+      "Bash(alembic downgrade base:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(rm -rf:*)",
+      "Edit(database/diagram.mmd)",
+      "Write(database/diagram.mmd)"
+    ]
+  },
+  "notes": [
+    "diagram.mmd está en 'deny' porque es autogenerado — solo CI o /sync-schema lo regeneran.",
+    "initial.md está en 'ask' porque NUNCA debería modificarse (regla dura #1). Si pasa, requiere aprobación humana explícita.",
+    "git commit está en 'ask' para forzar el checkpoint humano del flujo /change-req.",
+    "Este archivo es el template. El usuario puede ajustar según las necesidades específicas de su proyecto."
+  ]
+}

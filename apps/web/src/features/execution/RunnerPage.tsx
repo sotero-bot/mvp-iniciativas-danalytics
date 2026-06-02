@@ -20,6 +20,8 @@ interface Pregunta {
   promptIa?: string;
   urlPlantilla?: string;
   urlPromptTemplate?: string;
+  /** Texto del prompt ya resuelto por el backend cuando urlPromptTemplate apunta a S3. */
+  promptIaInline?: string;
 }
 
 interface Paso {
@@ -296,12 +298,20 @@ export function RunnerPage() {
   const iaEditorRefs = useRef<Record<string, WysiwygEditorHandle | null>>({});
   const autoIaRunRef = useRef<Set<string>>(new Set());
   const rawTemplatesRef = useRef<Record<string, string>>({});
+  const autoIniciarFiredRef = useRef(false);
 
   async function prefetchTemplates(pasos: Paso[]): Promise<void> {
     const fetches: Promise<void>[] = [];
     for (const paso of pasos) {
       for (const q of (paso.preguntas ?? [])) {
-        if (q.urlPromptTemplate && !rawTemplatesRef.current[q.id]) {
+        if (rawTemplatesRef.current[q.id]) continue;
+        // Si el backend ya resolvió el prompt (S3), lo usamos directo sin fetch.
+        if (q.promptIaInline) {
+          rawTemplatesRef.current[q.id] = q.promptIaInline;
+          continue;
+        }
+        // Fallback: path local (/templates/...) — fetch directo.
+        if (q.urlPromptTemplate && q.urlPromptTemplate.startsWith('/')) {
           fetches.push(
             fetch(q.urlPromptTemplate)
               .then(r => r.text())
@@ -315,7 +325,7 @@ export function RunnerPage() {
   }
 
   function getBasePrompt(q: Pregunta): string | null {
-    if (q.urlPromptTemplate && rawTemplatesRef.current[q.id]) {
+    if (rawTemplatesRef.current[q.id]) {
       return rawTemplatesRef.current[q.id];
     }
     return q.promptIa ?? null;
@@ -462,6 +472,20 @@ export function RunnerPage() {
       setLoading(false);
     }
   };
+
+  // Auto-iniciar la actividad cuando el participante ya está identificado y la instancia
+  // todavía no se ha arrancado: salta el splash de "Comenzar actividad".
+  useEffect(() => {
+    if (
+      data?.estado === 'generado' &&
+      data?.usuarioId &&
+      !autoIniciarFiredRef.current
+    ) {
+      autoIniciarFiredRef.current = true;
+      handleIniciar();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.estado, data?.usuarioId]);
 
   const handleIdentificar = async () => {
     setLoading(true);
@@ -787,11 +811,8 @@ export function RunnerPage() {
                 </button>
               </form>
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                <button className="btn btn-primary" onClick={handleIniciar} disabled={loading}
-                  style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem' }}>
-                  {loading ? 'Iniciando...' : 'Comenzar actividad →'}
-                </button>
+              <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                Iniciando actividad...
               </div>
             )}
           </div>

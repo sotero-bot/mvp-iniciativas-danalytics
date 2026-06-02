@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
+import { S3Service } from '../../storage/S3Service';
 
 @Controller('admin/plantillas/:plantillaId/pasos')
 export class AdminPlantillaPasosController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
   ) {}
 
   @Get()
@@ -163,5 +165,79 @@ export class AdminPlantillaPasosController {
     const count = await this.prisma.preguntaPlantilla.count({ where: { pasoId, activo: true } });
     if (count <= 1) throw new BadRequestException('Un paso debe tener al menos una pregunta');
     await this.prisma.preguntaPlantilla.update({ where: { id: preguntaId }, data: { activo: false } });
+  }
+
+  // ── Prompt template (S3) por pregunta ────────────────────────────────────────
+
+  /** Presigned PUT URL para subir el .md de prompt de una pregunta */
+  @Post(':pasoId/preguntas/:preguntaId/presign-prompt')
+  @HttpCode(HttpStatus.OK)
+  async presignPrompt(
+    @Param('preguntaId') preguntaId: string,
+    @Body() body: { filename: string; contentType: string },
+  ): Promise<{ uploadUrl: string; key: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const pregunta = await this.prisma.preguntaPlantilla.findUnique({
+      where: { id: preguntaId },
+      include: { paso: { include: { plantilla: true } } },
+    });
+    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+
+    const plantillaSlug = S3Service.slugifyPathSegment(pregunta.paso.plantilla.nombre) || 'plantilla';
+    const prefix = `plantillas/${plantillaSlug}/paso_${pregunta.paso.orden}/pregunta_${pregunta.orden}/prompt`;
+    const key = this.s3.generateKey(prefix, body.filename);
+    const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
+    return { uploadUrl, key };
+  }
+
+  /** Graba el valor de urlPromptTemplate en BD (key S3 o path /templates/...) */
+  @Patch(':pasoId/preguntas/:preguntaId/prompt-template')
+  @HttpCode(HttpStatus.OK)
+  async setPromptTemplate(
+    @Param('preguntaId') preguntaId: string,
+    @Body() body: { urlPromptTemplate: string },
+  ): Promise<{ urlPromptTemplate: string | null }> {
+    const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
+    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    const anterior = pregunta.urlPromptTemplate;
+    const nuevo = body.urlPromptTemplate || null;
+    await this.prisma.preguntaPlantilla.update({
+      where: { id: preguntaId },
+      data: { urlPromptTemplate: nuevo },
+    });
+    // Si la key anterior era S3 y cambió, borrar el objeto huérfano
+    if (anterior && !anterior.startsWith('/') && anterior !== nuevo) {
+      try { await this.s3.deleteObject(anterior); } catch (err) {
+        console.error(`[AdminPlantillaPasosController] Error eliminando prompt anterior ${anterior}:`, err);
+      }
+    }
+    return { urlPromptTemplate: nuevo };
+  }
+
+  /** Elimina el prompt template (S3 + BD) */
+  @Delete(':pasoId/preguntas/:preguntaId/prompt-template')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePromptTemplate(@Param('preguntaId') preguntaId: string): Promise<void> {
+    const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
+    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    const key = pregunta.urlPromptTemplate;
+    await this.prisma.preguntaPlantilla.update({ where: { id: preguntaId }, data: { urlPromptTemplate: null } });
+    if (key && !key.startsWith('/')) {
+      try { await this.s3.deleteObject(key); } catch (err) {
+        console.error(`[AdminPlantillaPasosController] Error eliminando prompt ${key}:`, err);
+      }
+    }
+  }
+
+  /** Presigned GET URL para descargar/previsualizar el prompt (admin) */
+  @Get(':pasoId/preguntas/:preguntaId/prompt-url')
+  async promptUrl(@Param('preguntaId') preguntaId: string): Promise<{ url: string }> {
+    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
+    if (!pregunta?.urlPromptTemplate || pregunta.urlPromptTemplate.startsWith('/')) {
+      throw new NotFoundException('La pregunta no tiene prompt en S3');
+    }
+    const url = await this.s3.getPresignedGetUrl(pregunta.urlPromptTemplate);
+    return { url };
   }
 }

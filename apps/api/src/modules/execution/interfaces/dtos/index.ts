@@ -23,6 +23,9 @@ export class PreguntaDto {
   promptIa?: string;
   urlPlantilla?: string;
   urlPromptTemplate?: string;
+  /** Texto del prompt resuelto cuando urlPromptTemplate apunta a S3.
+   *  Si el campo viene seteado, el runner debe usarlo directamente sin hacer fetch. */
+  promptIaInline?: string;
 }
 
 export class PasoRunnerDto {

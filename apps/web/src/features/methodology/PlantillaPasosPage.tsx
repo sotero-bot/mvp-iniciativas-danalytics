@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { PromptTemplateField } from '../../components/PromptTemplateField';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -335,6 +336,7 @@ export function PlantillaPasosPage() {
                                 isEditing
                                 onSave={(e) => handleSavePregunta(p.id, e)}
                                 onCancel={cancelPregunta}
+                                promptApiBase={`${API_URL}/admin/plantillas/${id}/pasos/${p.id}/preguntas/${q.id}`}
                               />
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
@@ -378,6 +380,7 @@ export function PlantillaPasosPage() {
                       isEditing={false}
                       onSave={(e) => handleSavePregunta(p.id, e)}
                       onCancel={cancelPregunta}
+                      promptApiBase={null}
                     />
                   )}
 
@@ -406,9 +409,11 @@ interface PreguntaFormProps {
   isEditing: boolean;
   onSave: (e: React.FormEvent) => void;
   onCancel: () => void;
+  /** Base URL del endpoint REST de la pregunta. Null cuando aún no está guardada. */
+  promptApiBase: string | null;
 }
 
-function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel }: PreguntaFormProps) {
+function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel, promptApiBase }: PreguntaFormProps) {
   return (
     <div style={{ border: '1px solid var(--color-primary)', borderRadius: 8, padding: '1rem', background: '#fafbff' }}>
       <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>
@@ -498,9 +503,11 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
                 <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
                   Template de prompt (.md) <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional — reemplaza el prompt inline)</span>
                 </label>
-                <input className="input" value={form.urlPromptTemplate}
-                  onChange={e => setForm({ ...form, urlPromptTemplate: e.target.value })}
-                  placeholder="Ej: /templates/mapa_de_oportunidades_prompt.md" />
+                <PromptTemplateField
+                  value={form.urlPromptTemplate}
+                  onChange={(v) => setForm({ ...form, urlPromptTemplate: v })}
+                  apiBase={promptApiBase}
+                />
               </div>
               <div style={{ marginTop: '0.5rem' }}>
                 <label className="required-label">Prompt IA</label>
