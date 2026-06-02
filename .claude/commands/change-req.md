@@ -1,29 +1,29 @@
 ---
-description: EL flujo crítico de SDD. Orquesta 3 subagentes (planner → reviewer → implementer) con 2 checkpoints humanos. Cualquier cambio funcional pasa por aquí.
+description: EL flujo crítico de SDD. Analiza impacto, propone Delta Specs, espera aprobación, implementa. 2 checkpoints humanos. Cualquier cambio funcional pasa por aquí.
 ---
 
-# /change-req — Cambio con flujo de 3 agentes
+# /change-req — Modificar un requisito
 
 ## Tu rol
 
-Eres **ORQUESTADOR**. No haces el análisis, la revisión ni la implementación — coordinas 3 subagentes en serie y gestionas 2 checkpoints humanos. El comando termina siempre con archivos escritos y commit creado (si hay git).
+Recibir una descripción de cambio en lenguaje natural, analizar su impacto en los REQs, proponer los archivos a modificar, esperar aprobación, e implementar. El comando termina siempre con archivos escritos y commit creado (si hay git).
 
 ---
 
-## PASO 0 — Setup de git (OBLIGATORIO antes de invocar al planner)
+## PASO 0 — Setup de git
 
 ```bash
 git rev-parse --git-dir 2>/dev/null
 ```
 
-- **Si falla** → no hay git. Continuar sin flujo de ramas.
-- **Si tiene éxito** → ejecutar:
+- **Si falla** → no hay git. Continuar sin ramas.
+- **Si tiene éxito:**
 
 ```bash
 git status --porcelain
 ```
 
-Si hay cambios sin commitear, preguntar al usuario antes de continuar.
+Si hay cambios sin commitear, preguntar al usuario (stash / continuar / abortar).
 
 ```bash
 git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'
@@ -35,82 +35,89 @@ Si no devuelve nada, usar `git branch --show-current`. Guardar como `<rama-base>
 git checkout <rama-base>
 ```
 
-> **NO crear rama todavía.** El planner es read-only. La rama se crea en el Paso 3 cuando ya se conoce REQ principal + NNN del change.
+> La rama se crea después del Checkpoint 1, cuando ya se conoce REQ principal + NNN.
 
 ---
 
-## PASO 1 — Planner (subagente, contexto aislado)
+## PASO 1 — Leer contexto del proyecto
 
-Invocar al subagente `planner` pasándole ÚNICAMENTE:
-
-```
-Cambio solicitado: <descripción del usuario>
-```
-
-El planner debe:
-
-1. Cargar `ledger.md` global + `docs/` (contexto del proyecto).
-2. Cargar `INDEX.md` de TODOS los REQs (solo sección "Estado consolidado actual" + dependencias).
-3. Identificar REQs directamente afectados + REQs indirectos vía `needed_by`.
-4. Cargar `manifest.md` de los REQs impactados (para identificar archivos de código).
-5. Devolver: grafo de impacto + borrador de `change-NNN.md` por REQ + riesgos.
-
-**Si el planner reporta que el problema es un bug** (no un cambio de requisito):
-
-> Esto parece una corrección de error, no un cambio de requisito.
-> Usa `sdd-classify-issue` o crea un `ERR-NNN.md` en el REQ afectado.
-> Abortar `/change-req`.
+1. Leer `ledger.md` global.
+2. Leer el `INDEX.md` de cada REQ en `requirements/` — solo frontmatter + sección "Estado consolidado actual" + campo `dependencies`.
+3. Para los REQs que parezcan relacionados con el cambio, leer también su `manifest.md`.
 
 ---
 
-## PASO 2 — Reviewer (subagente, contexto aislado)
+## PASO 2 — Analizar impacto
 
-Invocar al subagente `reviewer` pasándole ÚNICAMENTE el output del planner. NO pasarle contexto adicional ni INDEX.md crudos.
+Determinar:
 
-El reviewer debe buscar:
+- **REQs directamente afectados:** tocan entidades, componentes o comportamientos que el cambio modifica.
+- **REQs indirectos:** tienen `needed_by` apuntando a un REQ afectado.
+- **Entidades de BD que cambian.**
+- **Archivos de código a modificar** (de los `manifest.md` leídos).
+- **Migraciones necesarias** (describir qué cambia en el schema, sin generar SQL todavía).
 
-- Contradicciones entre Delta Specs propuestos.
-- Dependencias circulares.
-- REQs implícitamente afectados que el planner pasó por alto.
-- Riesgos de regresión en REQs `needed_by`.
+**Verificar si es bug o cambio de requisito:**
 
-Devuelve: `APROBAR` | `APROBAR_CON_OBSERVACIONES` | `RECHAZAR` + observaciones.
+> "¿La promesa que le hicimos al usuario sigue válida?"
+
+- Si sí y el código está mal → es un **bug**. Detener y decirle al usuario: _"Esto parece un bug, no un cambio de requisito. Descríbelo como error y usaré `sdd-classify-issue`."_
+- Si no → es un **cambio de requisito**. Continuar.
 
 ---
 
-## CHECKPOINT 1 — Humano (papel)
+## PASO 3 — Calcular NNN del change
+
+Para el REQ principal afectado: listar `change-NNN.md` existentes en su carpeta y tomar el siguiente número disponible.
+
+---
+
+## CHECKPOINT 1 — Aprobación del plan (papel)
 
 Presentar al usuario:
 
 ```
-## Cambio propuesto
-[Descripción en lenguaje natural]
+## Cambio propuesto: <título inferido>
 
-## Impacto detectado
-- REQs afectados: [lista]
-- Entidades BD: [lista]
-- Archivos de código: ~N archivos
+### REQs afectados
+- <REQ-ID>: <razón en una línea>
 
-## Delta Specs propuestos
-[Resumen de uno por REQ — ADDED/MODIFIED/REMOVED]
+### Delta Specs propuestos
 
-## Veredicto del reviewer
-[APROBAR / APROBAR_CON_OBSERVACIONES / RECHAZAR]
-[Observaciones si las hay]
+#### <REQ-ID> — change-<NNN>
+ADDED:
+- <ítem nuevo, si hay>
+
+MODIFIED:
+- <antes> → <después>
+
+REMOVED:
+- <ítem eliminado, si hay>
+
+### Entidades BD
+<Lista de tablas/modelos que cambian. "Ninguna" si no aplica.>
+
+### Migraciones
+<Descripción de qué cambia en el schema. "Ninguna" si no aplica.>
+⚠️ DESTRUCTIVA si aplica (drop, alter con pérdida de datos).
+
+### Archivos de código a tocar
+- <path/archivo.ext> — <razón>
 
 ---
 ¿Procedo? [APROBAR / AJUSTAR / ABORTAR]
 ```
 
-Esperar respuesta **explícita** del usuario. No continuar sin ella.
+**Esperar respuesta explícita.** No continuar hasta recibir "APROBAR" o equivalente.
+
+Si el usuario pide ajustes: corregir el plan y volver a presentar el checkpoint.
+Si aborta: informar estado y detenerse.
 
 ---
 
-## PASO 3 — Aplicar cambios de papel (solo si el usuario aprobó)
+## PASO 4 — Aplicar cambios de papel (tras APROBAR)
 
-### 3a. Crear rama git (si hay git)
-
-Calcular NNN del nuevo change: listar `change-NNN.md` existentes en el REQ principal y tomar el siguiente número.
+### 4a. Crear rama git (si hay git)
 
 ```bash
 git checkout -b req/<REQ-ID>-change-<NNN>-<slug>
@@ -118,9 +125,7 @@ git checkout -b req/<REQ-ID>-change-<NNN>-<slug>
 
 Multi-REQ: `req/<PRIMARY-REQ-ID>-change-<NNN>-multi-<slug>`
 
-### 3b. Crear `change-NNN.md` en cada REQ afectado
-
-Formato exacto:
+### 4b. Crear `change-NNN.md` en cada REQ afectado
 
 ```markdown
 ---
@@ -129,36 +134,36 @@ req_id: <REQ-ID>
 title: <Título del cambio>
 status: aprobado
 created: <fecha-hoy>
-supersedes: change-<NNN-anterior> (o "initial" si es el primero)
+supersedes: <change-NNN-anterior o "initial">
 ---
 
 # change-<NNN> — <Título del cambio>
 
 ## Contexto
 
-<Por qué se hace este cambio. Una o dos frases.>
+<Por qué se hace este cambio.>
 
 ## ADDED
 
-<Lista de funcionalidades/comportamientos NUEVOS que no existían antes. Si no hay, omitir sección.>
+<Omitir sección si no hay nada nuevo.>
 
 - <ítem>
 
 ## MODIFIED
 
-<Lista de funcionalidades/comportamientos que CAMBIAN respecto al estado anterior. Si no hay, omitir sección.>
+<Omitir sección si no hay modificaciones.>
 
-- <ítem anterior> → <ítem nuevo>
+- <antes> → <después>
 
 ## REMOVED
 
-<Lista de funcionalidades/comportamientos que DESAPARECEN. Si no hay, omitir sección.>
+<Omitir sección si no se elimina nada.>
 
 - <ítem>
 
 ## Entidades de BD afectadas
 
-<Tablas/modelos que cambian. Si no hay, omitir sección.>
+<Omitir si no hay cambios de BD.>
 
 ## Criterios de aceptación
 
@@ -166,50 +171,48 @@ supersedes: change-<NNN-anterior> (o "initial" si es el primero)
 - <Criterio verificable 2>
 ```
 
-### 3c. Reescribir "Estado consolidado actual" en cada `INDEX.md` afectado
+### 4c. Reescribir "Estado consolidado actual" en cada `INDEX.md` afectado
 
-**NO** basta con cambiar `current_state`. Hay que reescribir la sección completa con el comportamiento **total** del REQ tras aplicar el delta — como si fuera la primera vez que alguien lee el REQ.
+Reescribir la sección completa con el comportamiento **total** del REQ tras aplicar el delta — como si fuera la primera vez que alguien lee el REQ. No basta con cambiar el puntero.
 
-Actualizar también en el frontmatter:
+Actualizar frontmatter:
 
 ```yaml
 current_state: change-<NNN>
 status: aprobado
 ```
 
-### 3d. Marcar el `change-NNN.md` anterior como superseded
+### 4d. Marcar change anterior como superseded
 
 En el frontmatter del change anterior:
 
 ```yaml
 status: superseded
-superseded_by: change-<NNN-nuevo>
+superseded_by: change-<NNN>
 ```
 
-Al inicio del cuerpo, insertar banner:
+Insertar banner al inicio del cuerpo:
 
 ```
-> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-<NNN-nuevo>. El estado vigente del REQ vive en `INDEX.md`. NO usar como fuente de verdad actual.
+> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-<NNN>. El estado vigente vive en `INDEX.md`. NO usar como fuente de verdad.
 ```
 
-### 3e. Actualizar `ledger.md`
+### 4e. Actualizar ledgers
 
-En `ledger.md` global y en el `ledger.md` de cada REQ afectado, añadir fila:
+En `ledger.md` global y en el `ledger.md` de cada REQ afectado:
 
 ```
 | <fecha-hoy> | <REQ-ID> | change-req | change-<NNN> | — | <Título del cambio> |
 ```
 
-(columna Commit = `—` hasta después del commit)
-
-### 3f. Commit de papel (si hay git)
+### 4f. Commit de papel (si hay git)
 
 ```bash
 git add requirements/ ledger.md
 git commit -m "docs(<REQ-ID> change-<NNN>): <título del cambio>"
 ```
 
-Actualizar columna Commit en ledger con `git rev-parse --short HEAD` y hacer segundo commit:
+Actualizar columna Commit en ledger con `git rev-parse --short HEAD` y segundo commit:
 
 ```bash
 git add ledger.md
@@ -218,101 +221,92 @@ git commit -m "docs(<REQ-ID>): update ledger with commit hash"
 
 ---
 
-## PASO 4 — Implementer (subagente, contexto aislado)
+## PASO 5 — Implementar el cambio
 
-Invocar al subagente `implementer` pasándole ÚNICAMENTE:
+Con los `change-NNN.md` ya escritos como guía:
 
-- Los `change-NNN.md` aprobados (recién creados).
-- Los `manifest.md` de los REQs afectados.
-
-**NO pasarle** el plan original ni la discusión del reviewer.
-
-El implementer debe:
-
-1. Modificar código en archivos listados en los manifests + nuevos si aplica.
+1. Modificar los archivos de código identificados en el Paso 2.
 2. Generar y aplicar migración de BD si corresponde.
-3. Actualizar `manifest.md` con archivos nuevos/cambiados.
-4. Correr validación en 3 capas:
-   - Tests automáticos (existentes + nuevos desde criterios de aceptación del change).
-   - Smoke test en dev server local.
-   - Generar checklist humano por REQ tocado.
-
-**Si una capa de validación falla:** el implementer itera. NO presentar Checkpoint 2 hasta que pase.
+3. Actualizar `manifest.md` con archivos nuevos o modificados.
+4. Ejecutar tests existentes. Si fallan, corregir antes de continuar.
+5. Generar checklist de verificación manual basado en los criterios de aceptación del change.
 
 ---
 
-## CHECKPOINT 2 — Humano (implementación)
+## CHECKPOINT 2 — Aprobación de la implementación
 
 Presentar al usuario:
 
 ```
-## Implementación lista para revisión
+## Implementación lista
 
 ### Archivos modificados
-[Lista con tipo de cambio]
+- <path> — <tipo de cambio>
 
-### Migraciones
-[Lista — ADVERTIR si alguna es destructiva o irreversible]
+### Migración
+<Descripción o "Ninguna">
+⚠️ Si es destructiva, advertir explícitamente.
 
-### Validación
-- Tests automáticos: ✅ N pasados / ❌ M fallaron
-- Smoke test: ✅ / ❌
-- Checklist humano:
-  - [ ] [Caso de uso 1]
-  - [ ] [Caso de uso 2]
+### Tests
+- Automáticos: ✅ N pasaron / ❌ M fallaron
+
+### Checklist de verificación
+- [ ] <Criterio de aceptación 1>
+- [ ] <Criterio de aceptación 2>
 
 ---
-Marca el checklist y aprueba para commit. [COMMIT / AJUSTAR / ABORTAR]
+¿Hago el commit? [COMMIT / AJUSTAR / ABORTAR]
 ```
 
-Esperar respuesta **explícita** del usuario.
+**Esperar respuesta explícita.**
+
+Si pide ajustes: corregir código y volver a presentar checkpoint 2.
+Si aborta: dejar los archivos como están, informar estado.
 
 ---
 
-## PASO 5 — Commit de código (si el usuario aprobó)
+## PASO 6 — Commit de código (tras COMMIT)
 
-1. Actualizar `status` en `INDEX.md` de cada REQ: `implementado`.
-2. Actualizar `status` en cada `change-NNN.md` aprobado: `implementado`.
-3. (Si hay git):
-   ```bash
-   git add .
-   git commit -m "feat(<REQ-ID> change-<NNN>): <título del cambio>"
-   ```
-4. Informar al usuario:
-   - **Con git:** "Rama `req/<REQ-ID>-change-<NNN>-<slug>` lista con 2 commits. Próximo: `git push -u origin <branch>` + abrir PR. Tras mergear: `/cleanup-branches`."
-   - **Sin git:** "Cambio aplicado en filesystem."
+1. Actualizar `status: implementado` en el `INDEX.md` de cada REQ.
+2. Actualizar `status: implementado` en cada `change-NNN.md` aprobado.
+
+```bash
+git add .
+git commit -m "feat(<REQ-ID> change-<NNN>): <título del cambio>"
+```
+
+Informar al usuario:
+
+- **Con git:** "Rama `req/<REQ-ID>-change-<NNN>-<slug>` con 2 commits. Próximo: `git push -u origin <branch>` + abrir PR. Tras mergear: `/cleanup-branches`."
+- **Sin git:** "Cambio aplicado en filesystem."
 
 ---
 
 ## CHECKLIST DE COMPLETITUD
 
-Antes de reportar al usuario, verificar:
+Verificar antes de reportar listo:
 
-- [ ] Planner invocado y output recibido
-- [ ] Reviewer invocado y veredicto recibido
+- [ ] Contexto leído: ledger + INDEX.md de REQs relevantes + manifests
+- [ ] Impacto analizado y clasificado (cambio vs bug)
 - [ ] Checkpoint 1 presentado y usuario aprobó
 - [ ] Rama git creada con naming correcto (si aplica)
 - [ ] `change-NNN.md` creado en CADA REQ afectado
-- [ ] `INDEX.md` "Estado consolidado actual" reescrito en CADA REQ afectado (no solo el puntero)
-- [ ] `change` anterior marcado como `superseded` con banner ⚠️
-- [ ] `ledger.md` global actualizado
-- [ ] `ledger.md` por REQ actualizado
+- [ ] `INDEX.md` "Estado consolidado actual" reescrito (no solo el puntero)
+- [ ] Change anterior marcado `superseded` con banner ⚠️
+- [ ] `ledger.md` global y por REQ actualizados
 - [ ] Commit de papel creado (si aplica)
-- [ ] Implementer invocado con los `change-NNN.md` + `manifest.md`
-- [ ] Validación pasó (3 capas)
+- [ ] Código implementado
+- [ ] Tests pasando
+- [ ] `manifest.md` actualizado
 - [ ] Checkpoint 2 presentado y usuario aprobó
 - [ ] `status: implementado` en INDEX y change
 - [ ] Commit de código creado (si aplica)
-
-Si algún ítem está pendiente, completarlo antes de continuar.
 
 ---
 
 ## Restricciones
 
-- **NO hagas tú el análisis.** Para eso está el planner.
-- **NO le des al reviewer contexto del planner.** Solo el output.
-- **NO le des al implementer el plan original.** Solo los Delta Specs aprobados + manifests.
-- **NO commitees sin Checkpoint 2 humano.** Regla dura.
+- **NO commitees sin checkpoint humano explícito.** Regla dura.
 - **NO modifiques `change-NNN.md` ya creados** salvo para marcarlos `superseded`. El contenido ADDED/MODIFIED/REMOVED es inmutable.
-- **Si el flujo se interrumpe a mitad** (agente falla, usuario aborta), dejar los archivos en el estado que están — no intentar limpiar ni revertir a mano.
+- **NO reescribas `initial.md`.** Jamás.
+- **Si el flujo se interrumpe a mitad**, dejar los archivos como están — no intentar limpiar ni revertir a mano.
