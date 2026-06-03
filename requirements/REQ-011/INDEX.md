@@ -2,7 +2,7 @@
 req_id: REQ-011
 title: Vista resumen y descarga del Canvas
 status: aprobado
-current_state: change-001
+current_state: change-002
 ---
 
 # REQ-011 — Vista resumen y descarga del Canvas: Estado consolidado actual
@@ -15,7 +15,7 @@ Para talleres de otro tipo, la página de resultados existente no se ve afectada
 
 ## Estado de implementación
 
-**Aprobado — pendiente de implementación (change-001).**
+**Aprobado — pendiente de implementación (change-002).**
 
 ## Funcionalidades
 
@@ -27,13 +27,14 @@ Para talleres de otro tipo, la página de resultados existente no se ve afectada
 
 ### Frontend
 
-- **`RunnerResultsPage.tsx`** — detecta `esCanvas` en el payload. Si es true: muestra `CanvasGrid` y botón "Descargar Canvas". Si es false: comportamiento previo inalterado.
+- **`RunnerPage.tsx`** — al completar el último paso de un Analytics Canvas, dispara `fetch(POST /execution/:token/canvas)` sin `await` (fire & forget) inmediatamente después de `POST /finalizar`, para que OpenAI empiece a sintetizar mientras el participante ve la pantalla "¡Actividad completada!".
+- **`RunnerResultsPage.tsx`** — detecta `esCanvas` en el payload. Si es true: llama `POST /canvas` (fallback/polling — el backend devuelve caché si ya generó), muestra `CanvasGrid` y botón "Descargar Canvas". Si es false: comportamiento previo inalterado.
 - **`CanvasGrid.tsx`** — layout grid 3×4 con bloques B1–B10 y síntesis por bloque. Colores: Azul (B1 Problema, B2 Datos), Violeta (B3 KPIs, B4 Modelo analítico), Cyan (B5 Usuarios, B6 Equipo), Verde (B7 Entregables), Ámbar (B8 Riesgos), Naranja (B9 Potencial valor estratégico), Rojo (B10 Valor).
 - **`buildCanvasHtml.ts`** — genera HTML standalone con: grid de síntesis, botones "Copiar prompt" por bloque, metadatos del taller (empresa, área, proyecto, fecha), autoguardado en `localStorage`, exportación a `.txt`, CSS `@media print`. Sin dependencias externas.
 
 ## Entidades de BD
 
-### Nueva — `CanvasBloque`
+### `CanvasBloque`
 
 | Campo       | Tipo     | Notas                                   |
 | ----------- | -------- | --------------------------------------- |
@@ -62,7 +63,8 @@ Constraint: `@@unique([instanciaId, pasoId])` — un resumen por bloque por part
 - `GET /execution/:token` → incluye `esCanvas: boolean`
 
 **Frontend:**
-- `RunnerResultsPage.tsx` — página de resultados con lógica condicional
+- `RunnerPage.tsx` — dispara fire & forget de `/canvas` al finalizar último paso (si `esCanvas`)
+- `RunnerResultsPage.tsx` — página de resultados con lógica condicional + fallback canvas
 - `CanvasGrid.tsx` — componente de grid B1–B10
 - `buildCanvasHtml.ts` — generador de HTML standalone
 
@@ -79,15 +81,16 @@ Constraint: `@@unique([instanciaId, pasoId])` — un resumen por bloque por part
 - **Síntesis por IA, no truncado:** el canvas muestra resúmenes de OpenAI, no respuestas en crudo.
 - **Tabla `CanvasBloque` vs JSON en `InstanciaActividad`:** permite upserts concurrentes por bloque, mantiene `InstanciaActividad` liviana y facilita extensiones futuras.
 - **Generación lazy con caché:** si los bloques existen en BD, se devuelven sin llamar a OpenAI. Regeneración explícita queda para iteración futura.
+- **Fire & forget al finalizar:** la síntesis empieza mientras el participante ve la pantalla "completado"; cuando navega a resultados el canvas ya está listo o casi listo.
 - **HTML standalone sin dependencias:** funciona offline, imprimible, sin CDN ni servidor.
 - **Detección por nombre de plantilla:** `PlantillaActividad.nombre === 'Analytics Canvas'`. Sin campo `tipo` en schema — evita migración adicional y backfill.
 - **`buildCanvasHtml.ts` separado:** no se modifica `buildResumenHtml.ts`. Aísla la lógica canvas y evita regresar sobre REQ-009.
-- **Modelo OpenAI por env var:** `process.env.OPENAI_MODEL || 'gpt-4o'` en ambos use cases (corrección de deuda técnica en `ConsultarIaPorTokenUseCase`).
+- **Modelo OpenAI por env var:** `process.env.OPENAI_MODEL || 'gpt-4o'` en ambos use cases.
 
 ## Historial de cambios
 
-| Change         | Descripción                                                       | Estado   |
-| -------------- | ----------------------------------------------------------------- | -------- |
-| initial        | Creación del REQ                                                  | histórico |
-| design-refined | Incorpora síntesis IA, tabla CanvasBloque y decisiones de diseño  | histórico |
-| change-001     | Implementación completa: endpoint, use case, schema, UI, HTML     | aprobado |
+| Change     | Descripción                                                       | Estado    |
+| ---------- | ----------------------------------------------------------------- | --------- |
+| initial    | Creación del REQ                                                  | histórico |
+| change-001 | Implementación completa: endpoint, use case, schema, UI, HTML     | superseded |
+| change-002 | Precalentar síntesis Canvas al finalizar actividad                | aprobado  |

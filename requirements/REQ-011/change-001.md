@@ -2,10 +2,13 @@
 id: change-001
 req_id: REQ-011
 title: Implementación completa — Vista resumen y descarga del Canvas
-status: aprobado
+status: superseded
+superseded_by: change-002
 created: 2026-06-02
 supersedes: design-refined
 ---
+
+> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-002. El estado vigente vive en `INDEX.md`. NO usar como fuente de verdad.
 
 # change-001 — Implementación completa — Vista resumen y descarga del Canvas
 
