@@ -200,7 +200,7 @@ export function RunnerResultsPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 padding: '6px 14px', borderRadius: 8,
-                                background: canvasLoading ? '#94A3B8' : '#7C3AED', color: 'white',
+                                background: canvasLoading ? '#94A3B8' : '#2563EB', color: 'white',
                                 border: 'none', cursor: canvasLoading ? 'not-allowed' : 'pointer',
                                 fontSize: '0.8rem', fontWeight: 600,
                             }}

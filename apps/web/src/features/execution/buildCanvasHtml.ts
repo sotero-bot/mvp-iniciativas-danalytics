@@ -39,14 +39,6 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
     const bloquesHtml = pasosOrdenados.map((paso) => {
         const colores = colorByOrden(paso.orden);
         const resumen = bloques[paso.id] || '(Sin síntesis)';
-        const promptText = `Contexto del taller:
-Empresa: ${empresa}
-Área: ${area}
-Proyecto: ${proyecto}
-Fecha: ${fecha}
-
-Bloque B${paso.orden} — ${paso.titulo}:
-${resumen}`;
 
         return `
 <div class="bloque" style="background:${colores.bg};border:1px solid ${colores.border};border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:8px;min-height:140px;">
@@ -54,14 +46,6 @@ ${resumen}`;
     B${paso.orden} &mdash; ${escHtml(paso.titulo)}
   </div>
   <p style="margin:0;font-size:0.875rem;color:#1E293B;line-height:1.6;flex:1;">${escHtml(resumen)}</p>
-  <button
-    class="btn-copiar no-print"
-    data-prompt="${escHtml(promptText)}"
-    onclick="copiarPrompt(this)"
-    style="margin-top:auto;padding:4px 10px;font-size:0.72rem;font-weight:600;background:white;border:1px solid ${colores.border};color:${colores.label};border-radius:6px;cursor:pointer;align-self:flex-start;"
-  >
-    Copiar prompt
-  </button>
 </div>`;
     }).join('\n');
 
@@ -157,27 +141,6 @@ ${bloquesHtml}
 </div>
 
 <script>
-  // Copiar prompt al portapapeles
-  function copiarPrompt(btn) {
-    var texto = btn.getAttribute('data-prompt');
-    navigator.clipboard.writeText(texto).then(function() {
-      var orig = btn.textContent;
-      btn.textContent = 'Copiado!';
-      setTimeout(function() { btn.textContent = orig; }, 1500);
-    }).catch(function() {
-      // Fallback para navegadores sin clipboard API
-      var ta = document.createElement('textarea');
-      ta.value = texto;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      var orig = btn.textContent;
-      btn.textContent = 'Copiado!';
-      setTimeout(function() { btn.textContent = orig; }, 1500);
-    });
-  }
-
   // Autoguardado en localStorage cada 5s
   var STORAGE_KEY = 'canvas_${escHtml(proyecto).replace(/\s+/g, '_')}_autosave';
   function autoguardar() {
