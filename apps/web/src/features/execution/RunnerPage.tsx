@@ -72,6 +72,7 @@ interface RunnerData {
   interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string }[];
   respuestas: { preguntaId: string; contenido?: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string; archivoKey?: string }[];
   plantillaAnterior?: { nombre: string; respuestas: RespuestaAnterior[] };
+  esCanvas?: boolean;
 }
 
 /* ── Brand header ── */
@@ -630,6 +631,9 @@ export function RunnerPage() {
       setArchivosIa({});
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
+      if (data?.esCanvas) {
+        fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+      }
       await loadData();
     }
     setLoading(false);
