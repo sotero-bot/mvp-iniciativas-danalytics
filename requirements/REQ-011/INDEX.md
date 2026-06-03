@@ -1,7 +1,7 @@
 ---
 req_id: REQ-011
 title: Vista resumen y descarga del Canvas
-status: aprobado
+status: implementado
 current_state: change-003
 ---
 
@@ -13,7 +13,7 @@ Al finalizar el taller de Analytics Canvas, el participante accede a `/runner/:t
 
 ## Estado de implementación
 
-**Aprobado — pendiente de implementación (change-003).**
+**Implementado.** change-003 aplicado el 2026-06-03.
 
 ## Funcionalidades
 
@@ -89,4 +89,4 @@ Constraint: `@@unique([instanciaId, pasoId])`. Índice: `@@index([instanciaId])`
 | ---------- | ------------------------------------------------------------- | ---------- |
 | initial    | Creación del REQ                                              | histórico  |
 | change-001 | Implementación inicial: endpoint, use case, schema, UI, HTML  | superseded |
-| change-003 | Rediseño visual: layout asimétrico, sticky notes, prompt      | aprobado   |
+| change-003 | Rediseño visual: layout asimétrico, sticky notes, prompt      | implementado |

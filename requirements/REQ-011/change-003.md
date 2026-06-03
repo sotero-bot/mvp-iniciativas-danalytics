@@ -2,7 +2,7 @@
 id: change-003
 req_id: REQ-011
 title: Rediseño visual del Analytics Canvas
-status: aprobado
+status: implementado
 created: 2026-06-03
 supersedes: change-001
 ---
@@ -23,6 +23,7 @@ El layout original era un grid 3×N secuencial con texto corrido por bloque. Se 
 
 ## ADDED
 
+- **Generación del canvas al finalizar el último paso** (no al cargar la página de resultados): al hacer click en "Finalizar actividad", `RunnerPage` llama `POST /finalizar` y luego **aguarda** `POST /canvas` antes de mostrar la pantalla "¡Actividad completada!". El botón muestra "Preparando resultados..." durante la espera. Esto garantiza que el canvas esté listo cuando el participante llegue a `/resultados`, independientemente de si hace click en "Ver mis resultados".
 - Bloque estático **"Recursos requeridos"** en el canvas visual — siempre vacío, no tiene paso en el taller.
 - Mapeo título→posición:
 
@@ -47,3 +48,6 @@ El layout original era un grid 3×N secuencial con texto corrido por bloque. Se 
 - [ ] Bloques sin respuesta (Actores, Recursos) muestran área vacía visible, no skeleton
 - [ ] "Recursos requeridos" aparece siempre vacío sin llamar a OpenAI
 - [ ] Para bloques con respuesta vacía, no se hace llamada a OpenAI
+- [ ] Al hacer click en "Finalizar actividad" en un Analytics Canvas, el botón muestra "Preparando resultados..." mientras se genera el canvas
+- [ ] La pantalla "¡Actividad completada!" aparece solo después de que el canvas terminó de generarse
+- [ ] Al llegar a /resultados el canvas ya está disponible sin spinner
