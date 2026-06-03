@@ -133,6 +133,21 @@ export function RunnerResultsPage() {
         URL.revokeObjectURL(url);
     };
 
+    const handleGenerarCanvas = async () => {
+        setCanvasLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+            if (res.ok) {
+                const json = await res.json();
+                setCanvasBloques(json.bloques ?? {});
+            }
+        } catch {
+            // silently fail — user can retry
+        } finally {
+            setCanvasLoading(false);
+        }
+    };
+
     const handleDescargarCanvas = () => {
         const fechaStr = data.fechaFin
             ? new Date(data.fechaFin).toLocaleDateString('es-AR')
@@ -266,6 +281,22 @@ export function RunnerResultsPage() {
                         {canvasLoading ? (
                             <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem', padding: '2rem' }}>
                                 Generando síntesis IA...
+                            </div>
+                        ) : Object.keys(canvasBloques).length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
+                                    El canvas aún no fue generado.
+                                </p>
+                                <button
+                                    onClick={handleGenerarCanvas}
+                                    style={{
+                                        padding: '8px 20px', borderRadius: 8, border: 'none',
+                                        background: '#7C3AED', color: 'white',
+                                        fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                                    }}
+                                >
+                                    Generar canvas
+                                </button>
                             </div>
                         ) : (
                             <CanvasGrid

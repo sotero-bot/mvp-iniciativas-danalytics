@@ -1,73 +1,74 @@
 ---
 req_id: REQ-011
 title: Vista resumen y descarga del Canvas
-status: aprobado
-current_state: change-001
+status: implementado
+current_state: change-003
 ---
 
 # REQ-011 — Vista resumen y descarga del Canvas: Estado consolidado actual
 
 ## Descripción
 
-Al finalizar el taller de Analytics Canvas, el participante accede a `/runner/:token/resultados`. Si la actividad es de tipo Analytics Canvas (detectado por `PlantillaActividad.nombre === 'Analytics Canvas'`), la página carga un canvas visual con los bloques B1–B10 en un layout grid (estilo Business Model Canvas). Cada bloque muestra una **síntesis generada por IA** (OpenAI) a partir de las respuestas del participante — no las respuestas en crudo. Un botón "Descargar Canvas" exporta un HTML autocontenido con las síntesis y prompts de IA contextualizados.
-
-Para talleres de otro tipo, la página de resultados existente no se ve afectada.
+Al finalizar el taller de Analytics Canvas, el participante accede a `/runner/:token/resultados`. Si la actividad es de tipo Analytics Canvas, la página muestra un canvas visual con layout asimétrico (2 filas, bloques de altura variable) fiel al diseño de referencia. Cada bloque muestra ideas clave generadas por IA como sticky notes individuales. Un botón "Descargar Canvas" exporta un HTML standalone.
 
 ## Estado de implementación
 
-**Aprobado — pendiente de implementación (change-001).**
+**Implementado.** change-003 aplicado el 2026-06-03.
 
 ## Funcionalidades
 
 ### Backend
 
-- **`POST /execution/:token/canvas`** — endpoint en `ExecutionController`. Invoca `SintetizarCanvasPorTokenUseCase`. Si la actividad no es Analytics Canvas, devuelve 400. Si los bloques ya están en `CanvasBloque`, los devuelve sin llamar a OpenAI (caché lazy). En caso contrario, genera síntesis por bloque en paralelo y aplica upsert.
-- **`SintetizarCanvasPorTokenUseCase`** — recupera respuestas de los pasos B1–B10, llama a OpenAI en paralelo (`process.env.OPENAI_MODEL || 'gpt-4o'`), aplica upsert en `CanvasBloque`, devuelve `Record<pasoId, resumen>`.
-- **`GET /execution/:token` response** — incluye campo `esCanvas: boolean` calculado por nombre de plantilla.
+- **`POST /execution/:token/canvas`** — invoca `SintetizarCanvasPorTokenUseCase`. Si la actividad no es Analytics Canvas, devuelve 400. Caché lazy: si todos los bloques existen en `CanvasBloque`, los devuelve sin llamar a OpenAI.
+- **`SintetizarCanvasPorTokenUseCase`** — para cada paso con respuesta, genera 2-4 ideas clave vía OpenAI (una por línea, sin viñetas, máx. 15 palabras). Si la respuesta está vacía o es `"(Sin respuesta registrada)"`, guarda string vacío sin llamar a OpenAI.
+- **`GET /execution/:token`** — incluye `esCanvas: boolean`.
 
 ### Frontend
 
-- **`RunnerResultsPage.tsx`** — detecta `esCanvas` en el payload. Si es true: muestra `CanvasGrid` y botón "Descargar Canvas". Si es false: comportamiento previo inalterado.
-- **`CanvasGrid.tsx`** — layout grid 3×4 con bloques B1–B10 y síntesis por bloque. Colores: Azul (B1 Problema, B2 Datos), Violeta (B3 KPIs, B4 Modelo analítico), Cyan (B5 Usuarios, B6 Equipo), Verde (B7 Entregables), Ámbar (B8 Riesgos), Naranja (B9 Potencial valor estratégico), Rojo (B10 Valor).
-- **`buildCanvasHtml.ts`** — genera HTML standalone con: grid de síntesis, botones "Copiar prompt" por bloque, metadatos del taller (empresa, área, proyecto, fecha), autoguardado en `localStorage`, exportación a `.txt`, CSS `@media print`. Sin dependencias externas.
+- **`CanvasGrid.tsx`** — layout `grid-template-areas` asimétrico:
+  - Fila superior: Datos (tall) | Oportunidad / Indicadores | Problema (tall) | Usuarios / Entregables | Actores (tall)
+  - Fila inferior: Restricciones (ancho) | Recursos requeridos (estático, vacío) | Potencial de valor
+  - Bloques identificados por keyword en título del paso (no por orden numérico).
+  - Síntesis renderizada como sticky notes individuales (una tarjeta por línea del resumen).
+  - Bloques vacíos muestran área visual en color tenue (nunca skeleton ni ocultos).
+- **`RunnerResultsPage.tsx`** — detecta `esCanvas`. Si true: llama `POST /canvas`, muestra `CanvasGrid` y botón "Descargar Canvas".
+- **`buildCanvasHtml.ts`** — HTML standalone con grid de síntesis, botones "Copiar prompt", metadatos, `@media print`.
+
+### Mapeo bloque taller → posición canvas
+
+| Título contiene | Etiqueta canvas | Posición |
+|---|---|---|
+| "Problema" | Problema o reto actual | Centro, tall |
+| "Solución" | Oportunidad | Top izq-centro |
+| "Datos" | Datos y fuentes | Izquierda, tall |
+| "Usuarios" | Usuarios | Top der-centro |
+| "Entregables" | Entregables | Bottom der-centro |
+| "Actores" | Actores principales | Derecha, tall |
+| "KPI" / "Indicador" | Indicadores de éxito | Bottom izq-centro |
+| "Barrera" / "Riesgo" | Restricciones | Bottom izquierda, ancho |
+| "Valor" / "Potencial" | Potencial de valor | Bottom derecha |
+| *(estático)* | Recursos requeridos | Bottom centro, siempre vacío |
 
 ## Entidades de BD
 
-### Nueva — `CanvasBloque`
+### `CanvasBloque`
 
-| Campo       | Tipo     | Notas                                   |
-| ----------- | -------- | --------------------------------------- |
-| id          | String   | UUID, PK                                |
-| instanciaId | String   | FK → InstanciaActividad                 |
-| pasoId      | String   | FK → PasoActividad                      |
-| resumen     | Text     | Síntesis generada por OpenAI            |
-| generadoEn  | DateTime | Timestamp de generación                 |
-| updatedAt   | DateTime | @updatedAt                              |
+| Campo       | Tipo     | Notas                        |
+| ----------- | -------- | ---------------------------- |
+| id          | String   | UUID, PK                     |
+| instanciaId | String   | FK → InstanciaActividad      |
+| pasoId      | String   | FK → PasoActividad           |
+| resumen     | Text     | Ideas clave separadas por \n |
+| generadoEn  | DateTime |                              |
+| updatedAt   | DateTime | @updatedAt                   |
 
-Constraint: `@@unique([instanciaId, pasoId])` — un resumen por bloque por participante.
-Índice: `@@index([instanciaId])`.
-
-### Consumidas (solo lectura)
-
-- `Respuesta` — fuente de las respuestas que se sintetizan.
-- `InstanciaActividad` — metadatos de la instancia (empresa, actividad, fechas).
-- `Actividad` — detectar tipo (por `PlantillaActividad.nombre`).
-- `PasoActividad` — título y orden de cada bloque.
-- `PlantillaActividad` — nombre para detectar tipo Canvas.
+Constraint: `@@unique([instanciaId, pasoId])`. Índice: `@@index([instanciaId])`.
 
 ## Interfaz
 
-**Backend:**
 - `POST /execution/:token/canvas` → `{ bloques: Record<pasoId, resumen> }`
 - `GET /execution/:token` → incluye `esCanvas: boolean`
-
-**Frontend:**
-- `RunnerResultsPage.tsx` — página de resultados con lógica condicional
-- `CanvasGrid.tsx` — componente de grid B1–B10
-- `buildCanvasHtml.ts` — generador de HTML standalone
-
-**DTOs:**
-- `RunnerResponseDto` y interfaz local `RunnerData` — incluyen campo `esCanvas: boolean`
+- Frontend: `CanvasGrid.tsx`, `RunnerResultsPage.tsx`, `buildCanvasHtml.ts`
 
 ## Dependencias
 
@@ -76,18 +77,16 @@ Constraint: `@@unique([instanciaId, pasoId])` — un resumen por bloque por part
 
 ## Decisiones de diseño
 
-- **Síntesis por IA, no truncado:** el canvas muestra resúmenes de OpenAI, no respuestas en crudo.
-- **Tabla `CanvasBloque` vs JSON en `InstanciaActividad`:** permite upserts concurrentes por bloque, mantiene `InstanciaActividad` liviana y facilita extensiones futuras.
-- **Generación lazy con caché:** si los bloques existen en BD, se devuelven sin llamar a OpenAI. Regeneración explícita queda para iteración futura.
-- **HTML standalone sin dependencias:** funciona offline, imprimible, sin CDN ni servidor.
-- **Detección por nombre de plantilla:** `PlantillaActividad.nombre === 'Analytics Canvas'`. Sin campo `tipo` en schema — evita migración adicional y backfill.
-- **`buildCanvasHtml.ts` separado:** no se modifica `buildResumenHtml.ts`. Aísla la lógica canvas y evita regresar sobre REQ-009.
-- **Modelo OpenAI por env var:** `process.env.OPENAI_MODEL || 'gpt-4o'` en ambos use cases (corrección de deuda técnica en `ConsultarIaPorTokenUseCase`).
+- **Ideas clave por línea**: el prompt genera cada idea en una línea separada → el frontend divide por `\n` → una tarjeta sticky por idea.
+- **Layout por keyword**: el mapeo usa búsqueda de substring en el título del paso para ser robusto ante renombrados menores.
+- **Recursos requeridos estático**: no existe en el taller → siempre vacío, renderizado directamente en el componente sin pasoId.
+- **Skip OpenAI para vacíos**: bloques sin respuesta se guardan como string vacío, sin coste de API.
+- **Caché lazy**: segunda llamada al endpoint devuelve BD sin regenrar.
 
 ## Historial de cambios
 
-| Change         | Descripción                                                       | Estado   |
-| -------------- | ----------------------------------------------------------------- | -------- |
-| initial        | Creación del REQ                                                  | histórico |
-| design-refined | Incorpora síntesis IA, tabla CanvasBloque y decisiones de diseño  | histórico |
-| change-001     | Implementación completa: endpoint, use case, schema, UI, HTML     | aprobado |
+| Change     | Descripción                                                   | Estado     |
+| ---------- | ------------------------------------------------------------- | ---------- |
+| initial    | Creación del REQ                                              | histórico  |
+| change-001 | Implementación inicial: endpoint, use case, schema, UI, HTML  | superseded |
+| change-003 | Rediseño visual: layout asimétrico, sticky notes, prompt      | implementado |

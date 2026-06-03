@@ -84,8 +84,12 @@ export class SintetizarCanvasPorTokenUseCase {
 
         // Generar síntesis en paralelo — una llamada por bloque
         const tareas = pasos.map(async (paso) => {
-            const respuesta = respuestasPorPasoId[paso.id] || '(Sin respuesta registrada)';
-            const prompt = `Eres un asistente de análisis estratégico. Resume en máximo 4 líneas la siguiente respuesta para el bloque '${paso.titulo}' de un Analytics Canvas empresarial:\n\n${respuesta}`;
+            const respuesta = respuestasPorPasoId[paso.id] || '';
+            if (!respuesta.trim() || respuesta === '(Sin respuesta registrada)') {
+                return { pasoId: paso.id, resumen: '' };
+            }
+
+            const prompt = `Eres un asistente de análisis estratégico. Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\nRespuesta:\n${respuesta}`;
 
             try {
                 const response = await this.openai.chat.completions.create({
@@ -93,11 +97,11 @@ export class SintetizarCanvasPorTokenUseCase {
                     messages: [{ role: 'user', content: prompt }],
                     max_completion_tokens: 300,
                 });
-                const resumen = response.choices[0].message?.content?.trim() || '(Sin síntesis)';
+                const resumen = response.choices[0].message?.content?.trim() || '';
                 return { pasoId: paso.id, resumen };
             } catch (err) {
                 console.error(`[SintetizarCanvas] Error en bloque "${paso.titulo}":`, err);
-                return { pasoId: paso.id, resumen: '(Error al generar síntesis)' };
+                return { pasoId: paso.id, resumen: '' };
             }
         });
 
