@@ -59,6 +59,7 @@ export class ExecutionController {
         where: { id: instancia.actividadId },
         include: {
           pasos: {
+            where: { activo: true },
             orderBy: { orden: 'asc' },
             include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
           },
