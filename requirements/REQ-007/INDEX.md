@@ -1,7 +1,7 @@
 ---
 req_id: REQ-007
 title: Asistencia IA contextual en pasos
-status: aprobado
+status: implementado
 current_state: change-001
 ---
 
@@ -47,4 +47,4 @@ Frontend:
 | Change     | Descripción                                          | Estado     |
 | ---------- | ---------------------------------------------------- | ---------- |
 | initial    | Documentación inicial por ingeniería inversa         | archived   |
-| change-001 | Eliminar adjunto de archivo en consulta IA           | aprobado   |
+| change-001 | Eliminar adjunto de archivo en consulta IA           | implementado |

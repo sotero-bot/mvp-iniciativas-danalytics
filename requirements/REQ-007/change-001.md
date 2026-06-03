@@ -2,7 +2,7 @@
 id: change-001
 req_id: REQ-007
 title: Eliminar adjunto de archivo en consulta IA
-status: aprobado
+status: implementado
 created: 2026-06-03
 supersedes: initial
 ---
