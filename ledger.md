@@ -18,3 +18,4 @@
 | 2026-06-03 | REQ-011 | change-req | change-002 | f958e86 | Precalentar síntesis Canvas al finalizar actividad |
 | 2026-06-03 | REQ-007 | change-req | change-001 | 68e3046 | Eliminar adjunto de archivo en consulta IA |
 | 2026-06-03 | REQ-011 | change-req | change-003 | 2e4f455 | Rediseño visual del Analytics Canvas |
+| 2026-06-03 | REQ-011 | change-req | change-004 | — | Canvas en HTML descargable, PDF y vista admin |
