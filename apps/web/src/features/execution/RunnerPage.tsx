@@ -72,6 +72,7 @@ interface RunnerData {
   interacciones: { pasoId: string; contenido: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string }[];
   respuestas: { preguntaId: string; contenido?: string; respuestaUsuario?: string; respuestaIa?: string; archivoNombre?: string; contenidoArchivo?: string; archivoKey?: string }[];
   plantillaAnterior?: { nombre: string; respuestas: RespuestaAnterior[] };
+  esCanvas?: boolean;
 }
 
 /* ── Brand header ── */
@@ -288,6 +289,7 @@ export function RunnerPage() {
   const [wasValidated, setWasValidated] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [canvasGenerando, setCanvasGenerando] = useState(false);
   const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
@@ -630,6 +632,11 @@ export function RunnerPage() {
       setArchivosIa({});
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
+      if (data?.esCanvas) {
+        setCanvasGenerando(true);
+        await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+        setCanvasGenerando(false);
+      }
       await loadData();
     }
     setLoading(false);
@@ -1344,7 +1351,7 @@ export function RunnerPage() {
               disabled={!pasoCompleto || loading || anyEnviando}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
-              {loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
+              {canvasGenerando ? 'Preparando resultados...' : loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
             </button>
           </div>
 
