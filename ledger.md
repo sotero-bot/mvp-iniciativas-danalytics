@@ -15,3 +15,4 @@
 | 2026-06-02 | REQ-005 | change-req | change-001 | TBD | Filtros globales (empresa/actividad) en `/admin/instancias` |
 | 2026-06-02 | REQ-011 | new-req | initial | c92d15f | Creación del requisito: Vista resumen y descarga del Canvas |
 | 2026-06-02 | REQ-011 | change-req | change-001 | d1164de | Implementación completa — Vista resumen y descarga del Canvas |
+| 2026-06-03 | REQ-007 | change-req | change-001 | 68e3046 | Eliminar adjunto de archivo en consulta IA |
