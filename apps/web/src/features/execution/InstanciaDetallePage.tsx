@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CanvasGrid } from './CanvasGrid';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -38,6 +39,7 @@ interface InstanceDetail {
   fechaFin: string | null;
   actividad: { id: string; nombre: string; plantillaOrigen?: { id: string; nombre: string } | null };
   usuario?: { id: string; nombre: string; email?: string; cargo?: string; area?: string };
+  canvasBloques?: Array<{ pasoId: string; resumen: string }>;
   pasos: StepResult[];
 }
 
@@ -150,9 +152,19 @@ export function InstanciaDetallePage() {
         </div>
       </div>
 
-      {/* Sección 2: Resultados (Layout tipo Informe) */}
+      {/* Sección 2: Analytics Canvas (solo si hay bloques generados) */}
+      {data.canvasBloques && data.canvasBloques.length > 0 && (
+        <div className="card mb-8">
+          <CanvasGrid
+            bloques={Object.fromEntries(data.canvasBloques.map((b) => [b.pasoId, b.resumen]))}
+            pasos={data.pasos.map((p) => ({ id: p.pasoId, titulo: p.titulo, orden: p.orden }))}
+          />
+        </div>
+      )}
+
+      {/* Sección 3: Resultados (Layout tipo Informe) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        <h3 className="mb-2">Resultados Detallados por Paso</h3>
+        <h3 className="mb-2">Respuestas por Paso</h3>
         {data.pasos.map((p) => (
           <div key={p.pasoId} className="card" style={{ padding: '0', overflow: 'hidden' }}>
             {/* Header del Paso */}

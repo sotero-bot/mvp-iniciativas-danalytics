@@ -33,6 +33,7 @@ export class ObtenerInstanciaDetalleUseCase {
           }
         : null,
       emailReferencia: raw.emailReferencia ?? null,
+      canvasBloques: (raw.canvasBloques ?? []).map((b: any) => ({ pasoId: b.pasoId, resumen: b.resumen })),
       pasos: raw.actividad.pasos.map((paso: any) => {
         const interaccion = raw.interacciones.find((i: any) => i.pasoId === paso.id);
         const preguntas = (paso.preguntas ?? []).map((q: any) => {
