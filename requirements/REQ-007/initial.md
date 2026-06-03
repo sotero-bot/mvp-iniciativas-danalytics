@@ -1,10 +1,13 @@
 ---
 id: REQ-007
 title: Asistencia IA contextual en pasos
-status: current
+status: superseded
+superseded_by: change-001
 created: 2026-06-02
 source: reverse-engineered
 ---
+
+> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-001. El estado vigente vive en `INDEX.md`. NO usar como fuente de verdad.
 
 # Asistencia IA contextual en pasos
 

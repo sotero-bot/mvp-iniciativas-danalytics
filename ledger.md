@@ -16,4 +16,5 @@
 | 2026-06-02 | REQ-011 | new-req | initial | c92d15f | Creación del requisito: Vista resumen y descarga del Canvas |
 | 2026-06-02 | REQ-011 | change-req | change-001 | d1164de | Implementación completa — Vista resumen y descarga del Canvas |
 | 2026-06-03 | REQ-011 | change-req | change-002 | f958e86 | Precalentar síntesis Canvas al finalizar actividad |
+| 2026-06-03 | REQ-007 | change-req | change-001 | 68e3046 | Eliminar adjunto de archivo en consulta IA |
 | 2026-06-03 | REQ-011 | change-req | change-003 | 2e4f455 | Rediseño visual del Analytics Canvas |
