@@ -2,7 +2,7 @@
 id: change-002
 req_id: REQ-011
 title: Precalentar síntesis Canvas al finalizar actividad
-status: aprobado
+status: implementado
 created: 2026-06-03
 supersedes: change-001
 ---

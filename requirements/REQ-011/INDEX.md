@@ -1,7 +1,7 @@
 ---
 req_id: REQ-011
 title: Vista resumen y descarga del Canvas
-status: aprobado
+status: implementado
 current_state: change-002
 ---
 
@@ -15,7 +15,7 @@ Para talleres de otro tipo, la página de resultados existente no se ve afectada
 
 ## Estado de implementación
 
-**Aprobado — pendiente de implementación (change-002).**
+**Implementado.** change-002 aplicado el 2026-06-03.
 
 ## Funcionalidades
 
@@ -93,4 +93,4 @@ Constraint: `@@unique([instanciaId, pasoId])` — un resumen por bloque por part
 | ---------- | ----------------------------------------------------------------- | --------- |
 | initial    | Creación del REQ                                                  | histórico |
 | change-001 | Implementación completa: endpoint, use case, schema, UI, HTML     | superseded |
-| change-002 | Precalentar síntesis Canvas al finalizar actividad                | aprobado  |
+| change-002 | Precalentar síntesis Canvas al finalizar actividad                | implementado |
