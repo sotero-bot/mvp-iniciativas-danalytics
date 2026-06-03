@@ -16,6 +16,7 @@ export class InstanciaDetalleResponseDto {
     area?: string;
   } | null;
   emailReferencia?: string | null;
+  canvasBloques?: Array<{ pasoId: string; resumen: string }>;
   pasos: Array<{
     pasoId: string;
     orden: number;

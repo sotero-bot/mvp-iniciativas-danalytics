@@ -2,10 +2,13 @@
 id: change-003
 req_id: REQ-011
 title: Rediseño visual del Analytics Canvas
-status: implementado
+status: superseded
+superseded_by: change-004
 created: 2026-06-03
 supersedes: change-001
 ---
+
+> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-004. El estado vigente vive en `INDEX.md`. NO usar como fuente de verdad.
 
 # change-003 — Rediseño visual del Analytics Canvas
 

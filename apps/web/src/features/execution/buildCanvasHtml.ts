@@ -13,15 +13,49 @@ interface BuildCanvasHtmlParams {
     fecha: string;
 }
 
-function colorByOrden(orden: number): { bg: string; border: string; label: string } {
-    if (orden === 1 || orden === 2) return { bg: '#EFF6FF', border: '#BFDBFE', label: '#1D4ED8' };
-    if (orden === 3 || orden === 4) return { bg: '#F5F3FF', border: '#DDD6FE', label: '#6D28D9' };
-    if (orden === 5 || orden === 6) return { bg: '#ECFEFF', border: '#A5F3FC', label: '#0E7490' };
-    if (orden === 7) return { bg: '#F0FDF4', border: '#A7F3D0', label: '#047857' };
-    if (orden === 8) return { bg: '#FFFBEB', border: '#FDE68A', label: '#B45309' };
-    if (orden === 9) return { bg: '#FFF7ED', border: '#FDBA74', label: '#C2410C' };
-    if (orden === 10) return { bg: '#FFF1F2', border: '#FECDD3', label: '#BE123C' };
-    return { bg: '#F8FAFC', border: '#E2E8F0', label: '#475569' };
+type SlotKey =
+    | 'datos' | 'oportunidad' | 'problema' | 'usuarios' | 'actores'
+    | 'indicadores' | 'entregables' | 'restricciones' | 'valor' | 'recursos';
+
+interface SlotConfig {
+    label: string;
+    area: string;
+    bg: string;
+    border: string;
+    labelColor: string;
+    stickyBg: string;
+}
+
+const SLOTS: Record<SlotKey, SlotConfig> = {
+    datos:        { label: 'Datos y fuentes',        area: 'datos',         bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
+    oportunidad:  { label: 'Oportunidad',            area: 'oportunidad',   bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    problema:     { label: 'Problema o reto actual', area: 'problema',      bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
+    usuarios:     { label: 'Usuarios',               area: 'usuarios',      bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
+    actores:      { label: 'Actores principales',    area: 'actores',       bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    indicadores:  { label: 'Indicadores de éxito',   area: 'indicadores',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    entregables:  { label: 'Entregables',            area: 'entregables',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    restricciones:{ label: 'Restricciones',          area: 'restricciones', bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
+    recursos:     { label: 'Recursos requeridos',    area: 'recursos',      bg: '#F8FAFC', border: '#E2E8F0', labelColor: '#475569', stickyBg: '#F1F5F9' },
+    valor:        { label: 'Potencial de valor',     area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+};
+
+const SLOT_ORDER: SlotKey[] = [
+    'datos', 'oportunidad', 'problema', 'usuarios', 'actores',
+    'indicadores', 'entregables', 'restricciones', 'recursos', 'valor',
+];
+
+function matchSlot(titulo: string): SlotKey | null {
+    const t = titulo.toLowerCase();
+    if (t.includes('dato') || t.includes('fuente')) return 'datos';
+    if (t.includes('solución') || t.includes('solucion') || t.includes('oportunidad')) return 'oportunidad';
+    if (t.includes('problema') || t.includes('reto')) return 'problema';
+    if (t.includes('usuario')) return 'usuarios';
+    if (t.includes('actor') || t.includes('equipo') || t.includes('responsable')) return 'actores';
+    if (t.includes('kpi') || t.includes('indicador') || t.includes('éxito') || t.includes('exito')) return 'indicadores';
+    if (t.includes('entregable')) return 'entregables';
+    if (t.includes('barrera') || t.includes('riesgo') || t.includes('restricción') || t.includes('restriccion')) return 'restricciones';
+    if (t.includes('valor') || t.includes('potencial') || t.includes('estratégico') || t.includes('estrategico')) return 'valor';
+    return null;
 }
 
 function escHtml(str: string): string {
@@ -32,38 +66,40 @@ function escHtml(str: string): string {
         .replace(/"/g, '&quot;');
 }
 
+function renderSlotHtml(key: SlotKey, lines: string[]): string {
+    const cfg = SLOTS[key];
+    const isEmpty = lines.length === 0;
+
+    const notesHtml = isEmpty
+        ? `<div style="flex:1;border:1px dashed ${cfg.border};border-radius:6px;min-height:48px;opacity:0.5;"></div>`
+        : lines.map(line =>
+            `<div class="sticky-note" style="background:${cfg.stickyBg};border-radius:6px;padding:0.45rem 0.6rem;font-size:0.78rem;color:#1E293B;line-height:1.45;box-shadow:0 1px 3px rgba(0,0,0,0.08);">${escHtml(line)}</div>`
+        ).join('\n');
+
+    return `
+<div class="canvas-slot" data-label="${escHtml(cfg.label)}" style="grid-area:${cfg.area};background:${cfg.bg};border:1px solid ${cfg.border};border-radius:10px;padding:0.75rem;display:flex;flex-direction:column;gap:6px;min-height:90px;">
+  <div style="font-size:0.68rem;font-weight:700;color:${cfg.labelColor};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${escHtml(cfg.label)}</div>
+  <div style="display:flex;flex-direction:column;gap:5px;">
+${notesHtml}
+  </div>
+</div>`;
+}
+
 export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
     const { bloques, pasos, empresa, area, proyecto, fecha } = params;
-    const pasosOrdenados = [...pasos].sort((a, b) => a.orden - b.orden);
 
-    const bloquesHtml = pasosOrdenados.map((paso) => {
-        const colores = colorByOrden(paso.orden);
-        const resumen = bloques[paso.id] || '(Sin síntesis)';
-        const promptText = `Contexto del taller:
-Empresa: ${empresa}
-Área: ${area}
-Proyecto: ${proyecto}
-Fecha: ${fecha}
+    // Map pasos to slots
+    const slotLines: Partial<Record<SlotKey, string[]>> = {};
+    for (const paso of pasos) {
+        const key = matchSlot(paso.titulo);
+        if (!key) continue;
+        const raw = bloques[paso.id] ?? '';
+        slotLines[key] = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    }
 
-Bloque B${paso.orden} — ${paso.titulo}:
-${resumen}`;
-
-        return `
-<div class="bloque" style="background:${colores.bg};border:1px solid ${colores.border};border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:8px;min-height:140px;">
-  <div class="bloque-titulo" style="font-size:0.7rem;font-weight:700;color:${colores.label};text-transform:uppercase;letter-spacing:0.06em;">
-    B${paso.orden} &mdash; ${escHtml(paso.titulo)}
-  </div>
-  <p style="margin:0;font-size:0.875rem;color:#1E293B;line-height:1.6;flex:1;">${escHtml(resumen)}</p>
-  <button
-    class="btn-copiar no-print"
-    data-prompt="${escHtml(promptText)}"
-    onclick="copiarPrompt(this)"
-    style="margin-top:auto;padding:4px 10px;font-size:0.72rem;font-weight:600;background:white;border:1px solid ${colores.border};color:${colores.label};border-radius:6px;cursor:pointer;align-self:flex-start;"
-  >
-    Copiar prompt
-  </button>
-</div>`;
-    }).join('\n');
+    const slotsHtml = SLOT_ORDER.map(key =>
+        renderSlotHtml(key, slotLines[key] ?? [])
+    ).join('\n');
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -90,7 +126,7 @@ ${resumen}`;
     }
     .header-meta { font-size: 0.8rem; color: #475569; display: flex; gap: 1.5rem; flex-wrap: wrap; }
     .header-meta strong { color: #0F172A; }
-    .header-actions { display: flex; gap: 8px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
     .btn-action {
       padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
       border-radius: 8px; cursor: pointer; border: none;
@@ -98,8 +134,13 @@ ${resumen}`;
     .btn-export { background: #2563EB; color: white; }
     .canvas-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.875rem;
+      grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      grid-template-areas:
+        "datos oportunidad  problema usuarios  actores"
+        "datos indicadores  problema entregables actores"
+        "restricciones restricciones recursos valor valor";
+      gap: 0.6rem;
       max-width: 1200px;
       margin: 2rem auto 0;
     }
@@ -149,7 +190,7 @@ ${resumen}`;
 </style>
 
 <div class="canvas-grid">
-${bloquesHtml}
+${slotsHtml}
 </div>
 
 <div class="footer">
@@ -157,28 +198,6 @@ ${bloquesHtml}
 </div>
 
 <script>
-  // Copiar prompt al portapapeles
-  function copiarPrompt(btn) {
-    var texto = btn.getAttribute('data-prompt');
-    navigator.clipboard.writeText(texto).then(function() {
-      var orig = btn.textContent;
-      btn.textContent = 'Copiado!';
-      setTimeout(function() { btn.textContent = orig; }, 1500);
-    }).catch(function() {
-      // Fallback para navegadores sin clipboard API
-      var ta = document.createElement('textarea');
-      ta.value = texto;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      var orig = btn.textContent;
-      btn.textContent = 'Copiado!';
-      setTimeout(function() { btn.textContent = orig; }, 1500);
-    });
-  }
-
-  // Autoguardado en localStorage cada 5s
   var STORAGE_KEY = 'canvas_${escHtml(proyecto).replace(/\s+/g, '_')}_autosave';
   function autoguardar() {
     try {
@@ -190,12 +209,10 @@ ${bloquesHtml}
         guardadoEn: new Date().toISOString(),
         bloques: {}
       };
-      document.querySelectorAll('.bloque').forEach(function(el) {
-        var titulo = el.querySelector('.bloque-titulo');
-        var p = el.querySelector('p');
-        if (titulo && p) {
-          estado.bloques[titulo.textContent.trim()] = p.textContent.trim();
-        }
+      document.querySelectorAll('.canvas-slot').forEach(function(el) {
+        var label = el.getAttribute('data-label');
+        var notes = Array.from(el.querySelectorAll('.sticky-note')).map(function(n) { return n.textContent.trim(); });
+        if (label) estado.bloques[label] = notes.join('\\n');
       });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
       var badge = document.getElementById('autosaveBadge');
@@ -208,7 +225,6 @@ ${bloquesHtml}
   }
   setInterval(autoguardar, 5000);
 
-  // Exportar a .txt
   function exportarTxt() {
     var lineas = [
       'ANALYTICS CANVAS',
@@ -219,12 +235,16 @@ ${bloquesHtml}
       'Fecha: ${escHtml(fecha)}',
       '',
     ];
-    document.querySelectorAll('.bloque').forEach(function(el) {
-      var titulo = el.querySelector('.bloque-titulo');
-      var p = el.querySelector('p');
-      if (titulo && p) {
-        lineas.push(titulo.textContent.trim());
-        lineas.push(p.textContent.trim());
+    document.querySelectorAll('.canvas-slot').forEach(function(el) {
+      var label = el.getAttribute('data-label');
+      var notes = Array.from(el.querySelectorAll('.sticky-note')).map(function(n) { return '  ' + n.textContent.trim(); });
+      if (label) {
+        lineas.push(label.toUpperCase());
+        if (notes.length > 0) {
+          notes.forEach(function(n) { lineas.push(n); });
+        } else {
+          lineas.push('  (Sin síntesis)');
+        }
         lineas.push('');
       }
     });

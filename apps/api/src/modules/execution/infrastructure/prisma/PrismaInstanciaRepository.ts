@@ -33,6 +33,7 @@ export class PrismaInstanciaRepository implements IInstanciaRepository {
         usuario: true,
         interacciones: true,
         respuestas: true,
+        canvasBloques: { select: { pasoId: true, resumen: true } },
       },
     });
   }
