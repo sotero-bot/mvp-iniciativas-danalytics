@@ -280,7 +280,6 @@ export function RunnerPage() {
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [respuestasIa, setRespuestasIa] = useState<Record<string, string>>({});
   const [archivosRespuesta, setArchivosRespuesta] = useState<Record<string, File | null>>({});
-  const [archivosIa, setArchivosIa] = useState<Record<string, File | null>>({});
   const [customPrompts, setCustomPrompts] = useState<Record<string, string>>({});
   const [enviandoIa, setEnviandoIa] = useState<Record<string, boolean>>({});
 
@@ -627,7 +626,6 @@ export function RunnerPage() {
 
       setCurrentStepIndex(currentStepIndex + 1);
       setArchivosRespuesta({});
-      setArchivosIa({});
     } else {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       await loadData();
@@ -638,8 +636,8 @@ export function RunnerPage() {
   // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId junto a pasoId para que
   // el backend lea usarIa/promptIa de PreguntaActividad en lugar de PasoActividad.
   const handleEnviarIA = async (paso: Paso, pregunta: Pregunta) => {
-    if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim() && !archivosIa[pregunta.id]) {
-      return alert('Escribí tu respuesta o adjuntá un archivo para consultar al asistente.');
+    if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim()) {
+      return alert('Escribí tu respuesta para consultar al asistente.');
     }
     setEnviandoIa(prev => ({ ...prev, [pregunta.id]: true }));
     setRespuestasIa(prev => ({ ...prev, [pregunta.id]: '' }));
@@ -651,8 +649,6 @@ export function RunnerPage() {
       formData.append('respuesta', respuestas[pregunta.id] ?? '');
       const prompt = customPrompts[pregunta.id] ?? '';
       if (prompt) formData.append('customPrompt', prompt);
-      const archivoIa = archivosIa[pregunta.id];
-      if (archivoIa) formData.append('archivo', archivoIa);
 
       const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Error al consultar la IA');
@@ -698,7 +694,6 @@ export function RunnerPage() {
     const nuevoIndex = currentStepIndex - 1;
     setCurrentStepIndex(nuevoIndex);
     setArchivosRespuesta({});
-    setArchivosIa({});
     setLoading(false);
   };
 
@@ -1048,7 +1043,6 @@ export function RunnerPage() {
             const iaFirst = !!(pregunta.iaAutomatica && (pregunta.soloArchivo || pregunta.permitirArchivo));
             const showRespuesta = !pregunta.iaAutomatica || pregunta.permitirArchivo || pregunta.soloArchivo;
             const archivoResp = archivosRespuesta[pregunta.id];
-            const archivoIa = archivosIa[pregunta.id];
 
             return (
               <div key={pregunta.id} style={{
@@ -1215,32 +1209,6 @@ export function RunnerPage() {
                         </div>
                       )}
 
-                      {/* Adjuntar archivo para IA (solo si hay IA no automática) */}
-                      {pregunta.usarIa && !pregunta.iaAutomatica && (
-                        <div style={{
-                          marginTop: 10, padding: '10px 14px',
-                          background: '#FAFAFE', border: '1px dashed #C4B5FD', borderRadius: 8,
-                          display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
-                        }}>
-                          <span style={{ fontSize: '0.8rem', color: '#6D28D9', fontWeight: 500 }}>Adjuntar archivo</span>
-                          <span style={{ fontSize: '0.73rem', color: 'var(--color-text-tertiary)' }}>PDF, Word, Excel — máx. 10 MB</span>
-                          <label style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '4px 12px', fontSize: '0.78rem',
-                            background: '#EDE9FE', color: '#5B21B6',
-                            borderRadius: 6, cursor: 'pointer', fontWeight: 500, border: '1px solid #C4B5FD',
-                          }}>
-                            {archivoIa ? `✓ ${archivoIa.name}` : '📂 Seleccionar archivo'}
-                            <input type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.csv,.json,.xml"
-                              style={{ display: 'none' }}
-                              onChange={e => setArchivosIa(prev => ({ ...prev, [pregunta.id]: e.target.files?.[0] || null }))} />
-                          </label>
-                          {archivoIa && (
-                            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                              onClick={() => setArchivosIa(prev => ({ ...prev, [pregunta.id]: null }))}>✕ Quitar</button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -1279,7 +1247,7 @@ export function RunnerPage() {
                           marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6,
                         }}
                         onClick={() => handleEnviarIA(currentPaso, pregunta)}
-                        disabled={(!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim() && !archivosIa[pregunta.id]) || !!enviandoIa[pregunta.id]}
+                        disabled={(!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim()) || !!enviandoIa[pregunta.id]}
                       >
                         {enviandoIa[pregunta.id] ? (
                           <>
