@@ -153,7 +153,7 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
                 marginBottom: '0.875rem',
                 letterSpacing: '-0.02em',
             }}>
-                Analytics Canvas
+                Lienzo de oportunidad
             </h2>
 
             {/* Grid layout replicando imagen de referencia */}

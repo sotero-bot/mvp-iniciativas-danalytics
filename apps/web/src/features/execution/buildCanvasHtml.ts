@@ -106,7 +106,7 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Analytics Canvas — ${escHtml(proyecto)}</title>
+  <title>Lienzo de oportunidad — ${escHtml(proyecto)}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -164,7 +164,7 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
 
 <div class="header no-print">
   <div>
-    <div style="font-size:1rem;font-weight:700;letter-spacing:-0.02em;">Analytics Canvas</div>
+    <div style="font-size:1rem;font-weight:700;letter-spacing:-0.02em;">Lienzo de oportunidad</div>
     <div class="header-meta">
       <span><strong>Empresa:</strong> ${escHtml(empresa)}</span>
       <span><strong>Área:</strong> ${escHtml(area)}</span>
@@ -180,7 +180,7 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
 
 <!-- Print header (visible only on print) -->
 <div style="display:none;" class="print-header">
-  <h1 style="margin:0 0 0.25rem;font-size:1.25rem;">Analytics Canvas</h1>
+  <h1 style="margin:0 0 0.25rem;font-size:1.25rem;">Lienzo de oportunidad</h1>
   <div style="font-size:0.8rem;color:#475569;">
     Empresa: ${escHtml(empresa)} &bull; Área: ${escHtml(area)} &bull; Proyecto: ${escHtml(proyecto)} &bull; Fecha: ${escHtml(fecha)}
   </div>
@@ -194,7 +194,7 @@ ${slotsHtml}
 </div>
 
 <div class="footer">
-  Generado por Analytics Canvas &mdash; Danalytics
+  Generado por Lienzo de oportunidad &mdash; Danalytics
 </div>
 
 <script>

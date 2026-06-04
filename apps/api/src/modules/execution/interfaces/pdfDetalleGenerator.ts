@@ -147,7 +147,7 @@ function renderCanvasSection(
   doc.addPage();
 
   // Title
-  doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('Analytics Canvas');
+  doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('Lienzo de oportunidad');
   doc.moveDown(0.3);
   doc.moveTo(doc.page.margins.left, doc.y)
     .lineTo(doc.page.width - doc.page.margins.right, doc.y)
