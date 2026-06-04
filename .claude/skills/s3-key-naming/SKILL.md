@@ -58,11 +58,37 @@ Notas:
 
 Ejemplo: `metrocali/taller_mapa_oportunidades_analiticas/respuesta/1716928200-12345.xlsx`
 
+### Prompt por pasos (admin sube por pregunta)
+
+**Actividad:** `<empresa>/<actividad>/paso_<orden>/pregunta_<orden>/prompt/<archivo>`
+
+Ejemplo: `acme_corp/mapa_de_oportunidades/paso_2/pregunta_1/prompt/instrucciones-<uuid>.pdf`
+
+**Plantilla:** `plantillas/<plantilla.id>/paso_<orden>/pregunta_<orden>/prompt/<archivo>`
+
+Usa el **ID** de la plantilla (no el nombre slugificado) para que la ruta sea estable aunque la plantilla se renombre.
+
+Ejemplo: `plantillas/cm9x1234abcd/paso_1/pregunta_3/prompt/guia-<uuid>.docx`
+
 ## Qué NO va por este flujo
 
 - IDs/tokens (UUIDs, `accessToken`): no slugifies, son únicos por construcción.
 - Nombres de archivo (`filename` del usuario): `generateKey` ya les añade un sufijo único y solo conserva la extensión, así que no necesitan slug aparte.
 - Prefijos literales en código (`'ejemplos/plantillas'`): si son fijos, escríbelos directamente en lowercase con `_`.
+
+## Carpeta raíz por entorno (`S3_ROOT_PREFIX`)
+
+Cuando dev y prod comparten el mismo bucket, define la variable de entorno `S3_ROOT_PREFIX`:
+
+```env
+# .env (dev)
+S3_ROOT_PREFIX=dev
+
+# .env (prod)
+S3_ROOT_PREFIX=prod
+```
+
+`generateKey` antepone automáticamente el prefijo: `dev/empresa/actividad/...`. Las keys guardadas en BD ya incluyen el prefijo — los demás métodos del servicio las usan tal cual. Backward-compatible: keys antiguas sin prefijo siguen funcionando.
 
 ## Por qué
 

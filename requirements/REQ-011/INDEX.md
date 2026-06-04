@@ -2,7 +2,7 @@
 req_id: REQ-011
 title: Vista resumen y descarga del Canvas
 status: implementado
-current_state: change-004
+current_state: change-005
 ---
 
 # REQ-011 — Vista resumen y descarga del Canvas: Estado consolidado actual
@@ -98,4 +98,5 @@ Constraint: `@@unique([instanciaId, pasoId])`. Índice: `@@index([instanciaId])`
 | change-001 | Implementación inicial: endpoint, use case, schema, UI, HTML       | superseded   |
 | change-002 | Precalentar síntesis canvas al finalizar actividad                 | superseded   |
 | change-003 | Rediseño visual: layout asimétrico, sticky notes, prompt           | superseded   |
-| change-004 | Canvas en HTML descargable, PDF y vista admin                      | implementado |
+| change-004 | Canvas en HTML descargable, PDF y vista admin                      | superseded   |
+| change-005 | Renombrar título "Analytics Canvas" → "Lienzo de oportunidad"      | implementado |

@@ -591,11 +591,12 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
                 />
               </div>
               <div style={{ marginTop: '0.5rem' }}>
-                <label className="required-label">Prompt IA</label>
-                <textarea className="input" rows={2} required={form.usarIa && !form.urlPromptTemplate} value={form.promptIa}
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
+                  Prompt IA <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional — si está vacío se usa el de la plantilla)</span>
+                </label>
+                <textarea className="input" rows={2} value={form.promptIa}
                   onChange={e => setForm({ ...form, promptIa: e.target.value })}
-                  placeholder="Instrucciones para el asistente..." />
-                <div className="invalid-feedback">Agregá el prompt para la IA (o usa un template de prompt).</div>
+                  placeholder="Instrucciones para el asistente... (vacío = hereda el prompt de la plantilla)" />
               </div>
             </div>
           )}

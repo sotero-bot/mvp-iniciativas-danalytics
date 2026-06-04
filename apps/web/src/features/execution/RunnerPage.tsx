@@ -361,15 +361,18 @@ export function RunnerPage() {
           ? p.preguntas.every(q => (json.respuestas ?? []).some((r: any) => r.preguntaId === q.id))
           : (json.interacciones ?? []).some((i: any) => i.pasoId === p.id);
 
+      const empresaCtx = { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa };
+      const usuarioCtx = json.usuario ? { area: json.usuario.area, cargo: json.usuario.cargo } : undefined;
+      const interpolar = (base: string) => interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: empresaCtx, usuario: usuarioCtx });
+
       if (json.estado !== 'generado') {
         const lastAnsweredIndex = json.pasos.findIndex((p: Paso) => !pasoRespondido(p));
         if (lastAnsweredIndex !== -1) {
           setCurrentStepIndex(lastAnsweredIndex);
-          // Interpolate prompts for first unanswered step
           const paso = json.pasos[lastAnsweredIndex];
           for (const q of (paso.preguntas ?? [])) {
             const base = getBasePrompt(q);
-            if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
+            if (base) promptsMap[q.id] = interpolar(base);
           }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
@@ -379,14 +382,14 @@ export function RunnerPage() {
           const paso = json.pasos[lastIdx];
           for (const q of (paso?.preguntas ?? [])) {
             const base = getBasePrompt(q);
-            if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
+            if (base) promptsMap[q.id] = interpolar(base);
           }
         }
       } else if (json.pasos.length > 0) {
         const paso = json.pasos[0];
         for (const q of (paso.preguntas ?? [])) {
           const base = getBasePrompt(q);
-          if (base) promptsMap[q.id] = interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa } });
+          if (base) promptsMap[q.id] = interpolar(base);
         }
       }
       setCustomPrompts(promptsMap);
@@ -1246,6 +1249,29 @@ export function RunnerPage() {
                           <span>Generación automática activada — el asistente usa el contexto de los pasos anteriores.</span>
                         </div>
                       )}
+
+                      <details style={{ marginBottom: 12 }}>
+                          <summary style={{
+                            fontSize: '0.72rem', fontWeight: 600, color: '#7C3AED',
+                            cursor: 'pointer', userSelect: 'none', listStyle: 'none',
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                          }}>
+                            <span>▶</span> Ver prompt base
+                          </summary>
+                          <pre style={{
+                            marginTop: 8, padding: '10px 14px',
+                            background: '#FAFAF9', border: '1px solid #E5E7EB', borderRadius: 8,
+                            fontSize: '0.75rem', color: '#374151', whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word', fontFamily: 'monospace', lineHeight: 1.5,
+                          }}>
+                            {customPrompts[pregunta.id]
+                              || rawTemplatesRef.current[pregunta.id]
+                              || pregunta.promptIaInline
+                              || pregunta.promptIa
+                              || currentPaso.promptIa
+                              || '(sin prompt configurado — el servidor usa el predeterminado)'}
+                          </pre>
+                        </details>
 
                       <button
                         className="btn btn-primary"

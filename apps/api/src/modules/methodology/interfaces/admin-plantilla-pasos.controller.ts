@@ -183,8 +183,7 @@ export class AdminPlantillaPasosController {
     });
     if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
 
-    const plantillaSlug = S3Service.slugifyPathSegment(pregunta.paso.plantilla.nombre) || 'plantilla';
-    const prefix = `plantillas/${plantillaSlug}/paso_${pregunta.paso.orden}/pregunta_${pregunta.orden}/prompt`;
+    const prefix = `plantillas/${pregunta.paso.plantilla.id}/paso_${pregunta.paso.orden}/pregunta_${pregunta.orden}/prompt`;
     const key = this.s3.generateKey(prefix, body.filename);
     const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
     return { uploadUrl, key };

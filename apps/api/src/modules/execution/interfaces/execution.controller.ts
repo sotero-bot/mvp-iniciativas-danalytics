@@ -64,7 +64,15 @@ export class ExecutionController {
             include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
           },
           iniciativa: { include: { empresa: true } },
-          plantillaOrigen: true,
+          plantillaOrigen: {
+            include: {
+              pasos: {
+                where: { activo: true },
+                orderBy: { orden: 'asc' },
+                include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
+              },
+            },
+          },
         }
       });
 
@@ -113,9 +121,36 @@ export class ExecutionController {
         fecha: r.fecha.toISOString(),
       })));
 
-      // Resolver prompts que vivan en S3 (urlPromptTemplate que NO empieza con '/')
-      // a su contenido inline, para que el runner no tenga que hacer fetch a S3 directamente.
-      const promptInlineByPreguntaId = await this.resolverPromptsS3(actividad.pasos as any[]);
+      // Fallback maps por (pasoOrden:preguntaOrden) desde la plantilla
+      const plantillaUrlFallback: Record<string, string> = {};   // urlPromptTemplate
+      const plantillaPromptIaFallback: Record<string, string> = {}; // promptIa inline
+      const plantillaPasoPromptIaFallback: Record<number, string> = {}; // promptIa a nivel paso
+      for (const pasoP of ((actividad as any).plantillaOrigen?.pasos ?? [])) {
+        if (pasoP.promptIa) plantillaPasoPromptIaFallback[pasoP.orden] = pasoP.promptIa;
+        for (const qP of (pasoP.preguntas ?? [])) {
+          if (qP.urlPromptTemplate) plantillaUrlFallback[`${pasoP.orden}:${qP.orden}`] = qP.urlPromptTemplate;
+          if (qP.promptIa) plantillaPromptIaFallback[`${pasoP.orden}:${qP.orden}`] = qP.promptIa;
+        }
+      }
+
+      // Prioridad: S3 actividad > S3 plantilla > /templates/ actividad > /templates/ plantilla
+      const efectivePromptKey: Record<string, string> = {};
+      for (const paso of (actividad.pasos as any[])) {
+        for (const q of (paso.preguntas ?? [])) {
+          const actKey = q.urlPromptTemplate as string | null ?? null;
+          const pltKey = plantillaUrlFallback[`${paso.orden}:${q.orden}`] ?? null;
+          const key =
+            (actKey && !actKey.startsWith('/') ? actKey : null) ??   // S3 actividad
+            (pltKey && !pltKey.startsWith('/') ? pltKey : null) ??   // S3 plantilla
+            (actKey?.startsWith('/') ? actKey : null) ??             // /templates/ actividad
+            (pltKey?.startsWith('/') ? pltKey : null) ??             // /templates/ plantilla
+            null;
+          if (key) efectivePromptKey[q.id] = key;
+        }
+      }
+
+      // Resolver prompts S3 (keys que NO empiezan con '/') a contenido inline
+      const promptInlineByPreguntaId = await this.resolverPromptsS3(efectivePromptKey);
 
       const esCanvas = ((actividad as any).plantillaOrigen?.nombre ?? '').includes('Analytics Canvas');
 
@@ -137,7 +172,7 @@ export class ExecutionController {
           instrucciones: p.instrucciones || undefined,
           usarIa: p.usarIa,
           iaAutomatica: p.iaAutomatica || false,
-          promptIa: p.promptIa || undefined,
+          promptIa: p.promptIa || plantillaPasoPromptIaFallback[p.orden] || undefined,
           permitirArchivo: p.permitirArchivo || false,
           soloArchivo: p.soloArchivo || false,
           urlPlantilla: p.urlPlantilla || undefined,
@@ -150,9 +185,9 @@ export class ExecutionController {
             soloArchivo: q.soloArchivo,
             usarIa: q.usarIa,
             iaAutomatica: q.iaAutomatica,
-            promptIa: q.promptIa || undefined,
+            promptIa: q.promptIa || plantillaPromptIaFallback[`${(p as any).orden}:${q.orden}`] || undefined,
             urlPlantilla: q.urlPlantilla || undefined,
-            urlPromptTemplate: q.urlPromptTemplate || undefined,
+            urlPromptTemplate: efectivePromptKey[q.id] || undefined,
             promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
           })) ?? [],
         })),
@@ -527,26 +562,33 @@ export class ExecutionController {
 
   /**
    * Para cada pregunta con `urlPromptTemplate` que apunte a una key S3
-   * (cualquier valor que NO empiece con '/'), descarga el objeto y devuelve
-   * un mapa preguntaId → texto del prompt. Falla silenciosamente por pregunta
-   * para no romper toda la carga si un objeto está corrupto.
+   * Resuelve todas las keys de prompt a texto inline:
+   *  - Keys S3 (no empiezan con '/'): descarga del bucket.
+   *  - Paths estáticos (empiezan con '/'): lee el archivo desde apps/web/public.
+   * Falla silenciosamente por pregunta para no romper toda la carga.
    */
-  private async resolverPromptsS3(pasos: Array<{ preguntas?: Array<{ id: string; urlPromptTemplate?: string | null }> }>): Promise<Record<string, string>> {
-    if (!this.s3.isConfigured) return {};
+  private async resolverPromptsS3(promptKeyByPreguntaId: Record<string, string>): Promise<Record<string, string>> {
+    const WEB_PUBLIC = require('path').resolve(__dirname, '../../../../web/public');
     const tareas: Array<Promise<[string, string] | null>> = [];
-    for (const paso of pasos) {
-      for (const q of (paso.preguntas ?? [])) {
-        const key = q.urlPromptTemplate;
-        if (key && !key.startsWith('/')) {
-          tareas.push(
-            this.s3.getObjectBuffer(key)
-              .then(buf => [q.id, buf.toString('utf-8')] as [string, string])
-              .catch(err => {
-                console.error(`[ExecutionController] No se pudo leer prompt S3 ${key}:`, err);
-                return null;
-              })
-          );
-        }
+    for (const [preguntaId, key] of Object.entries(promptKeyByPreguntaId)) {
+      if (key.startsWith('/')) {
+        tareas.push(
+          require('fs').promises.readFile(require('path').join(WEB_PUBLIC, key), 'utf-8')
+            .then((text: string) => [preguntaId, text] as [string, string])
+            .catch((err: any) => {
+              console.error(`[ExecutionController] No se pudo leer template local ${key}:`, err);
+              return null;
+            })
+        );
+      } else if (this.s3.isConfigured) {
+        tareas.push(
+          this.s3.getObjectBuffer(key)
+            .then(buf => [preguntaId, buf.toString('utf-8')] as [string, string])
+            .catch(err => {
+              console.error(`[ExecutionController] No se pudo leer prompt S3 ${key}:`, err);
+              return null;
+            })
+        );
       }
     }
     const resultados = await Promise.all(tareas);

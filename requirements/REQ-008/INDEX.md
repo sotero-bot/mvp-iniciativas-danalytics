@@ -1,8 +1,8 @@
 ---
 req_id: REQ-008
 title: Almacenamiento de archivos en S3
-status: current
-last_change: initial
+status: implementado
+current_state: change-001
 ---
 
 # REQ-008 — Almacenamiento de archivos en S3: Estado consolidado actual
@@ -33,4 +33,5 @@ Sin endpoints propios. Provider NestJS `S3Service` inyectado en controladores y 
 
 | Change  | Descripción                                  | Estado  |
 | ------- | -------------------------------------------- | ------- |
-| initial | Documentación inicial por ingeniería inversa | current |
+| initial     | Documentación inicial por ingeniería inversa          | superseded   |
+| change-001  | S3_ROOT_PREFIX y key de prompt de plantilla por ID    | implementado |
