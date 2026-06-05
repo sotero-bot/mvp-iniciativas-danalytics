@@ -12,13 +12,14 @@ Constantes en todos los bloques:
 
 Contexto acumulado (respuestas de bloques previos):
   {{paso_1}} → Bloque 1 — Problema o reto actual
-  {{paso_2}} → Bloque 2 — Datos y fuentes disponibles
-  {{paso_3}} → Bloque 3 — Indicadores o KPIs de éxito
-  {{paso_4}} → Bloque 4 — Modelo analítico / tipo de analítica
-  {{paso_5}} → Bloque 5 — Usuarios del modelo
+  {{paso_2}} → Bloque 2 — Solución propuesta
+  {{paso_3}} → Bloque 3 — Datos y fuentes disponibles
+  {{paso_4}} → Bloque 4 — Usuarios del resultado
+  {{paso_5}} → Bloque 5 — Entregables esperados
   {{paso_6}} → Bloque 6 — Actores principales y equipo responsable
-  {{paso_7}} → Bloque 7 — Entregables y uso esperado
+  {{paso_7}} → Bloque 7 — KPIs de éxito
   {{paso_8}} → Bloque 8 — Barreras y riesgos
+  {{paso_9}} → Bloque 9 — Potencial de valor estratégico
 
 Si una variable {{paso_N}} no tiene datos aún, el sistema la reemplaza por
 "[sin respuesta]". En ese caso, IGNORA ese bloque y no inventes su contenido.
@@ -40,117 +41,66 @@ Si algún bloque de contexto previo aparece como "[sin respuesta]" o vacío, ign
 
 ---
 
-# Bloque 1 — Problema o reto actual
+# Bloque 5 — Entregables esperados
 
-Actúa como consultor senior en analítica de datos y ayúdame a construir un Analytics Canvas.
-
-Voy a darte el contexto de mi proyecto:
-- Área o proceso: {{idenForm.area}}
-- Problema inicial, datos disponibles y tipo de analítica que creo necesitar (Diagnóstica / Predictiva / Prescriptiva): los describe el participante en su mensaje.
-
-Con base en esto:
-1. Ayúdame a formular el problema de forma clara y accionable.
-2. Identifica si hay supuestos implícitos que deba validar.
-3. Sugiere si el alcance es adecuado o si debería acotarse.
-
----
-
-# Bloque 3 — Indicadores o KPIs de éxito
-
-Necesito definir los indicadores clave de éxito de mi proyecto analítico.
-
-El contexto del proyecto es:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-
-Sugiere de 3 a 5 KPIs medibles que reflejen impacto real en tiempo, costo, precisión o satisfacción, y explícame por qué son útiles para este caso.
-
----
-
-# Bloque 5 — Usuarios del modelo
-
-Necesito identificar los usuarios clave del modelo analítico de mi proyecto.
+El participante ha descrito qué debería producir esta solución, en qué formato y con qué frecuencia.
 
 Contexto del proyecto:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-- Bloque 3 — KPIs de éxito: {{paso_3}}
-- Bloque 4 — Tipo de analítica y enfoque técnico: {{paso_4}}
+- Bloque 1 — Problema o reto actual: {{paso_1}}
+- Bloque 2 — Solución propuesta: {{paso_2}}
+- Bloque 3 — Datos y fuentes disponibles: {{paso_3}}
+- Bloque 4 — Usuarios del resultado: {{paso_4}}
 
-El participante enviará en su mensaje los usuarios o roles que considera principales.
-
-Propón una lista de usuarios principales, explica brevemente cómo se beneficiaría cada uno del modelo o visualización, y enumera al menos 3 elementos clave que se deben tener en cuenta para que puedan darle un buen uso.
+Valida si los entregables que describe el participante son coherentes con el problema y la solución que seleccionó, e identifica si falta alguno relevante.
 
 ---
 
 # Bloque 6 — Actores principales y equipo responsable
 
-Ayúdame a estructurar el equipo de trabajo ideal para mi proyecto analítico.
+El participante ha propuesto los roles que considera necesarios para el proyecto.
 
 Contexto del proyecto:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-- Bloque 3 — KPIs de éxito: {{paso_3}}
-- Bloque 4 — Tipo de analítica y enfoque técnico: {{paso_4}}
-- Bloque 5 — Usuarios del modelo: {{paso_5}}
+- Bloque 1 — Problema o reto actual: {{paso_1}}
+- Bloque 2 — Solución propuesta: {{paso_2}}
+- Bloque 3 — Datos y fuentes disponibles: {{paso_3}}
+- Bloque 4 — Usuarios del resultado: {{paso_4}}
+- Bloque 5 — Entregables esperados: {{paso_5}}
 
-El participante enviará en su mensaje los roles que propone para el equipo.
-
-Identifica si hace falta incluir algún otro rol e indica cómo participa cada uno en el proyecto.
-
----
-
-# Bloque 7 — Entregables y uso esperado
-
-Necesito definir los entregables y su uso esperado para mi proyecto analítico.
-
-Contexto del proyecto:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-- Bloque 3 — KPIs de éxito: {{paso_3}}
-- Bloque 4 — Tipo de analítica y enfoque técnico: {{paso_4}}
-- Bloque 5 — Usuarios del modelo: {{paso_5}}
-- Bloque 6 — Equipo responsable: {{paso_6}}
-
-El participante enviará en su mensaje los entregables que propone.
-
-Cuestióname si los entregables cubren adecuadamente las necesidades del negocio, sugiere qué otros tipos de resultados o visualizaciones podrían agregar valor, y ayúdame a afinar la descripción de su utilidad práctica para los usuarios o áreas involucradas.
+Con base en el contexto anterior y los roles que propone el participante:
+1. Identifica si hace falta incluir algún otro rol clave.
+2. Indica cómo participa cada rol en el proyecto y en qué etapas es más crítico.
 
 ---
 
 # Bloque 8 — Barreras y riesgos
 
-Necesito identificar las principales barreras y riesgos para mi proyecto analítico.
+El participante ha identificado las barreras y riesgos que podrían dificultar el proyecto.
 
 Contexto del proyecto:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-- Bloque 3 — KPIs de éxito: {{paso_3}}
-- Bloque 4 — Tipo de analítica y enfoque técnico: {{paso_4}}
-- Bloque 5 — Usuarios del modelo: {{paso_5}}
-- Bloque 6 — Equipo responsable: {{paso_6}}
-- Bloque 7 — Entregables y uso esperado: {{paso_7}}
+- Bloque 1 — Problema o reto actual: {{paso_1}}
+- Bloque 2 — Solución propuesta: {{paso_2}}
+- Bloque 3 — Datos y fuentes disponibles: {{paso_3}}
+- Bloque 4 — Usuarios del resultado: {{paso_4}}
+- Bloque 5 — Entregables esperados: {{paso_5}}
+- Bloque 6 — Actores principales y equipo responsable: {{paso_6}}
+- Bloque 7 — KPIs de éxito: {{paso_7}}
 
-El participante enviará en su mensaje los riesgos o barreras que ha identificado.
-
-Cuestióname si estoy dejando por fuera otros riesgos comunes en proyectos similares, ayúdame a identificar sus causas raíz y propón formas prácticas de mitigarlos o reducir su impacto.
+Identifica riesgos adicionales que el participante quizás no haya considerado y propón estrategias de mitigación.
 
 ---
 
-# Bloque 10 — Potencial de valor para la organización
+# Bloque 9 — Potencial de valor estratégico
 
-Quiero definir el valor potencial de mi proyecto analítico para la organización.
+El participante ha descrito los beneficios que espera de esta solución para la organización.
 
 Contexto del proyecto:
-- Bloque 1 — Problema y objetivo: {{paso_1}}
-- Bloque 2 — Datos y fuentes disponibles: {{paso_2}}
-- Bloque 3 — KPIs de éxito: {{paso_3}}
-- Bloque 4 — Tipo de analítica y enfoque técnico: {{paso_4}}
-- Bloque 5 — Usuarios del modelo: {{paso_5}}
-- Bloque 6 — Equipo responsable: {{paso_6}}
-- Bloque 7 — Entregables y uso esperado: {{paso_7}}
+- Bloque 1 — Problema o reto actual: {{paso_1}}
+- Bloque 2 — Solución propuesta: {{paso_2}}
+- Bloque 3 — Datos y fuentes disponibles: {{paso_3}}
+- Bloque 4 — Usuarios del resultado: {{paso_4}}
+- Bloque 5 — Entregables esperados: {{paso_5}}
+- Bloque 6 — Actores principales y equipo responsable: {{paso_6}}
+- Bloque 7 — KPIs de éxito: {{paso_7}}
 - Bloque 8 — Barreras y riesgos: {{paso_8}}
 
-El participante enviará en su mensaje los beneficios o impactos esperados que ya ha identificado.
-
-Cuestióname si los beneficios están suficientemente conectados con los objetivos estratégicos de la organización, ayúdame a estimar su magnitud o plazo de impacto, y sugiere posibles indicadores o métricas para evidenciar el valor generado.
+Ayuda a articular el valor estratégico de forma más clara y estima su magnitud con base en referencias de industria.

@@ -1250,28 +1250,7 @@ export function RunnerPage() {
                         </div>
                       )}
 
-                      <details style={{ marginBottom: 12 }}>
-                          <summary style={{
-                            fontSize: '0.72rem', fontWeight: 600, color: '#7C3AED',
-                            cursor: 'pointer', userSelect: 'none', listStyle: 'none',
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                          }}>
-                            <span>▶</span> Ver prompt base
-                          </summary>
-                          <pre style={{
-                            marginTop: 8, padding: '10px 14px',
-                            background: '#FAFAF9', border: '1px solid #E5E7EB', borderRadius: 8,
-                            fontSize: '0.75rem', color: '#374151', whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word', fontFamily: 'monospace', lineHeight: 1.5,
-                          }}>
-                            {customPrompts[pregunta.id]
-                              || rawTemplatesRef.current[pregunta.id]
-                              || pregunta.promptIaInline
-                              || pregunta.promptIa
-                              || currentPaso.promptIa
-                              || '(sin prompt configurado — el servidor usa el predeterminado)'}
-                          </pre>
-                        </details>
+                      {/* "Ver prompt base" oculto — no se muestra al participante */}
 
                       <button
                         className="btn btn-primary"
