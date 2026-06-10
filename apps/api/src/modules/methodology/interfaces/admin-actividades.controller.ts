@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Patch, Delete, Get, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Put, Patch, Delete, Get, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
@@ -8,6 +8,7 @@ import { PasoActividadResponseDto } from './dtos/paso-actividad-response.dto';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
 import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { S3Service } from '../../storage/S3Service';
+import { AppError } from '../../../shared/errors/AppError';
 
 @Controller('admin/actividades')
 export class AdminActividadesController {
@@ -31,7 +32,7 @@ export class AdminActividadesController {
           },
         },
       });
-      if (!actividad) throw new NotFoundException('Actividad no encontrada');
+      if (!actividad) throw new AppError('ACTIVIDAD_NOT_FOUND');
       return {
         nombre: actividad.nombre,
         pasos: actividad.pasos.map(p => new PasoActividadResponseDto({
@@ -85,10 +86,10 @@ export class AdminActividadesController {
 
   private handleError(error: unknown): void {
     if (error instanceof ResourceNotFoundError) {
-      throw new NotFoundException(error.message);
+      throw new AppError('ACTIVIDAD_NOT_FOUND', { message: error.message });
     }
     if (error instanceof BusinessRuleViolationError) {
-      throw new BadRequestException(error.message);
+      throw new AppError('VALIDATION_ERROR', { message: error.message });
     }
     throw error;
   }
@@ -129,7 +130,7 @@ export class AdminActividadesController {
     @Param('pasoId') pasoId: string,
     @Body() body: { filename: string; contentType: string }
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
 
     const paso = await this.prisma.pasoActividad.findUnique({
       where: { id: pasoId },
@@ -143,7 +144,7 @@ export class AdminActividadesController {
         },
       },
     });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
 
     const empresa = S3Service.slugifyPathSegment(paso.actividad.iniciativa.empresa.nombre) || 'empresa';
     const actividad = S3Service.slugifyPathSegment(paso.actividad.nombre) || 'actividad';
@@ -157,9 +158,9 @@ export class AdminActividadesController {
   /** Presigned GET URL para descargar el archivo de ejemplo del paso */
   @Get(':id/pasos/:pasoId/ejemplo-url')
   async ejemploUrl(@Param('pasoId') pasoId: string): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!paso?.ejemploKey) throw new NotFoundException('Archivo de ejemplo no encontrado');
+    if (!paso?.ejemploKey) throw new AppError('ARCHIVO_INVALID', { message: 'Archivo de ejemplo no encontrado' });
     const url = await this.s3.getPresignedGetUrl(paso.ejemploKey);
     return { url };
   }
@@ -169,7 +170,7 @@ export class AdminActividadesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async eliminarEjemplo(@Param('pasoId') pasoId: string): Promise<void> {
     const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
     if (!paso.ejemploKey) return;
     const key = paso.ejemploKey;
     await this.prisma.pasoActividad.update({ where: { id: pasoId }, data: { ejemploKey: null } });
@@ -188,7 +189,7 @@ export class AdminActividadesController {
       where: { id: pasoId },
       include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
     });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
     return paso.preguntas;
   }
 
@@ -198,9 +199,9 @@ export class AdminActividadesController {
     @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string },
   ) {
     const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
     const existe = await this.prisma.preguntaActividad.findFirst({ where: { pasoId, orden: body.orden, activo: true } });
-    if (existe) throw new BadRequestException(`Ya existe una pregunta con orden ${body.orden} en este paso`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
     return this.prisma.preguntaActividad.create({
       data: {
         id: randomUUID(),
@@ -228,7 +229,7 @@ export class AdminActividadesController {
     const existe = await this.prisma.preguntaActividad.findFirst({
       where: { pasoId, orden: body.orden, activo: true, NOT: { id: preguntaId } },
     });
-    if (existe) throw new BadRequestException(`Ya existe una pregunta con orden ${body.orden} en este paso`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
     return this.prisma.preguntaActividad.update({
       where: { id: preguntaId },
       data: {
@@ -250,7 +251,7 @@ export class AdminActividadesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePregunta(@Param('pasoId') pasoId: string, @Param('preguntaId') preguntaId: string) {
     const count = await this.prisma.preguntaActividad.count({ where: { pasoId, activo: true } });
-    if (count <= 1) throw new BadRequestException('Un paso debe tener al menos una pregunta');
+    if (count <= 1) throw new AppError('VALIDATION_ERROR', { message: 'Un paso debe tener al menos una pregunta' });
     await this.prisma.preguntaActividad.update({ where: { id: preguntaId }, data: { activo: false } });
   }
 
@@ -263,7 +264,7 @@ export class AdminActividadesController {
     @Param('preguntaId') preguntaId: string,
     @Body() body: { filename: string; contentType: string },
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const pregunta = await this.prisma.preguntaActividad.findUnique({
       where: { id: preguntaId },
       include: {
@@ -276,7 +277,7 @@ export class AdminActividadesController {
         },
       },
     });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
 
     const empresa = S3Service.slugifyPathSegment(pregunta.paso.actividad.iniciativa.empresa.nombre) || 'empresa';
     const actividad = S3Service.slugifyPathSegment(pregunta.paso.actividad.nombre) || 'actividad';
@@ -294,7 +295,7 @@ export class AdminActividadesController {
     @Body() body: { urlPromptTemplate: string },
   ): Promise<{ urlPromptTemplate: string | null }> {
     const pregunta = await this.prisma.preguntaActividad.findUnique({ where: { id: preguntaId } });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
     const anterior = pregunta.urlPromptTemplate;
     const nuevo = body.urlPromptTemplate || null;
     await this.prisma.preguntaActividad.update({
@@ -314,7 +315,7 @@ export class AdminActividadesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePromptTemplate(@Param('preguntaId') preguntaId: string): Promise<void> {
     const pregunta = await this.prisma.preguntaActividad.findUnique({ where: { id: preguntaId } });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
     const key = pregunta.urlPromptTemplate;
     await this.prisma.preguntaActividad.update({ where: { id: preguntaId }, data: { urlPromptTemplate: null } });
     if (key && !key.startsWith('/')) {
@@ -327,10 +328,10 @@ export class AdminActividadesController {
   /** Presigned GET URL para descargar/previsualizar el prompt (admin) */
   @Get(':id/pasos/:pasoId/preguntas/:preguntaId/prompt-url')
   async promptUrl(@Param('preguntaId') preguntaId: string): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const pregunta = await this.prisma.preguntaActividad.findUnique({ where: { id: preguntaId } });
     if (!pregunta?.urlPromptTemplate || pregunta.urlPromptTemplate.startsWith('/')) {
-      throw new NotFoundException('La pregunta no tiene prompt en S3');
+      throw new AppError('PREGUNTA_NOT_FOUND', { message: 'La pregunta no tiene prompt en S3' });
     }
     const url = await this.s3.getPresignedGetUrl(pregunta.urlPromptTemplate);
     return { url };

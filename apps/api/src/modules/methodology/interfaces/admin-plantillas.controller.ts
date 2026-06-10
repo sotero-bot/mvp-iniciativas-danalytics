@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, NotFoundException, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
+import { AppError } from '../../../shared/errors/AppError';
 
 @Controller('admin/plantillas')
 export class AdminPlantillasController {
@@ -28,7 +29,7 @@ export class AdminPlantillasController {
     @Body() body: { nombre: string; descripcion?: string; orden?: number | null },
   ) {
     const exists = await this.prisma.plantillaActividad.findUnique({ where: { id } });
-    if (!exists) throw new NotFoundException('Plantilla no encontrada');
+    if (!exists) throw new AppError('PLANTILLA_NOT_FOUND');
     return this.prisma.plantillaActividad.update({
       where: { id },
       data: { nombre: body.nombre, descripcion: body.descripcion, orden: body.orden ?? null },
@@ -70,7 +71,7 @@ export class AdminPlantillasController {
     }[];
   }) {
     if (!Array.isArray(body.plantillas) || body.plantillas.length === 0) {
-      throw new BadRequestException('El JSON debe contener al menos una plantilla');
+      throw new AppError('IMPORT_INVALID_JSON', { message: 'El JSON debe contener al menos una plantilla' });
     }
 
     const result = { plantillasCreadas: 0, pasosCreados: 0, preguntasCreadas: 0, details: [] as any[] };

@@ -1,0 +1,371 @@
+{
+  "instancias": {
+    "page_title": "Execuções",
+    "page_description": "Passo 4 de 4 — Gere links para distribuir atividades e monitore o progresso dos participantes.",
+    "subtitle": "Gestão de instâncias e links de acesso ao workshop.",
+    "tabs": {
+      "instancias": "Execuções individuais",
+      "enlaces": "Links ativos"
+    },
+    "summary_title": "Resumo",
+    "stats": {
+      "finalizadas": "Finalizadas",
+      "en_progreso": "Em andamento",
+      "pendientes": "Pendentes"
+    },
+    "filters": {
+      "all_empresas": "Todas as empresas",
+      "all_actividades": "Todas as atividades",
+      "all_estados": "Todos os status",
+      "search_placeholder": "Buscar por atividade, usuário...",
+      "clear": "Limpar filtros",
+      "show": "Mostrar",
+      "per_page": "por página"
+    },
+    "generar_enlace": {
+      "section_title": "Gerar Link",
+      "section_subtitle": "— Compartilhe com múltiplos participantes",
+      "actividad_label": "Atividade",
+      "select_actividad": "Selecione uma atividade",
+      "etiqueta_label": "Etiqueta",
+      "etiqueta_optional": "(opcional)",
+      "etiqueta_placeholder": "Ex: Campanha Maio 2025",
+      "actividad_required": "Selecione uma atividade.",
+      "generating": "Gerando...",
+      "submit": "Gerar link",
+      "success_title": "✓ Link gerado e copiado",
+      "copy": "Copiar",
+      "error_prefix": "Erro ao gerar o link: "
+    },
+    "enlaces_activos": {
+      "section_title": "Links Ativos",
+      "table": {
+        "etiqueta": "Etiqueta",
+        "actividad": "Atividade",
+        "estado": "Status",
+        "creado": "Criado",
+        "actions": "Ações",
+        "sin_etiqueta": "Sem etiqueta",
+        "activo": "Ativo",
+        "inactivo": "Inativo",
+        "no_results": "Não há links para os filtros aplicados."
+      },
+      "copy": "Copiar"
+    },
+    "individuales": {
+      "section_title": "Execuções Individuais",
+      "table": {
+        "estado": "Status",
+        "actividad": "Atividade",
+        "usuario": "Usuário",
+        "area": "Área",
+        "archivos": "Arquivos",
+        "ultima_actualizacion": "Última atualização",
+        "actions": "Ações",
+        "desconocida": "Desconhecida",
+        "pendiente": "Pendente"
+      },
+      "actions": {
+        "view_results": "Ver resultados",
+        "pdf_title": "Baixar perguntas e respostas em PDF",
+        "zip_title": "Baixar ZIP com PDF e arquivos anexos",
+        "copy_link": "Copiar link",
+        "interaccion_title": "Reconstruído a partir do conteúdo salvo (legado)"
+      },
+      "no_filter_results": "Não há resultados para os filtros aplicados.",
+      "empty": {
+        "title": "Ainda não há execuções",
+        "description": "Gere um link acima e compartilhe com os participantes. Cada vez que alguém usá-lo, aparecerá aqui."
+      },
+      "pagination": {
+        "no_results": "Sem resultados",
+        "showing": "Mostrando {{from}}–{{to}} de {{total}}"
+      },
+      "errors": {
+        "download_link_failed": "Não foi possível obter o link de download",
+        "download_connection": "Erro de conexão ao baixar"
+      }
+    },
+    "generate_instance": "Gerar nova instância",
+    "generate_link": "Gerar link permanente",
+    "copy_link": "Copiar link",
+    "link_copied": "Link copiado",
+    "link_copied_clipboard": "Link copiado para a área de transferência",
+    "delete_instancia_modal": {
+      "title": "Excluir Execução?",
+      "message": "Esta ação desativará a execução e não será possível acessá-la."
+    },
+    "delete_enlace_modal": {
+      "title": "Excluir Link?",
+      "message": "Este link será desativado. As sessões já iniciadas continuarão, mas não será possível criar novas."
+    },
+    "prereq_banner": {
+      "title": "Primeiro você precisa criar uma atividade",
+      "text": "Os links de execução estão vinculados a atividades. Vá ao passo anterior e configure pelo menos uma.",
+      "link": "Ir para Atividades →"
+    },
+    "fields": {
+      "actividad": "Atividade",
+      "empresa": "Empresa",
+      "email_referencia": "Email de referência",
+      "estado": "Status",
+      "fecha_inicio": "Data de início",
+      "fecha_fin": "Data de término",
+      "creado": "Criado"
+    },
+    "estados": {
+      "pendiente": "Pendente",
+      "en_progreso": "Em andamento",
+      "finalizado": "Finalizado",
+      "generado": "Pendente",
+      "iniciado": "Em andamento"
+    },
+    "actions": {
+      "view_detail": "Ver detalhes",
+      "delete": "Excluir instância",
+      "download_pdf": "Baixar PDF",
+      "download_zip": "Baixar ZIP"
+    },
+    "confirm_delete": "Excluir a instância? As respostas serão mantidas mas ficará oculta."
+  },
+  "instancia_detalle": {
+    "page_title": "Detalhe da Execução",
+    "id_label": "ID:",
+    "back_to_list": "← Voltar para Instâncias",
+    "back_to_list_button": "Voltar para a lista",
+    "loading": "Carregando detalhes...",
+    "errors": {
+      "instancia_not_found": "Instância não encontrada",
+      "load_failed": "Erro ao carregar os detalhes da instância",
+      "unknown": "Erro desconhecido"
+    },
+    "warning_not_finished": "⚠️ Aviso: Esta instância ainda não foi finalizada. Os resultados podem estar incompletos.",
+    "general_info": "Informações Gerais da Execução",
+    "title": "Detalhe da execução",
+    "metadata": "Metadados",
+    "fields": {
+      "actividad": "Atividade",
+      "plantilla_origen": "Modelo de origem",
+      "usuario": "Usuário / Responsável",
+      "fecha_inicio": "Data de Início",
+      "fecha_fin": "Data de Término"
+    },
+    "user_pending": "Pendente de identificação",
+    "responses_by_step": "Respostas por Passo",
+    "step_objective": "Objetivo:",
+    "instructions_label": "Instruções Metodológicas:",
+    "prompt_ia_label": "Prompt IA Configurado:",
+    "pregunta_label": "Pergunta {{num}}",
+    "answered_on": "Respondido em: {{date}}",
+    "no_response_yet": "Sem resposta ainda",
+    "no_response": "Sem resposta registrada.",
+    "ai_response": "Resposta da IA",
+    "user_response": "Resposta do usuário",
+    "attached_file": "Arquivo anexo",
+    "download_file": "Baixar arquivo",
+    "download_legacy": "⬇ Baixar"
+  },
+  "runner": {
+    "brand_name": "Decisão IA",
+    "loading_activity": "Carregando atividade...",
+    "loading_steps": "Carregando passos...",
+    "loading": "Carregando workshop…",
+    "load_failed": "Não foi possível carregar a atividade",
+    "step_progress": "Passo {{current}} de {{total}}",
+    "last_step": "Último passo",
+    "save_response": "Salvar resposta",
+    "saved": "Salvo",
+    "ai_help": "Consultar IA",
+    "ai_thinking": "Consultando IA…",
+    "ai_response_title": "Resposta da IA",
+    "ai_unavailable": "A assistência de IA não está disponível para este passo.",
+    "ai_needs_text": "Escreva sua resposta antes de consultar a IA.",
+    "finish_workshop": "Finalizar atividade",
+    "finishing": "Finalizando…",
+    "go_to_results": "Ver meus resultados →",
+    "next_step": "Próximo passo →",
+    "previous_step": "← Passo anterior",
+    "saving": "Salvando...",
+    "preparing_results": "Preparando resultados...",
+    "your_response": "Sua resposta",
+    "your_response_label": "Sua resposta",
+    "your_response_help_file": "Envie o documento concluído para avançar ao próximo passo.",
+    "your_response_help_ia": "Escreva sua resposta inicial. Depois você poderá enriquecê-la com o Assistente IA.",
+    "your_response_help_default": "Escreva aqui sua análise ou resposta.",
+    "answer_placeholder": "Escreva aqui sua resposta...",
+    "ia_label": "Assistente IA",
+    "ia_help_automatica": "O assistente analisa automaticamente as respostas anteriores e gera o resultado. Você poderá editá-lo antes de salvar.",
+    "ia_help_manual": "Envie sua resposta ao assistente para receber análise e retroalimentação.",
+    "ia_automatica_banner": "Geração automática ativada — o assistente usa o contexto dos passos anteriores.",
+    "ia_consulting": "Consultando...",
+    "ia_retry": "↺ Consultar novamente",
+    "ia_send_button": "✨ Enviar ao Assistente IA",
+    "ia_generating": "Gerando análise com IA...",
+    "ia_response_placeholder": "A resposta do assistente aparecerá aqui. Você poderá editá-la antes de salvar.",
+    "ia_response_empty_automatica": "O assistente gerará a análise automaticamente ao entrar no passo.",
+    "ia_response_empty_manual_prefix": "Você ainda não consultou o assistente. Escreva sua resposta acima e pressione ",
+    "ia_response_empty_manual_button": "Enviar ao Assistente IA",
+    "attach_file": "Anexar arquivo",
+    "remove_file": "Remover arquivo",
+    "remove": "✕ Remover",
+    "download_example": "Baixar exemplo",
+    "download_template": "Baixar modelo pré-preenchido",
+    "instructions": {
+      "section_title": "Instruções",
+      "section_subtitle": "Leia atentamente antes de começar"
+    },
+    "example_file": {
+      "title": "📎 Arquivo de exemplo",
+      "subtitle": "Material de referência para este passo.",
+      "download": "⬇ Baixar exemplo",
+      "error": "Não foi possível obter o link de download"
+    },
+    "plantilla_priorizacion": {
+      "title": "Baixe o modelo de priorização",
+      "description": "O modelo já vem pré-preenchido com as ideias geradas pelo assistente. Baixe, complete as pontuações com sua equipe e salve.",
+      "generating_ideas": "⏳ Gerando ideias com IA...",
+      "waiting_ia": "⏳ Disponível assim que o assistente terminar de gerar as ideias",
+      "generating": "⏳ Gerando...",
+      "download_prefilled": "⬇ Baixar modelo pré-preenchido",
+      "download_empty": "⬇ Baixar modelo vazio"
+    },
+    "upload_file": {
+      "title": "Envie o arquivo concluído",
+      "select_button": "📂 Selecionar arquivo (.xlsx)",
+      "already_uploaded": "📎 Arquivo enviado:",
+      "download": "⬇ Baixar"
+    },
+    "plantilla_anterior": {
+      "title": "📋 Respostas de \"{{nombre}}\"",
+      "expand": "▼ Ver respostas anteriores",
+      "collapse": "▲ Fechar",
+      "step_label": "Passo {{orden}}: {{titulo}}",
+      "no_response": "Sem resposta registrada"
+    },
+    "identification": {
+      "header_title": "Diga-nos quem você é",
+      "header_subtitle": "Estes dados ficarão vinculados à sua participação na atividade.",
+      "email_label": "E-mail",
+      "email_placeholder": "exemplo@empresa.com",
+      "email_invalid": "Informe um e-mail válido.",
+      "nombre_label": "Nome Completo",
+      "nombre_placeholder": "Seu nome completo",
+      "nombre_required": "Informe seu nome completo.",
+      "cargo_label": "Cargo",
+      "cargo_placeholder": "Ex: Diretor de Inovação",
+      "area_label": "Área",
+      "area_placeholder": "Ex: Tecnologia",
+      "registering": "Registrando...",
+      "start_button": "Começar atividade →",
+      "starting": "Iniciando atividade...",
+      "email_confirm_title": "Confirme seu e-mail",
+      "email_confirm_message": "Você está prestes a se registrar com:\n\n{{email}}\n\nSeu e-mail é sua chave única. Se você já estiver cadastrado, usaremos sua conta existente. Se este não for seu e-mail, clique em cancelar e corrija.",
+      "email_confirm_button": "Confirmar e começar",
+      "register_error_default": "Algo deu errado ao iniciar a atividade",
+      "register_failed": "Erro ao registrar identificação",
+      "start_failed_generic": "Algo deu errado ao iniciar. Tente novamente.",
+      "welcome_back": "Bem-vindo de volta, {{nombre}}",
+      "register_success": "Registro realizado com sucesso",
+      "title": "Identifique-se para começar",
+      "name": "Nome",
+      "email": "Email",
+      "cargo": "Cargo",
+      "area": "Área",
+      "start": "Iniciar workshop"
+    },
+    "stats": {
+      "pasos": "passos"
+    },
+    "completed": {
+      "title": "Atividade concluída!",
+      "description": "Suas respostas foram registradas com sucesso. Você pode ver um resumo completo a seguir.",
+      "view_results": "Ver meus resultados →",
+      "download_html": "Baixar resumo HTML",
+      "close_hint": "Você também pode fechar esta janela."
+    },
+    "errors": {
+      "answer_all": "Responda todas as perguntas antes de continuar.",
+      "consult_ia_first": "Consulte o assistente para a pergunta \"{{enunciado}}...\" antes de continuar.",
+      "attach_file_required": "Anexe o arquivo necessário para continuar.",
+      "save_failed": "Erro ao salvar a resposta. Por favor, tente novamente.",
+      "ia_failed": "Erro ao consultar a IA",
+      "ia_connect_failed": "Não foi possível conectar com o assistente. Tente novamente.",
+      "ia_write_first": "Escreva sua resposta para consultar o assistente.",
+      "download_example_failed": "Não foi possível obter o link de download",
+      "download_template_failed": "Não foi possível gerar o modelo. Aguarde o assistente IA finalizar.",
+      "download_template_retry": "Erro ao baixar o modelo. Tente novamente."
+    }
+  },
+  "enlace_runner": {
+    "preparing": "Preparando sua sessão...",
+    "error_title": "Link indisponível",
+    "errors": {
+      "invalid_link": "O link não é válido ou foi desativado.",
+      "connection": "Não foi possível conectar com o servidor. Verifique sua conexão e tente novamente."
+    }
+  },
+  "results": {
+    "title": "Resultados do workshop",
+    "page_title": "Resultados",
+    "loading": "Carregando resultados...",
+    "load_failed": "Não foi possível carregar os resultados",
+    "completed_badge": "Concluída",
+    "completed_message": "Você concluiu o workshop!",
+    "stats": {
+      "pasos_completados": "passos concluídos",
+      "fecha_finalizacion": "data de finalização"
+    },
+    "download_canvas": "Baixar Canvas",
+    "download_html": "Baixar HTML",
+    "generating": "Gerando...",
+    "generate_canvas": "Gerar canvas",
+    "generating_canvas": "Gerando síntese IA...",
+    "canvas_not_generated": "O canvas ainda não foi gerado.",
+    "canvas_title": "Tela de oportunidade",
+    "pregunta_label": "Pergunta {{num}}",
+    "no_response": "Sem resposta registrada",
+    "close_hint": "Você pode fechar esta janela."
+  },
+  "canvas": {
+    "title": "Tela de oportunidade",
+    "footer": "Gerado por Tela de oportunidade — Danalytics",
+    "autosave_active": "Salvamento automático ativo",
+    "autosave_saved": "Salvo: {{time}}",
+    "export_txt": "Exportar .txt",
+    "header": {
+      "empresa": "Empresa",
+      "area": "Área",
+      "proyecto": "Projeto",
+      "fecha": "Data"
+    },
+    "export_header": "TELA DE OPORTUNIDADE",
+    "export_no_synthesis": "(Sem síntese)",
+    "blocks": {
+      "datos": "Dados e fontes",
+      "oportunidad": "Oportunidade",
+      "problema": "Problema ou desafio atual",
+      "usuarios": "Usuários",
+      "actores": "Atores principais",
+      "indicadores": "Indicadores de sucesso",
+      "entregables": "Entregáveis",
+      "restricciones": "Restrições",
+      "recursos": "Recursos necessários",
+      "potencial": "Potencial de valor",
+      "valor": "Potencial de valor"
+    },
+    "empty_block": "Sem conteúdo ainda."
+  },
+  "resumen_html": {
+    "title": "Resumo — {{nombre}}",
+    "no_response": "Sem resposta registrada",
+    "meta": {
+      "participante": "Participante",
+      "correo": "E-mail",
+      "cargo": "Cargo",
+      "area": "Área",
+      "inicio": "Início",
+      "finalizacion": "Finalização"
+    },
+    "footer": "Resumo gerado em {{date}} · DAnalytics"
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "plantillas": {
+    "page_title": "Plantillas de Actividad",
+    "page_description": "Define actividades reutilizables con un orden de secuencia. El participante debe completar cada plantilla antes de avanzar a la siguiente.",
+    "create_button": "Nueva plantilla",
+    "create_section_title": "Nueva Plantilla",
+    "create_section_subtitle": "Define una actividad reutilizable con pasos configurables.",
+    "edit_modal_title": "Editar Plantilla",
+    "create_submit": "Guardar Plantilla",
+    "import_button": "⬆ Importar JSON",
+    "fields": {
+      "nombre": "Nombre",
+      "descripcion": "Descripción",
+      "orden": "Orden",
+      "orden_label": "Orden en la secuencia"
+    },
+    "placeholders": {
+      "nombre": "Ej: Mapa de Oportunidades",
+      "descripcion": "¿Qué trabajará el participante en esta actividad?",
+      "orden": "Ej: 1, 2, 3..."
+    },
+    "validation": {
+      "nombre_required": "El nombre es necesario."
+    },
+    "optional_label": "(opcional)",
+    "orden_help": "Define el orden en la secuencia. Si la plantilla anterior tiene respuestas registradas, se mostrarán al iniciar esta (no es obligatorio completarla primero).",
+    "orden_help_alt": "Define el paso en la secuencia. Si la plantilla anterior tiene respuestas registradas, se mostrarán al iniciar esta (no es obligatorio completarla primero).",
+    "step_badge": "Paso {{num}}",
+    "no_pasos": "Sin pasos",
+    "pasos_count_one": "{{count}} paso",
+    "pasos_count_other": "{{count}} pasos",
+    "configure_pasos": "⚙️ Configurar pasos",
+    "delete_modal": {
+      "title": "¿Eliminar Plantilla?",
+      "message": "La plantilla \"{{nombre}}\" se desactivará. Las actividades ya creadas desde ella NO se verán afectadas."
+    },
+    "empty": {
+      "title": "Aún no hay plantillas",
+      "description": "Crea tu primera plantilla y define sus pasos. Luego podrás usarla al crear actividades para cualquier empresa."
+    },
+    "toast": {
+      "created": "Plantilla creada correctamente",
+      "create_error": "Error al crear la plantilla",
+      "deleted": "Plantilla eliminada",
+      "updated": "Plantilla actualizada",
+      "update_error": "Error al actualizar"
+    },
+    "import": {
+      "title": "Importar Plantillas desde JSON",
+      "drop_zone": "Arrastra un archivo .json aquí",
+      "drop_zone_hint": "o haz clic para seleccionar",
+      "error_invalid_extension": "Solo se aceptan archivos .json",
+      "error_missing_name": "El JSON debe tener el campo \"nombre\" en cada plantilla.",
+      "error_invalid_json": "El archivo no es un JSON válido.",
+      "error_default": "Error al importar",
+      "preview_one": "Vista previa — {{count}} plantilla",
+      "preview_other": "Vista previa — {{count}} plantillas",
+      "no_pasos": "Sin pasos definidos",
+      "ia_badge": "🤖 IA",
+      "change_file": "Cambiar archivo",
+      "importing": "Importando...",
+      "import_one": "Importar {{count}} plantilla",
+      "import_other": "Importar {{count}} plantillas",
+      "success": "Importación exitosa",
+      "result_plantillas_one": "{{count}} plantilla creada",
+      "result_plantillas_other": "{{count}} plantillas creadas",
+      "result_pasos_one": "{{count}} paso creado",
+      "result_pasos_other": "{{count}} pasos creados"
+    },
+    "confirm_delete": "¿Eliminar la plantilla?",
+    "manage_steps": "Gestionar pasos"
+  },
+  "actividades": {
+    "page_title": "Actividades",
+    "page_description": "Paso 3 de 4 — Define los flujos de trabajo paso a paso que los participantes ejecutarán.",
+    "manage_plantillas": "📋 Gestionar plantillas",
+    "next_ejecuciones": "Siguiente: Ejecuciones →",
+    "create_button": "Nueva actividad",
+    "create_section_title": "Nueva Actividad",
+    "create_section_subtitle": "Cada actividad contiene pasos con instrucciones y, opcionalmente, asistencia de IA.",
+    "edit_modal_title": "Editar Actividad",
+    "create_submit": "Guardar Actividad",
+    "create_from_template": "Crear desde plantilla",
+    "create_empty": "Crear vacía",
+    "fields": {
+      "nombre": "Nombre",
+      "iniciativa": "Iniciativa",
+      "plantilla": "Plantilla",
+      "descripcion": "Descripción",
+      "empresa": "Empresa"
+    },
+    "placeholders": {
+      "nombre": "Ej: Análisis de Brechas",
+      "descripcion": "¿Qué se espera lograr en esta actividad?",
+      "select_iniciativa": "Seleccione una Iniciativa",
+      "select_iniciativa_alt": "Seleccione una iniciativa",
+      "no_iniciativas": "Sin iniciativas disponibles",
+      "no_plantilla": "Sin plantilla — crear desde cero",
+      "no_plantillas": "No hay plantillas creadas aún"
+    },
+    "validation": {
+      "iniciativa_required": "Seleccione una iniciativa.",
+      "nombre_required": "Ingrese el nombre de la actividad.",
+      "nombre_required_short": "El nombre es necesario."
+    },
+    "optional_label": "(opcional)",
+    "plantilla_info_with_pasos": "✓ Se copiarán <1>{{count}} pasos</1> automáticamente al guardar",
+    "plantilla_info_no_pasos": "⚠️ Esta plantilla no tiene pasos. Podrás agregarlos después de crear la actividad.",
+    "plantilla_create_link": "Crear plantillas →",
+    "filter": {
+      "empresa_label": "Empresa",
+      "all_empresas": "Todas las empresas",
+      "result_one": "{{count}} actividad",
+      "result_other": "{{count}} actividades",
+      "total": "{{count}} en total"
+    },
+    "prereq_banner": {
+      "title": "Primero necesitas crear una iniciativa",
+      "text": "Las actividades pertenecen a una iniciativa. Ve al paso anterior y crea al menos una.",
+      "link": "Ir a Iniciativas →"
+    },
+    "from_template_badge": "📋 Desde plantilla",
+    "configure_pasos": "⚙️ Configurar pasos",
+    "delete_modal": {
+      "title": "¿Eliminar Actividad?",
+      "message": "Se desactivarán también los pasos y ejecuciones de \"{{nombre}}\"."
+    },
+    "empty": {
+      "title_filter": "No hay actividades para esta empresa",
+      "title_default": "Aún no hay actividades",
+      "no_iniciativas": "Necesitas una iniciativa antes de crear actividades.",
+      "filter_default": "Crea la primera actividad para esta empresa usando el formulario.",
+      "default": "Crea tu primera actividad usando el formulario de la izquierda. Luego podrás agregar pasos e instrucciones.",
+      "link_iniciativas": "Ir a Iniciativas →"
+    },
+    "next_step": {
+      "label": "Siguiente paso:",
+      "text": "Configura los pasos de cada actividad, luego ve a Ejecuciones para generar enlaces.",
+      "link": "Ir a Ejecuciones →"
+    },
+    "toast": {
+      "created_with_pasos": "Actividad creada con {{count}} pasos copiados de \"{{nombre}}\"",
+      "created": "Actividad creada correctamente",
+      "create_error": "Error al crear la actividad",
+      "deleted": "Actividad eliminada",
+      "updated": "Actividad actualizada",
+      "update_error": "Error al actualizar"
+    },
+    "plantilla_pasos_option": "{{nombre}} ({{count}} pasos)",
+    "iniciativa_option_with_empresa": "{{nombre}} ({{empresa}})",
+    "confirm_delete": "¿Eliminar la actividad?",
+    "manage_steps": "Gestionar pasos"
+  },
+  "pasos": {
+    "page_title_plantilla": "Pasos de la Plantilla",
+    "page_title_actividad": "Gestión de Pasos",
+    "plantilla_label": "Plantilla:",
+    "actividad_label": "Actividad:",
+    "back_to_plantillas": "← Volver a Plantillas",
+    "back_to_actividades": "← Volver a Actividades",
+    "back": "Volver",
+    "loading": "Cargando pasos...",
+    "add_button": "➕ Agregar Paso",
+    "create_section_title": "Nuevo Paso",
+    "edit_section_title": "Editar Paso",
+    "fields": {
+      "titulo": "Título",
+      "orden": "Orden",
+      "objetivo": "Objetivo",
+      "instrucciones": "Instrucciones",
+      "descripcion": "Descripción",
+      "usar_ia": "Usar IA",
+      "ia_automatica": "IA automática",
+      "prompt_ia": "Prompt de IA",
+      "archivo_ejemplo": "Archivo de ejemplo"
+    },
+    "placeholders": {
+      "titulo": "Ej: Entrevista de Stakeholders",
+      "objetivo": "¿Qué se busca lograr?",
+      "instrucciones_plantilla": "Guía para el participante...",
+      "instrucciones_actividad": "Guía para el usuario..."
+    },
+    "validation": {
+      "titulo_required": "El título del paso es necesario.",
+      "orden_required": "Definí el orden del paso."
+    },
+    "save_changes": "Guardar Cambios",
+    "save_paso": "Guardar Paso",
+    "errors": {
+      "plantilla_not_found": "Plantilla no encontrada",
+      "actividad_not_found": "Actividad no encontrada",
+      "load_failed": "Error al cargar pasos",
+      "data_error": "Error en los datos",
+      "paso_not_found_plantilla": "Plantilla/Paso no encontrado",
+      "paso_not_found_actividad": "Actividad/Paso no encontrado",
+      "connection_error": "Error de conexión con el servidor"
+    },
+    "delete_modal": {
+      "title": "¿Eliminar Paso?",
+      "message_plantilla": "El paso \"{{titulo}}\" será eliminado de esta plantilla.",
+      "message_actividad": "El paso \"{{titulo}}\" será eliminado de esta actividad."
+    },
+    "empty_plantilla": "No hay pasos configurados para esta plantilla.",
+    "empty_actividad": "No hay pasos configurados para esta actividad.",
+    "ejemplo": {
+      "label": "Archivo de ejemplo:",
+      "uploaded": "✓ Subido",
+      "download": "⬇ Descargar",
+      "none": "Sin archivo",
+      "uploading": "⏳ Subiendo...",
+      "replace": "📂 Reemplazar",
+      "upload": "📂 Subir archivo",
+      "delete": "🗑️ Eliminar",
+      "delete_modal_title": "¿Eliminar archivo de ejemplo?",
+      "delete_modal_message": "El archivo de ejemplo del paso \"{{titulo}}\" se borrará de S3 y de la base de datos. Esta acción no se puede deshacer.",
+      "errors": {
+        "delete_failed": "Error al eliminar el archivo",
+        "delete_connection": "Error de conexión al eliminar el archivo",
+        "s3_not_configured": "S3 no configurado o error al obtener URL",
+        "upload_failed": "Error al subir el archivo a S3",
+        "upload_error": "Error al subir el archivo",
+        "download_url_failed": "Error al obtener URL de descarga"
+      }
+    },
+    "confirm_delete": "¿Eliminar el paso?"
+  },
+  "preguntas": {
+    "section_title": "Preguntas ({{count}})",
+    "add_button": "➕ Agregar pregunta",
+    "create_button": "Nueva pregunta",
+    "create_section_title": "Nueva pregunta",
+    "edit_section_title": "Editar pregunta",
+    "ia_config_title": "Configuración IA (REQ-11)",
+    "fields": {
+      "enunciado": "Enunciado",
+      "orden": "Orden",
+      "texto": "Texto de la pregunta",
+      "tipo": "Tipo",
+      "prompt_template": "Plantilla de prompt",
+      "subir_archivo_s3": "Subir archivo a S3",
+      "requerido": "Obligatoria",
+      "url_plantilla": "URL plantilla descargable"
+    },
+    "placeholders": {
+      "enunciado": "¿Cuál es la pregunta que debe responder el participante?",
+      "prompt_ia": "Instrucciones para el asistente...",
+      "prompt_ia_hereda": "Instrucciones para el asistente... (vacío = hereda el prompt de la plantilla)",
+      "url_plantilla": "Ej: /templates/plantilla-ejemplo.xlsx"
+    },
+    "validation": {
+      "enunciado_required": "El enunciado es obligatorio.",
+      "orden_required": "El orden es obligatorio.",
+      "prompt_required": "Agregá el prompt para la IA (o usa un template de prompt)."
+    },
+    "options": {
+      "permitir_archivo": "Permitir archivo",
+      "solo_archivo": "Solo documento (sin texto)",
+      "subir_archivo_s3": "Guardar archivo en S3 (entregable final)",
+      "subir_archivo_s3_title": "Solo activá esto en la pregunta entregable final. El resto se guarda solo en BD.",
+      "usar_ia": "Usar IA en esta pregunta",
+      "ia_automatica": "IA automática al entrar"
+    },
+    "prompt_template_label": "Template de prompt (.md)",
+    "prompt_template_optional": "(opcional — reemplaza el prompt inline)",
+    "prompt_ia_optional": "(opcional — si está vacío se usa el de la plantilla)",
+    "save_changes": "Guardar cambios",
+    "add_action": "Agregar pregunta",
+    "empty": "Sin preguntas — agregá al menos una.",
+    "delete_modal": {
+      "title": "¿Eliminar Pregunta?",
+      "message": "La pregunta \"{{enunciado}}...\" será eliminada permanentemente."
+    },
+    "errors": {
+      "delete_failed": "No se puede eliminar la pregunta",
+      "data_error": "Error en los datos",
+      "connection_error": "Error de conexión con el servidor"
+    },
+    "confirm_delete": "¿Eliminar la pregunta?"
+  },
+  "prompt_template": {
+    "save_question_first_alert": "Guarda la pregunta primero para poder subir un prompt a S3.",
+    "confirm_delete_prompt": "¿Eliminar el prompt actual?",
+    "path_placeholder": "Ej: /templates/analytics_canvas_prompt.md",
+    "upload_help_apibase": "Subir un .md a S3 — reemplaza el path local",
+    "upload_help_no_apibase": "Guarda la pregunta primero para subir un prompt propio a S3",
+    "upload_button": "Subir .md a S3",
+    "save_first_note": "Para subir un prompt propio a S3, guarda primero la pregunta.",
+    "replace_button": "Reemplazar",
+    "s3_badge": "S3"
+  }
+}

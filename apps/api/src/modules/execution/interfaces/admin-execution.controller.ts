@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { parseTableFromContent } from '../../../shared/utils/parseTableFromContent';
 import { GenerarInstanciaUseCase } from '../application/GenerarInstanciaUseCase';
@@ -7,6 +7,7 @@ import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
 import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundError';
 import { generatePdfBuffer, loadInstanciaForPdf, buildBaseFilename, buildZipFilename, slugSegment } from './pdfDetalleGenerator';
+import { AppError } from '../../../shared/errors/AppError';
 
 @Controller('admin/instancias')
 export class AdminExecutionController {
@@ -63,7 +64,7 @@ export class AdminExecutionController {
     @Param('id') instanciaId: string,
     @Param('preguntaId') preguntaId: string,
   ): Promise<{ url: string; archivoNombre: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const respuesta = await this.prisma.respuesta.findUnique({
       where: { instanciaId_preguntaId: { instanciaId, preguntaId } },
       select: {
@@ -83,7 +84,7 @@ export class AdminExecutionController {
         },
       },
     });
-    if (!respuesta?.archivoKey) throw new NotFoundException('Archivo no encontrado para esta respuesta');
+    if (!respuesta?.archivoKey) throw new AppError('ARCHIVO_INVALID', { message: 'Archivo no encontrado para esta respuesta' });
 
     // Nombre amigable: <empresa>_<plantilla|actividad>_<area>.xlsx (preserva caso, slugifica el resto)
     const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -106,7 +107,7 @@ export class AdminExecutionController {
       return await this.obtenerDetalleUseCase.execute(id);
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
-        throw new NotFoundException(error.message);
+        throw new AppError('INSTANCIA_NOT_FOUND', { message: error.message });
       }
       throw error;
     }
@@ -138,7 +139,7 @@ export class AdminExecutionController {
         paso: { select: { titulo: true } },
       },
     });
-    if (!interaccion?.contenido && !interaccion?.contenidoArchivo) throw new NotFoundException('Sin datos para este paso');
+    if (!interaccion?.contenido && !interaccion?.contenidoArchivo) throw new AppError('PASO_NOT_FOUND', { message: 'Sin datos para este paso' });
 
     // Preferir contenidoArchivo (campo dedicado para el Excel subido por el usuario).
     // Fallback al workaround anterior: split del contenido por separador.
@@ -154,7 +155,7 @@ export class AdminExecutionController {
     // usar solo la primera sección para no mezclar datos del usuario con la hoja de criterios.
     const primeraSección = contenidoArchivo.split(/\n### /)[0];
     const filas = parseTableFromContent(primeraSección);
-    if (filas.length === 0) throw new NotFoundException('No se encontró tabla en el contenido del paso');
+    if (filas.length === 0) throw new AppError('EXCEL_GENERATION_FAILED', { message: 'No se encontró tabla en el contenido del paso' });
 
     const headers = Object.keys(filas[0]);
     const TEXT_COLS = new Set(['Dolor identificado', 'Idea de Proyecto', '¿Qué permite o resuelve?', '¿Qué valor tendría?', 'Oportunidad de IA', 'Por qué ese tipo', 'Impacto potencial']);
@@ -203,7 +204,7 @@ export class AdminExecutionController {
   @Get(':id/pdf')
   async descargarPdfDetalle(@Param('id') id: string, @Res() res: Response) {
     const instancia = await loadInstanciaForPdf(this.prisma, id);
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
 
     const filename = buildBaseFilename(instancia);
     const pdfBuffer = await generatePdfBuffer(instancia);
@@ -219,7 +220,7 @@ export class AdminExecutionController {
   @Get(':id/zip')
   async descargarZipDetalle(@Param('id') id: string, @Res() res: Response) {
     const instancia = await loadInstanciaForPdf(this.prisma, id);
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
 
     const zipFilename = buildZipFilename(instancia);
     const pdfFilename = buildBaseFilename(instancia);

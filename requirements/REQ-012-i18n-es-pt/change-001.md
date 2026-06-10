@@ -2,7 +2,7 @@
 id: change-001
 req_id: REQ-012
 title: Infraestructura i18n frontend + UI ES/PT + códigos de error backend
-status: aprobado
+status: implementado
 created: 2026-06-10
 supersedes: initial
 ---

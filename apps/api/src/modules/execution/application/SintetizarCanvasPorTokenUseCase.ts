@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
+import { AppError } from '../../../shared/errors/AppError';
 
 export class SintetizarCanvasPorTokenUseCase {
     private openai: OpenAI;
@@ -28,15 +28,15 @@ export class SintetizarCanvasPorTokenUseCase {
         });
 
         if (!instancia) {
-            throw new BadRequestException('Instancia no encontrada para este token');
+            throw new AppError('INSTANCIA_NOT_FOUND', { message: 'Instancia no encontrada para este token' });
         }
 
         // Verificar que sea Analytics Canvas
         const nombrePlantilla = instancia.actividad.plantillaOrigen?.nombre ?? '';
         if (!nombrePlantilla.includes('Analytics Canvas')) {
-            throw new BadRequestException(
-                `Esta actividad no es un Analytics Canvas (plantilla: "${nombrePlantilla}")`
-            );
+            throw new AppError('ACTIVIDAD_INVALID_TYPE', {
+                message: `Esta actividad no es un Analytics Canvas (plantilla: "${nombrePlantilla}")`,
+            });
         }
 
         const pasos = instancia.actividad.pasos;

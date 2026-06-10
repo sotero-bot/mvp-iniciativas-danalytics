@@ -7,6 +7,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
+import { useTranslation } from 'react-i18next';
 
 interface WysiwygEditorProps {
     value: string;
@@ -139,13 +140,15 @@ const ToolbarButton = ({
     </button>
 );
 
-export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(function WysiwygEditor({ value, onChange, placeholder = 'Escribe aquí...', minHeight = 280, borderColor = '#e2e8f0' }, ref) {
+export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(function WysiwygEditor({ value, onChange, placeholder, minHeight = 280, borderColor = '#e2e8f0' }, ref) {
+    const { t } = useTranslation('common');
     const isInternalChange = useRef(false);
+    const resolvedPlaceholder = placeholder ?? t('editor.placeholder_default');
 
     const editor = useEditor({
         extensions: [
             StarterKit,
-            Placeholder.configure({ placeholder }),
+            Placeholder.configure({ placeholder: resolvedPlaceholder }),
             Markdown.configure({ transformPastedText: true, transformCopiedText: false }),
             Table.configure({ resizable: false }),
             TableRow,
@@ -212,27 +215,27 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
                 display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 10px',
                 borderBottom: `1px solid ${borderColor}`, background: '#f8fafc'
             }}>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} title="Negrita (Ctrl+B)" active={editor.isActive('bold')}><strong>B</strong></ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} title="Cursiva (Ctrl+I)" active={editor.isActive('italic')}><em>I</em></ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} title="Tachado" active={editor.isActive('strike')}><s>S</s></ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} title={t('editor.toolbar.bold')} active={editor.isActive('bold')}><strong>B</strong></ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} title={t('editor.toolbar.italic')} active={editor.isActive('italic')}><em>I</em></ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} title={t('editor.toolbar.strike')} active={editor.isActive('strike')}><s>S</s></ToolbarButton>
                 <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
-                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Título 1" active={editor.isActive('heading', { level: 1 })}>H1</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Título 2" active={editor.isActive('heading', { level: 2 })}>H2</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Título 3" active={editor.isActive('heading', { level: 3 })}>H3</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title={t('editor.toolbar.h1')} active={editor.isActive('heading', { level: 1 })}>H1</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title={t('editor.toolbar.h2')} active={editor.isActive('heading', { level: 2 })}>H2</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title={t('editor.toolbar.h3')} active={editor.isActive('heading', { level: 3 })}>H3</ToolbarButton>
                 <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
-                <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} title="Lista" active={editor.isActive('bulletList')}>≡ Lista</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Lista numerada" active={editor.isActive('orderedList')}>1. Lista</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} title={t('editor.toolbar.bullet_list')} active={editor.isActive('bulletList')}>≡ {t('editor.toolbar.list_label')}</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} title={t('editor.toolbar.ordered_list')} active={editor.isActive('orderedList')}>{t('editor.toolbar.ordered_list_label')}</ToolbarButton>
                 <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
-                <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Cita" active={editor.isActive('blockquote')}>❝</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().toggleCode().run()} title="Código" active={editor.isActive('code')}>&lt;/&gt;</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} title={t('editor.toolbar.blockquote')} active={editor.isActive('blockquote')}>❝</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().toggleCode().run()} title={t('editor.toolbar.code')} active={editor.isActive('code')}>&lt;/&gt;</ToolbarButton>
                 <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
-                <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Deshacer">↩</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Rehacer">↪</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title={t('editor.toolbar.undo')}>↩</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title={t('editor.toolbar.redo')}>↪</ToolbarButton>
                 <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
-                <ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insertar tabla">⊞ Tabla</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()} title="Añadir columna">+Col</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()} title="Añadir fila">+Fila</ToolbarButton>
-                <ToolbarButton onClick={() => editor.chain().focus().deleteTable().run()} title="Eliminar tabla">✕ Tabla</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title={t('editor.toolbar.insert_table')}>⊞ {t('editor.toolbar.table_label')}</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()} title={t('editor.toolbar.add_column')}>{t('editor.toolbar.col_label')}</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()} title={t('editor.toolbar.add_row')}>{t('editor.toolbar.row_label')}</ToolbarButton>
+                <ToolbarButton onClick={() => editor.chain().focus().deleteTable().run()} title={t('editor.toolbar.delete_table')}>{t('editor.toolbar.delete_table_label')}</ToolbarButton>
             </div>
 
             {/* Editor area */}

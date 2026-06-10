@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { buildResumenHtml } from './buildResumenHtml';
 import { CanvasGrid } from './CanvasGrid';
 import { buildCanvasHtml } from './buildCanvasHtml';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -56,6 +58,7 @@ interface RunnerData {
 }
 
 export function RunnerResultsPage() {
+    const { t, i18n } = useTranslation(['execution', 'common']);
     const { token } = useParams<{ token: string }>();
     const [data, setData] = useState<RunnerData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -66,8 +69,7 @@ export function RunnerResultsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/execution/${token}`);
-                if (!res.ok) throw new Error('No se pudo cargar los resultados');
+                const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}`);
                 const json: RunnerData = await res.json();
                 setData(json);
 
@@ -86,8 +88,8 @@ export function RunnerResultsPage() {
                         setCanvasLoading(false);
                     }
                 }
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err) {
+                setError(translateError(err));
             } finally {
                 setLoading(false);
             }
@@ -98,7 +100,7 @@ export function RunnerResultsPage() {
     if (loading) return (
         <div className="runner-center">
             <div style={{ width: 20, height: 20, border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            Cargando resultados...
+            {t('execution:results.loading')}
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
@@ -113,6 +115,7 @@ export function RunnerResultsPage() {
             : data.interacciones.some(i => i.pasoId === p.id);
 
     const completedCount = data.pasos.filter(pasoRespondido).length;
+    const dateLocale = i18n.language?.startsWith('pt') ? 'pt-BR' : 'es-AR';
 
     const handleDescargar = () => {
         const html = buildResumenHtml({
@@ -150,8 +153,8 @@ export function RunnerResultsPage() {
 
     const handleDescargarCanvas = () => {
         const fechaStr = data.fechaFin
-            ? new Date(data.fechaFin).toLocaleDateString('es-AR')
-            : new Date().toLocaleDateString('es-AR');
+            ? new Date(data.fechaFin).toLocaleDateString(dateLocale)
+            : new Date().toLocaleDateString(dateLocale);
         const html = buildCanvasHtml({
             bloques: canvasBloques,
             pasos: data.pasos.map(p => ({ id: p.id, titulo: p.titulo, orden: p.orden })),
@@ -190,7 +193,7 @@ export function RunnerResultsPage() {
                     style={{ height: 36, objectFit: 'contain', justifySelf: 'start' }}
                 />
                 <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-                    Decisión IA
+                    {t('common:app_name')}
                 </span>
                 <div style={{ justifySelf: 'end', display: 'flex', gap: 8, alignItems: 'center' }}>
                     {data.esCanvas ? (
@@ -205,7 +208,7 @@ export function RunnerResultsPage() {
                                 fontSize: '0.8rem', fontWeight: 600,
                             }}
                         >
-                            {canvasLoading ? 'Generando...' : 'Descargar Canvas'}
+                            {canvasLoading ? t('execution:results.generating') : t('execution:results.download_canvas')}
                         </button>
                     ) : (
                         <button
@@ -218,7 +221,7 @@ export function RunnerResultsPage() {
                                 fontSize: '0.8rem', fontWeight: 600,
                             }}
                         >
-                            Descargar HTML
+                            {t('execution:results.download_html')}
                         </button>
                     )}
                 </div>
@@ -243,7 +246,7 @@ export function RunnerResultsPage() {
                                 marginBottom: 12,
                             }}>
                                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
-                                Completada
+                                {t('execution:results.completed_badge')}
                             </div>
                             <h1 style={{ fontSize: '1.5rem', marginBottom: 6 }}>{data.nombreActividad}</h1>
                             {data.descripcionActividad && (
@@ -257,14 +260,14 @@ export function RunnerResultsPage() {
                         <div style={{ display: 'flex', gap: '1.5rem', flexShrink: 0 }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{completedCount}</div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>pasos completados</div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{t('execution:results.stats.pasos_completados')}</div>
                             </div>
                             {data.fechaFin && (
                                 <div style={{ textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
-                                        {new Date(data.fechaFin).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                        {new Date(data.fechaFin).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
                                     </div>
-                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>fecha finalización</div>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{t('execution:results.stats.fecha_finalizacion')}</div>
                                 </div>
                             )}
                         </div>
@@ -280,12 +283,12 @@ export function RunnerResultsPage() {
                     }}>
                         {canvasLoading ? (
                             <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem', padding: '2rem' }}>
-                                Generando síntesis IA...
+                                {t('execution:results.generating_canvas')}
                             </div>
                         ) : Object.keys(canvasBloques).length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '2rem' }}>
                                 <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
-                                    El canvas aún no fue generado.
+                                    {t('execution:results.canvas_not_generated')}
                                 </p>
                                 <button
                                     onClick={handleGenerarCanvas}
@@ -295,7 +298,7 @@ export function RunnerResultsPage() {
                                         fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
                                     }}
                                 >
-                                    Generar canvas
+                                    {t('execution:results.generate_canvas')}
                                 </button>
                             </div>
                         ) : (
@@ -353,8 +356,6 @@ export function RunnerResultsPage() {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                             {preguntas.map((q, qIdx) => {
                                                 const r = respuestasPorPregunta.get(q.id);
-                                                // Para preguntas solo-archivo, el contenido del archivo subido es la respuesta;
-                                                // ignorar respuestaIa (puede traer ruido tipo "no recibí mensaje").
                                                 const texto = q.soloArchivo
                                                     ? (r?.contenidoArchivo || r?.contenido)
                                                     : (r?.respuestaIa || r?.contenidoArchivo || r?.respuestaUsuario || r?.contenido);
@@ -365,7 +366,7 @@ export function RunnerResultsPage() {
                                                     }}>
                                                         {preguntas.length > 1 && (
                                                             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                                Pregunta {qIdx + 1}
+                                                                {t('execution:results.pregunta_label', { num: qIdx + 1 })}
                                                             </div>
                                                         )}
                                                         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 10 }}>
@@ -392,7 +393,7 @@ export function RunnerResultsPage() {
                                                             </div>
                                                         ) : (
                                                             <div style={{ padding: '1rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
-                                                                Sin respuesta registrada
+                                                                {t('execution:results.no_response')}
                                                             </div>
                                                         )}
                                                     </div>
@@ -411,7 +412,7 @@ export function RunnerResultsPage() {
                                                 </div>
                                             ) : (
                                                 <div style={{ padding: '1.5rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
-                                                    Sin respuesta registrada
+                                                    {t('execution:results.no_response')}
                                                 </div>
                                             );
                                         })()
@@ -423,7 +424,7 @@ export function RunnerResultsPage() {
                 </div>
 
                 <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
-                    Puedes cerrar esta ventana.
+                    {t('execution:results.close_hint')}
                 </p>
             </div>
         </div>

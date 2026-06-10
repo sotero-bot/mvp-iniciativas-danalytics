@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface PasoItem {
     id: string;
@@ -16,8 +17,7 @@ type SlotKey =
     | 'datos' | 'oportunidad' | 'problema' | 'usuarios' | 'actores'
     | 'indicadores' | 'entregables' | 'restricciones' | 'valor' | 'recursos';
 
-interface SlotConfig {
-    label: string;
+interface SlotStyle {
     area: string;
     bg: string;
     border: string;
@@ -25,17 +25,17 @@ interface SlotConfig {
     stickyBg: string;
 }
 
-const SLOTS: Record<SlotKey, SlotConfig> = {
-    datos:        { label: 'Datos y fuentes',          area: 'datos',        bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
-    oportunidad:  { label: 'Oportunidad',              area: 'oportunidad',  bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
-    problema:     { label: 'Problema o reto actual',   area: 'problema',     bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
-    usuarios:     { label: 'Usuarios',                 area: 'usuarios',     bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
-    actores:      { label: 'Actores principales',      area: 'actores',      bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
-    indicadores:  { label: 'Indicadores de éxito',     area: 'indicadores',  bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    entregables:  { label: 'Entregables',              area: 'entregables',  bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    restricciones:{ label: 'Restricciones',            area: 'restricciones',bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
-    recursos:     { label: 'Recursos requeridos',      area: 'recursos',     bg: '#F8FAFC', border: '#E2E8F0', labelColor: '#475569', stickyBg: '#F1F5F9' },
-    valor:        { label: 'Potencial de valor',       area: 'valor',        bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+const SLOT_STYLES: Record<SlotKey, SlotStyle> = {
+    datos:        { area: 'datos',         bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
+    oportunidad:  { area: 'oportunidad',   bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    problema:     { area: 'problema',      bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
+    usuarios:     { area: 'usuarios',      bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
+    actores:      { area: 'actores',       bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    indicadores:  { area: 'indicadores',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    entregables:  { area: 'entregables',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    restricciones:{ area: 'restricciones', bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
+    recursos:     { area: 'recursos',      bg: '#F8FAFC', border: '#E2E8F0', labelColor: '#475569', stickyBg: '#F1F5F9' },
+    valor:        { area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
 };
 
 function matchSlot(titulo: string): SlotKey | null {
@@ -70,10 +70,12 @@ function StickyNote({ text, bg }: { text: string; bg: string }) {
 
 function CanvasBlock({
     slot,
+    label,
     lines,
     isEmpty,
 }: {
-    slot: SlotConfig;
+    slot: SlotStyle;
+    label: string;
     lines: string[];
     isEmpty: boolean;
 }) {
@@ -97,7 +99,7 @@ function CanvasBlock({
                 letterSpacing: '0.06em',
                 marginBottom: 4,
             }}>
-                {slot.label}
+                {label}
             </div>
 
             {isEmpty ? (
@@ -120,6 +122,21 @@ function CanvasBlock({
 }
 
 export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
+    const { t } = useTranslation(['execution']);
+
+    const labels: Record<SlotKey, string> = {
+        datos: t('execution:canvas.blocks.datos'),
+        oportunidad: t('execution:canvas.blocks.oportunidad'),
+        problema: t('execution:canvas.blocks.problema'),
+        usuarios: t('execution:canvas.blocks.usuarios'),
+        actores: t('execution:canvas.blocks.actores'),
+        indicadores: t('execution:canvas.blocks.indicadores'),
+        entregables: t('execution:canvas.blocks.entregables'),
+        restricciones: t('execution:canvas.blocks.restricciones'),
+        recursos: t('execution:canvas.blocks.recursos'),
+        valor: t('execution:canvas.blocks.potencial'),
+    };
+
     // Mapear pasos a slots
     const slotMap: Partial<Record<SlotKey, { lines: string[] }>> = {};
     for (const paso of pasos) {
@@ -131,13 +148,14 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
     }
 
     const renderSlot = (key: SlotKey) => {
-        const cfg = SLOTS[key];
+        const cfg = SLOT_STYLES[key];
         const data = slotMap[key];
         const lines = data?.lines ?? [];
         return (
             <CanvasBlock
                 key={key}
                 slot={cfg}
+                label={labels[key]}
                 lines={lines}
                 isEmpty={lines.length === 0}
             />
@@ -153,7 +171,7 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
                 marginBottom: '0.875rem',
                 letterSpacing: '-0.02em',
             }}>
-                Lienzo de oportunidad
+                {t('execution:results.canvas_title')}
             </h2>
 
             {/* Grid layout replicando imagen de referencia */}
@@ -177,7 +195,7 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
                 {renderSlot('entregables')}
                 {renderSlot('restricciones')}
                 {/* Recursos requeridos: siempre vacío, sin pasoId */}
-                <CanvasBlock slot={SLOTS.recursos} lines={[]} isEmpty={true} />
+                <CanvasBlock slot={SLOT_STYLES.recursos} label={labels.recursos} lines={[]} isEmpty={true} />
                 {renderSlot('valor')}
             </div>
         </div>

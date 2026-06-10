@@ -1,7 +1,7 @@
 ---
 req_id: REQ-012
 title: Internacionalización (i18n) — soporte ES/PT por sesión
-status: aprobado
+status: implementado
 current_state: change-001
 ---
 
@@ -43,4 +43,4 @@ Ninguna en change-001. `Translation` se introduce en change-002.
 | Change     | Descripción                                                              | Estado    |
 | ---------- | ------------------------------------------------------------------------ | --------- |
 | initial    | Creación del REQ                                                         | archived  |
-| change-001 | Infraestructura i18n frontend + UI ES/PT + códigos de error backend      | aprobado  |
+| change-001 | Infraestructura i18n frontend + UI ES/PT + códigos de error backend      | implementado |

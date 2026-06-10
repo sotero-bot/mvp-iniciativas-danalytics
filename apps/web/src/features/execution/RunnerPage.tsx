@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Toast } from '../../components/Toast';
 import { buildResumenHtml } from './buildResumenHtml';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -81,6 +83,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
   nombreEmpresa?: string;
   logoEmpresa?: string;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -98,7 +101,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
       />
 
       <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-        Decisión IA
+        {t('app_name')}
       </span>
 
       {(nombreEmpresa || nombreActividad) ? (
@@ -273,6 +276,7 @@ function interpolarPrompt(
 }
 
 export function RunnerPage() {
+  const { t } = useTranslation(['execution', 'common']);
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<RunnerData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -471,7 +475,7 @@ export function RunnerPage() {
       }
       await loadData();
     } catch (err: any) {
-      alert('Algo salió mal al iniciar. Intentá de nuevo.');
+      alert(t('execution:runner.identification.start_failed_generic'));
     } finally {
       setLoading(false);
     }
@@ -521,7 +525,7 @@ export function RunnerPage() {
         setToast({ message: 'Registro exitoso', variant: 'success' });
       }
     } catch (err: any) {
-      alert(err.message);
+      alert(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -544,7 +548,7 @@ export function RunnerPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert((err as any).message || 'No se pudo generar la plantilla. Espera a que el asistente IA finalice.');
+        alert((err as any)?.message || t('execution:runner.errors.download_template_failed'));
         return;
       }
       const blob = await res.blob();
@@ -555,7 +559,7 @@ export function RunnerPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Error al descargar la plantilla. Intentá de nuevo.');
+      alert(t('execution:runner.errors.download_template_retry'));
     } finally {
       setDescargandoExcel(false);
     }
@@ -570,12 +574,12 @@ export function RunnerPage() {
       const tieneArchivo = !!archivosRespuesta[q.id];
       if (!tieneTexto && !tieneArchivo) {
         if (q.usarIa && !respuestasIa[q.id]?.trim()) {
-          return alert(`Consultá al asistente para la pregunta "${q.enunciado.slice(0, 60)}..." antes de continuar.`);
+          return alert(t('execution:runner.errors.consult_ia_first', { enunciado: q.enunciado.slice(0, 60) }));
         }
         if (q.soloArchivo || q.permitirArchivo) {
-          return alert(`Adjuntá el archivo requerido para continuar.`);
+          return alert(t('execution:runner.errors.attach_file_required'));
         }
-        return alert(`Respondé todas las preguntas antes de continuar.`);
+        return alert(t('execution:runner.errors.answer_all'));
       }
     }
 
@@ -609,7 +613,7 @@ export function RunnerPage() {
       }
       if (!responderRes.ok) {
         setLoading(false);
-        return alert('Error al guardar la respuesta. Por favor intentá de nuevo.');
+        return alert(t('execution:runner.errors.save_failed'));
       }
       const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
       const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
@@ -647,7 +651,7 @@ export function RunnerPage() {
   // el backend lea usarIa/promptIa de PreguntaActividad en lugar de PasoActividad.
   const handleEnviarIA = async (paso: Paso, pregunta: Pregunta) => {
     if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim()) {
-      return alert('Escribí tu respuesta para consultar al asistente.');
+      return alert(t('execution:runner.errors.ia_write_first'));
     }
     setEnviandoIa(prev => ({ ...prev, [pregunta.id]: true }));
     setRespuestasIa(prev => ({ ...prev, [pregunta.id]: '' }));
@@ -667,7 +671,7 @@ export function RunnerPage() {
       setRespuestasIa(prev => ({ ...prev, [pregunta.id]: json.respuestaIa }));
       iaEditorRefs.current[pregunta.id]?.replaceContent(json.respuestaIa);
     } catch {
-      alert('No pudimos conectar con el asistente. Intentá de nuevo.');
+      alert(t('execution:runner.errors.ia_connect_failed'));
     } finally {
       setEnviandoIa(prev => ({ ...prev, [pregunta.id]: false }));
     }
@@ -788,7 +792,7 @@ export function RunnerPage() {
                     <div className="invalid-feedback">Ingresá un correo electrónico válido.</div>
                   </div>
                   <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Nombre Completo</label>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.nombre_label')}</label>
                     <input className="input" required value={idenForm.nombre}
                       onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
                       placeholder="Su nombre completo" />
@@ -796,13 +800,13 @@ export function RunnerPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Cargo</label>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.cargo_label')}</label>
                       <input className="input" value={idenForm.cargo}
                         onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
                         placeholder="Ej: Director de Innovación" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Área</label>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.area_label')}</label>
                       <input className="input" value={idenForm.area}
                         onChange={e => setIdenForm({ ...idenForm, area: e.target.value })}
                         placeholder="Ej: Tecnología" />
@@ -971,7 +975,7 @@ export function RunnerPage() {
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{contenido}</ReactMarkdown>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin respuesta registrada</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:results.no_response')}</span>
                         )}
                       </div>
                     );
@@ -1038,7 +1042,7 @@ export function RunnerPage() {
                         const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
                         const json = await res.json();
                         if (json.url) window.open(json.url, '_blank');
-                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
                     }}
                   >
                     ⬇ Descargar ejemplo
@@ -1091,7 +1095,7 @@ export function RunnerPage() {
                           fontSize: '0.72rem', fontWeight: 700, color: '#1D4ED8',
                           background: '#EFF6FF', border: '1px solid #BFDBFE',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
-                        }}>Tu respuesta</span>
+                        }}>{t('execution:runner.your_response_label')}</span>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                           {(pregunta.permitirArchivo || pregunta.soloArchivo)
                             ? 'Sube el documento completado para avanzar al siguiente paso.'
@@ -1206,7 +1210,7 @@ export function RunnerPage() {
                                         const res = await fetch(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
                                         const json = await res.json();
                                         if (json.url) window.open(json.url, '_blank');
-                                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
                                     }}
                                   >
                                     ⬇ Descargar
@@ -1230,7 +1234,7 @@ export function RunnerPage() {
                           fontSize: '0.72rem', fontWeight: 700, color: '#7C3AED',
                           background: '#F5F3FF', border: '1px solid #DDD6FE',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
-                        }}>Asistente IA</span>
+                        }}>{t('execution:runner.ia_label')}</span>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                           {pregunta.iaAutomatica
                             ? 'El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.'
@@ -1298,7 +1302,7 @@ export function RunnerPage() {
                         }}>
                           {pregunta.iaAutomatica
                             ? 'El asistente generará el análisis automáticamente al ingresar al paso.'
-                            : <>Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.</>}
+                            : <>{t('execution:runner.ia_response_empty_manual_prefix')}<strong>{t('execution:runner.ia_response_empty_manual_button')}</strong>.</>}
                         </div>
                       )}
                     </div>

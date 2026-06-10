@@ -1,0 +1,110 @@
+{
+  "sidebar": {
+    "home": "Inicio",
+    "workflow_label": "Flujo de trabajo",
+    "empresas": "Empresas",
+    "iniciativas": "Iniciativas",
+    "actividades": "Actividades",
+    "plantillas": "Plantillas",
+    "ejecuciones": "Ejecuciones"
+  },
+  "dashboard": {
+    "title": "Inicio",
+    "subtitle": "Resumen del estado actual de la plataforma.",
+    "cards": {
+      "empresas": {
+        "title": "Empresas",
+        "description": "Clientes registrados en la plataforma."
+      },
+      "iniciativas": {
+        "title": "Iniciativas",
+        "description": "Iniciativas creadas por empresa."
+      },
+      "actividades": {
+        "title": "Actividades",
+        "description": "Talleres configurados listos para ejecutar."
+      },
+      "ejecuciones": {
+        "title": "Ejecuciones",
+        "description": "Instancias de talleres ejecutadas."
+      }
+    },
+    "metric_count_one": "{{count}} elemento",
+    "metric_count_other": "{{count}} elementos",
+    "blocked_reason": "Completa el paso anterior para habilitar este."
+  },
+  "common_labels": {
+    "search_placeholder": "Buscar…",
+    "filter_by_empresa": "Filtrar por empresa",
+    "filter_by_actividad": "Filtrar por actividad",
+    "all_empresas": "Todas las empresas",
+    "all_actividades": "Todas las actividades"
+  },
+  "dashboard_v2": {
+    "panel_label": "Panel de control",
+    "hero_title": "Bienvenido a Decisión IA",
+    "hero_subtitle": "Diseña, distribuye y monitorea actividades metodológicas con asistencia de inteligencia artificial.",
+    "workflow_title": "Flujo de trabajo",
+    "workflow_subtitle": "Sigue estos 4 pasos en orden",
+    "step_label": "Paso {{num}}",
+    "records_one": "{{count}} registro",
+    "records_other": "{{count}} registros",
+    "loading_info": "Cargando información…",
+    "all_configured_title": "¡Todo configurado!",
+    "all_configured_text": "Puedes generar nuevos enlaces de ejecución y monitorear el progreso de los participantes.",
+    "view_executions": "Ver ejecuciones →",
+    "next_step_prefix": "Siguiente paso: {{title}}",
+    "goto_label": "Ir a {{title}} →",
+    "steps": {
+      "empresas": {
+        "title": "Empresas",
+        "desc": "Registra las organizaciones cliente. Son el punto de partida de todo el sistema.",
+        "locked": "Primero necesitas agregar una empresa"
+      },
+      "iniciativas": {
+        "title": "Iniciativas",
+        "desc": "Agrupa actividades bajo un proyecto o programa específico de cada empresa.",
+        "locked": "Primero necesitas agregar una empresa"
+      },
+      "actividades": {
+        "title": "Actividades",
+        "desc": "Define los flujos de trabajo paso a paso que los participantes ejecutarán.",
+        "locked": "Primero necesitas agregar una iniciativa"
+      },
+      "ejecuciones": {
+        "title": "Ejecuciones",
+        "desc": "Genera enlaces para distribuir actividades y monitorea el progreso en tiempo real.",
+        "locked": "Primero necesitas agregar una actividad"
+      }
+    }
+  },
+  "import": {
+    "page_title": "Importar datos",
+    "page_description": "Selecciona una empresa y sube un JSON con las iniciativas y actividades a crear.",
+    "empresa_label": "🏢 Empresa destino",
+    "empresa_placeholder": "Selecciona una empresa",
+    "empresas_empty": "No hay empresas creadas aún. Crea una en la sección Empresas.",
+    "drop_zone_label": "Selecciona o arrastra un archivo .json",
+    "drop_zone_hint": "Solo archivos .json",
+    "format_label": "Formato del JSON",
+    "format_note": "El campo plantilla es opcional. Si no existe, la actividad se crea sin pasos.",
+    "error_invalid_json": "El archivo no es un JSON válido.",
+    "error_invalid_extension": "Solo se aceptan archivos .json",
+    "error_missing_name": "El JSON debe tener el campo \"nombre\" en cada iniciativa.",
+    "preview_title": "Vista previa",
+    "preview_iniciativas_one": "{{count}} iniciativa",
+    "preview_iniciativas_other": "{{count}} iniciativas",
+    "preview_actividades": "{{count}} actividades",
+    "preview_clear": "× Limpiar",
+    "preview_no_activities": "Sin actividades",
+    "select_empresa_warning": "Selecciona una empresa antes de importar",
+    "confirm_import": "Confirmar importación",
+    "importing": "Importando…",
+    "result_success": "Importación completada en {{empresa}}",
+    "result_iniciativas_created": "Iniciativas creadas",
+    "result_actividades_created": "Actividades creadas",
+    "import_another": "Importar otro archivo",
+    "empty_preview": "Selecciona un archivo para ver la vista previa aquí",
+    "default_error": "Error al importar"
+  }
+}

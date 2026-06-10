@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
+import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -19,6 +21,7 @@ const PREGUNTA_BLANK = {
 };
 
 export function PlantillaPasosPage() {
+  const { t } = useTranslation(['methodology', 'common']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -44,16 +47,18 @@ export function PlantillaPasosPage() {
   const loadPasos = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/admin/plantillas/${id}/pasos`);
-      if (res.status === 404) { setError('Plantilla no encontrada'); return; }
-      if (!res.ok) throw new Error('Error al cargar pasos');
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas/${id}/pasos`);
       const data = await res.json();
       setPasos(data.pasos);
       setNombrePlantilla(data.nombre);
       const maxOrden = data.pasos.length > 0 ? Math.max(...data.pasos.map((p: any) => p.orden)) : 0;
       setForm(prev => ({ ...prev, orden: maxOrden + 1 }));
     } catch (err: any) {
-      setError(err.message);
+      if (err instanceof ApiError && err.statusCode === 404) {
+        setError(t('methodology:pasos.errors.plantilla_not_found'));
+      } else {
+        setError(translateError(err) || t('methodology:pasos.errors.load_failed'));
+      }
     } finally {
       setLoading(false);
     }
@@ -69,23 +74,24 @@ export function PlantillaPasosPage() {
       const url = editingId
         ? `${API_URL}/admin/plantillas/${id}/pasos/${editingId}`
         : `${API_URL}/admin/plantillas/${id}/pasos`;
-      const res = await fetch(url, {
+      await fetchWithErrorMapping(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      if (res.status === 400) { alert(data.message || 'Error en los datos'); return; }
-      if (res.status === 404) { alert('Plantilla/Paso no encontrado'); return; }
-      if (res.ok) {
-        const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-        setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2) });
-        setShowForm(false);
-        setEditingId(null);
-        setWasValidated(false);
-        loadPasos();
+      const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
+      setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2) });
+      setShowForm(false);
+      setEditingId(null);
+      setWasValidated(false);
+      loadPasos();
+    } catch (err) {
+      if (err instanceof ApiError && err.statusCode === 404) {
+        alert(t('methodology:pasos.errors.paso_not_found_plantilla'));
+      } else {
+        alert(translateError(err) || t('methodology:pasos.errors.connection_error'));
       }
-    } catch { alert('Error de conexión con el servidor'); }
+    }
   };
 
   const handleEdit = (p: any) => {
@@ -105,9 +111,13 @@ export function PlantillaPasosPage() {
 
   const handleDelete = async () => {
     if (!modal) return;
-    await fetch(`${API_URL}/admin/plantillas/${id}/pasos/${modal.id}`, { method: 'DELETE' });
-    setModal(null);
-    loadPasos();
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/plantillas/${id}/pasos/${modal.id}`, { method: 'DELETE' });
+      setModal(null);
+      loadPasos();
+    } catch (err) {
+      alert(translateError(err));
+    }
   };
 
   // ── Pregunta CRUD ─────────────────────────────────────────────────────────
@@ -154,41 +164,38 @@ export function PlantillaPasosPage() {
       const url = editingPreguntaId
         ? `${API_URL}/admin/plantillas/${id}/pasos/${pasoId}/preguntas/${editingPreguntaId}`
         : `${API_URL}/admin/plantillas/${id}/pasos/${pasoId}/preguntas`;
-      const res = await fetch(url, {
+      await fetchWithErrorMapping(url, {
         method: editingPreguntaId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preguntaForm),
       });
-      const data = await res.json();
-      if (res.status === 400) { alert(data.message || 'Error en los datos'); return; }
-      if (res.ok) {
-        cancelPregunta();
-        loadPasos();
-      }
-    } catch { alert('Error de conexión con el servidor'); }
+      cancelPregunta();
+      loadPasos();
+    } catch (err) {
+      alert(translateError(err) || t('methodology:preguntas.errors.connection_error'));
+    }
   };
 
   const handleDeletePregunta = async () => {
     if (!preguntaModal) return;
-    const res = await fetch(
-      `${API_URL}/admin/plantillas/${id}/pasos/${preguntaModal.pasoId}/preguntas/${preguntaModal.id}`,
-      { method: 'DELETE' },
-    );
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.message || 'No se puede eliminar la pregunta');
+    try {
+      await fetchWithErrorMapping(
+        `${API_URL}/admin/plantillas/${id}/pasos/${preguntaModal.pasoId}/preguntas/${preguntaModal.id}`,
+        { method: 'DELETE' },
+      );
       setPreguntaModal(null);
-      return;
+      loadPasos();
+    } catch (err) {
+      alert(translateError(err) || t('methodology:preguntas.errors.delete_failed'));
+      setPreguntaModal(null);
     }
-    setPreguntaModal(null);
-    loadPasos();
   };
 
-  if (loading) return <div className="runner-center">Cargando pasos...</div>;
+  if (loading) return <div className="runner-center">{t('methodology:pasos.loading')}</div>;
   if (error) return (
     <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
       <div style={{ color: '#ef4444' }}>{error}</div>
-      <button className="btn btn-secondary" onClick={() => navigate('/admin/plantillas')}>Volver</button>
+      <button className="btn btn-secondary" onClick={() => navigate('/admin/plantillas')}>{t('methodology:pasos.back')}</button>
     </div>
   );
 
@@ -196,15 +203,15 @@ export function PlantillaPasosPage() {
     <div className="layout-content">
       <ConfirmModal
         isOpen={!!modal}
-        title="¿Eliminar Paso?"
-        message={`El paso "${modal?.titulo}" será eliminado de esta plantilla.`}
+        title={t('methodology:pasos.delete_modal.title')}
+        message={t('methodology:pasos.delete_modal.message_plantilla', { titulo: modal?.titulo ?? '' })}
         onConfirm={handleDelete}
         onCancel={() => setModal(null)}
       />
       <ConfirmModal
         isOpen={!!preguntaModal}
-        title="¿Eliminar Pregunta?"
-        message={`La pregunta "${(preguntaModal?.enunciado ?? '').slice(0, 60)}..." será eliminada permanentemente.`}
+        title={t('methodology:preguntas.delete_modal.title')}
+        message={t('methodology:preguntas.delete_modal.message', { enunciado: (preguntaModal?.enunciado ?? '').slice(0, 60) })}
         onConfirm={handleDeletePregunta}
         onCancel={() => setPreguntaModal(null)}
       />
@@ -214,14 +221,14 @@ export function PlantillaPasosPage() {
           <button className="btn btn-secondary"
             style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '0.8rem' }}
             onClick={() => navigate('/admin/plantillas')}>
-            ← Volver a Plantillas
+            {t('methodology:pasos.back_to_plantillas')}
           </button>
-          <h1>Pasos de la Plantilla</h1>
-          <p style={{ color: 'var(--color-text-secondary)' }}>Plantilla: <strong>{nombrePlantilla}</strong></p>
+          <h1>{t('methodology:pasos.page_title_plantilla')}</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>{t('methodology:pasos.plantilla_label')} <strong>{nombrePlantilla}</strong></p>
         </div>
         {!showForm && (
           <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
-            ➕ Agregar Paso
+            {t('methodology:pasos.add_button')}
           </button>
         )}
       </div>
@@ -229,7 +236,7 @@ export function PlantillaPasosPage() {
       {/* ── Paso form ── */}
       {showForm && (
         <div className="card" style={{ marginBottom: '2rem', border: '1px solid var(--color-primary)' }}>
-          <h3>{editingId ? 'Editar Paso' : 'Nuevo Paso'}</h3>
+          <h3>{editingId ? t('methodology:pasos.edit_section_title') : t('methodology:pasos.create_section_title')}</h3>
           <form
             className={wasValidated ? 'was-validated' : ''}
             onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) handleSubmit(e); }}
@@ -237,33 +244,33 @@ export function PlantillaPasosPage() {
             noValidate
           >
             <div style={{ gridColumn: 'span 2' }}>
-              <label className="required-label">Título</label>
+              <label className="required-label">{t('methodology:pasos.fields.titulo')}</label>
               <input className="input" required value={form.titulo}
                 onChange={e => setForm({ ...form, titulo: e.target.value })}
-                placeholder="Ej: Entrevista de Stakeholders" />
-              <div className="invalid-feedback">El título del paso es necesario.</div>
+                placeholder={t('methodology:pasos.placeholders.titulo')} />
+              <div className="invalid-feedback">{t('methodology:pasos.validation.titulo_required')}</div>
             </div>
             <div>
-              <label className="required-label">Orden</label>
+              <label className="required-label">{t('methodology:pasos.fields.orden')}</label>
               <input className="input" type="number" required value={form.orden}
                 onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-              <div className="invalid-feedback">Definí el orden del paso.</div>
+              <div className="invalid-feedback">{t('methodology:pasos.validation.orden_required')}</div>
             </div>
             <div>
-              <label>Objetivo</label>
+              <label>{t('methodology:pasos.fields.objetivo')}</label>
               <input className="input" value={form.objetivo}
                 onChange={e => setForm({ ...form, objetivo: e.target.value })}
-                placeholder="¿Qué se busca lograr?" />
+                placeholder={t('methodology:pasos.placeholders.objetivo')} />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label>Instrucciones</label>
+              <label>{t('methodology:pasos.fields.instrucciones')}</label>
               <textarea className="input" rows={3} value={form.instrucciones}
                 onChange={e => setForm({ ...form, instrucciones: e.target.value })}
-                placeholder="Guía para el participante..." />
+                placeholder={t('methodology:pasos.placeholders.instrucciones_plantilla')} />
             </div>
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">{editingId ? 'Guardar Cambios' : 'Guardar Paso'}</button>
+              <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</button>
+              <button type="submit" className="btn btn-primary">{editingId ? t('methodology:pasos.save_changes') : t('methodology:pasos.save_paso')}</button>
             </div>
           </form>
         </div>
@@ -273,7 +280,7 @@ export function PlantillaPasosPage() {
       {pasos.length === 0 ? (
         <div className="card">
           <p style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-secondary)' }}>
-            No hay pasos configurados para esta plantilla.
+            {t('methodology:pasos.empty_plantilla')}
           </p>
         </div>
       ) : (
@@ -297,7 +304,7 @@ export function PlantillaPasosPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
-                      Editar
+                      {t('common:buttons.edit')}
                     </button>
                     <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
                       onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
@@ -310,12 +317,12 @@ export function PlantillaPasosPage() {
                 <div style={{ padding: '1rem 1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Preguntas ({preguntas.length})
+                      {t('methodology:preguntas.section_title', { count: preguntas.length })}
                     </span>
                     {!isActive && (
                       <button className="btn btn-primary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
                         onClick={() => openAddPregunta(p.id, preguntas)}>
-                        ➕ Agregar pregunta
+                        {t('methodology:preguntas.add_button')}
                       </button>
                     )}
                   </div>
@@ -355,7 +362,7 @@ export function PlantillaPasosPage() {
                                   ) : null}
                                   <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
                                     onClick={() => openEditPregunta(p.id, q)}>
-                                    Editar
+                                    {t('common:buttons.edit')}
                                   </button>
                                   <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
                                     onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
@@ -386,7 +393,7 @@ export function PlantillaPasosPage() {
 
                   {preguntas.length === 0 && !isActive && (
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
-                      Sin preguntas — agregá al menos una.
+                      {t('methodology:preguntas.empty')}
                     </p>
                   )}
                 </div>
@@ -414,10 +421,11 @@ interface PreguntaFormProps {
 }
 
 function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel, promptApiBase }: PreguntaFormProps) {
+  const { t } = useTranslation(['methodology', 'common']);
   return (
     <div style={{ border: '1px solid var(--color-primary)', borderRadius: 8, padding: '1rem', background: '#fafbff' }}>
       <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>
-        {isEditing ? 'Editar pregunta' : 'Nueva pregunta'}
+        {isEditing ? t('methodology:preguntas.edit_section_title') : t('methodology:preguntas.create_section_title')}
       </div>
       <form
         className={wasValidated ? 'was-validated' : ''}
@@ -426,18 +434,18 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
         noValidate
       >
         <div style={{ gridColumn: 'span 2' }}>
-          <label className="required-label">Enunciado</label>
+          <label className="required-label">{t('methodology:preguntas.fields.enunciado')}</label>
           <textarea className="input" rows={2} required value={form.enunciado}
             onChange={e => setForm({ ...form, enunciado: e.target.value })}
-            placeholder="¿Cuál es la pregunta que debe responder el participante?" />
-          <div className="invalid-feedback">El enunciado es obligatorio.</div>
+            placeholder={t('methodology:preguntas.placeholders.enunciado')} />
+          <div className="invalid-feedback">{t('methodology:preguntas.validation.enunciado_required')}</div>
         </div>
 
         <div>
-          <label className="required-label">Orden</label>
+          <label className="required-label">{t('methodology:preguntas.fields.orden')}</label>
           <input className="input" type="number" required min={1} value={form.orden}
             onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-          <div className="invalid-feedback">El orden es obligatorio.</div>
+          <div className="invalid-feedback">{t('methodology:preguntas.validation.orden_required')}</div>
         </div>
 
         {/* Archivo flags */}
@@ -446,54 +454,54 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             <input type="checkbox" checked={form.permitirArchivo}
               onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false })}
               style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
-            <span style={{ fontWeight: 600 }}>Permitir archivo</span>
+            <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
           </label>
           {form.permitirArchivo && (
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
               <input type="checkbox" checked={form.soloArchivo}
                 onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
                 style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#0369a1' }} />
-              <span>Solo documento (sin texto)</span>
+              <span>{t('methodology:preguntas.options.solo_archivo')}</span>
             </label>
           )}
           {form.permitirArchivo && (
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}
-              title="Solo activá esto en la pregunta entregable final. El resto se guarda solo en BD.">
+              title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
               <input type="checkbox" checked={form.subirArchivoS3}
                 onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
                 style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
-              <span>Guardar archivo en S3 (entregable final)</span>
+              <span>{t('methodology:preguntas.options.subir_archivo_s3')}</span>
             </label>
           )}
         </div>
 
         {form.permitirArchivo && (
           <div style={{ gridColumn: 'span 2' }}>
-            <label>URL plantilla descargable</label>
+            <label>{t('methodology:preguntas.fields.url_plantilla')}</label>
             <input className="input" value={form.urlPlantilla}
               onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
-              placeholder="Ej: /templates/plantilla-ejemplo.xlsx" />
+              placeholder={t('methodology:preguntas.placeholders.url_plantilla')} />
           </div>
         )}
 
         {/* IA flags — TODO(IA-por-pregunta): revisar al implementar REQ-11 */}
         <div style={{ gridColumn: 'span 2', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
           <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Configuración IA (REQ-11)
+            {t('methodology:preguntas.ia_config_title')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
               <input type="checkbox" checked={form.usarIa}
                 onChange={e => setForm({ ...form, usarIa: e.target.checked, promptIa: e.target.checked ? form.promptIa : '', iaAutomatica: e.target.checked ? form.iaAutomatica : false })}
                 style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
-              <span style={{ fontWeight: 600 }}>Usar IA en esta pregunta</span>
+              <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.usar_ia')}</span>
             </label>
             {form.usarIa && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
                 <input type="checkbox" checked={form.iaAutomatica}
                   onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
                   style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#7C3AED' }} />
-                <span>IA automática al entrar</span>
+                <span>{t('methodology:preguntas.options.ia_automatica')}</span>
               </label>
             )}
           </div>
@@ -501,7 +509,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             <div style={{ marginTop: '0.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
-                  Template de prompt (.md) <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional — reemplaza el prompt inline)</span>
+                  {t('methodology:preguntas.prompt_template_label')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_template_optional')}</span>
                 </label>
                 <PromptTemplateField
                   value={form.urlPromptTemplate}
@@ -510,11 +518,11 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
                 />
               </div>
               <div style={{ marginTop: '0.5rem' }}>
-                <label className="required-label">Prompt IA</label>
+                <label className="required-label">{t('methodology:pasos.fields.prompt_ia')}</label>
                 <textarea className="input" rows={2} required={form.usarIa && !form.urlPromptTemplate} value={form.promptIa}
                   onChange={e => setForm({ ...form, promptIa: e.target.value })}
-                  placeholder="Instrucciones para el asistente..." />
-                <div className="invalid-feedback">Agregá el prompt para la IA (o usa un template de prompt).</div>
+                  placeholder={t('methodology:preguntas.placeholders.prompt_ia')} />
+                <div className="invalid-feedback">{t('methodology:preguntas.validation.prompt_required')}</div>
               </div>
             </div>
           )}
@@ -522,10 +530,10 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
 
         <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }} onClick={onCancel}>
-            Cancelar
+            {t('common:buttons.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
-            {isEditing ? 'Guardar cambios' : 'Agregar pregunta'}
+            {isEditing ? t('methodology:preguntas.save_changes') : t('methodology:preguntas.add_action')}
           </button>
         </div>
       </form>

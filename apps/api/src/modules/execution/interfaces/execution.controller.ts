@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { AppError } from '../../../shared/errors/AppError';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -77,7 +78,7 @@ export class ExecutionController {
       });
 
       if (!actividad) {
-        throw new NotFoundException('Actividad no encontrada para esta instancia');
+        throw new AppError('ACTIVIDAD_NOT_FOUND', { message: 'Actividad no encontrada para esta instancia' });
       }
 
       // Obtener respuestas de la plantilla anterior si corresponde
@@ -228,10 +229,10 @@ export class ExecutionController {
       where: { accessToken: token },
       include: { interacciones: true },
     });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
 
     const pasoActual = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!pasoActual) throw new NotFoundException('Paso no encontrado');
+    if (!pasoActual) throw new AppError('PASO_NOT_FOUND');
 
     // Si el paso actual ya tiene IA, usa su propia interacción; si no, busca el anterior más cercano
     const pasoIaSource = pasoActual.usarIa
@@ -486,16 +487,16 @@ export class ExecutionController {
   ): Promise<{ nombre: string; cargo?: string; area?: string; email: string } | null> {
     if (!email) return null;
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const actividad = await this.prisma.actividad.findUnique({
       where: { id: instancia.actividadId },
       include: { iniciativa: true }
     });
-    if (!actividad) throw new NotFoundException('Actividad no encontrada');
+    if (!actividad) throw new AppError('ACTIVIDAD_NOT_FOUND');
     const usuario = await this.prisma.usuario.findUnique({
       where: { empresa_email_unico: { empresaId: actividad.iniciativa.empresaId, email: email.toLowerCase().trim() } }
     });
-    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (!usuario) throw new AppError('USUARIO_NOT_FOUND');
     return { nombre: usuario.nombre, cargo: usuario.cargo ?? undefined, area: usuario.area ?? undefined, email: usuario.email };
   }
 
@@ -612,7 +613,7 @@ export class ExecutionController {
   async presignEjemplo(
     @Body() body: { filename: string; contentType: string }
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const key = this.s3.generateKey('ejemplos', body.filename);
     const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
     return { uploadUrl, key };
@@ -624,11 +625,11 @@ export class ExecutionController {
     @Param('token') token: string,
     @Param('pasoId') pasoId: string,
   ): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!paso?.ejemploKey) throw new NotFoundException('Archivo de ejemplo no encontrado');
+    if (!paso?.ejemploKey) throw new AppError('ARCHIVO_INVALID', { message: 'Archivo de ejemplo no encontrado' });
     const url = await this.s3.getPresignedGetUrl(paso.ejemploKey);
     return { url };
   }
@@ -639,23 +640,23 @@ export class ExecutionController {
     @Param('token') token: string,
     @Param('preguntaId') preguntaId: string
   ): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const respuesta = await this.prisma.respuesta.findUnique({
       where: { instanciaId_preguntaId: { instanciaId: instancia.id, preguntaId } },
     });
-    if (!respuesta?.archivoKey) throw new NotFoundException('Archivo no encontrado');
+    if (!respuesta?.archivoKey) throw new AppError('ARCHIVO_INVALID');
     const url = await this.s3.getPresignedGetUrl(respuesta.archivoKey);
     return { url };
   }
 
   private handleError(error: unknown): void {
     if (error instanceof ResourceNotFoundError) {
-      throw new NotFoundException(error.message);
+      throw new AppError('INSTANCIA_NOT_FOUND', { message: error.message });
     }
     if (error instanceof BusinessRuleViolationError) {
-      throw new BadRequestException(error.message);
+      throw new AppError('VALIDATION_ERROR', { message: error.message });
     }
     throw error;
   }

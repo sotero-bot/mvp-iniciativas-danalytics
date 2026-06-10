@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, NotFoundException, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../../storage/S3Service';
+import { AppError } from '../../../shared/errors/AppError';
 
 @Controller('admin/plantillas/:plantillaId/pasos')
 export class AdminPlantillaPasosController {
@@ -22,7 +23,7 @@ export class AdminPlantillaPasosController {
         },
       },
     });
-    if (!plantilla) throw new NotFoundException('Plantilla no encontrada');
+    if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
     return { nombre: plantilla.nombre, pasos: plantilla.pasos };
   }
 
@@ -32,12 +33,12 @@ export class AdminPlantillaPasosController {
     @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
   ) {
     const plantilla = await this.prisma.plantillaActividad.findUnique({ where: { id: plantillaId, activo: true } });
-    if (!plantilla) throw new NotFoundException('Plantilla no encontrada');
+    if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
 
     const existe = await this.prisma.pasoPlantilla.findFirst({
       where: { plantillaId, orden: body.orden, activo: true },
     });
-    if (existe) throw new BadRequestException(`Ya existe un paso con orden ${body.orden} en esta plantilla`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe un paso con orden ${body.orden} en esta plantilla` });
 
     return this.prisma.pasoPlantilla.create({
       data: {
@@ -65,7 +66,7 @@ export class AdminPlantillaPasosController {
     const existe = await this.prisma.pasoPlantilla.findFirst({
       where: { plantillaId, orden: body.orden, activo: true, NOT: { id: pasoId } },
     });
-    if (existe) throw new BadRequestException(`Ya existe un paso con orden ${body.orden} en esta plantilla`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe un paso con orden ${body.orden} en esta plantilla` });
 
     return this.prisma.pasoPlantilla.update({
       where: { id: pasoId },
@@ -101,7 +102,7 @@ export class AdminPlantillaPasosController {
       where: { id: pasoId },
       include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
     });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
     return paso.preguntas;
   }
 
@@ -111,9 +112,9 @@ export class AdminPlantillaPasosController {
     @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string },
   ) {
     const paso = await this.prisma.pasoPlantilla.findUnique({ where: { id: pasoId } });
-    if (!paso) throw new NotFoundException('Paso no encontrado');
+    if (!paso) throw new AppError('PASO_NOT_FOUND');
     const existe = await this.prisma.preguntaPlantilla.findFirst({ where: { pasoId, orden: body.orden, activo: true } });
-    if (existe) throw new BadRequestException(`Ya existe una pregunta con orden ${body.orden} en este paso`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
     return this.prisma.preguntaPlantilla.create({
       data: {
         id: randomUUID(),
@@ -141,7 +142,7 @@ export class AdminPlantillaPasosController {
     const existe = await this.prisma.preguntaPlantilla.findFirst({
       where: { pasoId, orden: body.orden, activo: true, NOT: { id: preguntaId } },
     });
-    if (existe) throw new BadRequestException(`Ya existe una pregunta con orden ${body.orden} en este paso`);
+    if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
     return this.prisma.preguntaPlantilla.update({
       where: { id: preguntaId },
       data: {
@@ -163,7 +164,7 @@ export class AdminPlantillaPasosController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePregunta(@Param('pasoId') pasoId: string, @Param('preguntaId') preguntaId: string) {
     const count = await this.prisma.preguntaPlantilla.count({ where: { pasoId, activo: true } });
-    if (count <= 1) throw new BadRequestException('Un paso debe tener al menos una pregunta');
+    if (count <= 1) throw new AppError('VALIDATION_ERROR', { message: 'Un paso debe tener al menos una pregunta' });
     await this.prisma.preguntaPlantilla.update({ where: { id: preguntaId }, data: { activo: false } });
   }
 
@@ -176,12 +177,12 @@ export class AdminPlantillaPasosController {
     @Param('preguntaId') preguntaId: string,
     @Body() body: { filename: string; contentType: string },
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const pregunta = await this.prisma.preguntaPlantilla.findUnique({
       where: { id: preguntaId },
       include: { paso: { include: { plantilla: true } } },
     });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
 
     const prefix = `plantillas/${pregunta.paso.plantilla.id}/paso_${pregunta.paso.orden}/pregunta_${pregunta.orden}/prompt`;
     const key = this.s3.generateKey(prefix, body.filename);
@@ -197,7 +198,7 @@ export class AdminPlantillaPasosController {
     @Body() body: { urlPromptTemplate: string },
   ): Promise<{ urlPromptTemplate: string | null }> {
     const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
     const anterior = pregunta.urlPromptTemplate;
     const nuevo = body.urlPromptTemplate || null;
     await this.prisma.preguntaPlantilla.update({
@@ -218,7 +219,7 @@ export class AdminPlantillaPasosController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePromptTemplate(@Param('preguntaId') preguntaId: string): Promise<void> {
     const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
-    if (!pregunta) throw new NotFoundException('Pregunta no encontrada');
+    if (!pregunta) throw new AppError('PREGUNTA_NOT_FOUND');
     const key = pregunta.urlPromptTemplate;
     await this.prisma.preguntaPlantilla.update({ where: { id: preguntaId }, data: { urlPromptTemplate: null } });
     if (key && !key.startsWith('/')) {
@@ -231,10 +232,10 @@ export class AdminPlantillaPasosController {
   /** Presigned GET URL para descargar/previsualizar el prompt (admin) */
   @Get(':pasoId/preguntas/:preguntaId/prompt-url')
   async promptUrl(@Param('preguntaId') preguntaId: string): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const pregunta = await this.prisma.preguntaPlantilla.findUnique({ where: { id: preguntaId } });
     if (!pregunta?.urlPromptTemplate || pregunta.urlPromptTemplate.startsWith('/')) {
-      throw new NotFoundException('La pregunta no tiene prompt en S3');
+      throw new AppError('PREGUNTA_NOT_FOUND', { message: 'La pregunta no tiene prompt en S3' });
     }
     const url = await this.s3.getPresignedGetUrl(pregunta.urlPromptTemplate);
     return { url };

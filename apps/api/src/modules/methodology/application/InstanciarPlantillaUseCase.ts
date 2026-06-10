@@ -1,6 +1,6 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
+import { AppError } from '../../../shared/errors/AppError';
 
 export class InstanciarPlantillaUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -17,9 +17,9 @@ export class InstanciarPlantillaUseCase {
       },
     });
 
-    if (!plantilla) throw new NotFoundException('Plantilla no encontrada o inactiva');
+    if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
     if (plantilla.pasos.length === 0) {
-      throw new BadRequestException('La plantilla no tiene pasos configurados. Agrega al menos un paso antes de instanciarla.');
+      throw new AppError('VALIDATION_ERROR', { message: 'La plantilla no tiene pasos configurados. Agrega al menos un paso antes de instanciarla.' });
     }
 
     return this.prisma.$transaction(async (tx) => {

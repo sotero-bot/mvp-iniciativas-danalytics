@@ -1,0 +1,148 @@
+{
+  "empresas": {
+    "page_title": "Empresas",
+    "page_description": "Passo 1 de 4 — Cadastre as organizações cliente. Cada empresa agrupa suas próprias iniciativas e atividades.",
+    "next_iniciativas": "Próximo: Iniciativas →",
+    "create_button": "Nova empresa",
+    "create_section_title": "Nova Empresa",
+    "create_section_subtitle": "Informe o nome da organização que usará a plataforma.",
+    "edit_modal_title": "Editar Empresa",
+    "create_submit": "Criar empresa",
+    "fields": {
+      "nombre": "Nome",
+      "sector": "Setor",
+      "tipo_organizacion": "Tipo de organização",
+      "logo": "Logo",
+      "contexto_pdf": "PDF de contexto",
+      "activo": "Ativo"
+    },
+    "placeholders": {
+      "nombre": "Ex: Empresa ABC S.A.",
+      "sector": "Ex: Manufatura, Saúde, Financeiro, Varejo...",
+      "tipo_organizacion": "Ex: Empresa privada, Entidade pública, ONG, Cooperativa..."
+    },
+    "validation": {
+      "nombre_required": "O nome da empresa é obrigatório.",
+      "nombre_required_short": "O nome é obrigatório.",
+      "sector_required": "O setor é obrigatório.",
+      "tipo_organizacion_required": "O tipo de organização é obrigatório."
+    },
+    "logo_field": {
+      "change_logo": "Trocar logo",
+      "upload_logo": "Enviar logo",
+      "remove_logo": "✕ Remover logo",
+      "format_hint": "PNG, JPG, SVG — recomendado quadrado",
+      "optional": "(opcional)"
+    },
+    "pdf_field": {
+      "optional": "(opcional)",
+      "will_delete_warning": "O PDF será excluído ao salvar.",
+      "undo": "Desfazer",
+      "remove": "✕ Remover",
+      "replace": "Substituir",
+      "remove_pdf": "✕ Remover PDF",
+      "upload_pdf": "Enviar PDF de contexto",
+      "context_hint": "O texto do PDF será injetado em todos os prompts de IA desta empresa."
+    },
+    "actions": {
+      "edit": "Editar",
+      "edit_empresa": "Editar empresa",
+      "delete": "Excluir",
+      "delete_empresa": "Excluir empresa",
+      "upload_logo": "Enviar logo",
+      "upload_pdf": "Enviar PDF de contexto",
+      "delete_pdf": "Remover PDF"
+    },
+    "delete_modal": {
+      "title": "Excluir Empresa?",
+      "message": "Também serão desativadas todas as iniciativas, atividades e execuções de \"{{nombre}}\"."
+    },
+    "table": {
+      "empresa": "Empresa",
+      "contexto_pdf": "Contexto PDF",
+      "created": "Criada",
+      "actions": "Ações",
+      "pdf_uploaded": "📄 Enviado",
+      "pdf_missing": "Sem PDF"
+    },
+    "empty": {
+      "title": "Ainda não há empresas cadastradas",
+      "description": "As empresas são o ponto de partida do sistema. Crie a primeira para começar a configurar iniciativas e atividades."
+    },
+    "next_step": {
+      "label": "Próximo passo:",
+      "text": "Agora você pode criar Iniciativas que agrupem as atividades de cada empresa.",
+      "link": "Ir para Iniciativas →"
+    },
+    "toast": {
+      "created": "Empresa criada com sucesso",
+      "deleted": "Empresa excluída",
+      "updated": "Empresa atualizada"
+    },
+    "confirm_delete": "Excluir a empresa? Suas iniciativas e atividades também serão excluídas."
+  },
+  "iniciativas": {
+    "page_title": "Iniciativas",
+    "page_description": "Passo 2 de 4 — Agrupe atividades sob um projeto ou programa específico de cada empresa.",
+    "next_actividades": "Próximo: Atividades →",
+    "create_button": "Nova iniciativa",
+    "create_section_title": "Nova Iniciativa",
+    "create_section_subtitle": "Uma iniciativa representa um projeto ou programa dentro de uma empresa.",
+    "edit_modal_title": "Editar Iniciativa",
+    "create_submit": "Criar Iniciativa",
+    "fields": {
+      "nombre": "Nome",
+      "empresa": "Empresa",
+      "descripcion": "Descrição"
+    },
+    "placeholders": {
+      "nombre": "Ex: Transformação Digital",
+      "descripcion": "Qual é o objetivo desta iniciativa?",
+      "select_empresa": "Selecione uma empresa",
+      "no_empresas": "Sem empresas disponíveis"
+    },
+    "validation": {
+      "nombre_required": "O nome é obrigatório.",
+      "empresa_required": "Selecione uma empresa.",
+      "empresa_required_short": "Selecione uma empresa."
+    },
+    "optional_label": "(opcional)",
+    "actions": {
+      "edit": "Editar iniciativa",
+      "delete": "Excluir iniciativa"
+    },
+    "delete_modal": {
+      "title": "Excluir Iniciativa?",
+      "message": "Também serão desativadas suas atividades e execuções de \"{{nombre}}\"."
+    },
+    "prereq_banner": {
+      "title": "Primeiro você precisa cadastrar uma empresa",
+      "text": "As iniciativas pertencem a uma empresa. Crie pelo menos uma empresa antes de continuar.",
+      "link": "Criar empresa →"
+    },
+    "table": {
+      "header_title": "Iniciativas cadastradas",
+      "nombre": "Nome",
+      "empresa": "Empresa",
+      "descripcion": "Descrição",
+      "actions": "Ações"
+    },
+    "empty": {
+      "title": "Ainda não há iniciativas",
+      "no_empresas": "Primeiro crie uma empresa para poder adicionar iniciativas.",
+      "default": "Crie sua primeira iniciativa usando o formulário à esquerda.",
+      "link_empresas": "Ir para Empresas →"
+    },
+    "next_step": {
+      "label": "Próximo passo:",
+      "text": "Agora você pode criar Atividades vinculadas às suas iniciativas.",
+      "link": "Ir para Atividades →"
+    },
+    "toast": {
+      "created": "Iniciativa criada com sucesso",
+      "deleted": "Iniciativa excluída",
+      "updated": "Iniciativa atualizada"
+    },
+    "confirm_delete": "Excluir a iniciativa?"
+  }
+}
