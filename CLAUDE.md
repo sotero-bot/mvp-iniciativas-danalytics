@@ -57,6 +57,58 @@ Detalle en `sdd/concepts/context-loading.md`. **NUNCA cargues tier 3 en flujo no
 
 {{rellenar tras /init-project según docs/tech-stack.md y sdd/reference/migrations-by-framework.md}}
 
+## Internacionalización (i18n)
+
+El proyecto soporta múltiples idiomas vía `react-i18next` (frontend) + tabla `Translation` (BD, change-002 en adelante). REQ rector: **REQ-012**.
+
+### Arquitectura
+
+- **Frontend**: `apps/web/src/i18n/index.ts` configura `i18next` con detección automática (`navigator.language`), persistencia en `localStorage` (clave `i18nextLng`) y fallback a `es`.
+- **Locales**: `apps/web/src/i18n/locales/<lng>/<namespace>.json`. Namespaces: `common`, `auth`, `admin`, `execution`, `methodology`, `organization`, `errors`.
+- **Selector**: componente `LanguageSwitcher` (variantes `sidebar` y `floating`) montado en `App.tsx`.
+- **Errores backend**: `apps/api/src/shared/errors/AppError.ts` lanza códigos semánticos (`AUTH_INVALID_CREDENTIALS`, `INSTANCIA_NOT_FOUND`, etc.). `ErrorCodeFilter` los serializa como `{ code, message, statusCode }`. El frontend mapea cada `code` a `t('errors:CODE')` vía `apps/web/src/shared/api/fetchWithErrorMapping.ts`.
+
+### Para añadir un nuevo idioma (ej. inglés `en`)
+
+**Paso 1 — Crear carpeta de locale**
+```bash
+cp -r apps/web/src/i18n/locales/es apps/web/src/i18n/locales/en
+```
+Traducir el contenido de los 7 archivos JSON en `locales/en/`.
+
+**Paso 2 — Registrar el idioma en `apps/web/src/i18n/index.ts`**
+- Importar los nuevos JSON (`import enCommon from './locales/en/common.json'`, etc.).
+- Añadir `'en'` al array `SUPPORTED_LANGUAGES`.
+- Añadir su etiqueta legible al objeto `LANGUAGE_LABELS` (ej. `en: 'English'`).
+- Añadir un bloque `en: { common: enCommon, auth: enAuth, ... }` al objeto `resources`.
+
+Eso solo basta para que el selector lo ofrezca y la UI estática quede traducida.
+
+**Paso 3 — Contenido del taller en BD** (requiere change-002 ya implementado)
+
+Insertar filas en la tabla `Translation` para cada `(entityType, entityId, field)` que deba aparecer en el nuevo idioma. Ejemplo:
+```ts
+await prisma.translation.createMany({
+  data: [
+    { entityType: 'PasoPlantilla', entityId: 'paso-1', field: 'titulo', locale: 'en', value: 'Identify your pain points' },
+    // ...
+  ],
+});
+```
+No requiere migración ni cambios de código. Si falta una fila para un `locale`, `TranslationService` cae a `es` automáticamente.
+
+**Paso 4 — Prompts IA y entregables** (requiere change-003 ya implementado)
+
+Automático. Los prompts a OpenAI inyectan el `locale` de sesión y los generadores de PDF/Canvas HTML/Excel reciben el locale como parámetro. **No hay nada que hacer** salvo verificar que las traducciones de UI del Paso 1 estén completas.
+
+### Reglas duras
+
+- **NO uses strings literales en español** dentro de componentes nuevos — siempre `t('namespace:key')`.
+- **Mantén paridad estricta entre locales**: si añades una clave en `es/foo.json`, añádela también en todos los otros locales con la traducción correspondiente. CI debería fallar si hay desbalance (TODO).
+- **Errores del backend** siempre lanzan `AppError('CODE', { message?, details? })`, NUNCA `BadRequestException('texto en español')`. Si necesitas un código nuevo, agrégalo al type `AppErrorCode` en `AppError.ts` y a `errors.json` de TODOS los locales.
+- **Contenido dinámico de BD** (preguntas, instrucciones, plantillas) NO se traduce con `t()` — se resuelve vía `TranslationService` que consulta la tabla `Translation`.
+- **Prompts enviados al LLM** se mantienen en un idioma fijo por system prompt; el idioma de la respuesta se controla con una directiva (`Responde en {{locale}}`), no traduciendo el template del prompt.
+
 ## Errores conocidos a evitar (alucinaciones recurrentes)
 
 {{lista que crece a partir de ERR-*.md categoría alucinacion_ia. Inicialmente vacía.}}
