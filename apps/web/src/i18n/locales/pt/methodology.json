@@ -277,6 +277,14 @@
     },
     "confirm_delete": "Excluir a pergunta?"
   },
+  "translations": {
+    "section_title": "Tradução Português (PT)",
+    "placeholder_titulo_pt": "Título em português...",
+    "placeholder_objetivo_pt": "Objetivo em português...",
+    "placeholder_instrucciones_pt": "Instruções em português...",
+    "placeholder_enunciado_pt": "Enunciado em português...",
+    "placeholder_prompt_ia_pt": "Prompt em português (opcional)..."
+  },
   "prompt_template": {
     "save_question_first_alert": "Salve a pergunta primeiro para poder enviar um prompt ao S3.",
     "confirm_delete_prompt": "Excluir o prompt atual?",

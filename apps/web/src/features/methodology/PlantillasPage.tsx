@@ -326,7 +326,9 @@ export function PlantillasPage() {
             {t('methodology:plantillas.page_description')}
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={openImport}>{t('methodology:plantillas.import_button')}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={openImport}>{t('methodology:plantillas.import_button')}</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>

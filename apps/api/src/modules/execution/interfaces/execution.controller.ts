@@ -162,13 +162,69 @@ export class ExecutionController {
 
       const normalizedLocale = (locale ?? 'es').toLowerCase().startsWith('pt') ? 'pt' : 'es';
 
-      const pasoIds = actividad.pasos.map(p => p.id);
-      const preguntaIds = actividad.pasos.flatMap(p => (p as any).preguntas?.map((q: any) => q.id) ?? []);
+      // Traducciones: PasoActividad/PreguntaActividad tienen prioridad.
+      // Si no hay fila para un campo, se cae a PasoPlantilla/PreguntaPlantilla (via orden).
+      const pasoActividadIds = actividad.pasos.map(p => p.id);
+      const preguntaActividadIds = actividad.pasos.flatMap(p => (p as any).preguntas?.map((q: any) => q.id) ?? []);
 
-      const [pasoOverlay, preguntaOverlay] = await Promise.all([
-        this.translations.applyOverlay('PasoActividad', pasoIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
-        this.translations.applyOverlay('PreguntaActividad', preguntaIds, normalizedLocale, ['enunciado', 'promptIa']),
+      const plantillaOrigenPasos: any[] = (actividad as any).plantillaOrigen?.pasos ?? [];
+      const pasoOrdenToPlantilla = new Map<number, any>(plantillaOrigenPasos.map((p: any) => [p.orden, p]));
+
+      const pasoPlantillaIds: string[] = [];
+      const pasoPlantillaToActividad = new Map<string, string>();
+      const preguntaPlantillaIds: string[] = [];
+      const preguntaPlantillaToActividad = new Map<string, string>();
+
+      for (const paso of actividad.pasos) {
+        const plantillaPaso = pasoOrdenToPlantilla.get(paso.orden);
+        if (plantillaPaso) {
+          pasoPlantillaIds.push(plantillaPaso.id);
+          pasoPlantillaToActividad.set(plantillaPaso.id, paso.id);
+          const preguntaOrdenToPlantilla = new Map<number, any>(
+            (plantillaPaso.preguntas ?? []).map((q: any) => [q.orden, q]),
+          );
+          for (const pregunta of (paso as any).preguntas ?? []) {
+            const pq = preguntaOrdenToPlantilla.get(pregunta.orden);
+            if (pq) {
+              preguntaPlantillaIds.push(pq.id);
+              preguntaPlantillaToActividad.set(pq.id, pregunta.id);
+            }
+          }
+        }
+      }
+
+      const [pasoActOverlay, preguntaActOverlay, pasoPlantillaOverlay, preguntaPlantillaOverlay] = await Promise.all([
+        this.translations.applyOverlay('PasoActividad', pasoActividadIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
+        this.translations.applyOverlay('PreguntaActividad', preguntaActividadIds, normalizedLocale, ['enunciado', 'promptIa']),
+        this.translations.applyOverlay('PasoPlantilla', pasoPlantillaIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
+        this.translations.applyOverlay('PreguntaPlantilla', preguntaPlantillaIds, normalizedLocale, ['enunciado', 'promptIa']),
       ]);
+
+      // Remapear plantilla overlay a IDs de actividad para unificarlo
+      const pasoPlantillaRemapped: Record<string, Record<string, string>> = {};
+      for (const [pltId, actId] of pasoPlantillaToActividad) {
+        if (pasoPlantillaOverlay[pltId]) pasoPlantillaRemapped[actId] = pasoPlantillaOverlay[pltId];
+      }
+      const preguntaPlantillaRemapped: Record<string, Record<string, string>> = {};
+      for (const [pltId, actId] of preguntaPlantillaToActividad) {
+        if (preguntaPlantillaOverlay[pltId]) preguntaPlantillaRemapped[actId] = preguntaPlantillaOverlay[pltId];
+      }
+
+      // Merge: PasoActividad tiene prioridad campo a campo; PasoPlantilla es fallback
+      const pasoOverlay: Record<string, Record<string, string>> = {};
+      for (const id of pasoActividadIds) {
+        const act = pasoActOverlay[id] ?? {};
+        const plt = pasoPlantillaRemapped[id] ?? {};
+        const merged = { ...plt, ...act };
+        if (Object.keys(merged).length) pasoOverlay[id] = merged;
+      }
+      const preguntaOverlay: Record<string, Record<string, string>> = {};
+      for (const id of preguntaActividadIds) {
+        const act = preguntaActOverlay[id] ?? {};
+        const plt = preguntaPlantillaRemapped[id] ?? {};
+        const merged = { ...plt, ...act };
+        if (Object.keys(merged).length) preguntaOverlay[id] = merged;
+      }
 
       return new RunnerResponseDto({
         estado: instancia.estado,

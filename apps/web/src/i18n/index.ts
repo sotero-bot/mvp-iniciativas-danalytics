@@ -26,6 +26,17 @@ export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
   pt: 'Português',
 };
 
+/** Locales que necesitan traducción en los formularios de admin (todos excepto el idioma base). */
+export const TRANSLATABLE_LOCALES: string[] = SUPPORTED_LANGUAGES.filter(l => l !== 'es');
+
+/** Emoji de bandera por locale — añadir entrada al agregar un idioma nuevo. */
+export const LOCALE_FLAGS: Record<string, string> = {
+  pt: '🇧🇷',
+  en: '🇺🇸',
+  fr: '🇫🇷',
+  de: '🇩🇪',
+};
+
 export const NAMESPACES = [
   'common',
   'auth',

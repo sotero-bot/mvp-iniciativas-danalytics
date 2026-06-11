@@ -1,14 +1,17 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../../storage/S3Service';
 import { AppError } from '../../../shared/errors/AppError';
+import { TranslationService } from '../../translation/translation.service';
+import { TRANSLATABLE_LOCALES, PASO_TRANS_FIELDS, PREGUNTA_TRANS_FIELDS } from '../../../shared/i18n/translatable-locales';
 
 @Controller('admin/plantillas/:plantillaId/pasos')
 export class AdminPlantillaPasosController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly translations: TranslationService,
   ) {}
 
   @Get()
@@ -24,13 +27,30 @@ export class AdminPlantillaPasosController {
       },
     });
     if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
-    return { nombre: plantilla.nombre, pasos: plantilla.pasos };
+
+    const pasoIds = plantilla.pasos.map(p => p.id);
+    const preguntaIds = plantilla.pasos.flatMap(p => p.preguntas.map(q => q.id));
+    const [pasoTrans, preguntaTrans] = await Promise.all([
+      this.translations.applyOverlayMultiLocale('PasoPlantilla', pasoIds, TRANSLATABLE_LOCALES, PASO_TRANS_FIELDS),
+      this.translations.applyOverlayMultiLocale('PreguntaPlantilla', preguntaIds, TRANSLATABLE_LOCALES, PREGUNTA_TRANS_FIELDS),
+    ]);
+
+    const pasosConTraducciones = plantilla.pasos.map(p => ({
+      ...p,
+      translations: pasoTrans[p.id] ?? {},
+      preguntas: p.preguntas.map(q => ({
+        ...q,
+        translations: preguntaTrans[q.id] ?? {},
+      })),
+    }));
+
+    return { nombre: plantilla.nombre, pasos: pasosConTraducciones };
   }
 
   @Post()
   async create(
     @Param('plantillaId') plantillaId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string; translations?: Record<string, Record<string, string>> },
   ) {
     const plantilla = await this.prisma.plantillaActividad.findUnique({ where: { id: plantillaId, activo: true } });
     if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
@@ -40,7 +60,7 @@ export class AdminPlantillaPasosController {
     });
     if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe un paso con orden ${body.orden} en esta plantilla` });
 
-    return this.prisma.pasoPlantilla.create({
+    const paso = await this.prisma.pasoPlantilla.create({
       data: {
         plantillaId,
         titulo: body.titulo,
@@ -55,20 +75,25 @@ export class AdminPlantillaPasosController {
         urlPlantilla: body.urlPlantilla ?? null,
       },
     });
+
+    if (body.translations) {
+      await this.translations.upsertAllLocales('PasoPlantilla', paso.id, body.translations);
+    }
+    return paso;
   }
 
   @Put(':pasoId')
   async update(
     @Param('plantillaId') plantillaId: string,
     @Param('pasoId') pasoId: string,
-    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string },
+    @Body() body: { titulo: string; objetivo?: string; instrucciones?: string; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; orden: number; permitirArchivo?: boolean; soloArchivo?: boolean; urlPlantilla?: string; translations?: Record<string, Record<string, string>> },
   ) {
     const existe = await this.prisma.pasoPlantilla.findFirst({
       where: { plantillaId, orden: body.orden, activo: true, NOT: { id: pasoId } },
     });
     if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe un paso con orden ${body.orden} en esta plantilla` });
 
-    return this.prisma.pasoPlantilla.update({
+    const paso = await this.prisma.pasoPlantilla.update({
       where: { id: pasoId },
       data: {
         titulo: body.titulo,
@@ -83,6 +108,11 @@ export class AdminPlantillaPasosController {
         urlPlantilla: body.urlPlantilla ?? null,
       },
     });
+
+    if (body.translations !== undefined) {
+      await this.translations.upsertAllLocales('PasoPlantilla', pasoId, body.translations);
+    }
+    return paso;
   }
 
   @Delete(':pasoId')
@@ -109,13 +139,14 @@ export class AdminPlantillaPasosController {
   @Post(':pasoId/preguntas')
   async createPregunta(
     @Param('pasoId') pasoId: string,
-    @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string },
+    @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string; translations?: Record<string, Record<string, string>> },
   ) {
     const paso = await this.prisma.pasoPlantilla.findUnique({ where: { id: pasoId } });
     if (!paso) throw new AppError('PASO_NOT_FOUND');
     const existe = await this.prisma.preguntaPlantilla.findFirst({ where: { pasoId, orden: body.orden, activo: true } });
     if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
-    return this.prisma.preguntaPlantilla.create({
+
+    const pregunta = await this.prisma.preguntaPlantilla.create({
       data: {
         id: randomUUID(),
         pasoId,
@@ -131,19 +162,25 @@ export class AdminPlantillaPasosController {
         urlPromptTemplate: body.urlPromptTemplate ?? null,
       },
     });
+
+    if (body.translations) {
+      await this.translations.upsertAllLocales('PreguntaPlantilla', pregunta.id, body.translations);
+    }
+    return pregunta;
   }
 
   @Put(':pasoId/preguntas/:preguntaId')
   async updatePregunta(
     @Param('pasoId') pasoId: string,
     @Param('preguntaId') preguntaId: string,
-    @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string },
+    @Body() body: { orden: number; enunciado: string; permitirArchivo?: boolean; soloArchivo?: boolean; subirArchivoS3?: boolean; usarIa?: boolean; iaAutomatica?: boolean; promptIa?: string; urlPlantilla?: string; urlPromptTemplate?: string; translations?: Record<string, Record<string, string>> },
   ) {
     const existe = await this.prisma.preguntaPlantilla.findFirst({
       where: { pasoId, orden: body.orden, activo: true, NOT: { id: preguntaId } },
     });
     if (existe) throw new AppError('VALIDATION_ERROR', { message: `Ya existe una pregunta con orden ${body.orden} en este paso` });
-    return this.prisma.preguntaPlantilla.update({
+
+    const pregunta = await this.prisma.preguntaPlantilla.update({
       where: { id: preguntaId },
       data: {
         orden: body.orden,
@@ -158,6 +195,11 @@ export class AdminPlantillaPasosController {
         urlPromptTemplate: body.urlPromptTemplate ?? null,
       },
     });
+
+    if (body.translations !== undefined) {
+      await this.translations.upsertAllLocales('PreguntaPlantilla', preguntaId, body.translations);
+    }
+    return pregunta;
   }
 
   @Delete(':pasoId/preguntas/:preguntaId')
@@ -239,5 +281,45 @@ export class AdminPlantillaPasosController {
     }
     const url = await this.s3.getPresignedGetUrl(pregunta.urlPromptTemplate);
     return { url };
+  }
+
+  // ── Traducciones por paso/pregunta ───────────────────────────────────────
+
+  @Get(':pasoId/translations')
+  async getPasoTranslations(
+    @Param('pasoId') pasoId: string,
+    @Query('locale') locale: string = 'pt',
+  ): Promise<Record<string, string>> {
+    return this.translations.getForEntity('PasoPlantilla', pasoId, locale);
+  }
+
+  @Put(':pasoId/translations/:locale')
+  @HttpCode(HttpStatus.OK)
+  async putPasoTranslations(
+    @Param('pasoId') pasoId: string,
+    @Param('locale') locale: string,
+    @Body() body: Record<string, string>,
+  ): Promise<{ ok: boolean }> {
+    await this.translations.upsertForEntity('PasoPlantilla', pasoId, locale, body);
+    return { ok: true };
+  }
+
+  @Get(':pasoId/preguntas/:preguntaId/translations')
+  async getPreguntaTranslations(
+    @Param('preguntaId') preguntaId: string,
+    @Query('locale') locale: string = 'pt',
+  ): Promise<Record<string, string>> {
+    return this.translations.getForEntity('PreguntaPlantilla', preguntaId, locale);
+  }
+
+  @Put(':pasoId/preguntas/:preguntaId/translations/:locale')
+  @HttpCode(HttpStatus.OK)
+  async putPreguntaTranslations(
+    @Param('preguntaId') preguntaId: string,
+    @Param('locale') locale: string,
+    @Body() body: Record<string, string>,
+  ): Promise<{ ok: boolean }> {
+    await this.translations.upsertForEntity('PreguntaPlantilla', preguntaId, locale, body);
+    return { ok: true };
   }
 }

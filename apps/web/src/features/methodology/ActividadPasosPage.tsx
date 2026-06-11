@@ -3,7 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
+import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
+import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+
+const PASO_TRANS_FIELDS: TranslationField[] = [
+  { key: 'titulo', label: 'Título' },
+  { key: 'objetivo', label: 'Objetivo' },
+  { key: 'instrucciones', label: 'Instrucciones', multiline: true },
+];
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -18,6 +26,7 @@ const PREGUNTA_BLANK = {
   promptIa: '',
   urlPlantilla: '',
   urlPromptTemplate: '',
+  translations: emptyTranslations(),
 };
 
 export function ActividadPasosPage() {
@@ -34,7 +43,7 @@ export function ActividadPasosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [modal, setModal] = useState<{ id: string; titulo: string } | null>(null);
-  const [form, setForm] = useState({ titulo: '', objetivo: '', instrucciones: '', orden: 0 });
+  const [form, setForm] = useState({ titulo: '', objetivo: '', instrucciones: '', orden: 0, translations: emptyTranslations() });
 
   const [uploadingEjemploId, setUploadingEjemploId] = useState<string | null>(null);
   const [deleteEjemploModal, setDeleteEjemploModal] = useState<{ pasoId: string; titulo: string } | null>(null);
@@ -78,6 +87,9 @@ export function ActividadPasosPage() {
   const [preguntaWasValidated, setPreguntaWasValidated] = useState(false);
   const [preguntaModal, setPreguntaModal] = useState<{ pasoId: string; id: string; enunciado: string } | null>(null);
 
+  // Panel de traducciones inline (solo pasos)
+  const [transOpenPasoId, setTransOpenPasoId] = useState<string | null>(null);
+
   const loadPasos = async () => {
     try {
       setLoading(true);
@@ -108,7 +120,7 @@ export function ActividadPasosPage() {
         body: JSON.stringify(form),
       });
       const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-      setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2) });
+      setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2), translations: emptyTranslations() });
       setShowForm(false);
       setEditingId(null);
       setWasValidated(false);
@@ -118,7 +130,7 @@ export function ActividadPasosPage() {
 
   const handleEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', orden: p.orden });
+    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', orden: p.orden, translations: p.translations ?? emptyTranslations() });
     setShowForm(true);
     setActivePasoId(null);
   };
@@ -127,7 +139,7 @@ export function ActividadPasosPage() {
     setEditingId(null);
     setShowForm(false);
     const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-    setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + 1 });
+    setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + 1, translations: emptyTranslations() });
     setWasValidated(false);
   };
 
@@ -161,6 +173,7 @@ export function ActividadPasosPage() {
       promptIa: q.promptIa || '',
       urlPlantilla: q.urlPlantilla || '',
       urlPromptTemplate: q.urlPromptTemplate || '',
+      translations: q.translations ?? emptyTranslations(),
     });
     setPreguntaWasValidated(false);
     setShowForm(false);
@@ -289,6 +302,15 @@ export function ActividadPasosPage() {
                 onChange={e => setForm({ ...form, instrucciones: e.target.value })}
                 placeholder={t('methodology:pasos.placeholders.instrucciones')} />
             </div>
+            <TranslationFields
+              fields={[
+                { key: 'titulo', label: t('methodology:pasos.fields.titulo') },
+                { key: 'objetivo', label: t('methodology:pasos.fields.objetivo') },
+                { key: 'instrucciones', label: t('methodology:pasos.fields.instrucciones'), multiline: true },
+              ]}
+              values={form.translations}
+              onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
+            />
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</button>
               <button type="submit" className="btn btn-primary">{editingId ? t('common:buttons.save_changes') : t('methodology:pasos.create_submit')}</button>
@@ -322,6 +344,11 @@ export function ActividadPasosPage() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
+                      onClick={() => setTransOpenPasoId(transOpenPasoId === p.id ? null : p.id)}
+                      title="Traducciones del paso">
+                      🌐
+                    </button>
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
                     </button>
@@ -331,6 +358,16 @@ export function ActividadPasosPage() {
                     </button>
                   </div>
                 </div>
+
+                {transOpenPasoId === p.id && (
+                  <div style={{ padding: '0 1.25rem 0.75rem', borderBottom: '1px solid var(--color-bg-page)' }}>
+                    <TranslationPanel
+                      fields={PASO_TRANS_FIELDS}
+                      getUrl={(loc) => `${API_URL}/admin/actividades/${id}/pasos/${p.id}/translations?locale=${loc}`}
+                      putUrl={(loc) => `${API_URL}/admin/actividades/${id}/pasos/${p.id}/translations/${loc}`}
+                    />
+                  </div>
+                )}
 
                 <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--color-bg-page)', background: '#FAFAFA', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>{t('methodology:pasos.ejemplo.label')}</span>
@@ -398,30 +435,32 @@ export function ActividadPasosPage() {
                                 promptApiBase={`${API_URL}/admin/actividades/${id}/pasos/${p.id}/preguntas/${q.id}`}
                               />
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
-                                <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
-                                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                                  {q.usarIa && (
-                                    <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
-                                      🤖{q.iaAutomatica ? '⚡' : ''}
-                                    </span>
-                                  )}
-                                  {q.soloArchivo ? (
-                                    <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
-                                  ) : q.permitirArchivo ? (
-                                    <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
-                                  ) : null}
-                                  <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
-                                    onClick={() => openEditPregunta(p.id, q)}>
-                                    {t('common:buttons.edit')}
-                                  </button>
-                                  <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
-                                    onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
-                                    🗑️
-                                  </button>
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
+                                  <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
+                                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                    {q.usarIa && (
+                                      <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
+                                        🤖{q.iaAutomatica ? '⚡' : ''}
+                                      </span>
+                                    )}
+                                    {q.soloArchivo ? (
+                                      <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
+                                    ) : q.permitirArchivo ? (
+                                      <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
+                                    ) : null}
+                                    <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
+                                      onClick={() => openEditPregunta(p.id, q)}>
+                                      {t('common:buttons.edit')}
+                                    </button>
+                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                                      onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
+                                      🗑️
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
+                              </>
                             )}
                           </div>
                         );
@@ -574,6 +613,14 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             </div>
           )}
         </div>
+
+        <TranslationFields
+          fields={[
+            { key: 'enunciado', label: t('methodology:preguntas.fields.enunciado'), multiline: true },
+          ]}
+          values={form.translations}
+          onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
+        />
 
         <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }} onClick={onCancel}>

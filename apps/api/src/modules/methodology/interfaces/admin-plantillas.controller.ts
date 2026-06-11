@@ -2,10 +2,18 @@ import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus }
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
 import { AppError } from '../../../shared/errors/AppError';
+import { TranslationService } from '../../translation/translation.service';
+
+interface PreguntaTransInput { orden: number; enunciado?: string; promptIa?: string }
+interface PasoTransInput { orden: number; titulo?: string; objetivo?: string; instrucciones?: string; promptIa?: string; preguntas?: PreguntaTransInput[] }
+interface PlantillaTransInput { locale: string; nombre?: string; descripcion?: string; pasos?: PasoTransInput[] }
 
 @Controller('admin/plantillas')
 export class AdminPlantillasController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly translations: TranslationService,
+  ) {}
 
   @Get()
   async findAll() {
@@ -179,5 +187,72 @@ export class AdminPlantillasController {
       where: { id },
       data: { activo: false },
     });
+  }
+
+  @Post(':id/translations/load-json')
+  @HttpCode(HttpStatus.OK)
+  async loadTranslations(
+    @Param('id') id: string,
+    @Body() body: PlantillaTransInput,
+  ): Promise<{ total: number; pasos: number; preguntas: number; warnings: string[] }> {
+    if (!body?.locale) throw new AppError('VALIDATION_ERROR', { message: 'Falta campo "locale".' });
+
+    const plantilla = await this.prisma.plantillaActividad.findUnique({
+      where: { id, activo: true },
+      include: {
+        pasos: {
+          where: { activo: true },
+          orderBy: { orden: 'asc' },
+          include: { preguntas: { where: { activo: true }, orderBy: { orden: 'asc' } } },
+        },
+      },
+    });
+    if (!plantilla) throw new AppError('PLANTILLA_NOT_FOUND');
+
+    const warnings: string[] = [];
+    let total = 0, pasosCount = 0, preguntasCount = 0;
+
+    for (const [field, value] of [['nombre', body.nombre], ['descripcion', body.descripcion]] as const) {
+      if (value?.trim()) {
+        await this.translations.upsertForEntity('PlantillaActividad', id, body.locale, { [field]: value.trim() });
+        total++;
+      }
+    }
+
+    const pasoMap = new Map(plantilla.pasos.map(p => [p.orden, p]));
+
+    for (const pasoInput of body.pasos ?? []) {
+      const paso = pasoMap.get(pasoInput.orden);
+      if (!paso) { warnings.push(`Paso orden ${pasoInput.orden} no encontrado`); continue; }
+
+      const pasoFields: Record<string, string | undefined> = {
+        titulo: pasoInput.titulo, objetivo: pasoInput.objetivo,
+        instrucciones: pasoInput.instrucciones, promptIa: pasoInput.promptIa,
+      };
+      const pasoEntries = Object.entries(pasoFields).filter(([, v]) => v?.trim());
+      if (pasoEntries.length > 0) {
+        await this.translations.upsertForEntity('PasoPlantilla', paso.id, body.locale, Object.fromEntries(pasoEntries));
+        total += pasoEntries.length;
+        pasosCount++;
+      }
+
+      const preguntaMap = new Map(paso.preguntas.map(q => [q.orden, q]));
+      for (const pregInput of pasoInput.preguntas ?? []) {
+        const pregunta = preguntaMap.get(pregInput.orden);
+        if (!pregunta) { warnings.push(`Pregunta orden ${pregInput.orden} (paso ${pasoInput.orden}) no encontrada`); continue; }
+
+        const pregFields: Record<string, string | undefined> = {
+          enunciado: pregInput.enunciado, promptIa: pregInput.promptIa,
+        };
+        const pregEntries = Object.entries(pregFields).filter(([, v]) => v?.trim());
+        if (pregEntries.length > 0) {
+          await this.translations.upsertForEntity('PreguntaPlantilla', pregunta.id, body.locale, Object.fromEntries(pregEntries));
+          total += pregEntries.length;
+          preguntasCount++;
+        }
+      }
+    }
+
+    return { total, pasos: pasosCount, preguntas: preguntasCount, warnings };
   }
 }

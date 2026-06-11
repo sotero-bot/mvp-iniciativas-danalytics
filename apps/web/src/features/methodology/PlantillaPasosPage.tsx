@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
+import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
+import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
 import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
+
+const PASO_TRANS_FIELDS: TranslationField[] = [
+  { key: 'titulo', label: 'Título' },
+  { key: 'objetivo', label: 'Objetivo' },
+  { key: 'instrucciones', label: 'Instrucciones', multiline: true },
+];
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -18,7 +26,10 @@ const PREGUNTA_BLANK = {
   promptIa: '',
   urlPlantilla: '',
   urlPromptTemplate: '',
+  translations: emptyTranslations(),
 };
+
+const PASO_FORM_BLANK = { titulo: '', objetivo: '', instrucciones: '', orden: 0, translations: emptyTranslations() };
 
 export function PlantillaPasosPage() {
   const { t } = useTranslation(['methodology', 'common']);
@@ -35,7 +46,7 @@ export function PlantillaPasosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [modal, setModal] = useState<{ id: string; titulo: string } | null>(null);
-  const [form, setForm] = useState({ titulo: '', objetivo: '', instrucciones: '', orden: 0 });
+  const [form, setForm] = useState({ ...PASO_FORM_BLANK });
 
   // Pregunta form
   const [activePasoId, setActivePasoId] = useState<string | null>(null);
@@ -43,6 +54,56 @@ export function PlantillaPasosPage() {
   const [preguntaForm, setPreguntaForm] = useState({ ...PREGUNTA_BLANK });
   const [preguntaWasValidated, setPreguntaWasValidated] = useState(false);
   const [preguntaModal, setPreguntaModal] = useState<{ pasoId: string; id: string; enunciado: string } | null>(null);
+
+  // Panel de traducciones inline (solo pasos)
+  const [transOpenPasoId, setTransOpenPasoId] = useState<string | null>(null);
+
+  // ── Cargar traducciones ──────────────────────────────────────────────────
+  const transInputRef = useRef<HTMLInputElement>(null);
+  const [transOpen, setTransOpen] = useState(false);
+  const [transPreview, setTransPreview] = useState<any | null>(null);
+  const [transFileName, setTransFileName] = useState('');
+  const [transLoading, setTransLoading] = useState(false);
+  const [transResult, setTransResult] = useState<any | null>(null);
+  const [transError, setTransError] = useState('');
+  const [transDragging, setTransDragging] = useState(false);
+
+  const openTrans = () => { setTransOpen(true); setTransPreview(null); setTransFileName(''); setTransResult(null); setTransError(''); };
+
+  const parseTransFile = (file: File) => {
+    setTransResult(null); setTransError(''); setTransFileName(file.name);
+    if (!file.name.endsWith('.json')) { setTransError('Solo se aceptan archivos .json'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result as string);
+        const data = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!data?.locale) { setTransError('El JSON debe tener el campo "locale".'); return; }
+        setTransPreview(data);
+        setTransError('');
+      } catch { setTransError('El archivo no es un JSON válido.'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleLoadTrans = async () => {
+    if (!transPreview || !id) return;
+    setTransLoading(true); setTransError('');
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas/${id}/translations/load-json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transPreview),
+      });
+      const data = await res.json();
+      setTransResult(data);
+      setTransPreview(null);
+    } catch (err) {
+      setTransError(translateError(err));
+    } finally {
+      setTransLoading(false);
+    }
+  };
 
   const loadPasos = async () => {
     try {
@@ -80,7 +141,7 @@ export function PlantillaPasosPage() {
         body: JSON.stringify(form),
       });
       const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-      setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2) });
+      setForm({ ...PASO_FORM_BLANK, orden: maxOrden + (editingId ? 1 : 2) });
       setShowForm(false);
       setEditingId(null);
       setWasValidated(false);
@@ -96,7 +157,13 @@ export function PlantillaPasosPage() {
 
   const handleEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ titulo: p.titulo, objetivo: p.objetivo || '', instrucciones: p.instrucciones || '', orden: p.orden });
+    setForm({
+      titulo: p.titulo,
+      objetivo: p.objetivo || '',
+      instrucciones: p.instrucciones || '',
+      orden: p.orden,
+      translations: p.translations ?? emptyTranslations(),
+    });
     setShowForm(true);
     setActivePasoId(null);
   };
@@ -105,7 +172,7 @@ export function PlantillaPasosPage() {
     setEditingId(null);
     setShowForm(false);
     const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
-    setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + 1 });
+    setForm({ ...PASO_FORM_BLANK, orden: maxOrden + 1 });
     setWasValidated(false);
   };
 
@@ -145,6 +212,7 @@ export function PlantillaPasosPage() {
       promptIa: q.promptIa || '',
       urlPlantilla: q.urlPlantilla || '',
       urlPromptTemplate: q.urlPromptTemplate || '',
+      translations: q.translations ?? emptyTranslations(),
     });
     setPreguntaWasValidated(false);
     setShowForm(false);
@@ -226,12 +294,103 @@ export function PlantillaPasosPage() {
           <h1>{t('methodology:pasos.page_title_plantilla')}</h1>
           <p style={{ color: 'var(--color-text-secondary)' }}>{t('methodology:pasos.plantilla_label')} <strong>{nombrePlantilla}</strong></p>
         </div>
-        {!showForm && (
-          <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
-            {t('methodology:pasos.add_button')}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn btn-secondary" onClick={openTrans}>🌐 Traducciones</button>
+          {!showForm && (
+            <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
+              {t('methodology:pasos.add_button')}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* ── Modal cargar traducciones ── */}
+      {transOpen && (
+        <div className="modal-overlay" onClick={() => setTransOpen(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ margin: 0 }}>🌐 Cargar traducciones</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{nombrePlantilla}</p>
+              </div>
+              <button onClick={() => setTransOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4 }}>×</button>
+            </div>
+
+            {!transPreview && !transResult && (
+              <>
+                <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                  Sube un JSON con <code>locale</code>, <code>nombre</code>, <code>descripcion</code> y <code>pasos</code> (ordenados por <code>orden</code>).
+                </p>
+                <div
+                  onDragOver={e => { e.preventDefault(); setTransDragging(true); }}
+                  onDragLeave={() => setTransDragging(false)}
+                  onDrop={e => { e.preventDefault(); setTransDragging(false); const f = e.dataTransfer.files[0]; if (f) parseTransFile(f); }}
+                  onClick={() => transInputRef.current?.click()}
+                  style={{
+                    border: `2px dashed ${transDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    borderRadius: 8, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
+                    background: transDragging ? 'var(--color-primary-light, #f0f7ff)' : 'var(--color-bg-secondary)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>🌐</div>
+                  <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>{transFileName || 'Arrastra el JSON de traducciones aquí'}</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>o haz clic para seleccionar</p>
+                  <input ref={transInputRef} type="file" accept=".json" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) parseTransFile(f); }} />
+                </div>
+              </>
+            )}
+
+            {transError && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 6, background: '#fee2e2', color: '#b91c1c', fontSize: '0.875rem' }}>
+                {transError}
+              </div>
+            )}
+
+            {transPreview && (
+              <div style={{ marginTop: 4 }}>
+                <div style={{ background: 'var(--color-bg-secondary)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#065f46', borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
+                      {transPreview.locale?.toUpperCase()}
+                    </span>
+                    {transPreview.nombre && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{transPreview.nombre}</span>}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                    {(transPreview.pasos ?? []).length} paso(s) · {(transPreview.pasos ?? []).reduce((s: number, p: any) => s + (p.preguntas ?? []).length, 0)} pregunta(s)
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={() => { setTransPreview(null); setTransFileName(''); }}>Cambiar archivo</button>
+                  <button className="btn btn-primary" disabled={transLoading} onClick={handleLoadTrans}>
+                    {transLoading ? 'Cargando...' : 'Cargar traducciones'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {transResult && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ padding: '14px 16px', borderRadius: 8, background: '#dcfce7', color: '#15803d', marginBottom: 14 }}>
+                  <strong>✅ {transResult.total} traducciones cargadas</strong>
+                  <span style={{ marginLeft: 12, fontSize: '0.85rem', color: '#166534' }}>
+                    {transResult.pasos} pasos · {transResult.preguntas} preguntas
+                  </span>
+                </div>
+                {transResult.warnings?.length > 0 && (
+                  <ul style={{ margin: '0 0 14px', paddingLeft: 18, color: '#92400e', fontSize: '0.825rem' }}>
+                    {transResult.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
+                  </ul>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={() => setTransOpen(false)}>Cerrar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Paso form ── */}
       {showForm && (
@@ -268,6 +427,17 @@ export function PlantillaPasosPage() {
                 onChange={e => setForm({ ...form, instrucciones: e.target.value })}
                 placeholder={t('methodology:pasos.placeholders.instrucciones_plantilla')} />
             </div>
+
+            <TranslationFields
+              fields={[
+                { key: 'titulo', label: t('methodology:pasos.fields.titulo') },
+                { key: 'objetivo', label: t('methodology:pasos.fields.objetivo') },
+                { key: 'instrucciones', label: t('methodology:pasos.fields.instrucciones'), multiline: true },
+              ]}
+              values={form.translations}
+              onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
+            />
+
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</button>
               <button type="submit" className="btn btn-primary">{editingId ? t('methodology:pasos.save_changes') : t('methodology:pasos.save_paso')}</button>
@@ -303,6 +473,11 @@ export function PlantillaPasosPage() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
+                      onClick={() => setTransOpenPasoId(transOpenPasoId === p.id ? null : p.id)}
+                      title="Traducciones del paso">
+                      🌐
+                    </button>
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
                     </button>
@@ -312,6 +487,16 @@ export function PlantillaPasosPage() {
                     </button>
                   </div>
                 </div>
+
+                {transOpenPasoId === p.id && (
+                  <div style={{ padding: '0 1.25rem 0.75rem' }}>
+                    <TranslationPanel
+                      fields={PASO_TRANS_FIELDS}
+                      getUrl={(loc) => `${API_URL}/admin/plantillas/${id}/pasos/${p.id}/translations?locale=${loc}`}
+                      putUrl={(loc) => `${API_URL}/admin/plantillas/${id}/pasos/${p.id}/translations/${loc}`}
+                    />
+                  </div>
+                )}
 
                 {/* Preguntas section */}
                 <div style={{ padding: '1rem 1.25rem' }}>
@@ -346,30 +531,32 @@ export function PlantillaPasosPage() {
                                 promptApiBase={`${API_URL}/admin/plantillas/${id}/pasos/${p.id}/preguntas/${q.id}`}
                               />
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
-                                <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
-                                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                                  {q.usarIa && (
-                                    <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
-                                      🤖{q.iaAutomatica ? '⚡' : ''}
-                                    </span>
-                                  )}
-                                  {q.soloArchivo ? (
-                                    <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
-                                  ) : q.permitirArchivo ? (
-                                    <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
-                                  ) : null}
-                                  <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
-                                    onClick={() => openEditPregunta(p.id, q)}>
-                                    {t('common:buttons.edit')}
-                                  </button>
-                                  <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
-                                    onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
-                                    🗑️
-                                  </button>
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
+                                  <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
+                                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                    {q.usarIa && (
+                                      <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
+                                        🤖{q.iaAutomatica ? '⚡' : ''}
+                                      </span>
+                                    )}
+                                    {q.soloArchivo ? (
+                                      <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
+                                    ) : q.permitirArchivo ? (
+                                      <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
+                                    ) : null}
+                                    <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
+                                      onClick={() => openEditPregunta(p.id, q)}>
+                                      {t('common:buttons.edit')}
+                                    </button>
+                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                                      onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
+                                      🗑️
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
+                              </>
                             )}
                           </div>
                         );
@@ -527,6 +714,15 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             </div>
           )}
         </div>
+
+        <TranslationFields
+          fields={[
+            { key: 'enunciado', label: t('methodology:preguntas.fields.enunciado'), multiline: true },
+            ...(form.usarIa ? [{ key: 'promptIa', label: t('methodology:pasos.fields.prompt_ia'), multiline: true }] : []),
+          ]}
+          values={form.translations}
+          onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
+        />
 
         <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }} onClick={onCancel}>
