@@ -284,9 +284,13 @@ export class ExecutionController {
 
   @Post(':token/canvas')
   @HttpCode(HttpStatus.OK)
-  async sintetizarCanvas(@Param('token') token: string): Promise<{ bloques: Record<string, string> }> {
+  async sintetizarCanvas(
+    @Param('token') token: string,
+    @Body() body?: { locale?: string },
+  ): Promise<{ bloques: Record<string, string> }> {
     try {
-      const bloques = await this.sintetizarCanvasUseCase.execute(token);
+      const locale = ['es', 'pt'].includes(body?.locale ?? '') ? body!.locale! : 'es';
+      const bloques = await this.sintetizarCanvasUseCase.execute(token, locale);
       return { bloques };
     } catch (error) {
       this.handleError(error);
@@ -524,19 +528,21 @@ export class ExecutionController {
   // TODO(IA-por-pregunta): revisar al implementar — añadir preguntaId al body y pasarlo a ConsultarIaPorTokenUseCase.
   async consultarIa(
     @Param('token') token: string,
-    @Body() body: { pasoId: string; respuesta: string; customPrompt?: string },
+    @Body() body: { pasoId: string; respuesta: string; customPrompt?: string; locale?: string },
     @UploadedFile() file?: Express.Multer.File
   ): Promise<{ respuestaIa: string }> {
     try {
       const fileInfo = file
         ? { path: file.path, mimetype: file.mimetype, originalname: file.originalname }
         : undefined;
+      const locale = ['es', 'pt'].includes(body.locale ?? '') ? body.locale! : 'es';
       const gptResponse = await this.consultarIaUseCase.execute(
         token,
         body.pasoId,
         body.respuesta,
         body.customPrompt,
-        fileInfo
+        fileInfo,
+        locale,
       );
       return { respuestaIa: gptResponse };
     } catch (error) {

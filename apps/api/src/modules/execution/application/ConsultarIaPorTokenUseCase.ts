@@ -23,7 +23,8 @@ export class ConsultarIaPorTokenUseCase {
         pasoId: string,
         respuestaUsuario: string,
         customPrompt?: string,
-        file?: { path: string; mimetype: string; originalname: string }
+        file?: { path: string; mimetype: string; originalname: string },
+        locale: string = 'es',
     ): Promise<string> {
         const instancia = await this.accederUseCase.execute(token);
 
@@ -60,7 +61,11 @@ export class ConsultarIaPorTokenUseCase {
         const promptBase = customPrompt || paso.promptIa ||
             'Eres un experto evaluando respuestas. Revisa el texto proporcionado y ofrece feedback constructivo.';
 
-        const systemPrompt = `${contextoEmpresa}\n\n---\n\n${promptBase}`;
+        const LANG_NAMES: Record<string, string> = { es: 'español', pt: 'portugués (Brasil)' };
+        const langName = LANG_NAMES[locale] ?? 'español';
+        const langDirective = `IDIOMA DE RESPUESTA: Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia, independientemente del idioma de las instrucciones.`;
+
+        const systemPrompt = `${contextoEmpresa}\n\n---\n\n${promptBase}\n\n---\n\n${langDirective}`;
 
         // Build user message: text + file content if provided
         let userMessage = respuestaUsuario;
