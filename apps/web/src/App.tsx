@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { EmpresasPage } from './features/organization/EmpresasPage';
 import { IniciativasPage } from './features/organization/IniciativasPage';
@@ -142,14 +142,6 @@ function AiDisclaimerFooter() {
   );
 }
 
-function FloatingLanguageSwitcher() {
-  const location = useLocation();
-  // LoginPage y rutas admin tienen su propio switcher (LoginPage embebido, admin en sidebar).
-  // El floating solo aparece en /runner/* (taller del participante).
-  const isRunner = location.pathname.startsWith('/runner');
-  if (!isRunner) return null;
-  return <LanguageSwitcher variant="floating" />;
-}
 
 function App() {
   const [token, setToken] = React.useState<string | null>(localStorage.getItem('admin_token'));
@@ -171,7 +163,6 @@ function App() {
 
   return (
     <BrowserRouter>
-      <FloatingLanguageSwitcher />
       <AiDisclaimerFooter />
       <Routes>
         {/* Admin Routes (Protected) */}

@@ -3,15 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
-import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
 import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
-
-const PASO_TRANS_FIELDS: TranslationField[] = [
-  { key: 'titulo', label: 'Título' },
-  { key: 'objetivo', label: 'Objetivo' },
-  { key: 'instrucciones', label: 'Instrucciones', multiline: true },
-];
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -54,9 +47,6 @@ export function PlantillaPasosPage() {
   const [preguntaForm, setPreguntaForm] = useState({ ...PREGUNTA_BLANK });
   const [preguntaWasValidated, setPreguntaWasValidated] = useState(false);
   const [preguntaModal, setPreguntaModal] = useState<{ pasoId: string; id: string; enunciado: string } | null>(null);
-
-  // Panel de traducciones inline (solo pasos)
-  const [transOpenPasoId, setTransOpenPasoId] = useState<string | null>(null);
 
   // ── Cargar traducciones ──────────────────────────────────────────────────
   const transInputRef = useRef<HTMLInputElement>(null);
@@ -473,11 +463,6 @@ export function PlantillaPasosPage() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
-                      onClick={() => setTransOpenPasoId(transOpenPasoId === p.id ? null : p.id)}
-                      title="Traducciones del paso">
-                      🌐
-                    </button>
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
                     </button>
@@ -487,16 +472,6 @@ export function PlantillaPasosPage() {
                     </button>
                   </div>
                 </div>
-
-                {transOpenPasoId === p.id && (
-                  <div style={{ padding: '0 1.25rem 0.75rem' }}>
-                    <TranslationPanel
-                      fields={PASO_TRANS_FIELDS}
-                      getUrl={(loc) => `${API_URL}/admin/plantillas/${id}/pasos/${p.id}/translations?locale=${loc}`}
-                      putUrl={(loc) => `${API_URL}/admin/plantillas/${id}/pasos/${p.id}/translations/${loc}`}
-                    />
-                  </div>
-                )}
 
                 {/* Preguntas section */}
                 <div style={{ padding: '1rem 1.25rem' }}>
