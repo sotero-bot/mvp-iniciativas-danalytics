@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 type PlantillaOption = { id: string; nombre: string; _count: { pasos: number } };
 
 export function ActividadesPage() {
+  const { t } = useTranslation(['methodology', 'common']);
   const [list, setList] = useState<any[]>([]);
   const [iniciativas, setIniciativas] = useState<any[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaOption[]>([]);
@@ -48,15 +51,19 @@ export function ActividadesPage() {
   };
 
   const load = async () => {
-    const res = await fetch(`${API_URL}/methodology/actividades`);
-    if (res.ok) setList(await res.json());
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/methodology/actividades`);
+      setList(await res.json());
+    } catch (err) {
+      showToast(translateError(err));
+    }
   };
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/methodology/actividades`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/organization/iniciativas`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/admin/plantillas`).then(r => r.ok ? r.json() : []),
+      fetchWithErrorMapping(`${API_URL}/methodology/actividades`).then(r => r.json()).catch(() => []),
+      fetchWithErrorMapping(`${API_URL}/organization/iniciativas`).then(r => r.json()).catch(() => []),
+      fetchWithErrorMapping(`${API_URL}/admin/plantillas`).then(r => r.json()).catch(() => []),
     ]).then(([acts, inis, plts]) => {
       setList(acts);
       setIniciativas(inis);
@@ -77,26 +84,23 @@ export function ActividadesPage() {
     try {
       const body: any = { nombre: form.nombre, descripcion: form.descripcion, iniciativaId: form.iniciativaId };
       if (form.plantillaId) body.plantillaId = form.plantillaId;
-      const res = await fetch(`${API_URL}/methodology/actividades`, {
+      await fetchWithErrorMapping(`${API_URL}/methodology/actividades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (res.ok) {
-        load();
-        setForm({ nombre: '', descripcion: '', iniciativaId: form.iniciativaId, plantillaId: '' });
-        setWasValidated(false);
-        if (form.plantillaId) {
-          const p = plantillas.find(p => p.id === form.plantillaId);
-          showToast(`Actividad creada con ${p?._count.pasos ?? 0} pasos copiados de "${p?.nombre}"`);
-        } else {
-          showToast('Actividad creada correctamente');
-        }
+      load();
+      setForm({ nombre: '', descripcion: '', iniciativaId: form.iniciativaId, plantillaId: '' });
+      setWasValidated(false);
+      if (form.plantillaId) {
+        const p = plantillas.find(p => p.id === form.plantillaId);
+        showToast(t('methodology:actividades.toast.created_with_pasos', { count: p?._count.pasos ?? 0, nombre: p?.nombre ?? '' }));
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.message || 'Error al crear la actividad');
+        showToast(t('methodology:actividades.toast.created'));
       }
-    } catch { showToast('Error al crear la actividad'); }
+    } catch (err) {
+      showToast(translateError(err) || t('methodology:actividades.toast.create_error'));
+    }
   };
 
   const openEdit = (a: any) => {
@@ -112,24 +116,31 @@ export function ActividadesPage() {
     if (!formEl.checkValidity()) return;
     setSaving(true);
     try {
-      await fetch(`${API_URL}/methodology/actividades/${editModal.id}`, {
+      await fetchWithErrorMapping(`${API_URL}/methodology/actividades/${editModal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: editForm.nombre, descripcion: editForm.descripcion, iniciativaId: editForm.iniciativaId }),
       });
       load();
       setEditModal(null);
-      showToast('Actividad actualizada');
-    } catch { showToast('Error al actualizar'); }
-    finally { setSaving(false); }
+      showToast(t('methodology:actividades.toast.updated'));
+    } catch (err) {
+      showToast(translateError(err) || t('methodology:actividades.toast.update_error'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteModal) return;
-    await fetch(`${API_URL}/methodology/actividades/${deleteModal.id}`, { method: 'DELETE' });
-    setDeleteModal(null);
-    load();
-    showToast('Actividad eliminada');
+    try {
+      await fetchWithErrorMapping(`${API_URL}/methodology/actividades/${deleteModal.id}`, { method: 'DELETE' });
+      setDeleteModal(null);
+      load();
+      showToast(t('methodology:actividades.toast.deleted'));
+    } catch (err) {
+      showToast(translateError(err));
+    }
   };
 
   const plantillaSeleccionada = plantillas.find(p => p.id === form.plantillaId);
@@ -140,8 +151,8 @@ export function ActividadesPage() {
 
       <ConfirmModal
         isOpen={!!deleteModal}
-        title="¿Eliminar Actividad?"
-        message={`Se desactivarán también los pasos y ejecuciones de "${deleteModal?.nombre}".`}
+        title={t('methodology:actividades.delete_modal.title')}
+        message={t('methodology:actividades.delete_modal.message', { nombre: deleteModal?.nombre ?? '' })}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModal(null)}
       />
@@ -150,7 +161,7 @@ export function ActividadesPage() {
         <div className="modal-overlay" onClick={() => setEditModal(null)}>
           <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>Editar Actividad</h3>
+              <h3 style={{ margin: 0 }}>{t('methodology:actividades.edit_modal_title')}</h3>
               <button onClick={() => setEditModal(null)} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
@@ -163,31 +174,31 @@ export function ActividadesPage() {
               noValidate
             >
               <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Iniciativa</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.iniciativa')}</label>
                 <select className="input" required value={editForm.iniciativaId}
                   onChange={e => setEditForm({ ...editForm, iniciativaId: e.target.value })}>
-                  <option value="">Seleccione una iniciativa</option>
+                  <option value="">{t('methodology:actividades.placeholders.select_iniciativa_alt')}</option>
                   {iniciativas.map(ini => (
-                    <option key={ini.id} value={ini.id}>{ini.nombre} ({ini.empresa?.nombre})</option>
+                    <option key={ini.id} value={ini.id}>{t('methodology:actividades.iniciativa_option_with_empresa', { nombre: ini.nombre, empresa: ini.empresa?.nombre ?? '' })}</option>
                   ))}
                 </select>
-                <div className="invalid-feedback">Seleccione una iniciativa.</div>
+                <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
               </div>
               <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.nombre')}</label>
                 <input className="input" required value={editForm.nombre}
                   onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
-                <div className="invalid-feedback">El nombre es necesario.</div>
+                <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required_short')}</div>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>Descripción</label>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.descripcion')}</label>
                 <textarea className="input" rows={4} value={editForm.descripcion}
                   onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} />
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
+                  {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
                 </button>
               </div>
             </form>
@@ -198,19 +209,19 @@ export function ActividadesPage() {
       {/* Page header */}
       <div className="page-header">
         <div>
-          <h1>Actividades</h1>
+          <h1>{t('methodology:actividades.page_title')}</h1>
           <p className="page-description">
-            Paso 3 de 4 — Define los flujos de trabajo paso a paso que los participantes ejecutarán.
+            {t('methodology:actividades.page_description')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
           <Link to="/admin/plantillas" className="btn btn-secondary"
             style={{ textDecoration: 'none', fontSize: '0.8rem' }}>
-            📋 Gestionar plantillas
+            {t('methodology:actividades.manage_plantillas')}
           </Link>
           {list.length > 0 && (
             <Link to="/admin/instancias" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-              Siguiente: Ejecuciones →
+              {t('methodology:actividades.next_ejecuciones')}
             </Link>
           )}
         </div>
@@ -229,7 +240,7 @@ export function ActividadesPage() {
             fontWeight: 600, fontSize: '0.875rem',
             color: 'var(--color-text-main)', whiteSpace: 'nowrap',
           }}>
-            Empresa
+            {t('methodology:actividades.filter.empresa_label')}
           </label>
           <select
             className="input"
@@ -237,18 +248,18 @@ export function ActividadesPage() {
             value={empresaFiltro}
             onChange={e => setEmpresaFiltro(e.target.value)}
           >
-            <option value="">Todas las empresas</option>
+            <option value="">{t('methodology:actividades.filter.all_empresas')}</option>
             {empresas.map(e => (
               <option key={e.id} value={e.id}>{e.nombre}</option>
             ))}
           </select>
           {empresaFiltro ? (
             <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-              {listFiltrada.length} {listFiltrada.length === 1 ? 'actividad' : 'actividades'}
+              {t('methodology:actividades.filter.result', { count: listFiltrada.length })}
             </span>
           ) : (
             <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-              {list.length} en total
+              {t('methodology:actividades.filter.total', { count: list.length })}
             </span>
           )}
         </div>
@@ -259,14 +270,14 @@ export function ActividadesPage() {
         <div className="prereq-banner">
           <span className="prereq-banner-icon">⚠️</span>
           <div className="prereq-banner-body">
-            <p className="prereq-banner-title">Primero necesitas crear una iniciativa</p>
+            <p className="prereq-banner-title">{t('methodology:actividades.prereq_banner.title')}</p>
             <p className="prereq-banner-text">
-              Las actividades pertenecen a una iniciativa. Ve al paso anterior y crea al menos una.
+              {t('methodology:actividades.prereq_banner.text')}
             </p>
           </div>
           <Link to="/admin/iniciativas" className="btn btn-secondary"
             style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
-            Ir a Iniciativas →
+            {t('methodology:actividades.prereq_banner.link')}
           </Link>
         </div>
       )}
@@ -275,9 +286,9 @@ export function ActividadesPage() {
 
         {/* Create form */}
         <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
-          <h3 style={{ margin: '0 0 4px' }}>Nueva Actividad</h3>
+          <h3 style={{ margin: '0 0 4px' }}>{t('methodology:actividades.create_section_title')}</h3>
           <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>
-            Cada actividad contiene pasos con instrucciones y, opcionalmente, asistencia de IA.
+            {t('methodology:actividades.create_section_subtitle')}
           </p>
           <form
             className={wasValidated ? 'was-validated' : ''}
@@ -286,28 +297,28 @@ export function ActividadesPage() {
             noValidate
           >
             <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Iniciativa</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.iniciativa')}</label>
               <select className="input" required value={form.iniciativaId}
                 onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
                 disabled={iniciativasFiltradas.length === 0}>
-                <option value="">{iniciativasFiltradas.length === 0 ? 'Sin iniciativas disponibles' : 'Seleccione una Iniciativa'}</option>
+                <option value="">{iniciativasFiltradas.length === 0 ? t('methodology:actividades.placeholders.no_iniciativas') : t('methodology:actividades.placeholders.select_iniciativa')}</option>
                 {iniciativasFiltradas.map(ini => (
                   <option key={ini.id} value={ini.id}>{ini.nombre}{!empresaFiltro && ini.empresa ? ` (${ini.empresa.nombre})` : ''}</option>
                 ))}
               </select>
-              <div className="invalid-feedback">Seleccione una iniciativa.</div>
+              <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
             </div>
 
             {/* Selector de plantilla */}
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Plantilla <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>
+              <label style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.plantilla')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></label>
               {plantillas.length === 0 ? (
                 <>
                   <select className="input" disabled>
-                    <option>No hay plantillas creadas aún</option>
+                    <option>{t('methodology:actividades.placeholders.no_plantillas')}</option>
                   </select>
                   <div style={{ marginTop: 4, fontSize: '0.78rem' }}>
-                    <Link to="/admin/plantillas" style={{ color: 'var(--color-primary)' }}>Crear plantillas →</Link>
+                    <Link to="/admin/plantillas" style={{ color: 'var(--color-primary)' }}>{t('methodology:actividades.plantilla_create_link')}</Link>
                   </div>
                 </>
               ) : (
@@ -315,19 +326,23 @@ export function ActividadesPage() {
                   <select className="input" value={form.plantillaId}
                     onChange={e => setForm({ ...form, plantillaId: e.target.value })}
                     disabled={iniciativasFiltradas.length === 0}>
-                    <option value="">Sin plantilla — crear desde cero</option>
+                    <option value="">{t('methodology:actividades.placeholders.no_plantilla')}</option>
                     {plantillas.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} ({p._count.pasos} pasos)</option>
+                      <option key={p.id} value={p.id}>{t('methodology:actividades.plantilla_pasos_option', { nombre: p.nombre, count: p._count.pasos })}</option>
                     ))}
                   </select>
                   {plantillaSeleccionada && (
                     plantillaSeleccionada._count.pasos > 0 ? (
                       <div style={{ marginTop: 6, padding: '8px 12px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: '#166534' }}>
-                        ✓ Se copiarán <strong>{plantillaSeleccionada._count.pasos} pasos</strong> automáticamente al guardar
+                        <Trans
+                          i18nKey="methodology:actividades.plantilla_info_with_pasos"
+                          values={{ count: plantillaSeleccionada._count.pasos }}
+                          components={[<strong />]}
+                        />
                       </div>
                     ) : (
                       <div style={{ marginTop: 6, padding: '8px 12px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: '#92400E' }}>
-                        ⚠️ Esta plantilla no tiene pasos. Podrás agregarlos después de crear la actividad.
+                        {t('methodology:actividades.plantilla_info_no_pasos')}
                       </div>
                     )
                   )}
@@ -336,20 +351,20 @@ export function ActividadesPage() {
             </div>
 
             <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>Nombre</label>
-              <input className="input" required placeholder="Ej: Análisis de Brechas"
+              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.nombre')}</label>
+              <input className="input" required placeholder={t('methodology:actividades.placeholders.nombre')}
                 value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
                 disabled={iniciativasFiltradas.length === 0} />
-              <div className="invalid-feedback">Ingrese el nombre de la actividad.</div>
+              <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required')}</div>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>Descripción <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span></label>
-              <textarea className="input" placeholder="¿Qué se espera lograr en esta actividad?"
+              <label style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></label>
+              <textarea className="input" placeholder={t('methodology:actividades.placeholders.descripcion')}
                 value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
                 rows={4} disabled={iniciativasFiltradas.length === 0} />
             </div>
             <button type="submit" className="btn btn-primary" disabled={iniciativasFiltradas.length === 0}>
-              Guardar Actividad
+              {t('methodology:actividades.create_submit')}
             </button>
           </form>
         </div>
@@ -361,18 +376,18 @@ export function ActividadesPage() {
               <div className="empty-state">
                 <div className="empty-state-icon">⚡</div>
                 <p className="empty-state-title">
-                  {empresaFiltro ? 'No hay actividades para esta empresa' : 'Aún no hay actividades'}
+                  {empresaFiltro ? t('methodology:actividades.empty.title_filter') : t('methodology:actividades.empty.title_default')}
                 </p>
                 <p className="empty-state-desc">
                   {iniciativas.length === 0
-                    ? 'Necesitas una iniciativa antes de crear actividades.'
+                    ? t('methodology:actividades.empty.no_iniciativas')
                     : empresaFiltro
-                      ? 'Crea la primera actividad para esta empresa usando el formulario.'
-                      : 'Crea tu primera actividad usando el formulario de la izquierda. Luego podrás agregar pasos e instrucciones.'}
+                      ? t('methodology:actividades.empty.filter_default')
+                      : t('methodology:actividades.empty.default')}
                 </p>
                 {iniciativas.length === 0 && (
                   <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', marginTop: 4, fontSize: '0.8125rem' }}>
-                    Ir a Iniciativas →
+                    {t('methodology:actividades.empty.link_iniciativas')}
                   </Link>
                 )}
               </div>
@@ -391,7 +406,7 @@ export function ActividadesPage() {
                       </span>
                       {a.plantillaOrigenId && (
                         <span className="status-badge" style={{ fontSize: '0.7rem', background: '#EEF2FF', color: '#4338CA', border: '1px solid #C7D2FE' }}>
-                          📋 Desde plantilla
+                          {t('methodology:actividades.from_template_badge')}
                         </span>
                       )}
                     </div>
@@ -405,14 +420,14 @@ export function ActividadesPage() {
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.82rem' }}
                       onClick={() => openEdit(a)}>
-                      Editar
+                      {t('common:buttons.edit')}
                     </button>
                     <Link to={`/admin/actividades/${a.id}/pasos`} className="btn btn-primary"
                       style={{ padding: '5px 12px', fontSize: '0.82rem', textDecoration: 'none' }}>
-                      ⚙️ Configurar pasos
+                      {t('methodology:actividades.configure_pasos')}
                     </Link>
                     <button className="btn btn-danger" style={{ padding: '5px 8px', fontSize: '0.875rem' }}
-                      onClick={() => setDeleteModal({ id: a.id, nombre: a.nombre })} title="Eliminar">
+                      onClick={() => setDeleteModal({ id: a.id, nombre: a.nombre })} title={t('common:buttons.delete')}>
                       🗑️
                     </button>
                   </div>
@@ -435,11 +450,11 @@ export function ActividadesPage() {
         }}>
           <span style={{ fontSize: '1rem' }}>💡</span>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
-            <strong>Siguiente paso:</strong> Configura los pasos de cada actividad, luego ve a Ejecuciones para generar enlaces.
+            <strong>{t('methodology:actividades.next_step.label')}</strong> {t('methodology:actividades.next_step.text')}
           </p>
           <Link to="/admin/instancias" className="btn btn-secondary"
             style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
-            Ir a Ejecuciones →
+            {t('methodology:actividades.next_step.link')}
           </Link>
         </div>
       )}

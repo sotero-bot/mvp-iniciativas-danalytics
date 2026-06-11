@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -54,6 +56,7 @@ function LogoUploadField({
   current?: string | null;
   onChange: (base64: string | null) => void;
 }) {
+  const { t } = useTranslation(['organization']);
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(current ?? null);
 
@@ -94,7 +97,7 @@ function LogoUploadField({
           borderRadius: 6, cursor: 'pointer', fontWeight: 500,
           border: '1px solid #BFDBFE', width: 'fit-content',
         }}>
-          {preview ? 'Cambiar logo' : 'Subir logo'}
+          {preview ? t('organization:empresas.logo_field.change_logo') : t('organization:empresas.logo_field.upload_logo')}
           <input
             ref={inputRef}
             type="file"
@@ -112,16 +115,17 @@ function LogoUploadField({
               fontSize: '0.75rem', color: '#EF4444', textAlign: 'left', padding: 0,
             }}
           >
-            ✕ Quitar logo
+            {t('organization:empresas.logo_field.remove_logo')}
           </button>
         )}
-        <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>PNG, JPG, SVG — recomendado cuadrado</span>
+        <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{t('organization:empresas.logo_field.format_hint')}</span>
       </div>
     </div>
   );
 }
 
 export function EmpresasPage() {
+  const { t } = useTranslation(['organization', 'common']);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [nombre, setNombre] = useState('');
   const [sector, setSector] = useState('');
@@ -149,8 +153,12 @@ export function EmpresasPage() {
   };
 
   const load = async () => {
-    const res = await fetch(`${API_URL}/organization/empresas`);
-    setEmpresas(await res.json());
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`);
+      setEmpresas(await res.json());
+    } catch (err) {
+      showToast(translateError(err));
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -159,33 +167,41 @@ export function EmpresasPage() {
     if (!nombre) return;
     const body: any = { nombre, sector, tipoOrganizacion };
     if (logoBase64 !== null) body.logoUrl = logoBase64;
-    const res = await fetch(`${API_URL}/organization/empresas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (createPdfFile) {
-      const created = await res.json();
-      const fd = new FormData();
-      fd.append('archivo', createPdfFile);
-      await fetch(`${API_URL}/organization/empresas/${created.id}/contexto-pdf`, { method: 'POST', body: fd });
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (createPdfFile) {
+        const created = await res.json();
+        const fd = new FormData();
+        fd.append('archivo', createPdfFile);
+        await fetchWithErrorMapping(`${API_URL}/organization/empresas/${created.id}/contexto-pdf`, { method: 'POST', body: fd });
+      }
+      setNombre('');
+      setSector('');
+      setTipoOrganizacion('');
+      setLogoBase64(null);
+      setCreatePdfFile(null);
+      setWasValidated(false);
+      load();
+      showToast(t('organization:empresas.toast.created'));
+    } catch (err) {
+      showToast(translateError(err));
     }
-    setNombre('');
-    setSector('');
-    setTipoOrganizacion('');
-    setLogoBase64(null);
-    setCreatePdfFile(null);
-    setWasValidated(false);
-    load();
-    showToast('Empresa creada correctamente');
   };
 
   const handleDelete = async () => {
     if (!deleteModal) return;
-    await fetch(`${API_URL}/organization/empresas/${deleteModal.id}`, { method: 'DELETE' });
-    setDeleteModal(null);
-    load();
-    showToast('Empresa eliminada');
+    try {
+      await fetchWithErrorMapping(`${API_URL}/organization/empresas/${deleteModal.id}`, { method: 'DELETE' });
+      setDeleteModal(null);
+      load();
+      showToast(t('organization:empresas.toast.deleted'));
+    } catch (err) {
+      showToast(translateError(err));
+    }
   };
 
   const openEdit = (emp: Empresa) => {
@@ -206,24 +222,29 @@ export function EmpresasPage() {
     if (!form.checkValidity()) return;
     if (!editModal) return;
     setSaving(true);
-    const body: any = { nombre: editNombre, sector: editSector, tipoOrganizacion: editTipoOrganizacion };
-    if (editLogoBase64 !== undefined) body.logoUrl = editLogoBase64;
-    await fetch(`${API_URL}/organization/empresas/${editModal.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (editPdfRemove) {
-      await fetch(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'DELETE' });
-    } else if (editPdfFile) {
-      const fd = new FormData();
-      fd.append('archivo', editPdfFile);
-      await fetch(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'POST', body: fd });
+    try {
+      const body: any = { nombre: editNombre, sector: editSector, tipoOrganizacion: editTipoOrganizacion };
+      if (editLogoBase64 !== undefined) body.logoUrl = editLogoBase64;
+      await fetchWithErrorMapping(`${API_URL}/organization/empresas/${editModal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (editPdfRemove) {
+        await fetchWithErrorMapping(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'DELETE' });
+      } else if (editPdfFile) {
+        const fd = new FormData();
+        fd.append('archivo', editPdfFile);
+        await fetchWithErrorMapping(`${API_URL}/organization/empresas/${editModal.id}/contexto-pdf`, { method: 'POST', body: fd });
+      }
+      setEditModal(null);
+      load();
+      showToast(t('organization:empresas.toast.updated'));
+    } catch (err) {
+      showToast(translateError(err));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setEditModal(null);
-    load();
-    showToast('Empresa actualizada');
   };
 
   return (
@@ -232,8 +253,8 @@ export function EmpresasPage() {
 
       <ConfirmModal
         isOpen={!!deleteModal}
-        title="¿Eliminar Empresa?"
-        message={`Se desactivarán también todas las iniciativas, actividades y ejecuciones de "${deleteModal?.nombre}".`}
+        title={t('organization:empresas.delete_modal.title')}
+        message={t('organization:empresas.delete_modal.message', { nombre: deleteModal?.nombre ?? '' })}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModal(null)}
       />
@@ -242,7 +263,7 @@ export function EmpresasPage() {
         <div className="modal-overlay" onClick={() => setEditModal(null)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>Editar Empresa</h3>
+              <h3 style={{ margin: 0 }}>{t('organization:empresas.edit_modal_title')}</h3>
               <button onClick={() => setEditModal(null)} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
@@ -255,34 +276,34 @@ export function EmpresasPage() {
               noValidate
             >
               <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Nombre</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.nombre')}</label>
                 <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
-                <div className="invalid-feedback">El nombre es necesario.</div>
+                <div className="invalid-feedback">{t('organization:empresas.validation.nombre_required_short')}</div>
               </div>
               <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Sector</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.sector')}</label>
                 <input
                   className="input"
                   required
                   value={editSector}
                   onChange={e => setEditSector(e.target.value)}
-                  placeholder="Ej: Manufactura, Salud, Financiero, Retail..."
+                  placeholder={t('organization:empresas.placeholders.sector')}
                 />
-                <div className="invalid-feedback">El sector es requerido.</div>
+                <div className="invalid-feedback">{t('organization:empresas.validation.sector_required')}</div>
               </div>
               <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Tipo de organización</label>
+                <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.tipo_organizacion')}</label>
                 <input
                   className="input"
                   required
                   value={editTipoOrganizacion}
                   onChange={e => setEditTipoOrganizacion(e.target.value)}
-                  placeholder="Ej: Empresa privada, Entidad pública, ONG, Cooperativa..."
+                  placeholder={t('organization:empresas.placeholders.tipo_organizacion')}
                 />
-                <div className="invalid-feedback">El tipo de organización es requerido.</div>
+                <div className="invalid-feedback">{t('organization:empresas.validation.tipo_organizacion_required')}</div>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.logo')}</label>
                 <LogoUploadField
                   current={editLogoBase64 !== undefined ? editLogoBase64 : editModal.logoUrl}
                   onChange={setEditLogoBase64}
@@ -290,19 +311,19 @@ export function EmpresasPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>
-                  PDF de contexto <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span>
+                  {t('organization:empresas.fields.contexto_pdf')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.pdf_field.optional')}</span>
                 </label>
                 {editPdfRemove ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: '0.8rem', color: '#EF4444' }}>Se eliminará el PDF al guardar.</span>
+                    <span style={{ fontSize: '0.8rem', color: '#EF4444' }}>{t('organization:empresas.pdf_field.will_delete_warning')}</span>
                     <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#64748B', padding: 0 }}
-                      onClick={() => setEditPdfRemove(false)}>Deshacer</button>
+                      onClick={() => setEditPdfRemove(false)}>{t('organization:empresas.pdf_field.undo')}</button>
                   </div>
                 ) : editPdfFile ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: '0.8rem', color: '#0F172A' }}>📄 {editPdfFile.name}</span>
                     <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
-                      onClick={() => setEditPdfFile(null)}>✕ Quitar</button>
+                      onClick={() => setEditPdfFile(null)}>{t('organization:empresas.pdf_field.remove')}</button>
                   </div>
                 ) : editModal.contextoPdfNombre ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -318,12 +339,12 @@ export function EmpresasPage() {
                       fontSize: '0.78rem', background: '#EFF6FF', color: '#2563EB',
                       borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE',
                     }}>
-                      Reemplazar
+                      {t('organization:empresas.pdf_field.replace')}
                       <input type="file" accept=".pdf" style={{ display: 'none' }}
                         onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
                     </label>
                     <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
-                      onClick={() => setEditPdfRemove(true)}>✕ Quitar PDF</button>
+                      onClick={() => setEditPdfRemove(true)}>{t('organization:empresas.pdf_field.remove_pdf')}</button>
                   </div>
                 ) : (
                   <label style={{
@@ -331,19 +352,19 @@ export function EmpresasPage() {
                     fontSize: '0.8rem', background: '#EFF6FF', color: '#2563EB',
                     borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
                   }}>
-                    Subir PDF de contexto
+                    {t('organization:empresas.pdf_field.upload_pdf')}
                     <input type="file" accept=".pdf" style={{ display: 'none' }}
                       onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
                   </label>
                 )}
                 <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
-                  El texto del PDF se inyectará en todos los prompts de IA de esta empresa.
+                  {t('organization:empresas.pdf_field.context_hint')}
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
+                  {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
                 </button>
               </div>
             </form>
@@ -354,22 +375,22 @@ export function EmpresasPage() {
       {/* Page header */}
       <div className="page-header">
         <div>
-          <h1>Empresas</h1>
+          <h1>{t('organization:empresas.page_title')}</h1>
           <p className="page-description">
-            Paso 1 de 4 — Registra las organizaciones cliente. Cada empresa agrupa sus propias iniciativas y actividades.
+            {t('organization:empresas.page_description')}
           </p>
         </div>
         {empresas.length > 0 && (
           <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
-            Siguiente: Iniciativas →
+            {t('organization:empresas.next_iniciativas')}
           </Link>
         )}
       </div>
 
       {/* Create form */}
       <div className="card mb-4" style={{ maxWidth: '560px' }}>
-        <h3 style={{ margin: '0 0 4px' }}>Nueva Empresa</h3>
-        <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>Ingresa el nombre de la organización que usará la plataforma.</p>
+        <h3 style={{ margin: '0 0 4px' }}>{t('organization:empresas.create_section_title')}</h3>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>{t('organization:empresas.create_section_subtitle')}</p>
         <form
           className={wasValidated ? 'was-validated' : ''}
           onSubmit={(e) => {
@@ -387,43 +408,43 @@ export function EmpresasPage() {
               required
               value={nombre}
               onChange={e => setNombre(e.target.value)}
-              placeholder="Ej: Empresa ABC S.A."
+              placeholder={t('organization:empresas.placeholders.nombre')}
             />
-            <div className="invalid-feedback">El nombre de la empresa es requerido.</div>
+            <div className="invalid-feedback">{t('organization:empresas.validation.nombre_required')}</div>
           </div>
           <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Sector</label>
+            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.sector')}</label>
             <input
               className="input"
               required
               value={sector}
               onChange={e => setSector(e.target.value)}
-              placeholder="Ej: Manufactura, Salud, Financiero, Retail..."
+              placeholder={t('organization:empresas.placeholders.sector')}
             />
-            <div className="invalid-feedback">El sector es requerido.</div>
+            <div className="invalid-feedback">{t('organization:empresas.validation.sector_required')}</div>
           </div>
           <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>Tipo de organización</label>
+            <label className="required-label" style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.tipo_organizacion')}</label>
             <input
               className="input"
               required
               value={tipoOrganizacion}
               onChange={e => setTipoOrganizacion(e.target.value)}
-              placeholder="Ej: Empresa privada, Entidad pública, ONG, Cooperativa..."
+              placeholder={t('organization:empresas.placeholders.tipo_organizacion')}
             />
-            <div className="invalid-feedback">El tipo de organización es requerido.</div>
+            <div className="invalid-feedback">{t('organization:empresas.validation.tipo_organizacion_required')}</div>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>Logo <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span></label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.logo')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.logo_field.optional')}</span></label>
             <LogoUploadField current={logoBase64} onChange={setLogoBase64} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>PDF de contexto <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</span></label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:empresas.fields.contexto_pdf')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.pdf_field.optional')}</span></label>
             {createPdfFile ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: '0.8rem', color: '#0F172A' }}>📄 {createPdfFile.name}</span>
                 <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
-                  onClick={() => setCreatePdfFile(null)}>✕ Quitar</button>
+                  onClick={() => setCreatePdfFile(null)}>{t('organization:empresas.pdf_field.remove')}</button>
               </div>
             ) : (
               <label style={{
@@ -431,17 +452,17 @@ export function EmpresasPage() {
                 fontSize: '0.8rem', background: '#EFF6FF', color: '#2563EB',
                 borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
               }}>
-                Subir PDF de contexto
+                {t('organization:empresas.pdf_field.upload_pdf')}
                 <input type="file" accept=".pdf" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) setCreatePdfFile(f); }} />
               </label>
             )}
             <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
-              El texto del PDF se inyectará en todos los prompts de IA de esta empresa.
+              {t('organization:empresas.pdf_field.context_hint')}
             </p>
           </div>
           <div>
-            <button type="submit" className="btn btn-primary">Crear empresa</button>
+            <button type="submit" className="btn btn-primary">{t('organization:empresas.create_submit')}</button>
           </div>
         </form>
       </div>
@@ -451,9 +472,9 @@ export function EmpresasPage() {
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="empty-state">
             <div className="empty-state-icon">🏢</div>
-            <p className="empty-state-title">Aún no hay empresas registradas</p>
+            <p className="empty-state-title">{t('organization:empresas.empty.title')}</p>
             <p className="empty-state-desc">
-              Las empresas son el punto de partida del sistema. Crea la primera para comenzar a configurar iniciativas y actividades.
+              {t('organization:empresas.empty.description')}
             </p>
           </div>
         </div>
@@ -462,10 +483,10 @@ export function EmpresasPage() {
           <table cellPadding={0} cellSpacing={0}>
             <thead>
               <tr>
-                <th>Empresa</th>
-                <th>Contexto PDF</th>
-                <th>Creada</th>
-                <th style={{ textAlign: 'right' }}>Acciones</th>
+                <th>{t('organization:empresas.table.empresa')}</th>
+                <th>{t('organization:empresas.table.contexto_pdf')}</th>
+                <th>{t('organization:empresas.table.created')}</th>
+                <th style={{ textAlign: 'right' }}>{t('organization:empresas.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -485,7 +506,7 @@ export function EmpresasPage() {
                         padding: '2px 9px', borderRadius: 20,
                         background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0',
                       }} title={emp.contextoPdfNombre}>
-                        📄 Subido
+                        {t('organization:empresas.table.pdf_uploaded')}
                       </span>
                     ) : (
                       <span style={{
@@ -494,7 +515,7 @@ export function EmpresasPage() {
                         padding: '2px 9px', borderRadius: 20,
                         background: '#F1F5F9', color: '#94A3B8', border: '1px solid #E2E8F0',
                       }}>
-                        Sin PDF
+                        {t('organization:empresas.table.pdf_missing')}
                       </span>
                     )}
                   </td>
@@ -508,13 +529,13 @@ export function EmpresasPage() {
                         style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                         onClick={() => openEdit(emp)}
                       >
-                        Editar
+                        {t('common:buttons.edit')}
                       </button>
                       <button
                         className="btn btn-danger"
                         style={{ padding: '4px 8px', fontSize: '0.875rem' }}
                         onClick={() => setDeleteModal({ id: emp.id, nombre: emp.nombre })}
-                        title="Eliminar"
+                        title={t('common:buttons.delete')}
                       >
                         🗑️
                       </button>
@@ -539,11 +560,11 @@ export function EmpresasPage() {
         }}>
           <span style={{ fontSize: '1rem' }}>💡</span>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
-            <strong>Siguiente paso:</strong> Ahora puedes crear Iniciativas que agrupen las actividades de cada empresa.
+            <strong>{t('organization:empresas.next_step.label')}</strong> {t('organization:empresas.next_step.text')}
           </p>
           <Link to="/admin/iniciativas" className="btn btn-secondary"
             style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
-            Ir a Iniciativas →
+            {t('organization:empresas.next_step.link')}
           </Link>
         </div>
       )}

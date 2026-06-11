@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { PrismaService } from '../../../prisma.service';
 import { extractTextFromFile } from '../../../shared/utils/extractTextFromFile';
+import { AppError } from '../../../shared/errors/AppError';
 
 @Controller('organization/empresas')
 export class EmpresasController {
@@ -71,12 +72,12 @@ export class EmpresasController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File
   ) {
-    if (!file) throw new BadRequestException('Archivo requerido');
+    if (!file) throw new AppError('ARCHIVO_REQUIRED');
 
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext !== '.pdf') {
       try { fs.unlinkSync(file.path); } catch { /* ignore */ }
-      throw new BadRequestException('Solo se admiten archivos PDF');
+      throw new AppError('ARCHIVO_INVALID', { message: 'Solo se admiten archivos PDF' });
     }
 
     try {

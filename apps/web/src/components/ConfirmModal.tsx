@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
     isOpen: boolean;
     title: string;
     message: string;
     confirmLabel?: string;
+    cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -13,11 +15,16 @@ export function ConfirmModal({
     isOpen,
     title,
     message,
-    confirmLabel = 'Eliminar',
+    confirmLabel,
+    cancelLabel,
     onConfirm,
     onCancel
 }: ConfirmModalProps) {
+    const { t } = useTranslation('common');
     if (!isOpen) return null;
+
+    const resolvedConfirm = confirmLabel ?? t('buttons.delete');
+    const resolvedCancel = cancelLabel ?? t('buttons.cancel');
 
     return (
         <div
@@ -57,7 +64,7 @@ export function ConfirmModal({
                         style={{ flex: 1, maxWidth: 160 }}
                         onClick={onCancel}
                     >
-                        Cancelar
+                        {resolvedCancel}
                     </button>
                     <button
                         className="btn"
@@ -68,7 +75,7 @@ export function ConfirmModal({
                         }}
                         onClick={onConfirm}
                     >
-                        {confirmLabel}
+                        {resolvedConfirm}
                     </button>
                 </div>
             </div>

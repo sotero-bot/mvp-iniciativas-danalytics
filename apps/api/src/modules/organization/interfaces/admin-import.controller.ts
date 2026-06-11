@@ -1,6 +1,7 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
 import { randomUUID } from 'crypto';
+import { AppError } from '../../../shared/errors/AppError';
 
 interface PreguntaInput {
   orden?: number;
@@ -53,17 +54,17 @@ export class AdminImportController {
   async importData(@Body() body: ImportBody) {
     console.log('[import] body recibido:', JSON.stringify(body?.iniciativas?.[0]?.actividades?.[0], null, 2));
     if (!body.empresaId) {
-      throw new BadRequestException('Falta el campo "empresaId"');
+      throw new AppError('VALIDATION_ERROR', { message: 'Falta el campo "empresaId"' });
     }
     if (!Array.isArray(body.iniciativas) || body.iniciativas.length === 0) {
-      throw new BadRequestException('El JSON debe contener al menos una iniciativa');
+      throw new AppError('VALIDATION_ERROR', { message: 'El JSON debe contener al menos una iniciativa' });
     }
 
     const empresa = await this.prisma.empresa.findUnique({
       where: { id: body.empresaId, activo: true },
     });
     if (!empresa) {
-      throw new BadRequestException('Empresa no encontrada');
+      throw new AppError('EMPRESA_NOT_FOUND');
     }
 
     const result = {

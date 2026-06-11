@@ -1,0 +1,94 @@
+export type AppErrorCode =
+  | 'UNKNOWN'
+  | 'NETWORK_ERROR'
+  | 'AUTH_INVALID_CREDENTIALS'
+  | 'AUTH_TOKEN_MISSING'
+  | 'AUTH_TOKEN_INVALID'
+  | 'FORBIDDEN'
+  | 'VALIDATION_ERROR'
+  | 'EMPRESA_NOT_FOUND'
+  | 'EMPRESA_DUPLICATE'
+  | 'INICIATIVA_NOT_FOUND'
+  | 'PLANTILLA_NOT_FOUND'
+  | 'ACTIVIDAD_NOT_FOUND'
+  | 'ACTIVIDAD_INVALID_TYPE'
+  | 'PASO_NOT_FOUND'
+  | 'PREGUNTA_NOT_FOUND'
+  | 'INSTANCIA_NOT_FOUND'
+  | 'INSTANCIA_NOT_STARTED'
+  | 'INSTANCIA_FINISHED'
+  | 'ENLACE_NOT_FOUND'
+  | 'USUARIO_NOT_FOUND'
+  | 'USUARIO_DUPLICATE'
+  | 'ARCHIVO_REQUIRED'
+  | 'ARCHIVO_INVALID'
+  | 'S3_NOT_CONFIGURED'
+  | 'S3_UPLOAD_FAILED'
+  | 'S3_DOWNLOAD_FAILED'
+  | 'IA_REQUEST_FAILED'
+  | 'IA_NOT_ENABLED'
+  | 'CANVAS_GENERATION_FAILED'
+  | 'PDF_GENERATION_FAILED'
+  | 'EXCEL_GENERATION_FAILED'
+  | 'IMPORT_INVALID_JSON'
+  | 'INVALID_INPUT';
+
+const DEFAULT_STATUS: Record<AppErrorCode, number> = {
+  UNKNOWN: 500,
+  NETWORK_ERROR: 503,
+  AUTH_INVALID_CREDENTIALS: 401,
+  AUTH_TOKEN_MISSING: 401,
+  AUTH_TOKEN_INVALID: 401,
+  FORBIDDEN: 403,
+  VALIDATION_ERROR: 400,
+  EMPRESA_NOT_FOUND: 404,
+  EMPRESA_DUPLICATE: 409,
+  INICIATIVA_NOT_FOUND: 404,
+  PLANTILLA_NOT_FOUND: 404,
+  ACTIVIDAD_NOT_FOUND: 404,
+  ACTIVIDAD_INVALID_TYPE: 400,
+  PASO_NOT_FOUND: 404,
+  PREGUNTA_NOT_FOUND: 404,
+  INSTANCIA_NOT_FOUND: 404,
+  INSTANCIA_NOT_STARTED: 409,
+  INSTANCIA_FINISHED: 409,
+  ENLACE_NOT_FOUND: 404,
+  USUARIO_NOT_FOUND: 404,
+  USUARIO_DUPLICATE: 409,
+  ARCHIVO_REQUIRED: 400,
+  ARCHIVO_INVALID: 400,
+  S3_NOT_CONFIGURED: 503,
+  S3_UPLOAD_FAILED: 500,
+  S3_DOWNLOAD_FAILED: 500,
+  IA_REQUEST_FAILED: 502,
+  IA_NOT_ENABLED: 400,
+  CANVAS_GENERATION_FAILED: 500,
+  PDF_GENERATION_FAILED: 500,
+  EXCEL_GENERATION_FAILED: 500,
+  IMPORT_INVALID_JSON: 400,
+  INVALID_INPUT: 400,
+};
+
+export interface AppErrorOptions {
+  message?: string;
+  details?: unknown;
+  statusCode?: number;
+  cause?: unknown;
+}
+
+export class AppError extends Error {
+  public readonly code: AppErrorCode;
+  public readonly statusCode: number;
+  public readonly details?: unknown;
+
+  constructor(code: AppErrorCode, options: AppErrorOptions = {}) {
+    super(options.message ?? code);
+    this.name = 'AppError';
+    this.code = code;
+    this.statusCode = options.statusCode ?? DEFAULT_STATUS[code] ?? 500;
+    this.details = options.details;
+    if (options.cause !== undefined) {
+      (this as { cause?: unknown }).cause = options.cause;
+    }
+  }
+}

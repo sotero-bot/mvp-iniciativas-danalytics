@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Toast } from '../../components/Toast';
 import { buildResumenHtml } from './buildResumenHtml';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -81,6 +83,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
   nombreEmpresa?: string;
   logoEmpresa?: string;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -98,7 +101,7 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
       />
 
       <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
-        Decisión IA
+        {t('app_name')}
       </span>
 
       {(nombreEmpresa || nombreActividad) ? (
@@ -273,6 +276,7 @@ function interpolarPrompt(
 }
 
 export function RunnerPage() {
+  const { t, i18n } = useTranslation(['execution', 'common']);
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<RunnerData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -334,7 +338,7 @@ export function RunnerPage() {
 
   const loadData = async () => {
     try {
-      const res = await fetch(`${API_URL}/execution/${token}`);
+      const res = await fetch(`${API_URL}/execution/${token}?locale=${i18n.language}`);
       if (!res.ok) throw new Error('No se pudo cargar la actividad');
       const json = await res.json();
       await prefetchTemplates(json.pasos);
@@ -400,7 +404,7 @@ export function RunnerPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [token]);
+  useEffect(() => { loadData(); }, [token, i18n.language]);
 
   useEffect(() => {
     if (!data) return;
@@ -471,7 +475,7 @@ export function RunnerPage() {
       }
       await loadData();
     } catch (err: any) {
-      alert('Algo salió mal al iniciar. Intentá de nuevo.');
+      alert(t('execution:runner.identification.start_failed_generic'));
     } finally {
       setLoading(false);
     }
@@ -516,12 +520,12 @@ export function RunnerPage() {
       }
       await loadData();
       if (result.reutilizado) {
-        setToast({ message: `Bienvenido de vuelta, ${result.nombre}`, variant: 'info' });
+        setToast({ message: t('execution:runner.identification.welcome_back', { nombre: result.nombre }), variant: 'info' });
       } else {
-        setToast({ message: 'Registro exitoso', variant: 'success' });
+        setToast({ message: t('execution:runner.identification.register_success'), variant: 'success' });
       }
     } catch (err: any) {
-      alert(err.message);
+      alert(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -544,7 +548,7 @@ export function RunnerPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert((err as any).message || 'No se pudo generar la plantilla. Espera a que el asistente IA finalice.');
+        alert((err as any)?.message || t('execution:runner.errors.download_template_failed'));
         return;
       }
       const blob = await res.blob();
@@ -555,7 +559,7 @@ export function RunnerPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Error al descargar la plantilla. Intentá de nuevo.');
+      alert(t('execution:runner.errors.download_template_retry'));
     } finally {
       setDescargandoExcel(false);
     }
@@ -570,12 +574,12 @@ export function RunnerPage() {
       const tieneArchivo = !!archivosRespuesta[q.id];
       if (!tieneTexto && !tieneArchivo) {
         if (q.usarIa && !respuestasIa[q.id]?.trim()) {
-          return alert(`Consultá al asistente para la pregunta "${q.enunciado.slice(0, 60)}..." antes de continuar.`);
+          return alert(t('execution:runner.errors.consult_ia_first', { enunciado: q.enunciado.slice(0, 60) }));
         }
         if (q.soloArchivo || q.permitirArchivo) {
-          return alert(`Adjuntá el archivo requerido para continuar.`);
+          return alert(t('execution:runner.errors.attach_file_required'));
         }
-        return alert(`Respondé todas las preguntas antes de continuar.`);
+        return alert(t('execution:runner.errors.answer_all'));
       }
     }
 
@@ -609,7 +613,7 @@ export function RunnerPage() {
       }
       if (!responderRes.ok) {
         setLoading(false);
-        return alert('Error al guardar la respuesta. Por favor intentá de nuevo.');
+        return alert(t('execution:runner.errors.save_failed'));
       }
       const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
       const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
@@ -647,7 +651,7 @@ export function RunnerPage() {
   // el backend lea usarIa/promptIa de PreguntaActividad en lugar de PasoActividad.
   const handleEnviarIA = async (paso: Paso, pregunta: Pregunta) => {
     if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim()) {
-      return alert('Escribí tu respuesta para consultar al asistente.');
+      return alert(t('execution:runner.errors.ia_write_first'));
     }
     setEnviandoIa(prev => ({ ...prev, [pregunta.id]: true }));
     setRespuestasIa(prev => ({ ...prev, [pregunta.id]: '' }));
@@ -667,7 +671,7 @@ export function RunnerPage() {
       setRespuestasIa(prev => ({ ...prev, [pregunta.id]: json.respuestaIa }));
       iaEditorRefs.current[pregunta.id]?.replaceContent(json.respuestaIa);
     } catch {
-      alert('No pudimos conectar con el asistente. Intentá de nuevo.');
+      alert(t('execution:runner.errors.ia_connect_failed'));
     } finally {
       setEnviandoIa(prev => ({ ...prev, [pregunta.id]: false }));
     }
@@ -713,7 +717,7 @@ export function RunnerPage() {
       <RunnerHeader />
       <div className="runner-center" style={{ paddingTop: 52 }}>
         <div style={{ width: 20, height: 20, border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        Cargando actividad...
+        {t('execution:runner.loading_activity')}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </>
@@ -752,7 +756,7 @@ export function RunnerPage() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{data.pasos.length}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>pasos</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{t('execution:runner.stats.pasos')}</div>
                 </div>
               </div>
             </div>
@@ -763,14 +767,14 @@ export function RunnerPage() {
                 onSubmit={onSubmitIdentificacion}
                 noValidate
               >
-                <h3 style={{ marginBottom: 4 }}>Indícanos quién eres</h3>
+                <h3 style={{ marginBottom: 4 }}>{t('execution:runner.identification.header_title')}</h3>
                 <p style={{ marginBottom: 24, fontSize: '0.875rem' }}>
-                  Estos datos quedarán vinculados a tu participación en la actividad.
+                  {t('execution:runner.identification.header_subtitle')}
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Correo Electrónico</label>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.email_label')}</label>
                     <input className="input" type="email" required value={idenForm.email}
                       onChange={e => setIdenForm({ ...idenForm, email: e.target.value })}
                       onBlur={async e => {
@@ -784,40 +788,40 @@ export function RunnerPage() {
                           }
                         } catch { /* sin usuario previo, no hacer nada */ }
                       }}
-                      placeholder="ejemplo@empresa.com" />
-                    <div className="invalid-feedback">Ingresá un correo electrónico válido.</div>
+                      placeholder={t('execution:runner.identification.email_placeholder')} />
+                    <div className="invalid-feedback">{t('execution:runner.identification.email_invalid')}</div>
                   </div>
                   <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Nombre Completo</label>
+                    <label className="required-label" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.nombre_label')}</label>
                     <input className="input" required value={idenForm.nombre}
                       onChange={e => setIdenForm({ ...idenForm, nombre: e.target.value })}
-                      placeholder="Su nombre completo" />
-                    <div className="invalid-feedback">Ingresá tu nombre completo.</div>
+                      placeholder={t('execution:runner.identification.nombre_placeholder')} />
+                    <div className="invalid-feedback">{t('execution:runner.identification.nombre_required')}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Cargo</label>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.cargo_label')}</label>
                       <input className="input" value={idenForm.cargo}
                         onChange={e => setIdenForm({ ...idenForm, cargo: e.target.value })}
-                        placeholder="Ej: Director de Innovación" />
+                        placeholder={t('execution:runner.identification.cargo_placeholder')} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>Área</label>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500 }}>{t('execution:runner.identification.area_label')}</label>
                       <input className="input" value={idenForm.area}
                         onChange={e => setIdenForm({ ...idenForm, area: e.target.value })}
-                        placeholder="Ej: Tecnología" />
+                        placeholder={t('execution:runner.identification.area_placeholder')} />
                     </div>
                   </div>
                 </div>
 
                 <button type="submit" className="btn btn-primary" disabled={loading}
                   style={{ marginTop: 28, width: '100%', padding: '0.75rem', fontSize: '0.9375rem' }}>
-                  {loading ? 'Registrando...' : 'Comenzar actividad →'}
+                  {loading ? t('execution:runner.identification.registering') : t('execution:runner.identification.start_button')}
                 </button>
               </form>
             ) : (
               <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                Iniciando actividad...
+                {t('execution:runner.identification.starting')}
               </div>
             )}
           </div>
@@ -825,9 +829,9 @@ export function RunnerPage() {
 
         <ConfirmModal
           isOpen={showEmailConfirm}
-          title="Confirma tu correo electrónico"
-          message={`Estás a punto de registrarte con:\n\n${idenForm.email}\n\nTu correo es tu llave única. Si ya estás registrado, usaremos tu cuenta existente. Si este no es tu correo, haz clic en cancelar y corrígelo.`}
-          confirmLabel="Confirmar y comenzar"
+          title={t('execution:runner.identification.email_confirm_title')}
+          message={t('execution:runner.identification.email_confirm_message', { email: idenForm.email })}
+          confirmLabel={t('execution:runner.identification.email_confirm_button')}
           onConfirm={() => { setShowEmailConfirm(false); handleIdentificar(); }}
           onCancel={() => setShowEmailConfirm(false)}
         />
@@ -878,22 +882,22 @@ export function RunnerPage() {
               background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.5rem', fontSize: '1.75rem',
             }}>✓</div>
-            <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>¡Actividad completada!</h1>
+            <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>{t('execution:runner.completed.title')}</h1>
             <p style={{ color: 'var(--color-text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
-              Sus respuestas han sido registradas exitosamente. Puede ver un resumen completo a continuación.
+              {t('execution:runner.completed.description')}
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <a href={`/runner/${token}/resultados`} className="btn btn-primary"
                 style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem', textDecoration: 'none', display: 'inline-flex' }}>
-                Ver mis resultados →
+                {t('execution:runner.completed.view_results')}
               </a>
               <button onClick={handleDescargarResumen} className="btn btn-secondary"
                 style={{ padding: '0.75rem 2rem', fontSize: '0.9375rem' }}>
-                Descargar resumen HTML
+                {t('execution:runner.completed.download_html')}
               </button>
             </div>
             <p style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
-              También puede cerrar esta ventana.
+              {t('execution:runner.completed.close_hint')}
             </p>
           </div>
         </div>
@@ -948,10 +952,10 @@ export function RunnerPage() {
                 }}
               >
                 <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#3730A3' }}>
-                  📋 Respuestas de "{data.plantillaAnterior.nombre}"
+                  {t('execution:runner.plantilla_anterior.title', { nombre: data.plantillaAnterior.nombre })}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#6366F1', flexShrink: 0 }}>
-                  {plantillaAnteriorExpanded ? '▲ Cerrar' : '▼ Ver respuestas anteriores'}
+                  {plantillaAnteriorExpanded ? t('execution:runner.plantilla_anterior.collapse') : t('execution:runner.plantilla_anterior.expand')}
                 </span>
               </button>
               {plantillaAnteriorExpanded && (
@@ -964,14 +968,14 @@ export function RunnerPage() {
                         paddingBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? 14 : 0,
                       }}>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366F1', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Paso {r.pasoOrden}: {r.pasoTitulo}
+                          {t('execution:runner.plantilla_anterior.step_label', { orden: r.pasoOrden, titulo: r.pasoTitulo })}
                         </div>
                         {contenido ? (
                           <div style={{ fontSize: '0.875rem', color: '#1E293B', lineHeight: 1.65 }} className="markdown-anterior">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{contenido}</ReactMarkdown>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin respuesta registrada</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:results.no_response')}</span>
                         )}
                       </div>
                     );
@@ -986,11 +990,11 @@ export function RunnerPage() {
             <StepPills total={data.pasos.length} current={currentStepIndex} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Paso {currentStepIndex + 1} de {data.pasos.length}
+                {t('execution:runner.step_progress', { current: currentStepIndex + 1, total: data.pasos.length })}
               </span>
               {isLastStep && (
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D97706', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 10px', borderRadius: 9999 }}>
-                  Último paso
+                  {t('execution:runner.last_step')}
                 </span>
               )}
             </div>
@@ -1008,7 +1012,7 @@ export function RunnerPage() {
 
           {/* SECCIÓN: Instrucciones (+ archivo de ejemplo si hay) */}
           {(currentPaso.instrucciones || currentPaso.ejemploKey) && (
-            <SectionBlock number={1} title="Instrucciones" description="Lee atentamente antes de comenzar" color="violet">
+            <SectionBlock number={1} title={t('execution:runner.instructions.section_title')} description={t('execution:runner.instructions.section_subtitle')} color="violet">
               {currentPaso.instrucciones && (
                 <p style={{ margin: 0, fontSize: '0.9rem', color: '#4C1D95', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
                   {currentPaso.instrucciones}
@@ -1026,9 +1030,9 @@ export function RunnerPage() {
                   gap: 10,
                   flexWrap: 'wrap',
                 }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#14532D' }}>📎 Archivo de ejemplo</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#14532D' }}>{t('execution:runner.example_file.title')}</span>
                   <span style={{ fontSize: '0.78rem', color: '#166534', flex: 1, minWidth: 160 }}>
-                    Material de referencia para este paso.
+                    {t('execution:runner.example_file.subtitle')}
                   </span>
                   <button
                     className="btn"
@@ -1038,10 +1042,10 @@ export function RunnerPage() {
                         const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
                         const json = await res.json();
                         if (json.url) window.open(json.url, '_blank');
-                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
                     }}
                   >
-                    ⬇ Descargar ejemplo
+                    {t('execution:runner.example_file.download')}
                   </button>
                 </div>
               )}
@@ -1053,6 +1057,8 @@ export function RunnerPage() {
             const iaFirst = !!(pregunta.iaAutomatica && (pregunta.soloArchivo || pregunta.permitirArchivo));
             const showRespuesta = !pregunta.iaAutomatica || pregunta.permitirArchivo || pregunta.soloArchivo;
             const archivoResp = archivosRespuesta[pregunta.id];
+            const iaRespondida = !!data.respuestas.find(r => r.preguntaId === pregunta.id)?.respuestaIa;
+            const estaGenerando = !!enviandoIa[pregunta.id];
 
             return (
               <div key={pregunta.id} style={{
@@ -1083,21 +1089,55 @@ export function RunnerPage() {
                 <div style={{ padding: '16px 20px' }}>
                   <div style={iaFirst ? { display: 'flex', flexDirection: 'column' } : undefined}>
 
+                  {/* Template download — order 0 when iaFirst: shown before IA and before upload */}
+                  {iaFirst && pregunta.urlPlantilla && (
+                    <div style={{ order: 0 }}>
+                      <div style={{ padding: '16px 20px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: '#16A34A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>{t('execution:runner.plantilla_priorizacion.title')}</span>
+                        </div>
+                        <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
+                          {t('execution:runner.plantilla_priorizacion.description')}
+                        </p>
+                        <div style={{ marginLeft: 34 }}>
+                          {pregunta.iaAutomatica && !iaRespondida ? (
+                            <span style={{ fontSize: '0.82rem', color: '#6D28D9', fontStyle: 'italic' }}>
+                              {estaGenerando ? t('execution:runner.plantilla_priorizacion.generating_ideas') : t('execution:runner.plantilla_priorizacion.waiting_ia')}
+                            </span>
+                          ) : iaRespondida ? (
+                            <button
+                              onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id, pregunta.id)}
+                              disabled={descargandoExcel}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white', borderRadius: 8, fontWeight: 600, border: 'none', cursor: descargandoExcel ? 'wait' : 'pointer', boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)' }}
+                            >
+                              {descargandoExcel ? t('execution:runner.plantilla_priorizacion.generating') : t('execution:runner.plantilla_priorizacion.download_prefilled')}
+                            </button>
+                          ) : (
+                            <a href={pregunta.urlPlantilla} download style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: '#16A34A', color: 'white', borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none', boxShadow: '0 1px 4px rgba(22,163,74,0.3)' }}>
+                              {t('execution:runner.plantilla_priorizacion.download_empty')}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Tu respuesta */}
                   {showRespuesta && (
-                    <div style={iaFirst ? { order: 2 } : undefined}>
+                    <div style={iaFirst ? { order: 1 } : undefined}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <span style={{
                           fontSize: '0.72rem', fontWeight: 700, color: '#1D4ED8',
                           background: '#EFF6FF', border: '1px solid #BFDBFE',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
-                        }}>Tu respuesta</span>
+                        }}>{t('execution:runner.your_response_label')}</span>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                           {(pregunta.permitirArchivo || pregunta.soloArchivo)
-                            ? 'Sube el documento completado para avanzar al siguiente paso.'
+                            ? t('execution:runner.your_response_help_file')
                             : pregunta.usarIa
-                              ? 'Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA.'
-                              : 'Escribe aquí tu análisis o respuesta.'}
+                              ? t('execution:runner.your_response_help_ia')
+                              : t('execution:runner.your_response_help_default')}
                         </span>
                       </div>
 
@@ -1106,7 +1146,7 @@ export function RunnerPage() {
                           ref={el => { editorRefs.current[pregunta.id] = el; }}
                           value={respuestas[pregunta.id] ?? ''}
                           onChange={v => setRespuestas(prev => ({ ...prev, [pregunta.id]: v }))}
-                          placeholder="Escriba aquí su respuesta..."
+                          placeholder={t('execution:runner.answer_placeholder')}
                           minHeight={180}
                         />
                       )}
@@ -1115,22 +1155,20 @@ export function RunnerPage() {
                       {(pregunta.permitirArchivo || pregunta.soloArchivo) && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                          {pregunta.urlPlantilla && (() => {
-                            const iaRespondida = !!data.respuestas.find(r => r.preguntaId === pregunta.id)?.respuestaIa;
-                            const estaGenerando = !!enviandoIa[pregunta.id];
+                          {!iaFirst && pregunta.urlPlantilla && (() => {
                             return (
                               <div style={{ padding: '16px 20px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                                   <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: '#16A34A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
-                                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>Descarga la plantilla de priorización</span>
+                                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>{t('execution:runner.plantilla_priorizacion.title')}</span>
                                 </div>
                                 <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
-                                  La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
+                                  {t('execution:runner.plantilla_priorizacion.description')}
                                 </p>
                                 <div style={{ marginLeft: 34 }}>
                                   {pregunta.iaAutomatica && !iaRespondida ? (
                                     <span style={{ fontSize: '0.82rem', color: '#6D28D9', fontStyle: 'italic' }}>
-                                      {estaGenerando ? '⏳ Generando ideas con IA...' : '⏳ Disponible una vez que el asistente termine de generar las ideas'}
+                                      {estaGenerando ? t('execution:runner.plantilla_priorizacion.generating_ideas') : t('execution:runner.plantilla_priorizacion.waiting_ia')}
                                     </span>
                                   ) : iaRespondida ? (
                                     <button
@@ -1144,7 +1182,7 @@ export function RunnerPage() {
                                         boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)',
                                       }}
                                     >
-                                      {descargandoExcel ? '⏳ Generando...' : '⬇ Descargar plantilla pre-diligenciada'}
+                                      {descargandoExcel ? t('execution:runner.plantilla_priorizacion.generating') : t('execution:runner.plantilla_priorizacion.download_prefilled')}
                                     </button>
                                   ) : (
                                     <a href={pregunta.urlPlantilla} download style={{
@@ -1153,7 +1191,7 @@ export function RunnerPage() {
                                       background: '#16A34A', color: 'white',
                                       borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none',
                                       boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
-                                    }}>⬇ Descargar plantilla vacía</a>
+                                    }}>{t('execution:runner.plantilla_priorizacion.download_empty')}</a>
                                   )}
                                 </div>
                               </div>
@@ -1171,7 +1209,7 @@ export function RunnerPage() {
                               <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: archivoResp ? '#2563EB' : '#94A3B8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
                                 {pregunta.urlPlantilla ? '2' : '1'}
                               </div>
-                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoResp ? '#1E3A8A' : '#475569' }}>Sube el archivo completado</span>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoResp ? '#1E3A8A' : '#475569' }}>{t('execution:runner.upload_file.title')}</span>
                             </div>
                             <div style={{ marginLeft: 34, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                               <label style={{
@@ -1181,14 +1219,14 @@ export function RunnerPage() {
                                 borderRadius: 8, cursor: 'pointer', fontWeight: 600,
                                 border: `1px solid ${archivoResp ? '#93C5FD' : '#CBD5E1'}`,
                               }}>
-                                {archivoResp ? `✓ ${archivoResp.name}` : '📂 Seleccionar archivo (.xlsx)'}
+                                {archivoResp ? `✓ ${archivoResp.name}` : t('execution:runner.upload_file.select_button')}
                                 <input type="file" accept=".xlsx,.xls,.csv"
                                   style={{ display: 'none' }}
                                   onChange={e => setArchivosRespuesta(prev => ({ ...prev, [pregunta.id]: e.target.files?.[0] || null }))} />
                               </label>
                               {archivoResp && (
                                 <button className="btn btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}
-                                  onClick={() => setArchivosRespuesta(prev => ({ ...prev, [pregunta.id]: null }))}>✕ Quitar</button>
+                                  onClick={() => setArchivosRespuesta(prev => ({ ...prev, [pregunta.id]: null }))}>{t('execution:runner.remove')}</button>
                               )}
                             </div>
                             {/* Download link for previously uploaded S3 file */}
@@ -1197,7 +1235,7 @@ export function RunnerPage() {
                               if (!prev?.archivoNombre || !prev?.archivoKey) return null;
                               return (
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>📎 Archivo enviado: <strong>{prev.archivoNombre}</strong></span>
+                                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{t('execution:runner.upload_file.already_uploaded')} <strong>{prev.archivoNombre}</strong></span>
                                   <button
                                     className="btn btn-secondary"
                                     style={{ padding: '3px 10px', fontSize: '0.75rem' }}
@@ -1206,10 +1244,10 @@ export function RunnerPage() {
                                         const res = await fetch(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
                                         const json = await res.json();
                                         if (json.url) window.open(json.url, '_blank');
-                                      } catch { alert('No se pudo obtener el enlace de descarga'); }
+                                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
                                     }}
                                   >
-                                    ⬇ Descargar
+                                    {t('execution:runner.upload_file.download')}
                                   </button>
                                 </div>
                               );
@@ -1224,17 +1262,17 @@ export function RunnerPage() {
 
                   {/* Asistente IA */}
                   {pregunta.usarIa && (
-                    <div style={iaFirst ? { order: 1 } : { marginTop: 20, paddingTop: 20, borderTop: '1px solid #EDE9FE' }}>
+                    <div style={iaFirst ? { order: 2, marginTop: 20, paddingTop: 20, borderTop: '1px solid #EDE9FE' } : { marginTop: 20, paddingTop: 20, borderTop: '1px solid #EDE9FE' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <span style={{
                           fontSize: '0.72rem', fontWeight: 700, color: '#7C3AED',
                           background: '#F5F3FF', border: '1px solid #DDD6FE',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
-                        }}>Asistente IA</span>
+                        }}>{t('execution:runner.ia_label')}</span>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                           {pregunta.iaAutomatica
-                            ? 'El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.'
-                            : 'Envía tu respuesta al asistente para recibir análisis y retroalimentación.'}
+                            ? t('execution:runner.ia_help_automatica')
+                            : t('execution:runner.ia_help_manual')}
                         </span>
                       </div>
 
@@ -1246,7 +1284,7 @@ export function RunnerPage() {
                           fontSize: '0.82rem', color: '#6D28D9', fontWeight: 500,
                         }}>
                           <span>⚡</span>
-                          <span>Generación automática activada — el asistente usa el contexto de los pasos anteriores.</span>
+                          <span>{t('execution:runner.ia_automatica_banner')}</span>
                         </div>
                       )}
 
@@ -1264,9 +1302,9 @@ export function RunnerPage() {
                         {enviandoIa[pregunta.id] ? (
                           <>
                             <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                            Consultando...
+                            {t('execution:runner.ia_consulting')}
                           </>
-                        ) : pregunta.iaAutomatica ? '↺ Volver a consultar' : '✨ Enviar a Asistente IA'}
+                        ) : pregunta.iaAutomatica ? t('execution:runner.ia_retry') : t('execution:runner.ia_send_button')}
                       </button>
 
                       {(respuestasIa[pregunta.id] || enviandoIa[pregunta.id]) ? (
@@ -1278,14 +1316,14 @@ export function RunnerPage() {
                               background: '#FAF8FF', borderRadius: 8, marginBottom: 10,
                             }}>
                               <span style={{ width: 16, height: 16, border: '2px solid #DDD6FE', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                              Generando análisis con IA...
+                              {t('execution:runner.ia_generating')}
                             </div>
                           )}
                           <WysiwygEditor
                             ref={el => { iaEditorRefs.current[pregunta.id] = el; }}
                             value={respuestasIa[pregunta.id] ?? ''}
                             onChange={v => setRespuestasIa(prev => ({ ...prev, [pregunta.id]: v }))}
-                            placeholder="La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar."
+                            placeholder={t('execution:runner.ia_response_placeholder')}
                             minHeight={180}
                             borderColor="#DDD6FE"
                           />
@@ -1297,8 +1335,8 @@ export function RunnerPage() {
                           color: '#7C3AED', fontSize: '0.85rem',
                         }}>
                           {pregunta.iaAutomatica
-                            ? 'El asistente generará el análisis automáticamente al ingresar al paso.'
-                            : <>Aún no has consultado al asistente. Escribe tu respuesta arriba y presiona <strong>Enviar a Asistente IA</strong>.</>}
+                            ? t('execution:runner.ia_response_empty_automatica')
+                            : <>{t('execution:runner.ia_response_empty_manual_prefix')}<strong>{t('execution:runner.ia_response_empty_manual_button')}</strong>.</>}
                         </div>
                       )}
                     </div>
@@ -1315,7 +1353,7 @@ export function RunnerPage() {
             {currentStepIndex > 0 ? (
               <button className="btn btn-secondary" onClick={handleAnterior} disabled={loading}
                 style={{ padding: '0.625rem 1.25rem', fontSize: '0.9375rem' }}>
-                ← Paso anterior
+                {t('execution:runner.previous_step')}
               </button>
             ) : <div />}
             <button
@@ -1324,7 +1362,7 @@ export function RunnerPage() {
               disabled={!pasoCompleto || loading || anyEnviando}
               style={{ padding: '0.625rem 1.5rem', fontSize: '0.9375rem' }}
             >
-              {canvasGenerando ? 'Preparando resultados...' : loading ? 'Guardando...' : isLastStep ? 'Finalizar actividad' : 'Siguiente paso →'}
+              {canvasGenerando ? t('execution:runner.preparing_results') : loading ? t('execution:runner.saving') : isLastStep ? t('execution:runner.finish_workshop') : t('execution:runner.next_step')}
             </button>
           </div>
 

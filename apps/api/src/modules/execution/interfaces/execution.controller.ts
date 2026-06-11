@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, NotFoundException, BadRequestException, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res, Headers } from '@nestjs/common';
+import { AppError } from '../../../shared/errors/AppError';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -22,6 +23,7 @@ import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundEr
 import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
+import { TranslationService } from '../../translation/translation.service';
 
 @Controller('execution')
 export class ExecutionController {
@@ -36,6 +38,7 @@ export class ExecutionController {
     private readonly sintetizarCanvasUseCase: SintetizarCanvasPorTokenUseCase,
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly translations: TranslationService,
   ) { }
 
   /** Resuelve un enlace permanente → crea una nueva InstanciaActividad y devuelve su token */
@@ -51,7 +54,10 @@ export class ExecutionController {
   }
 
   @Get(':token')
-  async getByToken(@Param('token') token: string): Promise<RunnerResponseDto> {
+  async getByToken(
+    @Param('token') token: string,
+    @Query('locale') locale: string = 'es',
+  ): Promise<RunnerResponseDto> {
     try {
       const instancia = await this.accederUseCase.execute(token);
 
@@ -77,7 +83,7 @@ export class ExecutionController {
       });
 
       if (!actividad) {
-        throw new NotFoundException('Actividad no encontrada para esta instancia');
+        throw new AppError('ACTIVIDAD_NOT_FOUND', { message: 'Actividad no encontrada para esta instancia' });
       }
 
       // Obtener respuestas de la plantilla anterior si corresponde
@@ -154,6 +160,72 @@ export class ExecutionController {
 
       const esCanvas = ((actividad as any).plantillaOrigen?.nombre ?? '').includes('Analytics Canvas');
 
+      const normalizedLocale = (locale ?? 'es').toLowerCase().startsWith('pt') ? 'pt' : 'es';
+
+      // Traducciones: PasoActividad/PreguntaActividad tienen prioridad.
+      // Si no hay fila para un campo, se cae a PasoPlantilla/PreguntaPlantilla (via orden).
+      const pasoActividadIds = actividad.pasos.map(p => p.id);
+      const preguntaActividadIds = actividad.pasos.flatMap(p => (p as any).preguntas?.map((q: any) => q.id) ?? []);
+
+      const plantillaOrigenPasos: any[] = (actividad as any).plantillaOrigen?.pasos ?? [];
+      const pasoOrdenToPlantilla = new Map<number, any>(plantillaOrigenPasos.map((p: any) => [p.orden, p]));
+
+      const pasoPlantillaIds: string[] = [];
+      const pasoPlantillaToActividad = new Map<string, string>();
+      const preguntaPlantillaIds: string[] = [];
+      const preguntaPlantillaToActividad = new Map<string, string>();
+
+      for (const paso of actividad.pasos) {
+        const plantillaPaso = pasoOrdenToPlantilla.get(paso.orden);
+        if (plantillaPaso) {
+          pasoPlantillaIds.push(plantillaPaso.id);
+          pasoPlantillaToActividad.set(plantillaPaso.id, paso.id);
+          const preguntaOrdenToPlantilla = new Map<number, any>(
+            (plantillaPaso.preguntas ?? []).map((q: any) => [q.orden, q]),
+          );
+          for (const pregunta of (paso as any).preguntas ?? []) {
+            const pq = preguntaOrdenToPlantilla.get(pregunta.orden);
+            if (pq) {
+              preguntaPlantillaIds.push(pq.id);
+              preguntaPlantillaToActividad.set(pq.id, pregunta.id);
+            }
+          }
+        }
+      }
+
+      const [pasoActOverlay, preguntaActOverlay, pasoPlantillaOverlay, preguntaPlantillaOverlay] = await Promise.all([
+        this.translations.applyOverlay('PasoActividad', pasoActividadIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
+        this.translations.applyOverlay('PreguntaActividad', preguntaActividadIds, normalizedLocale, ['enunciado', 'promptIa']),
+        this.translations.applyOverlay('PasoPlantilla', pasoPlantillaIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
+        this.translations.applyOverlay('PreguntaPlantilla', preguntaPlantillaIds, normalizedLocale, ['enunciado', 'promptIa']),
+      ]);
+
+      // Remapear plantilla overlay a IDs de actividad para unificarlo
+      const pasoPlantillaRemapped: Record<string, Record<string, string>> = {};
+      for (const [pltId, actId] of pasoPlantillaToActividad) {
+        if (pasoPlantillaOverlay[pltId]) pasoPlantillaRemapped[actId] = pasoPlantillaOverlay[pltId];
+      }
+      const preguntaPlantillaRemapped: Record<string, Record<string, string>> = {};
+      for (const [pltId, actId] of preguntaPlantillaToActividad) {
+        if (preguntaPlantillaOverlay[pltId]) preguntaPlantillaRemapped[actId] = preguntaPlantillaOverlay[pltId];
+      }
+
+      // Merge: PasoActividad tiene prioridad campo a campo; PasoPlantilla es fallback
+      const pasoOverlay: Record<string, Record<string, string>> = {};
+      for (const id of pasoActividadIds) {
+        const act = pasoActOverlay[id] ?? {};
+        const plt = pasoPlantillaRemapped[id] ?? {};
+        const merged = { ...plt, ...act };
+        if (Object.keys(merged).length) pasoOverlay[id] = merged;
+      }
+      const preguntaOverlay: Record<string, Record<string, string>> = {};
+      for (const id of preguntaActividadIds) {
+        const act = preguntaActOverlay[id] ?? {};
+        const plt = preguntaPlantillaRemapped[id] ?? {};
+        const merged = { ...plt, ...act };
+        if (Object.keys(merged).length) preguntaOverlay[id] = merged;
+      }
+
       return new RunnerResponseDto({
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
@@ -164,33 +236,39 @@ export class ExecutionController {
         logoEmpresa: (actividad as any).iniciativa?.empresa?.logoUrl || undefined,
         usuarioId: instancia.usuarioId,
         esCanvas,
-        pasos: actividad.pasos.map(p => ({
-          id: p.id,
-          titulo: p.titulo,
-          orden: p.orden,
-          objetivo: p.objetivo || undefined,
-          instrucciones: p.instrucciones || undefined,
-          usarIa: p.usarIa,
-          iaAutomatica: p.iaAutomatica || false,
-          promptIa: p.promptIa || plantillaPasoPromptIaFallback[p.orden] || undefined,
-          permitirArchivo: p.permitirArchivo || false,
-          soloArchivo: p.soloArchivo || false,
-          urlPlantilla: p.urlPlantilla || undefined,
-          ejemploKey: (p as any).ejemploKey || undefined,
-          preguntas: (p as any).preguntas?.map((q: any) => ({
-            id: q.id,
-            orden: q.orden,
-            enunciado: q.enunciado,
-            permitirArchivo: q.permitirArchivo,
-            soloArchivo: q.soloArchivo,
-            usarIa: q.usarIa,
-            iaAutomatica: q.iaAutomatica,
-            promptIa: q.promptIa || plantillaPromptIaFallback[`${(p as any).orden}:${q.orden}`] || undefined,
-            urlPlantilla: q.urlPlantilla || undefined,
-            urlPromptTemplate: efectivePromptKey[q.id] || undefined,
-            promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
-          })) ?? [],
-        })),
+        pasos: actividad.pasos.map(p => {
+          const po = pasoOverlay[p.id] ?? {};
+          return {
+            id: p.id,
+            titulo: po['titulo'] ?? p.titulo,
+            orden: p.orden,
+            objetivo: po['objetivo'] ?? p.objetivo ?? undefined,
+            instrucciones: po['instrucciones'] ?? p.instrucciones ?? undefined,
+            usarIa: p.usarIa,
+            iaAutomatica: p.iaAutomatica || false,
+            promptIa: po['promptIa'] ?? p.promptIa ?? plantillaPasoPromptIaFallback[p.orden] ?? undefined,
+            permitirArchivo: p.permitirArchivo || false,
+            soloArchivo: p.soloArchivo || false,
+            urlPlantilla: p.urlPlantilla || undefined,
+            ejemploKey: (p as any).ejemploKey || undefined,
+            preguntas: (p as any).preguntas?.map((q: any) => {
+              const qo = preguntaOverlay[q.id] ?? {};
+              return {
+                id: q.id,
+                orden: q.orden,
+                enunciado: qo['enunciado'] ?? q.enunciado,
+                permitirArchivo: q.permitirArchivo,
+                soloArchivo: q.soloArchivo,
+                usarIa: q.usarIa,
+                iaAutomatica: q.iaAutomatica,
+                promptIa: qo['promptIa'] ?? q.promptIa ?? plantillaPromptIaFallback[`${(p as any).orden}:${q.orden}`] ?? undefined,
+                urlPlantilla: q.urlPlantilla || undefined,
+                urlPromptTemplate: efectivePromptKey[q.id] || undefined,
+                promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
+              };
+            }) ?? [],
+          };
+        }),
         fechaInicio: instancia.fechaInicio?.toISOString(),
         fechaFin: instancia.fechaFin?.toISOString(),
         usuario: usuarioData,
@@ -228,10 +306,10 @@ export class ExecutionController {
       where: { accessToken: token },
       include: { interacciones: true },
     });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
 
     const pasoActual = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!pasoActual) throw new NotFoundException('Paso no encontrado');
+    if (!pasoActual) throw new AppError('PASO_NOT_FOUND');
 
     // Si el paso actual ya tiene IA, usa su propia interacción; si no, busca el anterior más cercano
     const pasoIaSource = pasoActual.usarIa
@@ -486,16 +564,16 @@ export class ExecutionController {
   ): Promise<{ nombre: string; cargo?: string; area?: string; email: string } | null> {
     if (!email) return null;
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const actividad = await this.prisma.actividad.findUnique({
       where: { id: instancia.actividadId },
       include: { iniciativa: true }
     });
-    if (!actividad) throw new NotFoundException('Actividad no encontrada');
+    if (!actividad) throw new AppError('ACTIVIDAD_NOT_FOUND');
     const usuario = await this.prisma.usuario.findUnique({
       where: { empresa_email_unico: { empresaId: actividad.iniciativa.empresaId, email: email.toLowerCase().trim() } }
     });
-    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (!usuario) throw new AppError('USUARIO_NOT_FOUND');
     return { nombre: usuario.nombre, cargo: usuario.cargo ?? undefined, area: usuario.area ?? undefined, email: usuario.email };
   }
 
@@ -612,7 +690,7 @@ export class ExecutionController {
   async presignEjemplo(
     @Body() body: { filename: string; contentType: string }
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const key = this.s3.generateKey('ejemplos', body.filename);
     const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
     return { uploadUrl, key };
@@ -624,11 +702,11 @@ export class ExecutionController {
     @Param('token') token: string,
     @Param('pasoId') pasoId: string,
   ): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const paso = await this.prisma.pasoActividad.findUnique({ where: { id: pasoId } });
-    if (!paso?.ejemploKey) throw new NotFoundException('Archivo de ejemplo no encontrado');
+    if (!paso?.ejemploKey) throw new AppError('ARCHIVO_INVALID', { message: 'Archivo de ejemplo no encontrado' });
     const url = await this.s3.getPresignedGetUrl(paso.ejemploKey);
     return { url };
   }
@@ -639,23 +717,23 @@ export class ExecutionController {
     @Param('token') token: string,
     @Param('preguntaId') preguntaId: string
   ): Promise<{ url: string }> {
-    if (!this.s3.isConfigured) throw new BadRequestException('S3 no configurado');
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const instancia = await this.prisma.instanciaActividad.findUnique({ where: { accessToken: token } });
-    if (!instancia) throw new NotFoundException('Instancia no encontrada');
+    if (!instancia) throw new AppError('INSTANCIA_NOT_FOUND');
     const respuesta = await this.prisma.respuesta.findUnique({
       where: { instanciaId_preguntaId: { instanciaId: instancia.id, preguntaId } },
     });
-    if (!respuesta?.archivoKey) throw new NotFoundException('Archivo no encontrado');
+    if (!respuesta?.archivoKey) throw new AppError('ARCHIVO_INVALID');
     const url = await this.s3.getPresignedGetUrl(respuesta.archivoKey);
     return { url };
   }
 
   private handleError(error: unknown): void {
     if (error instanceof ResourceNotFoundError) {
-      throw new NotFoundException(error.message);
+      throw new AppError('INSTANCIA_NOT_FOUND', { message: error.message });
     }
     if (error instanceof BusinessRuleViolationError) {
-      throw new BadRequestException(error.message);
+      throw new AppError('VALIDATION_ERROR', { message: error.message });
     }
     throw error;
   }

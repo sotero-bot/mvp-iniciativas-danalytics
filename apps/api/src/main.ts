@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { json, urlencoded } from 'express';
+import { ErrorCodeFilter } from './shared/errors/error-code.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -13,6 +14,8 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+
+  app.useGlobalFilters(new ErrorCodeFilter());
 
   app.setGlobalPrefix('api'); // OBLIGATORIO PARA VERCEL
 

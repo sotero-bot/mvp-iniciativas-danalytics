@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -23,6 +25,7 @@ interface ActividadInput { nombre: string; descripcion?: string; plantilla?: str
 interface IniciativaInput { nombre: string; descripcion?: string; actividades?: ActividadInput[] }
 
 export function ImportPage() {
+  const { t } = useTranslation(['admin', 'common']);
   const inputRef = useRef<HTMLInputElement>(null);
   const [empresas, setEmpresas] = useState<{ id: string; nombre: string }[]>([]);
   const [empresaId, setEmpresaId] = useState('');
@@ -50,14 +53,14 @@ export function ImportPage() {
         const parsed = JSON.parse(e.target?.result as string);
         const items: IniciativaInput[] = Array.isArray(parsed) ? parsed : [parsed];
         if (!items[0]?.nombre) {
-          setParseError('El JSON debe tener el campo "nombre" en cada iniciativa.');
+          setParseError(t('admin:import.error_missing_name'));
           setPreview(null);
           return;
         }
         setPreview(items);
         setParseError('');
       } catch {
-        setParseError('El archivo no es un JSON válido.');
+        setParseError(t('admin:import.error_invalid_json'));
         setPreview(null);
       }
     };
@@ -66,7 +69,7 @@ export function ImportPage() {
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
-    if (!file.name.endsWith('.json')) { setParseError('Solo se aceptan archivos .json'); return; }
+    if (!file.name.endsWith('.json')) { setParseError(t('admin:import.error_invalid_extension')); return; }
     parseFile(file);
   };
 
@@ -75,18 +78,17 @@ export function ImportPage() {
     setLoading(true);
     setApiError('');
     try {
-      const res = await fetch(`${API_URL}/admin/import`, {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ empresaId, iniciativas: preview }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al importar');
       setResult(data);
       setPreview(null);
       setFileName('');
-    } catch (err: any) {
-      setApiError(err.message);
+    } catch (err) {
+      setApiError(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -109,9 +111,9 @@ export function ImportPage() {
     <div className="layout-content">
       <div className="page-header">
         <div>
-          <h1>Importar datos</h1>
+          <h1>{t('admin:import.page_title')}</h1>
           <p className="page-description">
-            Seleccioná una empresa y subí un JSON con las iniciativas y actividades a crear.
+            {t('admin:import.page_description')}
           </p>
         </div>
       </div>
@@ -124,7 +126,7 @@ export function ImportPage() {
           {/* Selector de empresa */}
           <div className="card" style={{ padding: '1rem 1.25rem' }}>
             <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: 8 }}>
-              🏢 Empresa destino <span style={{ color: '#EF4444' }}>*</span>
+              {t('admin:import.empresa_label')} <span style={{ color: '#EF4444' }}>*</span>
             </label>
             <select
               className="input"
@@ -132,14 +134,14 @@ export function ImportPage() {
               value={empresaId}
               onChange={e => setEmpresaId(e.target.value)}
             >
-              <option value="">Seleccioná una empresa</option>
+              <option value="">{t('admin:import.empresa_placeholder')}</option>
               {empresas.map(e => (
                 <option key={e.id} value={e.id}>{e.nombre}</option>
               ))}
             </select>
             {empresas.length === 0 && (
               <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
-                No hay empresas creadas aún. Creá una en la sección Empresas.
+                {t('admin:import.empresas_empty')}
               </p>
             )}
           </div>
@@ -162,9 +164,9 @@ export function ImportPage() {
           >
             <div style={{ fontSize: '1.75rem', marginBottom: 6 }}>📂</div>
             <p style={{ margin: '0 0 3px', fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
-              {fileName || 'Seleccioná o arrastrá un archivo .json'}
+              {fileName || t('admin:import.drop_zone_label')}
             </p>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>Solo archivos .json</p>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>{t('admin:import.drop_zone_hint')}</p>
             <input ref={inputRef} type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => handleFile(e.target.files?.[0])} />
           </div>
@@ -178,7 +180,7 @@ export function ImportPage() {
           {/* Formato esperado */}
           <div className="card" style={{ padding: '1rem 1.25rem' }}>
             <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-              Formato del JSON
+              {t('admin:import.format_label')}
             </p>
             <pre style={{
               margin: 0, fontSize: '0.72rem', lineHeight: 1.6,
@@ -190,7 +192,7 @@ export function ImportPage() {
               {EJEMPLO}
             </pre>
             <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
-              El campo <code>plantilla</code> es opcional. Si no existe, la actividad se crea sin pasos.
+              {t('admin:import.format_note')}
             </p>
           </div>
         </div>
@@ -204,12 +206,12 @@ export function ImportPage() {
                 borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem',
               }}>
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: '#065F46', marginBottom: 12 }}>
-                  ✓ Importación completada en <strong>{result.empresa}</strong>
+                  ✓ {t('admin:import.result_success', { empresa: result.empresa })}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   {[
-                    { label: 'Iniciativas creadas', val: result.iniciativasCreadas },
-                    { label: 'Actividades creadas', val: result.actividadesCreadas },
+                    { label: t('admin:import.result_iniciativas_created'), val: result.iniciativasCreadas },
+                    { label: t('admin:import.result_actividades_created'), val: result.actividadesCreadas },
                   ].map(({ label, val }) => (
                     <div key={label} style={{ background: 'white', borderRadius: 8, padding: '0.625rem 0.875rem', border: '1px solid #D1FAE5' }}>
                       <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669' }}>{val}</div>
@@ -227,7 +229,7 @@ export function ImportPage() {
                       ⚡ {act.nombre}
                       {act.plantilla && (
                         <span style={{ marginLeft: 6, fontSize: '0.72rem', background: '#EEF2FF', color: '#4338CA', padding: '1px 6px', borderRadius: 4 }}>
-                          📋 {act.plantilla} ({act.pasosCopados} pasos)
+                          📋 {act.plantilla} ({act.pasosCopados})
                         </span>
                       )}
                     </div>
@@ -236,7 +238,7 @@ export function ImportPage() {
               ))}
 
               <button className="btn btn-secondary" onClick={reset} style={{ alignSelf: 'start' }}>
-                Importar otro archivo
+                {t('admin:import.import_another')}
               </button>
             </div>
           )}
@@ -249,9 +251,9 @@ export function ImportPage() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap',
               }}>
                 <div>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1D4ED8' }}>Vista previa</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1D4ED8' }}>{t('admin:import.preview_title')}</span>
                   <span style={{ marginLeft: 10, fontSize: '0.82rem', color: '#3B82F6' }}>
-                    {preview.length} {preview.length === 1 ? 'iniciativa' : 'iniciativas'} · {totalActividades} actividades
+                    {t('admin:import.preview_iniciativas', { count: preview.length })} · {t('admin:import.preview_actividades', { count: totalActividades })}
                   </span>
                   {empresaSeleccionada && (
                     <span style={{ marginLeft: 10, fontSize: '0.82rem', color: '#6B7280' }}>
@@ -260,7 +262,7 @@ export function ImportPage() {
                   )}
                 </div>
                 <button className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} onClick={reset}>
-                  × Limpiar
+                  {t('admin:import.preview_clear')}
                 </button>
               </div>
 
@@ -281,14 +283,14 @@ export function ImportPage() {
                     </div>
                   ))}
                   {!ini.actividades?.length && (
-                    <div style={{ paddingLeft: '1rem', fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin actividades</div>
+                    <div style={{ paddingLeft: '1rem', fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('admin:import.preview_no_activities')}</div>
                   )}
                 </div>
               ))}
 
               {!empresaId && (
                 <div style={{ padding: '10px 14px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 'var(--radius-sm)', color: '#92400E', fontSize: '0.875rem' }}>
-                  ⚠ Seleccioná una empresa antes de importar
+                  ⚠ {t('admin:import.select_empresa_warning')}
                 </div>
               )}
 
@@ -304,7 +306,7 @@ export function ImportPage() {
                 disabled={loading || !canImport}
                 style={{ alignSelf: 'start', minWidth: 180 }}
               >
-                {loading ? 'Importando...' : `Confirmar importación`}
+                {loading ? t('admin:import.importing') : t('admin:import.confirm_import')}
               </button>
             </div>
           )}
@@ -313,7 +315,7 @@ export function ImportPage() {
             <div className="card" style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
               <div style={{ fontSize: '2rem', marginBottom: 10 }}>⬆</div>
               <p style={{ margin: 0, color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>
-                Seleccioná un archivo para ver la vista previa aquí
+                {t('admin:import.empty_preview')}
               </p>
             </div>
           )}

@@ -1,0 +1,106 @@
+{
+  "app_name": "Decisão IA",
+  "buttons": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "confirm": "Confirmar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "download": "Baixar",
+    "upload": "Enviar",
+    "send": "Enviar",
+    "open": "Abrir",
+    "view": "Ver",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "retry": "Tentar novamente",
+    "continue": "Continuar",
+    "finish": "Finalizar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "select_file": "Selecionar arquivo",
+    "clear": "Limpar",
+    "save_changes": "Salvar alterações",
+    "saving_short": "Salvando..."
+  },
+  "actions": {
+    "loading": "Carregando…",
+    "saving": "Salvando…",
+    "deleting": "Excluindo…",
+    "uploading": "Enviando…",
+    "downloading": "Baixando…",
+    "processing": "Processando…",
+    "generating": "Gerando…",
+    "sending": "Enviando…"
+  },
+  "labels": {
+    "yes": "Sim",
+    "no": "Não",
+    "none": "Nenhum",
+    "all": "Todos",
+    "optional": "(opcional)",
+    "required": "(obrigatório)",
+    "loading": "Carregando",
+    "actions": "Ações",
+    "status": "Status",
+    "date": "Data",
+    "created_at": "Criado",
+    "updated_at": "Atualizado"
+  },
+  "validation": {
+    "required_field": "Este campo é obrigatório.",
+    "invalid_email": "Email inválido.",
+    "invalid_url": "URL inválida.",
+    "min_length": "Mínimo {{count}} caracteres."
+  },
+  "empty_states": {
+    "no_results": "Sem resultados.",
+    "empty_list": "Não há itens.",
+    "no_data": "Sem dados."
+  },
+  "modals": {
+    "confirm_delete_title": "Confirmar exclusão",
+    "confirm_delete_message": "Tem certeza de que deseja excluir este item? Esta ação não pode ser desfeita."
+  },
+  "footer": {
+    "ai_disclaimer": "O assistente usa IA e pode cometer erros. Por favor, verifique novamente as respostas geradas."
+  },
+  "language": {
+    "label": "Idioma",
+    "select": "Selecionar idioma"
+  },
+  "editor": {
+    "placeholder_default": "Escreva aqui…",
+    "toolbar": {
+      "bold": "Negrito (Ctrl+B)",
+      "italic": "Itálico (Ctrl+I)",
+      "strike": "Tachado",
+      "h1": "Título 1",
+      "h2": "Título 2",
+      "h3": "Título 3",
+      "bullet_list": "Lista",
+      "ordered_list": "Lista numerada",
+      "blockquote": "Citação",
+      "code": "Código",
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "insert_table": "Inserir tabela",
+      "add_column": "Adicionar coluna",
+      "add_row": "Adicionar linha",
+      "delete_table": "Excluir tabela",
+      "list_label": "Lista",
+      "ordered_list_label": "1. Lista",
+      "table_label": "Tabela",
+      "col_label": "+Col",
+      "row_label": "+Lin",
+      "delete_table_label": "✕ Tabela"
+    }
+  }
+}

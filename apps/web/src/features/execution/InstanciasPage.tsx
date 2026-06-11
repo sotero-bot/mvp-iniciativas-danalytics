@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-
-const ESTADO_LABELS: Record<string, string> = {
-  generado: 'Pendiente',
-  iniciado: 'En progreso',
-  finalizado: 'Finalizado',
-};
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function InstanciasPage() {
+  const { t, i18n } = useTranslation(['execution', 'common']);
+  const ESTADO_LABELS: Record<string, string> = {
+    generado: t('execution:instancias.estados.generado'),
+    iniciado: t('execution:instancias.estados.iniciado'),
+    finalizado: t('execution:instancias.estados.finalizado'),
+  };
   const [instancias, setInstancias] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [enlaces, setEnlaces] = useState<any[]>([]);
@@ -87,15 +89,11 @@ export function InstanciasPage() {
     setGenerandoEnlace(true);
     setEnlaceGenerado(null);
     try {
-      const res = await fetch(`${API_URL}/admin/enlaces/generar`, {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/enlaces/generar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formEnlace),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Error ${res.status}`);
-      }
       const data = await res.json();
       const url = `${window.location.origin}/runner/enlace/${data.accessToken}`;
       setEnlaceGenerado(url);
@@ -103,8 +101,8 @@ export function InstanciasPage() {
       await load();
       setFormEnlace({ actividadId: '', nombre: '' });
       setWasValidated(false);
-    } catch (err: any) {
-      alert('Error al generar el enlace: ' + err.message);
+    } catch (err) {
+      alert(t('execution:instancias.generar_enlace.error_prefix') + translateError(err));
     } finally {
       generandoEnlaceRef.current = false;
       setGenerandoEnlace(false);
@@ -113,7 +111,7 @@ export function InstanciasPage() {
 
   const copyLink = (token: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/runner/${token}`);
-    showToast('Enlace copiado al portapapeles');
+    showToast(t('execution:instancias.link_copied_clipboard'));
   };
 
   const descargarPdf = (instanciaId: string) => {
@@ -182,19 +180,19 @@ export function InstanciasPage() {
 
       {toast && <div className="toast">{toast}</div>}
 
-      <ConfirmModal isOpen={!!deleteModal} title="¿Eliminar Ejecución?"
-        message="Esta acción desactivará la ejecución y no se podrá acceder a ella."
+      <ConfirmModal isOpen={!!deleteModal} title={t('execution:instancias.delete_instancia_modal.title')}
+        message={t('execution:instancias.delete_instancia_modal.message')}
         onConfirm={handleDeleteInstancia} onCancel={() => setDeleteModal(null)} />
-      <ConfirmModal isOpen={!!deleteEnlaceModal} title="¿Eliminar Enlace?"
-        message="Este enlace quedará desactivado. Las sesiones ya iniciadas continuarán, pero no se podrán crear nuevas."
+      <ConfirmModal isOpen={!!deleteEnlaceModal} title={t('execution:instancias.delete_enlace_modal.title')}
+        message={t('execution:instancias.delete_enlace_modal.message')}
         onConfirm={handleDeleteEnlace} onCancel={() => setDeleteEnlaceModal(null)} />
 
       {/* Page header */}
       <div className="page-header" style={{ marginBottom: '1rem' }}>
         <div>
-          <h1>Ejecuciones</h1>
+          <h1>{t('execution:instancias.page_title')}</h1>
           <p className="page-description">
-            Paso 4 de 4 — Genera enlaces para distribuir actividades y monitorea el progreso de los participantes.
+            {t('execution:instancias.page_description')}
           </p>
         </div>
       </div>
@@ -204,26 +202,26 @@ export function InstanciasPage() {
         <div className="prereq-banner" style={{ marginBottom: '1.25rem' }}>
           <span className="prereq-banner-icon">⚠️</span>
           <div className="prereq-banner-body">
-            <p className="prereq-banner-title">Primero necesitas crear una actividad</p>
+            <p className="prereq-banner-title">{t('execution:instancias.prereq_banner.title')}</p>
             <p className="prereq-banner-text">
-              Los enlaces de ejecución están vinculados a actividades. Ve al paso anterior y configura al menos una.
+              {t('execution:instancias.prereq_banner.text')}
             </p>
           </div>
           <Link to="/admin/actividades" className="btn btn-secondary"
             style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
-            Ir a Actividades →
+            {t('execution:instancias.prereq_banner.link')}
           </Link>
         </div>
       )}
 
       {/* Stats en una fila */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Resumen</h2>
+        <h2 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{t('execution:instancias.summary_title')}</h2>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
           {[
-            { label: 'Finalizadas', value: finalizadas, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
-            { label: 'En progreso', value: enProgreso, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-            { label: 'Pendientes',  value: pendientes,  color: '#64748B', bg: '#F8FAFC', border: '#E2E8F0' },
+            { label: t('execution:instancias.stats.finalizadas'), value: finalizadas, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
+            { label: t('execution:instancias.stats.en_progreso'), value: enProgreso, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+            { label: t('execution:instancias.stats.pendientes'),  value: pendientes,  color: '#64748B', bg: '#F8FAFC', border: '#E2E8F0' },
           ].map(s => (
             <div key={s.label} style={{
               background: s.bg, border: `1px solid ${s.border}`,
@@ -246,7 +244,7 @@ export function InstanciasPage() {
             value={filterEmpresa}
             onChange={e => { setFilterEmpresa(e.target.value); setPage(1); }}
           >
-            <option value="">Todas las empresas</option>
+            <option value="">{t('execution:instancias.filters.all_empresas')}</option>
             {empresaOptions.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           <select
@@ -255,7 +253,7 @@ export function InstanciasPage() {
             value={filterActividad}
             onChange={e => { setFilterActividad(e.target.value); setPage(1); }}
           >
-            <option value="">Todas las actividades</option>
+            <option value="">{t('execution:instancias.filters.all_actividades')}</option>
             {actividadOptions.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           {(filterEmpresa || filterActividad) && (
@@ -264,7 +262,7 @@ export function InstanciasPage() {
               style={{ fontSize: '0.78rem', padding: '0.375rem 0.75rem' }}
               onClick={() => { setFilterEmpresa(''); setFilterActividad(''); setPage(1); }}
             >
-              Limpiar filtros
+              {t('execution:instancias.filters.clear')}
             </button>
           )}
         </div>
@@ -274,8 +272,8 @@ export function InstanciasPage() {
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
           <div style={{ width: 3, height: 16, background: 'var(--color-primary)', borderRadius: 9999 }} />
-          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>Generar Enlace</h2>
-          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>— Comparte con múltiples participantes</span>
+          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.generar_enlace.section_title')}</h2>
+          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{t('execution:instancias.generar_enlace.section_subtitle')}</span>
         </div>
 
         <div className="card" style={{ padding: '1rem', background: 'linear-gradient(135deg, #FAFBFF, #F5F8FF)' }}>
@@ -286,10 +284,10 @@ export function InstanciasPage() {
             noValidate
           >
             <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>Actividad</label>
+              <label className="required-label" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>{t('execution:instancias.generar_enlace.actividad_label')}</label>
               <select className="input" style={{ fontSize: '0.82rem' }} required value={formEnlace.actividadId}
                 onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
-                <option value="">Seleccione una actividad</option>
+                <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
                 {actividades.map(a => (
                   <option key={a.id} value={a.id}>
                     {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
@@ -297,17 +295,17 @@ export function InstanciasPage() {
                   </option>
                 ))}
               </select>
-              <div className="invalid-feedback">Seleccione una actividad.</div>
+              <div className="invalid-feedback">{t('execution:instancias.generar_enlace.actividad_required')}</div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>
-                Etiqueta <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(opcional)</span>
+                {t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span>
               </label>
-              <input className="input" style={{ fontSize: '0.82rem' }} placeholder="Ej: Campaña Mayo 2025"
+              <input className="input" style={{ fontSize: '0.82rem' }} placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
                 value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
             </div>
             <button type="submit" className="btn btn-primary" style={{ fontSize: '0.82rem' }} disabled={generandoEnlace}>
-              {generandoEnlace ? 'Generando...' : 'Generar enlace'}
+              {generandoEnlace ? t('execution:instancias.generar_enlace.generating') : t('execution:instancias.generar_enlace.submit')}
             </button>
           </form>
 
@@ -318,11 +316,11 @@ export function InstanciasPage() {
               display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap',
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: '#166534', fontSize: '0.78rem', marginBottom: 2 }}>✓ Enlace generado y copiado</div>
+                <div style={{ fontWeight: 600, color: '#166534', fontSize: '0.78rem', marginBottom: 2 }}>{t('execution:instancias.generar_enlace.success_title')}</div>
                 <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: '#166534' }}>{enlaceGenerado}</code>
               </div>
               <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem', flexShrink: 0 }}
-                onClick={() => navigator.clipboard.writeText(enlaceGenerado)}>Copiar</button>
+                onClick={() => navigator.clipboard.writeText(enlaceGenerado)}>{t('execution:instancias.generar_enlace.copy')}</button>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', flexShrink: 0 }}
                 onClick={() => setEnlaceGenerado(null)}>✕</button>
             </div>
@@ -335,7 +333,7 @@ export function InstanciasPage() {
         <section>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
             <div style={{ width: 3, height: 16, background: '#8B5CF6', borderRadius: 9999 }} />
-            <h2 style={{ margin: 0, fontSize: '0.95rem' }}>Enlaces Activos</h2>
+            <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.enlaces_activos.section_title')}</h2>
             <span style={{
               background: '#EDE9FE', color: '#6D28D9', border: '1px solid #DDD6FE',
               borderRadius: 9999, padding: '1px 8px', fontSize: '0.7rem', fontWeight: 600,
@@ -347,24 +345,24 @@ export function InstanciasPage() {
               <table className="table-compact">
                 <thead>
                   <tr>
-                    <th>Etiqueta</th>
-                    <th>Actividad</th>
-                    <th>Estado</th>
-                    <th>Creado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th>{t('execution:instancias.enlaces_activos.table.etiqueta')}</th>
+                    <th>{t('execution:instancias.enlaces_activos.table.actividad')}</th>
+                    <th>{t('execution:instancias.enlaces_activos.table.estado')}</th>
+                    <th>{t('execution:instancias.enlaces_activos.table.creado')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('execution:instancias.enlaces_activos.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEnlaces.length === 0 ? (
                     <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
-                      No hay enlaces para los filtros aplicados.
+                      {t('execution:instancias.enlaces_activos.table.no_results')}
                     </td></tr>
                   ) : filteredEnlaces.map((e: any) => {
                     const url = `${window.location.origin}/runner/enlace/${e.accessToken}`;
                     return (
                       <tr key={e.id}>
                         <td style={{ fontWeight: 500 }}>
-                          {e.nombre || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Sin etiqueta</span>}
+                          {e.nombre || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.enlaces_activos.table.sin_etiqueta')}</span>}
                         </td>
                         <td>
                           <div>{e.actividad?.nombre || '—'}</div>
@@ -376,7 +374,7 @@ export function InstanciasPage() {
                         </td>
                         <td>
                           <span className={`status-badge ${e.activo ? 'status-success' : 'status-neutral'}`}>
-                            {e.activo ? 'Activo' : 'Inactivo'}
+                            {e.activo ? t('execution:instancias.enlaces_activos.table.activo') : t('execution:instancias.enlaces_activos.table.inactivo')}
                           </span>
                         </td>
                         <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
@@ -385,8 +383,8 @@ export function InstanciasPage() {
                         <td>
                           <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                             <button className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                              onClick={() => { navigator.clipboard.writeText(url); showToast('Enlace copiado'); }}>
-                              Copiar
+                              onClick={() => { navigator.clipboard.writeText(url); showToast(t('execution:instancias.link_copied')); }}>
+                              {t('execution:instancias.enlaces_activos.copy')}
                             </button>
                             <button className="btn btn-danger" style={{ padding: '3px 6px', fontSize: '0.8rem' }}
                               onClick={() => setDeleteEnlaceModal(e.id)} title="Eliminar">🗑️</button>
@@ -406,7 +404,7 @@ export function InstanciasPage() {
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
           <div style={{ width: 3, height: 16, background: '#0EA5E9', borderRadius: 9999 }} />
-          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>Ejecuciones Individuales</h2>
+          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.individuales.section_title')}</h2>
           <span style={{
             background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD',
             borderRadius: 9999, padding: '1px 10px', fontSize: '0.75rem', fontWeight: 600,
@@ -424,7 +422,7 @@ export function InstanciasPage() {
             <input
               className="input"
               style={{ maxWidth: 240, fontSize: '0.78rem' }}
-              placeholder="Buscar por actividad, usuario..."
+              placeholder={t('execution:instancias.filters.search_placeholder')}
               value={search}
               onChange={e => handleSearch(e.target.value)}
             />
@@ -434,13 +432,13 @@ export function InstanciasPage() {
               value={filterEstado}
               onChange={e => handleFilterEstado(e.target.value)}
             >
-              <option value="">Todos los estados</option>
-              <option value="generado">Pendiente</option>
-              <option value="iniciado">En progreso</option>
-              <option value="finalizado">Finalizado</option>
+              <option value="">{t('execution:instancias.filters.all_estados')}</option>
+              <option value="generado">{ESTADO_LABELS.generado}</option>
+              <option value="iniciado">{ESTADO_LABELS.iniciado}</option>
+              <option value="finalizado">{ESTADO_LABELS.finalizado}</option>
             </select>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-              Mostrar
+              {t('execution:instancias.filters.show')}
               <select
                 className="input"
                 style={{ width: 70, fontSize: '0.82rem', padding: '0.375rem 0.5rem' }}
@@ -449,7 +447,7 @@ export function InstanciasPage() {
               >
                 {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              por página
+              {t('execution:instancias.filters.per_page')}
             </div>
           </div>
 
@@ -458,13 +456,13 @@ export function InstanciasPage() {
             <table className="table-compact">
               <thead>
                 <tr>
-                  <th>Estado</th>
-                  <th>Actividad</th>
-                  <th>Usuario</th>
-                  <th>Área</th>
-                  <th>Archivos</th>
-                  <th>Última actualización</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  <th>{t('execution:instancias.individuales.table.estado')}</th>
+                  <th>{t('execution:instancias.individuales.table.actividad')}</th>
+                  <th>{t('execution:instancias.individuales.table.usuario')}</th>
+                  <th>{t('execution:instancias.individuales.table.area')}</th>
+                  <th>{t('execution:instancias.individuales.table.archivos')}</th>
+                  <th>{t('execution:instancias.individuales.table.ultima_actualizacion')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('execution:instancias.individuales.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,7 +477,7 @@ export function InstanciasPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{ins.actividad?.nombre || 'Desconocida'}</div>
+                      <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{ins.actividad?.nombre || t('execution:instancias.individuales.table.desconocida')}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
                         {ins.actividad?.iniciativa?.nombre || '—'}
                       </div>
@@ -492,7 +490,7 @@ export function InstanciasPage() {
                     <td style={{ fontSize: '0.875rem' }}>
                       {ins.usuario?.nombre || (ins.emailReferencia
                         ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
-                        : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>Pendiente</span>
+                        : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.individuales.table.pendiente')}</span>
                       )}
                       {ins.usuario?.cargo && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.cargo}</div>
@@ -523,8 +521,7 @@ export function InstanciasPage() {
                                 type="button"
                                 onClick={async () => {
                                   try {
-                                    const res = await fetch(`${API_URL}/admin/instancias/${ins.id}/respuestas/${r.preguntaId}/archivo-url`);
-                                    if (!res.ok) { alert('No se pudo obtener el enlace de descarga'); return; }
+                                    const res = await fetchWithErrorMapping(`${API_URL}/admin/instancias/${ins.id}/respuestas/${r.preguntaId}/archivo-url`);
                                     const json = await res.json();
                                     if (!json.url) return;
                                     const a = document.createElement('a');
@@ -533,7 +530,7 @@ export function InstanciasPage() {
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
-                                  } catch { alert('Error de conexión al descargar'); }
+                                  } catch (err) { alert(translateError(err)); }
                                 }}
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -559,7 +556,7 @@ export function InstanciasPage() {
                                   borderRadius: 5, fontWeight: 600, textDecoration: 'none',
                                   border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
                                 }}
-                                title="Reconstruido desde el contenido guardado (legacy)"
+                                title={t('execution:instancias.individuales.actions.interaccion_title')}
                               >
                                 ⬇ {labelFor(inter.paso?.titulo)}
                               </a>
@@ -575,21 +572,21 @@ export function InstanciasPage() {
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <Link to={`/admin/instancias/${ins.id}`} className="btn btn-secondary"
                           style={{ padding: '4px 10px', fontSize: '0.78rem', textDecoration: 'none' }}>
-                          Ver resultados
+                          {t('execution:instancias.individuales.actions.view_results')}
                         </Link>
                         <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                           onClick={() => descargarPdf(ins.id)}
-                          title="Descargar preguntas y respuestas en PDF">
+                          title={t('execution:instancias.individuales.actions.pdf_title')}>
                           📄 PDF
                         </button>
                         <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                           onClick={() => descargarZip(ins.id)}
-                          title="Descargar ZIP con PDF y archivos adjuntos">
+                          title={t('execution:instancias.individuales.actions.zip_title')}>
                           📦 ZIP
                         </button>
                         <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                           onClick={() => copyLink(ins.accessToken)}>
-                          Copiar enlace
+                          {t('execution:instancias.individuales.actions.copy_link')}
                         </button>
                         <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.875rem' }}
                           onClick={() => setDeleteModal(ins.id)} title="Eliminar">
@@ -604,14 +601,14 @@ export function InstanciasPage() {
                     <td colSpan={7}>
                       {search || filterEstado || filterEmpresa || filterActividad ? (
                         <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
-                          No hay resultados para los filtros aplicados.
+                          {t('execution:instancias.individuales.no_filter_results')}
                         </div>
                       ) : (
                         <div className="empty-state" style={{ padding: '2.5rem 2rem' }}>
                           <div className="empty-state-icon">📋</div>
-                          <p className="empty-state-title">Aún no hay ejecuciones</p>
+                          <p className="empty-state-title">{t('execution:instancias.individuales.empty.title')}</p>
                           <p className="empty-state-desc">
-                            Genera un enlace arriba y compártelo con los participantes. Cada vez que alguien lo use, aparecerá aquí.
+                            {t('execution:instancias.individuales.empty.description')}
                           </p>
                         </div>
                       )}
@@ -629,7 +626,7 @@ export function InstanciasPage() {
             background: 'var(--color-bg-subtle)', flexWrap: 'wrap', gap: '0.75rem',
           }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              {filtered.length === 0 ? 'Sin resultados' : `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} de ${filtered.length}`}
+              {filtered.length === 0 ? t('execution:instancias.individuales.pagination.no_results') : t('execution:instancias.individuales.pagination.showing', { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, filtered.length), total: filtered.length })}
             </span>
 
             <div style={{ display: 'flex', gap: 4 }}>

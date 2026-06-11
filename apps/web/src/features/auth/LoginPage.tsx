@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
+  const { t } = useTranslation(['auth']);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,21 +17,15 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetchWithErrorMapping(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        onLogin(data.access_token);
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData.message || 'Usuario o contraseña incorrectos. Revisá tus datos.');
-      }
-    } catch (err: any) {
-      setError('Error de conexión. Intentá nuevamente.');
+      const data = await res.json();
+      onLogin(data.access_token);
+    } catch (err) {
+      setError(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -38,7 +36,9 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
       display: 'flex',
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
+      position: 'relative',
     }}>
+      <LanguageSwitcher variant="floating" />
       {/* Left panel */}
       <div style={{
         flex: 1,
@@ -54,20 +54,20 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             marginBottom: '1.5rem',
             objectFit: 'contain'
           }} />
-          <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>Bienvenido</h1>
-          <p style={{ color: '#64748B', marginTop: 8 }}>Inicia sesión en el panel de Decisión IA</p>
+          <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>{t('auth:login_page.welcome')}</h1>
+          <p style={{ color: '#64748B', marginTop: 8 }}>{t('auth:login_page.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: '#94A3B8' }}>
-              Usuario
+              {t('auth:login_page.username_label')}
             </label>
             <input
               className="input"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder={t('auth:login_page.username_placeholder')}
               autoComplete="username"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9375rem' }}
             />
@@ -75,14 +75,14 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
 
           <div>
             <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: '#94A3B8' }}>
-              Contraseña
+              {t('auth:login_page.password_label')}
             </label>
             <input
               className="input"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={t('auth:login_page.password_placeholder')}
               autoComplete="current-password"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9375rem' }}
             />
@@ -107,7 +107,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             disabled={loading}
             style={{ marginTop: 8, padding: '0.75rem', fontSize: '0.9375rem' }}
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading ? t('auth:login_page.submitting') : t('auth:login_page.submit')}
           </button>
         </form>
       </div>
@@ -129,10 +129,10 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             opacity: 0.6,
           }}>📊</div>
           <h2 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '1rem', opacity: 0.9 }}>
-            IAGobernanza
+            {t('auth:login_page.brand_name')}
           </h2>
           <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.7 }}>
-            Plataforma para diseñar, ejecutar y monitorear actividades metodológicas empresariales con asistencia de IA.
+            {t('auth:login_page.brand_tagline')}
           </p>
         </div>
       </div>
