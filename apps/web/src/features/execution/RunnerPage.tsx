@@ -435,6 +435,7 @@ export function RunnerPage() {
           // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId en lugar de (o además de) pasoId.
           formData.append('respuesta', '');
           if (interpolado) formData.append('customPrompt', interpolado);
+          formData.append('locale', i18n.language);
           const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
           if (!res.ok) throw new Error();
           const json = await res.json();
@@ -641,7 +642,11 @@ export function RunnerPage() {
       await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
       if (data?.esCanvas) {
         setCanvasGenerando(true);
-        await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+        await fetch(`${API_URL}/execution/${token}/canvas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locale: i18n.language }),
+        });
         setCanvasGenerando(false);
       }
       await loadData();
@@ -665,6 +670,7 @@ export function RunnerPage() {
       formData.append('respuesta', respuestas[pregunta.id] ?? '');
       const prompt = customPrompts[pregunta.id] ?? '';
       if (prompt) formData.append('customPrompt', prompt);
+      formData.append('locale', i18n.language);
 
       const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Error al consultar la IA');

@@ -11,7 +11,7 @@ export class SintetizarCanvasPorTokenUseCase {
         });
     }
 
-    async execute(token: string): Promise<Record<string, string>> {
+    async execute(token: string, locale: string = 'es'): Promise<Record<string, string>> {
         // Resolver instancia por token
         const instancia = await this.prisma.instanciaActividad.findUnique({
             where: { accessToken: token },
@@ -82,6 +82,10 @@ export class SintetizarCanvasPorTokenUseCase {
 
         const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
+        const LANG_NAMES: Record<string, string> = { es: 'español', pt: 'portugués (Brasil)' };
+        const langName = LANG_NAMES[locale] ?? 'español';
+        const langDirective = `Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia.`;
+
         // Generar síntesis en paralelo — una llamada por bloque
         const tareas = pasos.map(async (paso) => {
             const respuesta = respuestasPorPasoId[paso.id] || '';
@@ -89,7 +93,7 @@ export class SintetizarCanvasPorTokenUseCase {
                 return { pasoId: paso.id, resumen: '' };
             }
 
-            const prompt = `Eres un asistente de análisis estratégico. Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\nRespuesta:\n${respuesta}`;
+            const prompt = `Eres un asistente de análisis estratégico. Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\n${langDirective}\n\nRespuesta:\n${respuesta}`;
 
             try {
                 const response = await this.openai.chat.completions.create({
