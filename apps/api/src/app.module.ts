@@ -35,6 +35,8 @@ import { PrismaEnlaceActividadRepository } from './modules/execution/infrastruct
 
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
+import { TranslationModule } from './modules/translation/translation.module';
+import { TranslationService } from './modules/translation/translation.service';
 
 // Methodology Module Implementations
 import { PrismaActividadRepository } from './modules/methodology/infrastructure/PrismaActividadRepository';
@@ -43,7 +45,7 @@ import { AgregarPasoActividadUseCase } from './modules/methodology/application/A
 import { ObtenerPasosActividadUseCase } from './modules/methodology/application/ObtenerPasosActividadUseCase';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, TranslationModule],
   controllers: [
     EmpresasController,
     IniciativasController,
@@ -157,6 +159,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
       useFactory: (prisma: PrismaService) => new InstanciarPlantillaUseCase(prisma),
       inject: [PrismaService],
     },
+    TranslationService,
   ],
 })
 export class AppModule { }

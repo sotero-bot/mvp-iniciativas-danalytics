@@ -2,7 +2,7 @@
 id: change-002
 req_id: REQ-012
 title: Modelo Translation + TranslationService + overlay en endpoints del taller
-status: aprobado
+status: implementado
 created: 2026-06-11
 supersedes: change-001
 ---

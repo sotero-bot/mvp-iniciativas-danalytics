@@ -1,7 +1,7 @@
 ---
 req_id: REQ-012
 title: Internacionalización (i18n) — soporte ES/PT por sesión
-last_synced: 2026-06-10
+last_synced: 2026-06-11
 ---
 
 # Manifest — REQ-012
@@ -54,8 +54,18 @@ last_synced: 2026-06-10
 
 - Dependencias frontend añadidas (`package.json`): `i18next`, `react-i18next`, `i18next-browser-languagedetector` (change-001).
 
+## Backend — Translation
+
+- `apps/api/src/modules/translation/translation.service.ts` — `TranslationService`: método `applyOverlay(entityType, ids, locale, fields)` con fallback a `es` (change-002).
+- `apps/api/src/modules/translation/translation.module.ts` — `TranslationModule` que provee y exporta `TranslationService` (change-002).
+
+## Base de datos
+
+- `prisma/schema.prisma` — modelo `Translation` con índice único `(entityType, entityId, field, locale)` e índice de consulta `(entityType, entityId, locale)` (change-002).
+
 ## Notas
 
-- El módulo de migraciones del proyecto sigue siendo `prisma db push`. change-001 no introduce cambios de schema; el modelo `Translation` se incorpora en change-002.
-- Strings hardcodeados del contenido del taller (preguntas, instrucciones, plantillas) permanecen en español y se atacarán en change-002 (modelo `Translation`) y change-004 (seed PT).
+- El módulo de migraciones del proyecto sigue siendo `prisma db push`.
+- `GET /execution/:token?locale=pt` aplica overlay de `TranslationService` sobre campos de texto de `PasoActividad` y `PreguntaActividad` (change-002).
 - Los prompts a OpenAI y la generación del PDF/Canvas/Excel mantienen idioma por defecto (`es`) hasta change-003.
+- Seed PT del contenido vigente queda para change-004.

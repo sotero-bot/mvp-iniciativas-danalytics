@@ -1,7 +1,7 @@
 ---
 req_id: REQ-012
 title: Internacionalización (i18n) — soporte ES/PT por sesión
-status: aprobado
+status: implementado
 current_state: change-002
 ---
 

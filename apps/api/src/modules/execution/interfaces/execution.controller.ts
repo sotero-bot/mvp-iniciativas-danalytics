@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Res, Headers } from '@nestjs/common';
 import { AppError } from '../../../shared/errors/AppError';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,6 +23,7 @@ import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundEr
 import { BusinessRuleViolationError } from '../../../shared/domain/DomainError';
 import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
+import { TranslationService } from '../../translation/translation.service';
 
 @Controller('execution')
 export class ExecutionController {
@@ -37,6 +38,7 @@ export class ExecutionController {
     private readonly sintetizarCanvasUseCase: SintetizarCanvasPorTokenUseCase,
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly translations: TranslationService,
   ) { }
 
   /** Resuelve un enlace permanente → crea una nueva InstanciaActividad y devuelve su token */
@@ -52,7 +54,10 @@ export class ExecutionController {
   }
 
   @Get(':token')
-  async getByToken(@Param('token') token: string): Promise<RunnerResponseDto> {
+  async getByToken(
+    @Param('token') token: string,
+    @Query('locale') locale: string = 'es',
+  ): Promise<RunnerResponseDto> {
     try {
       const instancia = await this.accederUseCase.execute(token);
 
@@ -155,6 +160,16 @@ export class ExecutionController {
 
       const esCanvas = ((actividad as any).plantillaOrigen?.nombre ?? '').includes('Analytics Canvas');
 
+      const normalizedLocale = (locale ?? 'es').toLowerCase().startsWith('pt') ? 'pt' : 'es';
+
+      const pasoIds = actividad.pasos.map(p => p.id);
+      const preguntaIds = actividad.pasos.flatMap(p => (p as any).preguntas?.map((q: any) => q.id) ?? []);
+
+      const [pasoOverlay, preguntaOverlay] = await Promise.all([
+        this.translations.applyOverlay('PasoActividad', pasoIds, normalizedLocale, ['titulo', 'objetivo', 'instrucciones', 'promptIa']),
+        this.translations.applyOverlay('PreguntaActividad', preguntaIds, normalizedLocale, ['enunciado', 'promptIa']),
+      ]);
+
       return new RunnerResponseDto({
         estado: instancia.estado,
         nombreActividad: actividad.nombre,
@@ -165,33 +180,39 @@ export class ExecutionController {
         logoEmpresa: (actividad as any).iniciativa?.empresa?.logoUrl || undefined,
         usuarioId: instancia.usuarioId,
         esCanvas,
-        pasos: actividad.pasos.map(p => ({
-          id: p.id,
-          titulo: p.titulo,
-          orden: p.orden,
-          objetivo: p.objetivo || undefined,
-          instrucciones: p.instrucciones || undefined,
-          usarIa: p.usarIa,
-          iaAutomatica: p.iaAutomatica || false,
-          promptIa: p.promptIa || plantillaPasoPromptIaFallback[p.orden] || undefined,
-          permitirArchivo: p.permitirArchivo || false,
-          soloArchivo: p.soloArchivo || false,
-          urlPlantilla: p.urlPlantilla || undefined,
-          ejemploKey: (p as any).ejemploKey || undefined,
-          preguntas: (p as any).preguntas?.map((q: any) => ({
-            id: q.id,
-            orden: q.orden,
-            enunciado: q.enunciado,
-            permitirArchivo: q.permitirArchivo,
-            soloArchivo: q.soloArchivo,
-            usarIa: q.usarIa,
-            iaAutomatica: q.iaAutomatica,
-            promptIa: q.promptIa || plantillaPromptIaFallback[`${(p as any).orden}:${q.orden}`] || undefined,
-            urlPlantilla: q.urlPlantilla || undefined,
-            urlPromptTemplate: efectivePromptKey[q.id] || undefined,
-            promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
-          })) ?? [],
-        })),
+        pasos: actividad.pasos.map(p => {
+          const po = pasoOverlay[p.id] ?? {};
+          return {
+            id: p.id,
+            titulo: po['titulo'] ?? p.titulo,
+            orden: p.orden,
+            objetivo: po['objetivo'] ?? p.objetivo ?? undefined,
+            instrucciones: po['instrucciones'] ?? p.instrucciones ?? undefined,
+            usarIa: p.usarIa,
+            iaAutomatica: p.iaAutomatica || false,
+            promptIa: po['promptIa'] ?? p.promptIa ?? plantillaPasoPromptIaFallback[p.orden] ?? undefined,
+            permitirArchivo: p.permitirArchivo || false,
+            soloArchivo: p.soloArchivo || false,
+            urlPlantilla: p.urlPlantilla || undefined,
+            ejemploKey: (p as any).ejemploKey || undefined,
+            preguntas: (p as any).preguntas?.map((q: any) => {
+              const qo = preguntaOverlay[q.id] ?? {};
+              return {
+                id: q.id,
+                orden: q.orden,
+                enunciado: qo['enunciado'] ?? q.enunciado,
+                permitirArchivo: q.permitirArchivo,
+                soloArchivo: q.soloArchivo,
+                usarIa: q.usarIa,
+                iaAutomatica: q.iaAutomatica,
+                promptIa: qo['promptIa'] ?? q.promptIa ?? plantillaPromptIaFallback[`${(p as any).orden}:${q.orden}`] ?? undefined,
+                urlPlantilla: q.urlPlantilla || undefined,
+                urlPromptTemplate: efectivePromptKey[q.id] || undefined,
+                promptIaInline: promptInlineByPreguntaId[q.id] || undefined,
+              };
+            }) ?? [],
+          };
+        }),
         fechaInicio: instancia.fechaInicio?.toISOString(),
         fechaFin: instancia.fechaFin?.toISOString(),
         usuario: usuarioData,
