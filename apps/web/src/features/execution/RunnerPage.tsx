@@ -8,6 +8,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { Toast } from '../../components/Toast';
 import { buildResumenHtml } from './buildResumenHtml';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -104,35 +105,36 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
         {t('app_name')}
       </span>
 
-      {(nombreEmpresa || nombreActividad) ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end',
-          overflow: 'hidden', minWidth: 0,
-        }}>
-          <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
-          {logoEmpresa ? (
-            <img src={logoEmpresa} alt={nombreEmpresa}
-              style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', flexShrink: 0, border: '1px solid #E2E8F0' }} />
-          ) : nombreEmpresa ? (
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #2563EB, #0F172A)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.6rem', fontWeight: 700, color: 'white',
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end' }}>
+        {(nombreEmpresa || nombreActividad) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0 }}>
+            <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
+            {logoEmpresa ? (
+              <img src={logoEmpresa} alt={nombreEmpresa}
+                style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', flexShrink: 0, border: '1px solid #E2E8F0' }} />
+            ) : nombreEmpresa ? (
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.6rem', fontWeight: 700, color: 'white',
+              }}>
+                {nombreEmpresa.charAt(0).toUpperCase()}
+              </div>
+            ) : null}
+            <span style={{
+              fontSize: '0.78rem', color: '#475569', overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {nombreEmpresa.charAt(0).toUpperCase()}
-            </div>
-          ) : null}
-          <span style={{
-            fontSize: '0.78rem', color: '#475569', overflow: 'hidden',
-            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {nombreEmpresa && <span style={{ fontWeight: 600 }}>{nombreEmpresa}</span>}
-            {nombreEmpresa && nombreActividad && <span style={{ color: '#CBD5E1', margin: '0 5px' }}>·</span>}
-            {nombreActividad && <span>{nombreActividad}</span>}
-          </span>
-        </div>
-      ) : <div />}
+              {nombreEmpresa && <span style={{ fontWeight: 600 }}>{nombreEmpresa}</span>}
+              {nombreEmpresa && nombreActividad && <span style={{ color: '#CBD5E1', margin: '0 5px' }}>·</span>}
+              {nombreActividad && <span>{nombreActividad}</span>}
+            </span>
+          </div>
+        )}
+        <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
+        <LanguageSwitcher variant="header" />
+      </div>
     </div>
   );
 }
