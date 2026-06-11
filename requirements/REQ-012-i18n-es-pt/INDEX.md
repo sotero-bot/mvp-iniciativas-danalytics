@@ -1,8 +1,8 @@
 ---
 req_id: REQ-012
 title: Internacionalización (i18n) — soporte ES/PT por sesión
-status: implementado
-current_state: change-001
+status: aprobado
+current_state: change-002
 ---
 
 # REQ-012 — Internacionalización (i18n) — soporte ES/PT por sesión: Estado consolidado actual
@@ -13,12 +13,11 @@ Permitir al usuario seleccionar el idioma de la plataforma por sesión (español
 
 ## Estado de implementación
 
-**En implementación (parcial).** change-001 aprobado el 2026-06-10: infraestructura i18n frontend, UI 100% traducida ES/PT, códigos de error backend. Quedan pendientes:
-- change-002: modelo `Translation` + servicio backend + integración con contenido del taller.
+**En implementación (parcial).** change-002 aprobado el 2026-06-11: modelo `Translation` + `TranslationService` + overlay en endpoints del taller. Quedan pendientes:
 - change-003: prompts IA con locale dinámico + PDF/Canvas/Excel en idioma de sesión.
 - change-004: seed PT del contenido vigente del taller.
 
-## Funcionalidades vigentes (tras change-001)
+## Funcionalidades vigentes (tras change-002)
 
 - Selector de idioma ES/PT visible en el header de la plataforma; cambio inmediato sin recargar.
 - Persistencia de la elección en `localStorage` (clave `i18nextLng`).
@@ -26,21 +25,24 @@ Permitir al usuario seleccionar el idioma de la plataforma por sesión (español
 - UI estática 100% traducida: botones, navegación, validaciones, modales, toasts, formularios, mensajes de error.
 - Backend NestJS devuelve errores con shape `{ code, message, details? }`; frontend los mapea a texto traducido vía `errors.json`.
 - Infraestructura `i18next` con namespaces por feature (`common`, `auth`, `admin`, `execution`, `methodology`, `organization`, `errors`).
+- Tabla `Translation` en BD: overlay de contenido dinámico del taller por locale. Índice único `(entityType, entityId, field, locale)`.
+- `TranslationService` NestJS: resuelve traducciones con fallback a `es` cuando no hay fila para el locale solicitado.
+- `GET /execution/:token?locale=pt` devuelve pasos y preguntas con campos de texto traducidos al locale solicitado; si no hay traducción, devuelve el valor nativo en español.
 
 ## Funcionalidades pendientes
 
-- Contenido del taller (preguntas, instrucciones, prompts, plantillas) traducido vía tabla `Translation` (change-002).
 - Prompts a OpenAI con directiva dinámica de idioma (change-003).
 - PDF final, Canvas HTML descargable y Excel en idioma de sesión (change-003).
 - Seed inicial con traducciones PT del contenido vigente (change-004).
 
 ## Entidades de BD
 
-Ninguna en change-001. `Translation` se introduce en change-002.
+- `Translation`: `id` (uuid), `entityType` (String), `entityId` (String), `field` (String), `locale` (String), `value` (Text), `createdAt`, `updatedAt`. Índice único `(entityType, entityId, field, locale)`. Índice de consulta `(entityType, entityId, locale)`.
 
 ## Historial de cambios
 
-| Change     | Descripción                                                              | Estado    |
-| ---------- | ------------------------------------------------------------------------ | --------- |
-| initial    | Creación del REQ                                                         | archived  |
-| change-001 | Infraestructura i18n frontend + UI ES/PT + códigos de error backend      | implementado |
+| Change     | Descripción                                                                         | Estado       |
+| ---------- | ----------------------------------------------------------------------------------- | ------------ |
+| initial    | Creación del REQ                                                                    | archived     |
+| change-001 | Infraestructura i18n frontend + UI ES/PT + códigos de error backend                 | superseded   |
+| change-002 | Modelo Translation + TranslationService + overlay en endpoints del taller           | aprobado     |

@@ -2,10 +2,13 @@
 id: change-001
 req_id: REQ-012
 title: Infraestructura i18n frontend + UI ES/PT + códigos de error backend
-status: implementado
+status: superseded
+superseded_by: change-002
 created: 2026-06-10
 supersedes: initial
 ---
+
+> ⚠️ **ESTADO HISTÓRICO.** Superseded by change-002. El estado vigente vive en `INDEX.md`. NO usar como fuente de verdad.
 
 # change-001 — Infraestructura i18n frontend + UI ES/PT + códigos de error backend
 
