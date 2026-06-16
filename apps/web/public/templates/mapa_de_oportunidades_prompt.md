@@ -268,8 +268,6 @@ La tabla debe tener dos bloques de columnas:
 
 Estas son exactamente las columnas que debe tener la tabla final, en este orden. No agregues ni elimines columnas.
 
-**Hipótesis de impacto esperado** existe en la plantilla Excel pero NO la generes — la diligencia el equipo después con base en su conocimiento interno.
-
 No inventes estas respuestas.
 
 No asignes puntajes internos.
