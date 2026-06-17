@@ -50,6 +50,8 @@ Cuando algo no esté confirmado, usa expresiones como:
 
 {{paso_2}}
 
+Los retos fueron descritos libremente por el usuario. Genera exactamente una fila por cada dolor distinto que identifiques — ni más ni menos. No inventes dolores que el usuario no mencionó.
+
 ---
 
 # Objetivo del análisis
@@ -165,7 +167,7 @@ Clasifica cada oportunidad en una de estas categorías:
 
 Para cada dolor identificado:
 
-1. Conserva el dolor identificado de forma clara.
+1. Describe el dolor con suficiente detalle para entender el problema y su consecuencia sin releer el texto original. No uses solo un título corto. No dupliques dolores.
 2. Identifica el proceso relacionado.
 3. Clasifica el tipo de problema.
 4. Formula una oportunidad de mejora concreta.
@@ -245,14 +247,14 @@ Ejemplos:
 
 # Salida esperada
 
-Devuelve una tabla con máximo 10 oportunidades.
+Devuelve una tabla con una fila por cada dolor identificado. El mínimo es la cantidad de dolores que el usuario describió. El máximo es 10 — si el usuario describió más, prioriza los más distintos entre sí y descarta los que sean muy similares a otro ya incluido. No inventes filas adicionales.
 
 La tabla debe tener dos bloques de columnas:
 
 ## Bloque A: columnas que debes diligenciar tú como IA
 
 1. Área
-2. Dolor identificado
+2. Dolor identificado — describe el problema y su consecuencia con suficiente detalle para entenderlo sin releer el texto. No uses solo un título corto.
 3. Proceso relacionado
 4. Tipo de problema
 5. Oportunidad de mejora

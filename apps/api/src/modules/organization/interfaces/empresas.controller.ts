@@ -75,9 +75,9 @@ export class EmpresasController {
     if (!file) throw new AppError('ARCHIVO_REQUIRED');
 
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.pdf') {
+    if (ext !== '.pdf' && ext !== '.md') {
       try { fs.unlinkSync(file.path); } catch { /* ignore */ }
-      throw new AppError('ARCHIVO_INVALID', { message: 'Solo se admiten archivos PDF' });
+      throw new AppError('ARCHIVO_INVALID', { message: 'Solo se admiten archivos PDF o Markdown (.md)' });
     }
 
     try {

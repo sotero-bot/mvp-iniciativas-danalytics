@@ -340,7 +340,7 @@ export function EmpresasPage() {
                       borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE',
                     }}>
                       {t('organization:empresas.pdf_field.replace')}
-                      <input type="file" accept=".pdf" style={{ display: 'none' }}
+                      <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
                         onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
                     </label>
                     <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#EF4444', padding: 0 }}
@@ -353,7 +353,7 @@ export function EmpresasPage() {
                     borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
                   }}>
                     {t('organization:empresas.pdf_field.upload_pdf')}
-                    <input type="file" accept=".pdf" style={{ display: 'none' }}
+                    <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
                       onChange={e => { const f = e.target.files?.[0]; if (f) setEditPdfFile(f); }} />
                   </label>
                 )}
@@ -453,7 +453,7 @@ export function EmpresasPage() {
                 borderRadius: 6, cursor: 'pointer', border: '1px solid #BFDBFE', fontWeight: 500,
               }}>
                 {t('organization:empresas.pdf_field.upload_pdf')}
-                <input type="file" accept=".pdf" style={{ display: 'none' }}
+                <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) setCreatePdfFile(f); }} />
               </label>
             )}
