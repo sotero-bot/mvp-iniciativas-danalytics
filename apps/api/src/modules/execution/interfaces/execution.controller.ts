@@ -8,7 +8,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { extractTextFromFile } from '../../../shared/utils/extractTextFromFile';
 import { excelToMarkdown } from '../../../shared/utils/excelToMarkdown';
-import { parseTableFromContent } from '../../../shared/utils/parseTableFromContent';
+import { parseTablePositional } from '../../../shared/utils/parseTableFromContent';
 import { AccederInstanciaPorTokenUseCase } from '../application/AccederInstanciaPorTokenUseCase';
 import { IniciarInstanciaPorTokenUseCase } from '../application/IniciarInstanciaPorTokenUseCase';
 import { RegistrarRespuestaPorTokenUseCase } from '../application/RegistrarRespuestaPorTokenUseCase';
@@ -323,42 +323,10 @@ export class ExecutionController {
           orderBy: { orden: 'desc' },
         });
 
-    // 14 columnas que la IA genera (cols 1-14 del Excel).
+    // 14 columnas que la IA llena (cols 1-14 del Excel).
     // Col 15 "Hipótesis de impacto esperado" se deja vacía: la diligencia el equipo.
-    const HEADERS = [
-      'Área',
-      'Dolor identificado',
-      'Proceso relacionado',
-      'Tipo de problema',
-      'Oportunidad de mejora',
-      'Tipo de solución sugerida',
-      '¿Requiere IA?',
-      '¿IA generativa aplica?',
-      'Justificación de la solución sugerida',
-      'Alternativa más simple a evaluar',
-      'Qué debe estar ordenado antes de implementar',
-      'Qué aportaría la IA si esas condiciones existen',
-      'Datos, documentos o insumos necesarios',
-      'Orientación sobre esfuerzo técnico',
-    ];
-
-    // Mapeo 1:1 — el prompt genera las columnas con los mismos nombres que los headers
-    const COLUMN_MAP: Record<string, string> = {
-      'Área':                                            'Área',
-      'Dolor identificado':                              'Dolor identificado',
-      'Proceso relacionado':                             'Proceso relacionado',
-      'Tipo de problema':                                'Tipo de problema',
-      'Oportunidad de mejora':                           'Oportunidad de mejora',
-      'Tipo de solución sugerida':                       'Tipo de solución sugerida',
-      '¿Requiere IA?':                                   '¿Requiere IA?',
-      '¿IA generativa aplica?':                          '¿IA generativa aplica?',
-      'Justificación de la solución sugerida':           'Justificación de la solución sugerida',
-      'Alternativa más simple a evaluar':                'Alternativa más simple a evaluar',
-      'Qué debe estar ordenado antes de implementar':    'Qué debe estar ordenado antes de implementar',
-      'Qué aportaría la IA si esas condiciones existen': 'Qué aportaría la IA si esas condiciones existen',
-      'Datos, documentos o insumos necesarios':          'Datos, documentos o insumos necesarios',
-      'Orientación sobre esfuerzo técnico':              'Orientación sobre esfuerzo técnico',
-    };
+    // El llenado es posicional (no por nombre) para que funcione en cualquier idioma.
+    const NUM_COLS_IA = 14;
 
     // Prioridad 1: parámetro enviado en el body (sesión actual, IA recién ejecutada)
     // Prioridad 2: interacción ya guardada en BD (sesión anterior)
@@ -391,17 +359,16 @@ export class ExecutionController {
 
     // Filas 1 y 2 son cabeceras/descripciones de la plantilla → empezamos a escribir en fila 3.
     // Solo escribimos columnas 1..15 (las que llena la IA); 16..27 quedan intactas para el equipo.
-    const filas = parseTableFromContent(contenidoIa);
-    const filasNoVacias = filas.filter(fila => !Object.values(fila).every(v => !v));
+    const filas = parseTablePositional(contenidoIa);
+    const filasNoVacias = filas.filter(fila => fila.some(v => v));
 
     filasNoVacias.forEach((fila, i) => {
       const row = ws.getRow(3 + i);
-      HEADERS.forEach((h, c) => {
-        const valor = COLUMN_MAP[h] ? (fila[COLUMN_MAP[h]] ?? '') : '';
+      for (let c = 0; c < NUM_COLS_IA; c++) {
         const cell = row.getCell(c + 1);
-        cell.value = valor;
+        cell.value = fila[c] ?? '';
         cell.alignment = { vertical: 'top', wrapText: true };
-      });
+      }
       row.height = 60;
       row.commit();
     });

@@ -1,4 +1,42 @@
 /**
+ * Extrae filas como arrays de valores por posición, ignorando los nombres de columna.
+ * Robusto ante traducciones: funciona aunque el LLM haya traducido los headers.
+ */
+export function parseTablePositional(content: string): string[][] {
+  const htmlTableMatch = content.match(/<table[\s\S]*?<\/table>/i);
+  if (htmlTableMatch) {
+    return parseHtmlTablePositional(htmlTableMatch[0]);
+  }
+  return parseMarkdownTablePositional(stripHtml(content));
+}
+
+function parseHtmlTablePositional(html: string): string[][] {
+  const rowMatches = [...html.matchAll(/<tr[\s\S]*?<\/tr>/gi)];
+  const result: string[][] = [];
+  let isFirst = true;
+  for (const row of rowMatches) {
+    if (isFirst) { isFirst = false; continue; } // skip header row
+    const cellMatches = [...row[0].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
+    if (cellMatches.length === 0) continue;
+    result.push(cellMatches.map(m => stripHtml(m[1]).trim()));
+  }
+  return result;
+}
+
+function parseMarkdownTablePositional(text: string): string[][] {
+  const lines = text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.startsWith('|') && l.endsWith('|'));
+
+  if (lines.length < 3) return [];
+  // lines[0] = headers, lines[1] = separator (|---|), lines[2+] = data
+  return lines.slice(2).map(line =>
+    line.split('|').map(c => c.trim()).filter(Boolean)
+  );
+}
+
+/**
  * Extrae filas de una tabla a partir de contenido HTML o markdown.
  * Devuelve un array de objetos { columna: valor }.
  */
