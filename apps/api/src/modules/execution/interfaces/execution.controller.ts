@@ -303,7 +303,7 @@ export class ExecutionController {
   async plantillaPrefilled(
     @Param('token') token: string,
     @Param('pasoId') pasoId: string,
-    @Body() body: { respuestaIa?: string },
+    @Body() body: { respuestaIa?: string; locale?: string },
     @Res() res: Response
   ): Promise<void> {
     const instancia = await this.prisma.instanciaActividad.findUnique({
@@ -327,6 +327,42 @@ export class ExecutionController {
     // Col 15 "Hipótesis de impacto esperado" se deja vacía: la diligencia el equipo.
     // El llenado es posicional (no por nombre) para que funcione en cualquier idioma.
     const NUM_COLS_IA = 14;
+    const locale = ['es', 'pt'].includes(body?.locale ?? '') ? body!.locale! : 'es';
+
+    const HEADER_LABELS: Record<string, string[]> = {
+      es: [
+        'Área',
+        'Dolor identificado',
+        'Proceso relacionado',
+        'Tipo de problema',
+        'Oportunidad de mejora',
+        'Tipo de solución sugerida',
+        '¿Requiere IA?',
+        '¿IA generativa aplica?',
+        'Justificación de la solución sugerida',
+        'Alternativa más simple a evaluar',
+        'Qué debe estar ordenado antes de implementar',
+        'Qué aportaría la IA si esas condiciones existen',
+        'Datos, documentos o insumos necesarios',
+        'Orientación sobre esfuerzo técnico',
+      ],
+      pt: [
+        'Área',
+        'Dor identificada',
+        'Processo relacionado',
+        'Tipo de problema',
+        'Oportunidade de melhoria',
+        'Tipo de solução sugerida',
+        'Requer IA?',
+        'IA generativa se aplica?',
+        'Justificativa da solução sugerida',
+        'Alternativa mais simples a avaliar',
+        'O que deve estar organizado antes de implementar',
+        'O que a IA aportaria se essas condições existirem',
+        'Dados, documentos ou insumos necessários',
+        'Orientação sobre esforço técnico',
+      ],
+    };
 
     // Prioridad 1: parámetro enviado en el body (sesión actual, IA recién ejecutada)
     // Prioridad 2: interacción ya guardada en BD (sesión anterior)
@@ -355,6 +391,17 @@ export class ExecutionController {
     const ws = wb.worksheets[0]; // Primera hoja: "Priorización"
     if (!ws) {
       throw new Error('La plantilla base no tiene hojas');
+    }
+
+    // Si el locale no es ES, sobreescribir los headers de la fila 1 con la traducción correspondiente.
+    // Solo se tocan las cols 1-14; el estilo existente (color, fuente, etc.) se conserva.
+    if (locale !== 'es') {
+      const labels = HEADER_LABELS[locale] ?? HEADER_LABELS['es'];
+      const headerRow = ws.getRow(1);
+      labels.forEach((label, c) => {
+        headerRow.getCell(c + 1).value = label;
+      });
+      headerRow.commit();
     }
 
     // Filas 1 y 2 son cabeceras/descripciones de la plantilla → empezamos a escribir en fila 3.

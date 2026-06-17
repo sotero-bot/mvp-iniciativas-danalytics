@@ -547,7 +547,7 @@ export function RunnerPage() {
       const res = await fetch(`${API_URL}/execution/${token}/plantilla-prefilled/${pasoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ respuestaIa: respuestasIa[preguntaId] || undefined }),
+        body: JSON.stringify({ respuestaIa: respuestasIa[preguntaId] || undefined, locale: i18n.language }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

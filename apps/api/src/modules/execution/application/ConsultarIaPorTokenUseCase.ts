@@ -63,7 +63,7 @@ export class ConsultarIaPorTokenUseCase {
 
         const LANG_NAMES: Record<string, string> = { es: 'español', pt: 'portugués (Brasil)' };
         const langName = LANG_NAMES[locale] ?? 'español';
-        const langDirective = `IDIOMA DE RESPUESTA: Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia, independientemente del idioma de las instrucciones.`;
+        const langDirective = `IDIOMA DE RESPUESTA: Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia, independientemente del idioma de las instrucciones. Si tu respuesta incluye una tabla, debe tener EXACTAMENTE el mismo número de columnas y en el mismo orden que se especifica en las instrucciones — puedes traducir los nombres de columna, pero no añadas ni elimines columnas.`;
 
         const systemPrompt = `${contextoEmpresa}\n\n---\n\n${promptBase}\n\n---\n\n${langDirective}`;
 
