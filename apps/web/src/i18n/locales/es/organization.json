@@ -41,8 +41,8 @@
       "remove": "✕ Quitar",
       "replace": "Reemplazar",
       "remove_pdf": "✕ Quitar PDF",
-      "upload_pdf": "Subir PDF de contexto",
-      "context_hint": "El texto del PDF se inyectará en todos los prompts de IA de esta empresa."
+      "upload_pdf": "Subir contexto (PDF / Markdown)",
+      "context_hint": "El contenido del archivo se inyectará en todos los prompts de IA de esta empresa. Se aceptan PDF y Markdown (.md)."
     },
     "actions": {
       "edit": "Editar",
@@ -50,8 +50,8 @@
       "delete": "Eliminar",
       "delete_empresa": "Eliminar empresa",
       "upload_logo": "Subir logo",
-      "upload_pdf": "Subir PDF de contexto",
-      "delete_pdf": "Quitar PDF"
+      "upload_pdf": "Subir contexto (PDF / Markdown)",
+      "delete_pdf": "Quitar archivo"
     },
     "delete_modal": {
       "title": "¿Eliminar Empresa?",
