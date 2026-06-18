@@ -310,8 +310,6 @@ Siempre justifica la respuesta.
 
 # Reglas de calidad
 
-Respuesta debe ser 100% en español
-
 Evita respuestas genéricas como:
 
 - "Implementar un chatbot."
