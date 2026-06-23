@@ -38,19 +38,17 @@ const SLOT_STYLES: Record<SlotKey, SlotStyle> = {
     valor:        { area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
 };
 
-function matchSlot(titulo: string): SlotKey | null {
-    const t = titulo.toLowerCase();
-    if (t.includes('dato') || t.includes('fuente')) return 'datos';
-    if (t.includes('solución') || t.includes('solucion') || t.includes('oportunidad')) return 'oportunidad';
-    if (t.includes('problema') || t.includes('reto')) return 'problema';
-    if (t.includes('usuario')) return 'usuarios';
-    if (t.includes('actor') || t.includes('equipo') || t.includes('responsable')) return 'actores';
-    if (t.includes('kpi') || t.includes('indicador') || t.includes('éxito') || t.includes('exito')) return 'indicadores';
-    if (t.includes('entregable')) return 'entregables';
-    if (t.includes('barrera') || t.includes('riesgo') || t.includes('restricción') || t.includes('restriccion')) return 'restricciones';
-    if (t.includes('valor') || t.includes('potencial') || t.includes('estratégico') || t.includes('estrategico')) return 'valor';
-    return null;
-}
+const ORDEN_TO_SLOT: Record<number, SlotKey> = {
+    1: 'problema',
+    2: 'oportunidad',
+    3: 'datos',
+    4: 'usuarios',
+    5: 'entregables',
+    6: 'actores',
+    7: 'indicadores',
+    8: 'restricciones',
+    9: 'valor',
+};
 
 function StickyNote({ text, bg }: { text: string; bg: string }) {
     return (
@@ -137,10 +135,10 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
         valor: t('execution:canvas.blocks.potencial'),
     };
 
-    // Mapear pasos a slots
+    // Mapear pasos a slots por orden (independiente del idioma)
     const slotMap: Partial<Record<SlotKey, { lines: string[] }>> = {};
     for (const paso of pasos) {
-        const key = matchSlot(paso.titulo);
+        const key = ORDEN_TO_SLOT[paso.orden];
         if (!key) continue;
         const raw = bloques[paso.id] ?? '';
         const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);

@@ -11,7 +11,7 @@ export class SintetizarCanvasPorTokenUseCase {
         });
     }
 
-    async execute(token: string, locale: string = 'es'): Promise<Record<string, string>> {
+    async execute(token: string, locale: string = 'es', force: boolean = false): Promise<Record<string, string>> {
         // Resolver instancia por token
         const instancia = await this.prisma.instanciaActividad.findUnique({
             where: { accessToken: token },
@@ -47,6 +47,7 @@ export class SintetizarCanvasPorTokenUseCase {
         });
 
         if (
+            !force &&
             bloquesExistentes.length === pasos.length &&
             pasos.length > 0 &&
             bloquesExistentes.every(b => b.locale === locale)

@@ -319,6 +319,12 @@
     "download_html": "Descargar HTML",
     "generating": "Generando...",
     "generate_canvas": "Generar canvas",
+    "regenerate_canvas": "Regenerar canvas",
+    "regenerate_modal": {
+      "title": "¿Regenerar el canvas?",
+      "body": "El canvas actual será reemplazado por una nueva síntesis generada con IA. Esta acción no se puede deshacer.",
+      "confirm": "Sí, regenerar"
+    },
     "generating_canvas": "Generando síntesis IA...",
     "canvas_not_generated": "El canvas aún no fue generado.",
     "canvas_title": "Lienzo de oportunidad",

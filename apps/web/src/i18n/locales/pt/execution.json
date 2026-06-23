@@ -319,6 +319,12 @@
     "download_html": "Baixar HTML",
     "generating": "Gerando...",
     "generate_canvas": "Gerar canvas",
+    "regenerate_canvas": "Regenerar canvas",
+    "regenerate_modal": {
+      "title": "Regenerar o canvas?",
+      "body": "O canvas atual será substituído por uma nova síntese gerada com IA. Esta ação não pode ser desfeita.",
+      "confirm": "Sim, regenerar"
+    },
     "generating_canvas": "Gerando síntese IA...",
     "canvas_not_generated": "O canvas ainda não foi gerado.",
     "canvas_title": "Tela de oportunidade",

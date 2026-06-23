@@ -286,11 +286,12 @@ export class ExecutionController {
   @HttpCode(HttpStatus.OK)
   async sintetizarCanvas(
     @Param('token') token: string,
-    @Body() body?: { locale?: string },
+    @Body() body?: { locale?: string; force?: boolean },
   ): Promise<{ bloques: Record<string, string> }> {
     try {
       const locale = ['es', 'pt'].includes(body?.locale ?? '') ? body!.locale! : 'es';
-      const bloques = await this.sintetizarCanvasUseCase.execute(token, locale);
+      const force = body?.force === true;
+      const bloques = await this.sintetizarCanvasUseCase.execute(token, locale, force);
       return { bloques };
     } catch (error) {
       this.handleError(error);

@@ -7,6 +7,7 @@ import { buildResumenHtml } from './buildResumenHtml';
 import { CanvasGrid } from './CanvasGrid';
 import { buildCanvasHtml } from './buildCanvasHtml';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -65,29 +66,15 @@ export function RunnerResultsPage() {
     const [error, setError] = useState('');
     const [canvasBloques, setCanvasBloques] = useState<Record<string, string>>({});
     const [canvasLoading, setCanvasLoading] = useState(false);
+    const [showRegenerarModal, setShowRegenerarModal] = useState(false);
 
+    // Recarga datos (títulos, preguntas) cuando cambia el idioma
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}`);
+                const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}?locale=${i18n.language}`);
                 const json: RunnerData = await res.json();
                 setData(json);
-
-                // Si es Analytics Canvas, cargar síntesis automáticamente
-                if (json.esCanvas) {
-                    setCanvasLoading(true);
-                    try {
-                        const canvasRes = await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
-                        if (canvasRes.ok) {
-                            const canvasJson = await canvasRes.json();
-                            setCanvasBloques(canvasJson.bloques ?? {});
-                        }
-                    } catch {
-                        // No bloquear el render si falla la síntesis
-                    } finally {
-                        setCanvasLoading(false);
-                    }
-                }
             } catch (err) {
                 setError(translateError(err));
             } finally {
@@ -95,7 +82,30 @@ export function RunnerResultsPage() {
             }
         };
         fetchData();
-    }, [token]);
+    }, [token, i18n.language]);
+
+    // Carga el canvas solo al montar — no se repite al cambiar idioma
+    useEffect(() => {
+        const fetchCanvas = async () => {
+            setCanvasLoading(true);
+            try {
+                const canvasRes = await fetch(`${API_URL}/execution/${token}/canvas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locale: i18n.language }),
+                });
+                if (canvasRes.ok) {
+                    const canvasJson = await canvasRes.json();
+                    setCanvasBloques(canvasJson.bloques ?? {});
+                }
+            } catch {
+                // No bloquear el render si falla la síntesis
+            } finally {
+                setCanvasLoading(false);
+            }
+        };
+        fetchCanvas();
+    }, [token]); // solo token — no i18n.language
 
     if (loading) return (
         <div className="runner-center">
@@ -136,10 +146,14 @@ export function RunnerResultsPage() {
         URL.revokeObjectURL(url);
     };
 
-    const handleGenerarCanvas = async () => {
+    const handleGenerarCanvas = async (force = false) => {
         setCanvasLoading(true);
         try {
-            const res = await fetch(`${API_URL}/execution/${token}/canvas`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/execution/${token}/canvas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ locale: i18n.language, force }),
+            });
             if (res.ok) {
                 const json = await res.json();
                 setCanvasBloques(json.bloques ?? {});
@@ -162,6 +176,7 @@ export function RunnerResultsPage() {
             area: 'N/A',
             proyecto: data.nombreActividad,
             fecha: fechaStr,
+            locale: i18n.language,
         });
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -173,6 +188,50 @@ export function RunnerResultsPage() {
     };
 
     return (
+        <>
+        {showRegenerarModal && (
+            <div style={{
+                position: 'fixed', inset: 0, zIndex: 1000,
+                background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+            }}>
+                <div style={{
+                    background: 'white', borderRadius: 14, padding: '2rem',
+                    maxWidth: 420, width: '100%',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+                }}>
+                    <div style={{ fontSize: '1.25rem', marginBottom: 4 }}>↺</div>
+                    <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', color: '#0F172A' }}>
+                        {t('execution:results.regenerate_modal.title')}
+                    </h2>
+                    <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#475569', lineHeight: 1.6 }}>
+                        {t('execution:results.regenerate_modal.body')}
+                    </p>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button
+                            onClick={() => setShowRegenerarModal(false)}
+                            style={{
+                                padding: '7px 18px', borderRadius: 8, border: '1px solid #E2E8F0',
+                                background: 'white', color: '#475569',
+                                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            {t('common:cancel')}
+                        </button>
+                        <button
+                            onClick={() => { setShowRegenerarModal(false); handleGenerarCanvas(true); }}
+                            style={{
+                                padding: '7px 18px', borderRadius: 8, border: 'none',
+                                background: '#7C3AED', color: 'white',
+                                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            {t('execution:results.regenerate_modal.confirm')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         <div style={{
             minHeight: '100vh',
             background: 'linear-gradient(160deg, #F0F4FF 0%, #F8FAFC 50%, #FDF8FF 100%)',
@@ -196,6 +255,7 @@ export function RunnerResultsPage() {
                     {t('common:app_name')}
                 </span>
                 <div style={{ justifySelf: 'end', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <LanguageSwitcher variant="header" />
                     {data.esCanvas ? (
                         <button
                             onClick={handleDescargarCanvas}
@@ -302,10 +362,28 @@ export function RunnerResultsPage() {
                                 </button>
                             </div>
                         ) : (
-                            <CanvasGrid
-                                bloques={canvasBloques}
-                                pasos={data.pasos.map(p => ({ id: p.id, titulo: p.titulo, orden: p.orden }))}
-                            />
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem' }}>
+                                    <button
+                                        onClick={() => setShowRegenerarModal(true)}
+                                        disabled={canvasLoading}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                                            padding: '6px 16px', borderRadius: 8,
+                                            background: '#7C3AED', color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                                            boxShadow: '0 1px 4px rgba(124,58,237,0.25)',
+                                        }}
+                                    >
+                                        ↺ {t('execution:results.regenerate_canvas')}
+                                    </button>
+                                </div>
+                                <CanvasGrid
+                                    bloques={canvasBloques}
+                                    pasos={data.pasos.map(p => ({ id: p.id, titulo: p.titulo, orden: p.orden }))}
+                                />
+                            </>
                         )}
                     </div>
                 )}
@@ -428,5 +506,6 @@ export function RunnerResultsPage() {
                 </p>
             </div>
         </div>
+        </>
     );
 }
