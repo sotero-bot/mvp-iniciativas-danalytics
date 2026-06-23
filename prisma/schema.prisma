@@ -272,6 +272,7 @@ model CanvasBloque {
   instanciaId String
   pasoId      String
   resumen     String             @db.Text
+  locale      String             @default("es")
   generadoEn  DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   instancia   InstanciaActividad @relation(fields: [instanciaId], references: [id])

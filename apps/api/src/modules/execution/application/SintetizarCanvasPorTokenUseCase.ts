@@ -46,7 +46,11 @@ export class SintetizarCanvasPorTokenUseCase {
             where: { instanciaId: instancia.id },
         });
 
-        if (bloquesExistentes.length === pasos.length && pasos.length > 0) {
+        if (
+            bloquesExistentes.length === pasos.length &&
+            pasos.length > 0 &&
+            bloquesExistentes.every(b => b.locale === locale)
+        ) {
             const resultado: Record<string, string> = {};
             for (const b of bloquesExistentes) {
                 resultado[b.pasoId] = b.resumen;
@@ -84,7 +88,7 @@ export class SintetizarCanvasPorTokenUseCase {
 
         const LANG_NAMES: Record<string, string> = { es: 'español', pt: 'portugués (Brasil)' };
         const langName = LANG_NAMES[locale] ?? 'español';
-        const langDirective = `Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia.`;
+        const langDirective = `IDIOMA DE RESPUESTA: Responde ÚNICAMENTE en ${langName}. No uses ningún otro idioma bajo ninguna circunstancia, independientemente del idioma de las instrucciones o del contenido que recibas.`;
 
         // Generar síntesis en paralelo — una llamada por bloque
         const tareas = pasos.map(async (paso) => {
@@ -93,12 +97,15 @@ export class SintetizarCanvasPorTokenUseCase {
                 return { pasoId: paso.id, resumen: '' };
             }
 
-            const prompt = `Eres un asistente de análisis estratégico. Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\n${langDirective}\n\nRespuesta:\n${respuesta}`;
+            const userPrompt = `Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\nRespuesta:\n${respuesta}\n\n---\n\n${langDirective}`;
 
             try {
                 const response = await this.openai.chat.completions.create({
                     model,
-                    messages: [{ role: 'user', content: prompt }],
+                    messages: [
+                        { role: 'system', content: `Eres un asistente de análisis estratégico. ${langDirective}` },
+                        { role: 'user', content: userPrompt },
+                    ],
                     max_completion_tokens: 300,
                 });
                 const resumen = response.choices[0].message?.content?.trim() || '';
@@ -124,12 +131,14 @@ export class SintetizarCanvasPorTokenUseCase {
                     },
                     update: {
                         resumen: r.resumen,
+                        locale,
                         generadoEn: ahora,
                     },
                     create: {
                         instanciaId: instancia.id,
                         pasoId: r.pasoId,
                         resumen: r.resumen,
+                        locale,
                         generadoEn: ahora,
                     },
                 })
