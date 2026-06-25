@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES } from '../../i18n';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
@@ -29,6 +30,7 @@ interface Pregunta {
 
 interface Paso {
   id: string;
+  orden: number;
   titulo: string;
   objetivo?: string;
   instrucciones?: string;
@@ -250,7 +252,8 @@ function interpolarPrompt(
   prompt: string,
   pasos: Paso[],
   respuestas: RunnerData['respuestas'],
-  ctx?: PromptCtx
+  ctx?: PromptCtx,
+  pasoOrden?: number
 ): string {
   let result = prompt;
 
@@ -261,25 +264,41 @@ function interpolarPrompt(
     .replace(/\{\{idenForm\.area\}\}/g, ctx?.usuario?.area || '[área no disponible]')
     .replace(/\{\{idenForm\.cargo\}\}/g, ctx?.usuario?.cargo || '[cargo no disponible]');
 
-  if (!result.includes('{{paso_')) return result;
+  if (result.includes('{{paso_')) {
+    result = result.replace(/\{\{paso_(\d+)\}\}/g, (_match, nStr) => {
+      const n = parseInt(nStr, 10);
+      const paso = pasos[n - 1];
+      if (!paso) return `[paso ${n} no encontrado]`;
+      const textos: string[] = [];
+      for (const pregunta of (paso.preguntas ?? [])) {
+        const r = respuestas.find(r => r.preguntaId === pregunta.id);
+        const texto = r?.contenido || r?.respuestaUsuario || r?.contenidoArchivo || '';
+        if (texto.trim()) textos.push(stripHtmlToText(texto));
+      }
+      return textos.length > 0 ? textos.join('\n\n') : '[sin respuesta]';
+    });
+  }
 
-  return result.replace(/\{\{paso_(\d+)\}\}/g, (_match, nStr) => {
-    const n = parseInt(nStr, 10);
-    const paso = pasos[n - 1];
-    if (!paso) return `[paso ${n} no encontrado]`;
-    const textos: string[] = [];
-    for (const pregunta of (paso.preguntas ?? [])) {
-      const r = respuestas.find(r => r.preguntaId === pregunta.id);
-      const texto = r?.contenido || r?.respuestaUsuario || r?.contenidoArchivo || '';
-      if (texto.trim()) textos.push(stripHtmlToText(texto));
-    }
-    return textos.length > 0 ? textos.join('\n\n') : '[sin respuesta]';
-  });
+  // Si el template tiene secciones "# Bloque N —", conservar solo la del paso actual.
+  // Los datos de pasos anteriores siguen llegando como {{paso_N}} dentro del bloque activo.
+  if (pasoOrden !== undefined && /^# Bloque \d+/m.test(result)) {
+    const partes = result.split(/(?=^# Bloque \d+)/m);
+    result = partes
+      .filter(parte => {
+        const match = parte.match(/^# Bloque (\d+)/);
+        if (!match) return true;
+        return parseInt(match[1], 10) === pasoOrden;
+      })
+      .join('');
+  }
+
+  return result;
 }
 
 export function RunnerPage() {
   const { t, i18n } = useTranslation(['execution', 'common']);
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<RunnerData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -369,7 +388,7 @@ export function RunnerPage() {
 
       const empresaCtx = { nombre: json.nombreEmpresa, sector: json.sectorEmpresa, tipoOrganizacion: json.tipoOrganizacionEmpresa };
       const usuarioCtx = json.usuario ? { area: json.usuario.area, cargo: json.usuario.cargo } : undefined;
-      const interpolar = (base: string) => interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: empresaCtx, usuario: usuarioCtx });
+      const interpolar = (base: string, pasoOrden?: number) => interpolarPrompt(base, json.pasos, json.respuestas ?? [], { empresa: empresaCtx, usuario: usuarioCtx }, pasoOrden);
 
       if (json.estado !== 'generado') {
         const lastAnsweredIndex = json.pasos.findIndex((p: Paso) => !pasoRespondido(p));
@@ -378,7 +397,7 @@ export function RunnerPage() {
           const paso = json.pasos[lastAnsweredIndex];
           for (const q of (paso.preguntas ?? [])) {
             const base = getBasePrompt(q);
-            if (base) promptsMap[q.id] = interpolar(base);
+            if (base) promptsMap[q.id] = interpolar(base, paso.orden);
           }
         } else if (json.estado === 'finalizado') {
           setCurrentStepIndex(json.pasos.length);
@@ -388,14 +407,14 @@ export function RunnerPage() {
           const paso = json.pasos[lastIdx];
           for (const q of (paso?.preguntas ?? [])) {
             const base = getBasePrompt(q);
-            if (base) promptsMap[q.id] = interpolar(base);
+            if (base) promptsMap[q.id] = interpolar(base, paso.orden);
           }
         }
       } else if (json.pasos.length > 0) {
         const paso = json.pasos[0];
         for (const q of (paso.preguntas ?? [])) {
           const base = getBasePrompt(q);
-          if (base) promptsMap[q.id] = interpolar(base);
+          if (base) promptsMap[q.id] = interpolar(base, paso.orden);
         }
       }
       setCustomPrompts(promptsMap);
@@ -405,6 +424,14 @@ export function RunnerPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const lang = searchParams.get('lang');
+    if (lang && (SUPPORTED_LANGUAGES as readonly string[]).includes(lang)) {
+      i18n.changeLanguage(lang);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { loadData(); }, [token, i18n.language]);
 
@@ -429,7 +456,7 @@ export function RunnerPage() {
         iaEditorRefs.current[q.id]?.replaceContent('');
         try {
           const base = getBasePrompt(q) ?? '';
-          const interpolado = interpolarPrompt(base, data.pasos, data.respuestas, { empresa: { nombre: data.nombreEmpresa, sector: data.sectorEmpresa, tipoOrganizacion: data.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } });
+          const interpolado = interpolarPrompt(base, data.pasos, data.respuestas, { empresa: { nombre: data.nombreEmpresa, sector: data.sectorEmpresa, tipoOrganizacion: data.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } }, paso.orden);
           const formData = new FormData();
           formData.append('pasoId', paso.id);
           // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId en lugar de (o además de) pasoId.
@@ -499,6 +526,7 @@ export function RunnerPage() {
   }, [data?.estado, data?.usuarioId]);
 
   const handleIdentificar = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/execution/${token}/identificar`, {
@@ -632,7 +660,7 @@ export function RunnerPage() {
       const promptsMap: Record<string, string> = { ...customPrompts };
       for (const q of (sig.preguntas ?? [])) {
         const base = getBasePrompt(q);
-        if (base) promptsMap[q.id] = interpolarPrompt(base, data!.pasos, newRespuestas, { empresa: { nombre: data!.nombreEmpresa, sector: data!.sectorEmpresa, tipoOrganizacion: data!.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } });
+        if (base) promptsMap[q.id] = interpolarPrompt(base, data!.pasos, newRespuestas, { empresa: { nombre: data!.nombreEmpresa, sector: data!.sectorEmpresa, tipoOrganizacion: data!.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } }, sig.orden);
       }
       setCustomPrompts(promptsMap);
 

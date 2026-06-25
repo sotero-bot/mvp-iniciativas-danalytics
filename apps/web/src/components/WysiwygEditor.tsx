@@ -144,8 +144,29 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
     const { t } = useTranslation('common');
     const isInternalChange = useRef(false);
     const resolvedPlaceholder = placeholder ?? t('editor.placeholder_default');
+    const editorRef = useRef<ReturnType<typeof useEditor>>(null);
 
     const editor = useEditor({
+        editorProps: {
+            handlePaste: (_view, event) => {
+                const data = event.clipboardData;
+                if (!data || !editorRef.current) return false;
+                const plain = data.getData('text/plain').trim();
+                // When the plain-text clipboard content is raw HTML (ChatGPT copies HTML as
+                // plain text), tiptap-markdown would render the tags as literal text. Intercept
+                // here and insert via the text/html slot instead.
+                if (/^<[a-zA-Z]/.test(plain)) {
+                    const html = data.types.includes('text/html')
+                        ? data.getData('text/html')
+                        : plain;
+                    editorRef.current.commands.insertContent(html, {
+                        parseOptions: { preserveWhitespace: false },
+                    });
+                    return true;
+                }
+                return false;
+            },
+        },
         extensions: [
             StarterKit,
             Placeholder.configure({ placeholder: resolvedPlaceholder }),
@@ -163,6 +184,8 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             onChange(md);
         }
     });
+
+    useEffect(() => { editorRef.current = editor; }, [editor]);
 
     const setContentMarkdownAware = (text: string) => {
         if (!editor) return;

@@ -95,7 +95,7 @@ export function InstanciasPage() {
         body: JSON.stringify(formEnlace),
       });
       const data = await res.json();
-      const url = `${window.location.origin}/runner/enlace/${data.accessToken}`;
+      const url = `${window.location.origin}/runner/enlace/${data.accessToken}?lang=${i18n.language}`;
       setEnlaceGenerado(url);
       try { await navigator.clipboard.writeText(url); } catch (_) { }
       await load();
@@ -110,7 +110,7 @@ export function InstanciasPage() {
   };
 
   const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/runner/${token}`);
+    navigator.clipboard.writeText(`${window.location.origin}/runner/${token}?lang=${i18n.language}`);
     showToast(t('execution:instancias.link_copied_clipboard'));
   };
 
@@ -358,7 +358,7 @@ export function InstanciasPage() {
                       {t('execution:instancias.enlaces_activos.table.no_results')}
                     </td></tr>
                   ) : filteredEnlaces.map((e: any) => {
-                    const url = `${window.location.origin}/runner/enlace/${e.accessToken}`;
+                    const url = `${window.location.origin}/runner/enlace/${e.accessToken}?lang=${i18n.language}`;
                     return (
                       <tr key={e.id}>
                         <td style={{ fontWeight: 500 }}>
