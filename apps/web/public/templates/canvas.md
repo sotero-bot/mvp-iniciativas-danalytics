@@ -100,8 +100,22 @@ Contexto del proyecto:
 
 Con base en todo el contexto del proyecto:
 
-1. Cuestiona si los beneficios descritos están suficientemente conectados con los objetivos estratégicos de la organización o si son demasiado generales.
-2. Clasifica el valor potencial por tipo: reducción de costos, ahorro de tiempo operativo, incremento de ingresos, reducción de riesgo, mejora en calidad de decisiones. Usa solo las categorías que apliquen.
-3. Para cada categoría aplicable, fuerza una estimación cuantificable: rangos porcentuales, horas/personas ahorradas, frecuencia de errores evitados u otra métrica concreta. Apóyate en benchmarks de industria similares si el participante no tiene datos propios.
-4. Estima el horizonte de impacto: corto plazo (menos de 3 meses), mediano plazo (3 a 12 meses) o largo plazo (más de 12 meses).
-5. Propón 2 o 3 indicadores o métricas específicas que la organización podría usar para evidenciar el valor generado una vez implementado el proyecto.
+1. Clasifica el valor potencial por tipo, usando solo las categorías que apliquen:
+   - Reducción de costos
+   - Ahorro de tiempo operativo
+   - Incremento de ingresos
+   - Reducción de riesgo
+   - Mejora en calidad de decisiones
+
+2. **OBLIGATORIO: para cada categoría que apliques, entrega una estimación cuantificada concreta.** No se aceptan frases genéricas como "mejorará la eficiencia" o "habrá ahorro significativo". Cada categoría debe incluir al menos una métrica con número, rango porcentual o magnitud específica. Formato esperado por categoría:
+   - **Métrica**: nombre claro (ej. "horas/mes ahorradas por analista", "% reducción en tiempo de cierre de mes", "% incremento en tasa de conversión")
+   - **Estimación**: número o rango (ej. "15-25%", "8-12 horas/persona/semana", "reducción de 5 a 2 días")
+   - **Base del cálculo**: de dónde sale ese número — referencia al Bloque 3 (datos disponibles), benchmark de industria similar, o supuesto razonable explícito (ej. "asumiendo 4 analistas dedicando 6h/semana actuales")
+
+3. **Realismo**: si el participante no aportó cifras propias, usa rangos amplios apoyados en benchmarks típicos del sector ({{empresa.sector}}). Prefiere rangos conservadores ("15-25%") antes que números puntuales sin sustento ("23,7%"). Si un dato no se puede estimar razonablemente, dilo explícitamente en vez de inventarlo.
+
+4. Cuestiona si los beneficios descritos por el participante están suficientemente conectados con los objetivos estratégicos de la organización o si son demasiado generales.
+
+5. Estima el horizonte de impacto por categoría: corto plazo (menos de 3 meses), mediano plazo (3 a 12 meses) o largo plazo (más de 12 meses).
+
+6. Cierra con 2 o 3 indicadores específicos (con su unidad y meta numérica) que la organización podría usar para evidenciar el valor generado una vez implementado el proyecto. Ejemplo: "Tiempo promedio de respuesta a solicitudes: meta < 24h" en vez de "respuesta más rápida".

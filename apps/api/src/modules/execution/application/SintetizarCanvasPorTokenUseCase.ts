@@ -98,7 +98,16 @@ export class SintetizarCanvasPorTokenUseCase {
                 return { pasoId: paso.id, resumen: '' };
             }
 
-            const userPrompt = `Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 15 palabras por idea.\n\nRespuesta:\n${respuesta}\n\n---\n\n${langDirective}`;
+            const userPrompt = `Para el bloque "${paso.titulo}" de un Analytics Canvas empresarial, extrae 2 a 4 ideas clave de la siguiente respuesta. Escribe cada idea en una línea separada, sin viñetas ni numeración, máximo 20 palabras por idea.
+
+REGLA CRÍTICA: si la respuesta contiene cifras, rangos porcentuales, métricas, horas, frecuencias, costos o cualquier dato cuantificado, **debes conservarlos textualmente** en al menos una de las ideas (ej. "15-25%", "8-12 horas/semana", "reducción de 5 a 2 días"). Una síntesis sin números cuando la respuesta original sí los tiene se considera incorrecta. Si la respuesta no contiene cifras, sintetiza normalmente sin inventarlas.
+
+Respuesta:
+${respuesta}
+
+---
+
+${langDirective}`;
 
             try {
                 const response = await this.openai.chat.completions.create({

@@ -492,6 +492,9 @@ export function InstanciasPage() {
                         ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
                         : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.individuales.table.pendiente')}</span>
                       )}
+                      {ins.usuario?.email && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.email}</div>
+                      )}
                       {ins.usuario?.cargo && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.cargo}</div>
                       )}
