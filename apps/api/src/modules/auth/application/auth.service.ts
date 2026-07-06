@@ -13,10 +13,17 @@ export class AuthService {
 
   async validateAdmin(username: string, pass: string): Promise<any> {
     console.log(`[AuthService] Intentando validar usuario: ${username}`);
-    const admin = await this.prisma.admin.findUnique({ where: { username } });
+    const admin = await this.prisma.usuario.findFirst({
+      where: { username, role: { slug: 'danalytics_admin' } },
+      include: { role: true },
+    });
     if (admin) {
-      if (!admin.activo) {
-        console.log(`[AuthService] Usuario INACTIVO: ${username}`);
+      if (!admin.activo || !admin.puedeIniciarSesion) {
+        console.log(`[AuthService] Usuario INACTIVO o sin login habilitado: ${username}`);
+        return null;
+      }
+      if (!admin.password) {
+        console.log(`[AuthService] Usuario sin password configurado: ${username}`);
         return null;
       }
       console.log(`[AuthService] Usuario encontrado en BD, verificando password...`);

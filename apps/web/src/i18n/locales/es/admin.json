@@ -6,7 +6,86 @@
     "iniciativas": "Iniciativas",
     "actividades": "Actividades",
     "plantillas": "Plantillas",
+    "usuarios": "Usuarios",
     "ejecuciones": "Ejecuciones"
+  },
+  "usuarios": {
+    "page_title": "Usuarios",
+    "page_subtitle": "Gestiona los usuarios del sistema por rol.",
+    "empty": "No hay usuarios que coincidan con los filtros.",
+    "login_enabled": "Puede iniciar sesión",
+    "login_disabled": "Login deshabilitado",
+    "roles": {
+      "danalytics_admin": "Admin Danalytics",
+      "facilitador": "Facilitador",
+      "estudiante": "Estudiante",
+      "cliente_admin": "Admin de cliente",
+      "usuario_cliente": "Usuario cliente",
+      "participante_legacy": "Participante (legacy)"
+    },
+    "filters": {
+      "role": "Rol",
+      "empresa": "Empresa",
+      "estado": "Estado",
+      "search": "Búsqueda",
+      "search_placeholder": "Nombre, email o usuario…",
+      "all": "Todos",
+      "estado_activo": "Activos",
+      "estado_inactivo": "Inactivos"
+    },
+    "columns": {
+      "nombre": "Nombre",
+      "identificacion": "Identificación",
+      "role": "Rol",
+      "empresa": "Empresa",
+      "login": "Login",
+      "estado": "Estado",
+      "acciones": "Acciones"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "actions": {
+      "new": "Nuevo usuario",
+      "edit": "Editar",
+      "reset_password": "Restablecer clave",
+      "deactivate": "Desactivar",
+      "reactivate": "Reactivar"
+    },
+    "fields": {
+      "nombre": "Nombre completo",
+      "role": "Rol",
+      "email": "Email",
+      "username": "Usuario (username)",
+      "password": "Contraseña",
+      "password_optional": "Contraseña (dejar en blanco para no cambiar)",
+      "password_keep": "Sin cambios",
+      "empresa": "Empresa",
+      "cargo": "Cargo",
+      "area": "Área",
+      "puede_iniciar_sesion": "Puede iniciar sesión",
+      "activo": "Activo"
+    },
+    "modal": {
+      "title_create": "Crear usuario",
+      "title_edit": "Editar usuario"
+    },
+    "deactivate_modal": {
+      "title": "Desactivar usuario",
+      "message": "¿Seguro que quieres desactivar a {{nombre}}? Ya no podrá iniciar sesión."
+    },
+    "reset_password_modal": {
+      "title": "Restablecer contraseña",
+      "message": "Introduce una nueva contraseña para {{nombre}}."
+    },
+    "toast": {
+      "created": "Usuario creado",
+      "updated": "Usuario actualizado",
+      "deactivated": "Usuario desactivado",
+      "reactivated": "Usuario reactivado",
+      "password_reset": "Contraseña actualizada"
+    }
   },
   "dashboard": {
     "title": "Inicio",

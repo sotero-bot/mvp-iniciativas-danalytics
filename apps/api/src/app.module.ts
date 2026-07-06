@@ -14,6 +14,7 @@ import { AdminEnlaceController } from './modules/execution/interfaces/admin-enla
 import { AdminPlantillasController } from './modules/methodology/interfaces/admin-plantillas.controller';
 import { AdminPlantillaPasosController } from './modules/methodology/interfaces/admin-plantilla-pasos.controller';
 import { AdminImportController } from './modules/organization/interfaces/admin-import.controller';
+import { AdminUsersController } from './modules/users/interfaces/admin-users.controller';
 
 // Use Cases
 import { GenerarInstanciaUseCase } from './modules/execution/application/GenerarInstanciaUseCase';
@@ -58,6 +59,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     AdminPlantillasController,
     AdminPlantillaPasosController,
     AdminImportController,
+    AdminUsersController,
   ],
   providers: [
     PrismaService,

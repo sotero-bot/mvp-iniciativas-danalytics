@@ -6,7 +6,86 @@
     "iniciativas": "Iniciativas",
     "actividades": "Atividades",
     "plantillas": "Modelos",
+    "usuarios": "Usuários",
     "ejecuciones": "Execuções"
+  },
+  "usuarios": {
+    "page_title": "Usuários",
+    "page_subtitle": "Gerencie os usuários do sistema por papel.",
+    "empty": "Não há usuários que correspondam aos filtros.",
+    "login_enabled": "Pode iniciar sessão",
+    "login_disabled": "Login desabilitado",
+    "roles": {
+      "danalytics_admin": "Admin Danalytics",
+      "facilitador": "Facilitador",
+      "estudiante": "Estudante",
+      "cliente_admin": "Admin do cliente",
+      "usuario_cliente": "Usuário cliente",
+      "participante_legacy": "Participante (legado)"
+    },
+    "filters": {
+      "role": "Papel",
+      "empresa": "Empresa",
+      "estado": "Estado",
+      "search": "Busca",
+      "search_placeholder": "Nome, e-mail ou usuário…",
+      "all": "Todos",
+      "estado_activo": "Ativos",
+      "estado_inactivo": "Inativos"
+    },
+    "columns": {
+      "nombre": "Nome",
+      "identificacion": "Identificação",
+      "role": "Papel",
+      "empresa": "Empresa",
+      "login": "Login",
+      "estado": "Estado",
+      "acciones": "Ações"
+    },
+    "status": {
+      "active": "Ativo",
+      "inactive": "Inativo"
+    },
+    "actions": {
+      "new": "Novo usuário",
+      "edit": "Editar",
+      "reset_password": "Redefinir senha",
+      "deactivate": "Desativar",
+      "reactivate": "Reativar"
+    },
+    "fields": {
+      "nombre": "Nome completo",
+      "role": "Papel",
+      "email": "E-mail",
+      "username": "Usuário (username)",
+      "password": "Senha",
+      "password_optional": "Senha (deixe em branco para não alterar)",
+      "password_keep": "Sem alterações",
+      "empresa": "Empresa",
+      "cargo": "Cargo",
+      "area": "Área",
+      "puede_iniciar_sesion": "Pode iniciar sessão",
+      "activo": "Ativo"
+    },
+    "modal": {
+      "title_create": "Criar usuário",
+      "title_edit": "Editar usuário"
+    },
+    "deactivate_modal": {
+      "title": "Desativar usuário",
+      "message": "Tem certeza de que deseja desativar {{nombre}}? Ele(a) não poderá mais iniciar sessão."
+    },
+    "reset_password_modal": {
+      "title": "Redefinir senha",
+      "message": "Insira uma nova senha para {{nombre}}."
+    },
+    "toast": {
+      "created": "Usuário criado",
+      "updated": "Usuário atualizado",
+      "deactivated": "Usuário desativado",
+      "reactivated": "Usuário reativado",
+      "password_reset": "Senha atualizada"
+    }
   },
   "dashboard": {
     "title": "Início",

@@ -7,6 +7,7 @@ import { ActividadesPage } from './features/methodology/ActividadesPage';
 import { InstanciasPage } from './features/execution/InstanciasPage';
 import { InstanciaDetallePage } from './features/execution/InstanciaDetallePage';
 import { DashboardPage } from './features/admin/DashboardPage';
+import { UsuariosPage } from './features/admin/UsuariosPage';
 
 import { RunnerPage } from './features/execution/RunnerPage';
 import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
@@ -70,6 +71,17 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               fontSize: '0.75rem',
             }}>📋</span>
             {t('admin:sidebar.plantillas')}
+          </NavLink>
+          {/* Usuarios — herramienta transversal */}
+          <NavLink to="/admin/usuarios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(56,189,248,0.18)',
+              border: '1px solid #38BDF840',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>👥</span>
+            {t('admin:sidebar.usuarios')}
           </NavLink>
           {/* Ejecuciones — número 4 */}
           <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -173,6 +185,7 @@ function App() {
         <Route path="/admin/actividades/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><ActividadPasosPage /></Layout></AdminRoute>} />
         <Route path="/admin/plantillas" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillasPage /></Layout></AdminRoute>} />
         <Route path="/admin/plantillas/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillaPasosPage /></Layout></AdminRoute>} />
+        <Route path="/admin/usuarios" element={<AdminRoute><Layout onLogout={handleLogout}><UsuariosPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 

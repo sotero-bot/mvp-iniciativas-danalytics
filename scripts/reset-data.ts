@@ -48,13 +48,18 @@ async function main() {
   const iniciativas      = await prisma.iniciativa.deleteMany();
   console.log(`  Iniciativas eliminadas     : ${iniciativas.count}`);
 
-  const usuarios         = await prisma.usuario.deleteMany();
+  const usuarios         = await prisma.usuario.deleteMany({
+    where: { role: { slug: { not: 'danalytics_admin' } } },
+  });
   console.log(`  Usuarios eliminados        : ${usuarios.count}`);
 
   const empresas         = await prisma.empresa.deleteMany();
   console.log(`  Empresas eliminadas        : ${empresas.count}`);
 
-  const admins = await prisma.admin.findMany({ select: { username: true } });
+  const admins = await prisma.usuario.findMany({
+    where: { role: { slug: 'danalytics_admin' } },
+    select: { username: true },
+  });
   console.log(`\n✅ Listo. Admins conservados: ${admins.map(a => a.username).join(', ')}`);
 }
 

@@ -9,37 +9,37 @@ datasource db {
 }
 
 model InstanciaActividad {
-  id              String        @id
+  id              String         @id
   actividadId     String
   usuarioId       String?
-  accessToken     String        @unique
+  accessToken     String         @unique
   estado          String
-  activo          Boolean       @default(true)
+  activo          Boolean        @default(true)
   fechaInicio     DateTime?
   fechaFin        DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   emailReferencia String?
-  actividad       Actividad     @relation(fields: [actividadId], references: [id])
-  usuario         Usuario?      @relation(fields: [usuarioId], references: [id])
+  actividad       Actividad      @relation(fields: [actividadId], references: [id])
+  usuario         Usuario?       @relation(fields: [usuarioId], references: [id])
   interacciones   Interaccion[]
   respuestas      Respuesta[]
   canvasBloques   CanvasBloque[]
 }
 
 model Interaccion {
-  id                String             @id @default(uuid())
-  instanciaId       String
-  pasoId            String
-  contenido         String
-  respuestaUsuario  String?
-  respuestaIa       String?
-  archivoNombre     String?
-  contenidoArchivo  String?            @db.Text
-  fecha             DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  instancia         InstanciaActividad @relation(fields: [instanciaId], references: [id])
-  paso              PasoActividad      @relation(fields: [pasoId], references: [id])
+  id               String             @id @default(uuid())
+  instanciaId      String
+  pasoId           String
+  contenido        String
+  respuestaUsuario String?
+  respuestaIa      String?
+  archivoNombre    String?
+  contenidoArchivo String?            @db.Text
+  fecha            DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  instancia        InstanciaActividad @relation(fields: [instanciaId], references: [id])
+  paso             PasoActividad      @relation(fields: [pasoId], references: [id])
 
   @@unique([instanciaId, pasoId])
   @@index([pasoId])
@@ -57,8 +57,20 @@ model Empresa {
   contextoPdfNombre        String?
   contextoPdfTexto         String?      @db.Text
   contextoPdfActualizadoEn DateTime?
+  dominioGoogleWorkspace   String?
   iniciativas              Iniciativa[]
   usuarios                 Usuario[]
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  nombre      String
+  descripcion String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  usuarios    Usuario[]
 }
 
 model Iniciativa {
@@ -86,45 +98,45 @@ model PlantillaActividad {
 }
 
 model PasoPlantilla {
-  id             String             @id @default(uuid())
-  plantillaId    String
-  titulo         String
-  objetivo       String?
-  instrucciones  String?
-  usarIa         Boolean            @default(false)
-  iaAutomatica   Boolean            @default(false)
-  promptIa       String?
-  permitirArchivo Boolean           @default(false)
-  soloArchivo     Boolean           @default(false)
-  urlPlantilla   String?
-  ejemploKey     String?
-  orden          Int
-  activo         Boolean            @default(true)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  plantilla      PlantillaActividad @relation(fields: [plantillaId], references: [id])
-  preguntas      PreguntaPlantilla[]
+  id              String              @id @default(uuid())
+  plantillaId     String
+  titulo          String
+  objetivo        String?
+  instrucciones   String?
+  usarIa          Boolean             @default(false)
+  iaAutomatica    Boolean             @default(false)
+  promptIa        String?
+  permitirArchivo Boolean             @default(false)
+  soloArchivo     Boolean             @default(false)
+  urlPlantilla    String?
+  ejemploKey      String?
+  orden           Int
+  activo          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  plantilla       PlantillaActividad  @relation(fields: [plantillaId], references: [id])
+  preguntas       PreguntaPlantilla[]
 
   @@unique([plantillaId, orden])
 }
 
 model PreguntaPlantilla {
-  id              String        @id @default(uuid())
-  pasoId          String
-  orden           Int
-  enunciado       String        @db.Text
-  permitirArchivo Boolean       @default(false)
-  soloArchivo     Boolean       @default(false)
-  subirArchivoS3  Boolean       @default(false)
-  usarIa          Boolean       @default(false)
-  iaAutomatica    Boolean       @default(false)
+  id                String        @id @default(uuid())
+  pasoId            String
+  orden             Int
+  enunciado         String        @db.Text
+  permitirArchivo   Boolean       @default(false)
+  soloArchivo       Boolean       @default(false)
+  subirArchivoS3    Boolean       @default(false)
+  usarIa            Boolean       @default(false)
+  iaAutomatica      Boolean       @default(false)
   promptIa          String?       @db.Text
   urlPlantilla      String?
   urlPromptTemplate String?
-  activo          Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  paso            PasoPlantilla @relation(fields: [pasoId], references: [id])
+  activo            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  paso              PasoPlantilla @relation(fields: [pasoId], references: [id])
 
   @@unique([pasoId, orden])
   @@index([pasoId])
@@ -159,24 +171,24 @@ model EnlaceActividad {
 }
 
 model PasoActividad {
-  id              String        @id @default(uuid())
+  id              String              @id @default(uuid())
   actividadId     String
   titulo          String
   objetivo        String?
   instrucciones   String?
   promptIa        String?
-  usarIa          Boolean       @default(false)
-  iaAutomatica    Boolean       @default(false)
-  permitirArchivo Boolean       @default(false)
-  soloArchivo     Boolean       @default(false)
+  usarIa          Boolean             @default(false)
+  iaAutomatica    Boolean             @default(false)
+  permitirArchivo Boolean             @default(false)
+  soloArchivo     Boolean             @default(false)
   urlPlantilla    String?
   ejemploKey      String?
   orden           Int
-  activo          Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  activo          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   interacciones   Interaccion[]
-  actividad       Actividad     @relation(fields: [actividadId], references: [id])
+  actividad       Actividad           @relation(fields: [actividadId], references: [id])
   preguntas       PreguntaActividad[]
   canvasBloques   CanvasBloque[]
 
@@ -185,23 +197,23 @@ model PasoActividad {
 }
 
 model PreguntaActividad {
-  id              String        @id @default(uuid())
-  pasoId          String
-  orden           Int
-  enunciado       String        @db.Text
-  permitirArchivo Boolean       @default(false)
-  soloArchivo     Boolean       @default(false)
-  subirArchivoS3  Boolean       @default(false)
-  usarIa          Boolean       @default(false)
-  iaAutomatica    Boolean       @default(false)
+  id                String        @id @default(uuid())
+  pasoId            String
+  orden             Int
+  enunciado         String        @db.Text
+  permitirArchivo   Boolean       @default(false)
+  soloArchivo       Boolean       @default(false)
+  subirArchivoS3    Boolean       @default(false)
+  usarIa            Boolean       @default(false)
+  iaAutomatica      Boolean       @default(false)
   promptIa          String?       @db.Text
   urlPlantilla      String?
   urlPromptTemplate String?
-  activo          Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  paso            PasoActividad @relation(fields: [pasoId], references: [id])
-  respuestas      Respuesta[]
+  activo            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  paso              PasoActividad @relation(fields: [pasoId], references: [id])
+  respuestas        Respuesta[]
 
   @@unique([pasoId, orden])
   @@index([pasoId])
@@ -227,30 +239,28 @@ model Respuesta {
 }
 
 model Usuario {
-  id         String               @id @default(uuid())
-  nombre     String
-  email      String
-  cargo      String?
-  empresaId  String
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
-  estado     String               @default("activo")
-  activo     Boolean              @default(true)
-  area       String?
-  instancias InstanciaActividad[]
-  empresa    Empresa              @relation(fields: [empresaId], references: [id])
+  id                    String               @id @default(uuid())
+  nombre                String
+  email                 String?
+  username              String?              @unique
+  password              String?
+  roleId                String?
+  puedeIniciarSesion    Boolean              @default(false)
+  googleId              String?              @unique
+  googleEmailVerificado Boolean              @default(false)
+  cargo                 String?
+  empresaId             String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  estado                String               @default("activo")
+  activo                Boolean              @default(true)
+  area                  String?
+  instancias            InstanciaActividad[]
+  empresa               Empresa?             @relation(fields: [empresaId], references: [id])
+  role                  Role?                @relation(fields: [roleId], references: [id])
 
   @@unique([empresaId, email], name: "empresa_email_unico")
-}
-
-model Admin {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  nombre    String
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  activo    Boolean  @default(true)
+  @@index([roleId])
 }
 
 model Translation {
