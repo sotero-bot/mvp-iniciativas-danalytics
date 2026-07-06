@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: P
+        - generic [ref=e14]: prueba brasil·brasil
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: P
+        - heading "prueba brasil" [level=2] [ref=e26]
+      - generic [ref=e28]:
+        - generic [ref=e29]: "3"
+        - generic [ref=e30]: pasos
+    - generic [ref=e31]:
+      - heading "Indícanos quién eres" [level=3] [ref=e32]
+      - paragraph [ref=e33]: Estos datos quedarán vinculados a tu participación en la actividad.
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Correo Electrónico *
+          - textbox "ejemplo@empresa.com" [ref=e37]: qa-test+1750870000@danalytics.qa
+        - generic [ref=e38]:
+          - generic [ref=e39]: Nombre Completo *
+          - textbox "Su nombre completo" [ref=e40]: QA Test Playwright
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - generic [ref=e43]: Cargo
+            - 'textbox "Ej: Director de Innovación" [ref=e44]': QA Engineer
+          - generic [ref=e45]:
+            - generic [ref=e46]: Área
+            - 'textbox "Ej: Tecnología" [ref=e47]': Quality Assurance
+      - button "Comenzar actividad →" [active] [ref=e48] [cursor=pointer]
+  - generic [ref=e50]:
+    - generic [ref=e51]: 🗑️
+    - heading "Confirma tu correo electrónico" [level=3] [ref=e52]
+    - paragraph [ref=e53]: "Estás a punto de registrarte con: qa-test+1750870000@danalytics.qa Tu correo es tu llave única. Si ya estás registrado, usaremos tu cuenta existente. Si este no es tu correo, haz clic en cancelar y corrígelo."
+    - generic [ref=e54]:
+      - button "Cancelar" [ref=e55] [cursor=pointer]
+      - button "Confirmar y comenzar" [ref=e56] [cursor=pointer]

@@ -1,0 +1,60 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - img "DrillCon" [ref=e61]
+      - heading "DrillCon" [level=2] [ref=e62]
+    - generic [ref=e74]: Paso 1 de 8
+    - 'heading "Bloque 1: Problema o reto actual" [level=2] [ref=e76]'
+    - paragraph [ref=e77]: Identificar el dolor que motiva el proyecto.
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Instrucciones
+          - generic [ref=e83]: Lee atentamente antes de comenzar
+      - paragraph [ref=e85]: Lee atentamente antes de comenzar Copia del mapa de oportunidades lo que encuentras en la columna "Dolor identificado" y agrega la información adicional que consideres.
+    - generic [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e88]: "1"
+        - paragraph [ref=e89]: Copia el dolor identificado del mapa de oportunidades y complementa con más contexto si lo tienes.
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: Tu respuesta
+          - generic [ref=e95]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - button "B" [ref=e98] [cursor=pointer]:
+              - strong [ref=e99]: B
+            - button "I" [ref=e100] [cursor=pointer]:
+              - emphasis [ref=e101]: I
+            - button "S" [ref=e102] [cursor=pointer]
+            - button "H1" [ref=e104] [cursor=pointer]
+            - button "H2" [ref=e105] [cursor=pointer]
+            - button "H3" [ref=e106] [cursor=pointer]
+            - button "≡ Lista" [ref=e108] [cursor=pointer]
+            - button "1. Lista" [ref=e109] [cursor=pointer]
+            - button "❝" [ref=e111] [cursor=pointer]
+            - button "</>" [ref=e112] [cursor=pointer]
+            - button "↩" [ref=e114] [cursor=pointer]
+            - button "↪" [ref=e115] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e117] [cursor=pointer]
+            - button "+Col" [ref=e118] [cursor=pointer]
+            - button "+Fila" [ref=e119] [cursor=pointer]
+            - button "✕ Tabla" [ref=e120] [cursor=pointer]
+          - textbox [ref=e122]:
+            - paragraph [ref=e123]: Escriba aquí su respuesta...
+    - button "Siguiente paso →" [disabled] [ref=e125]

@@ -1,0 +1,164 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - img "DrillCon" [ref=e61]
+      - heading "DrillCon" [level=2] [ref=e62]
+    - generic [ref=e74]: Paso 7 de 8
+    - 'heading "Bloque 8: Barreras y riesgos" [level=2] [ref=e403]'
+    - paragraph [ref=e77]: Anticipar lo que puede dificultar el desarrollo o la implementación de la solución.
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Instrucciones
+          - generic [ref=e83]: Lee atentamente antes de comenzar
+      - paragraph [ref=e85]: "Reflexiona primero: • ¿Qué podría impedir que este proyecto arranque o avance — falta de tiempo, de presupuesto, de datos, de personas? • ¿Hay alguna decisión que dependería de otra área o de la gerencia para poder avanzar? • ¿Qué pasaría si la solución comete errores — hay consecuencias operativas, financieras o de cliente? Escribe las barreras y riesgos que identificas. Para cada uno, intenta indicar qué tan probable lo ves y si tienes alguna idea de cómo mitigarlo."
+    - generic [ref=e404]:
+      - generic [ref=e405]:
+        - generic [ref=e406]: "1"
+        - paragraph [ref=e407]: Escribe las barreras y riesgos que identificas. Para cada uno, indica qué tan probable lo ves y cómo lo mitigarías.
+      - generic [ref=e409]:
+        - generic [ref=e410]:
+          - generic [ref=e411]:
+            - generic [ref=e412]: Tu respuesta
+            - generic [ref=e413]: Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA.
+          - generic [ref=e414]:
+            - generic [ref=e415]:
+              - button "B" [ref=e416] [cursor=pointer]:
+                - strong [ref=e417]: B
+              - button "I" [ref=e418] [cursor=pointer]:
+                - emphasis [ref=e419]: I
+              - button "S" [ref=e420] [cursor=pointer]
+              - button "H1" [ref=e422] [cursor=pointer]
+              - button "H2" [ref=e423] [cursor=pointer]
+              - button "H3" [ref=e424] [cursor=pointer]
+              - button "≡ Lista" [ref=e426] [cursor=pointer]
+              - button "1. Lista" [ref=e427] [cursor=pointer]
+              - button "❝" [ref=e429] [cursor=pointer]
+              - button "</>" [ref=e430] [cursor=pointer]
+              - button "↩" [ref=e432] [cursor=pointer]
+              - button "↪" [ref=e433] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e435] [cursor=pointer]
+              - button "+Col" [ref=e436] [cursor=pointer]
+              - button "+Fila" [ref=e437] [cursor=pointer]
+              - button "✕ Tabla" [ref=e438] [cursor=pointer]
+            - textbox [ref=e440]:
+              - paragraph [ref=e441]: "Barreras y riesgos: 1) Calidad del dato del plan de pozos (probabilidad ALTA): cambios no documentados → mitigación: integración directa con la herramienta de planeación de Operaciones y revisión diaria con el ingeniero de programación. 2) Adopción del Coordinador y del Superintendente (MEDIA): podrían no confiar en el pronóstico inicial → mitigación: piloto en 2 taladros con métricas comparativas y revisión semanal de aciertos/fallas durante 8 semanas. 3) Falta de catálogo único de materiales (ALTA): equivalencias entre proveedores no normalizadas → mitigación: tarea previa de maestrización con Compras (4 semanas de esfuerzo). 4) Dependencia de TI para integrar SAP MM y Power BI con el nuevo modelo (MEDIA): riesgo de cronograma → mitigación: comprometer recursos de TI desde el kickoff y prever capacidad en sprint backlog. 5) Errores del modelo con consecuencias operativas (BAJA pero impacto ALTO): un sub-pronóstico puede causar NPT → mitigación: doble check humano antes de cancelar una orden marco, bandas de confianza en el dashboard. 6) Riesgo financiero: cambios en estructura de contratos marco (MEDIA) → mitigación: aprobación de Gerencia de Compras antes de aplicar recomendaciones del modelo."
+        - generic [ref=e442]:
+          - generic [ref=e443]:
+            - generic [ref=e444]: Asistente IA
+            - generic [ref=e445]: Envía tu respuesta al asistente para recibir análisis y retroalimentación.
+          - button "✨ Enviar a Asistente IA" [ref=e481] [cursor=pointer]
+          - generic [ref=e453]:
+            - generic [ref=e454]:
+              - button "B" [ref=e455] [cursor=pointer]:
+                - strong [ref=e456]: B
+              - button "I" [ref=e457] [cursor=pointer]:
+                - emphasis [ref=e458]: I
+              - button "S" [ref=e459] [cursor=pointer]
+              - button "H1" [ref=e461] [cursor=pointer]
+              - button "H2" [ref=e462] [cursor=pointer]
+              - button "H3" [ref=e463] [cursor=pointer]
+              - button "≡ Lista" [ref=e465] [cursor=pointer]
+              - button "1. Lista" [ref=e466] [cursor=pointer]
+              - button "❝" [ref=e468] [cursor=pointer]
+              - button "</>" [ref=e469] [cursor=pointer]
+              - button "↩" [ref=e471] [cursor=pointer]
+              - button "↪" [ref=e472] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e474] [cursor=pointer]
+              - button "+Col" [ref=e475] [cursor=pointer]
+              - button "+Fila" [ref=e476] [cursor=pointer]
+              - button "✕ Tabla" [ref=e477] [cursor=pointer]
+            - textbox [ref=e479]:
+              - heading "Cuestionamiento de los beneficios descritos" [level=3] [ref=e482]
+              - list [ref=e483]:
+                - listitem [ref=e484]:
+                  - paragraph [ref=e485]:
+                    - strong [ref=e486]: "Conexión con objetivos estratégicos:"
+                    - text: Los beneficios descritos en el contexto del proyecto parecen estar bien alineados con los objetivos estratégicos de DrillCon, que busca aumentar la eficiencia operativa y reducir costos en la gestión de suministros. La disminución de las compras urgentes y sus sobrecostos asociados, así como la mejora en la planificación de demanda, apuntan directamente a la optimización de procesos críticos para la empresa.
+              - list [ref=e487]:
+                - listitem [ref=e488]:
+                  - paragraph [ref=e489]:
+                    - strong [ref=e490]: "Clasificación del valor potencial:"
+              - list [ref=e491]:
+                - listitem [ref=e492]:
+                  - paragraph [ref=e493]:
+                    - strong [ref=e494]: "Reducción de costos:"
+                    - text: Al reducir las compras urgentes del 35% al 15% y los sobrecostos del 24% al 10%.
+                - listitem [ref=e495]:
+                  - paragraph [ref=e496]:
+                    - strong [ref=e497]: "Ahorro de tiempo operativo:"
+                    - text: Reducir el tiempo improductivo debido a la falta de stock de 14 horas por mes a menos de 4 horas por taladro.
+                - listitem [ref=e498]:
+                  - paragraph [ref=e499]:
+                    - strong [ref=e500]: "Mejora en calidad de decisiones:"
+                    - text: Con un modelo predictivo más preciso que disminuirá los errores en planificación y aumentará la confianza en las decisiones de compras.
+              - list [ref=e501]:
+                - listitem [ref=e502]:
+                  - paragraph [ref=e503]:
+                    - strong [ref=e504]: "Estimaciones cuantificables:"
+              - list [ref=e505]:
+                - listitem [ref=e506]:
+                  - paragraph [ref=e507]:
+                    - strong [ref=e508]: "Reducción de costos:"
+                    - text: Disminuir las compras urgentes podría ahorrar entre un 10% y un 15% del costo total de consumibles.
+                - listitem [ref=e509]:
+                  - paragraph [ref=e510]:
+                    - strong [ref=e511]: "Ahorro de tiempo operativo:"
+                    - text: Ahorro potencial de hasta 120 horas por taladro al año si se logra disminuir el tiempo no productivo a 4 horas mensuales.
+                - listitem [ref=e512]:
+                  - paragraph [ref=e513]:
+                    - strong [ref=e514]: "Aumento de la precisión en decisiones:"
+                    - text: El objetivo es lograr un pronóstico con un MAPE del 20%, lo cual puede reducir sustancialmente los errores de planificación.
+              - list [ref=e515]:
+                - listitem [ref=e516]:
+                  - paragraph [ref=e517]:
+                    - strong [ref=e518]: "Horizonte de impacto:"
+              - list [ref=e519]:
+                - listitem [ref=e520]:
+                  - paragraph [ref=e521]:
+                    - strong [ref=e522]: "Corto plazo (menos de 3 meses):"
+                    - text: Mejora en la calidad de decisiones a través de la implementación del dashboard interactivo.
+                - listitem [ref=e523]:
+                  - paragraph [ref=e524]:
+                    - strong [ref=e525]: "Mediano plazo (3 a 12 meses):"
+                    - text: Ahorro en costos por reducción de compras urgentes y sobrecostos asociados.
+                - listitem [ref=e526]:
+                  - paragraph [ref=e527]:
+                    - strong [ref=e528]: "Largo plazo (más de 12 meses):"
+                    - text: Incremento sostenido en la eficiencia operativa y la reducción del tiempo improductivo
+              - list [ref=e529]:
+                - listitem [ref=e530]:
+                  - paragraph [ref=e531]:
+                    - strong [ref=e532]: "Indicadores o métricas específicas para evidenciar el valor:"
+              - list [ref=e533]:
+                - listitem [ref=e534]:
+                  - paragraph [ref=e535]:
+                    - strong [ref=e536]: "Porcentaje de reducción en compras urgentes:"
+                    - text: Medir mensualmente el porcentaje de compras urgentes sobre el total.
+                - listitem [ref=e537]:
+                  - paragraph [ref=e538]:
+                    - strong [ref=e539]: "Tiempo no productivo promedio por taladro:"
+                    - text: Seguimiento mensual de las horas improductivas por falta de stock en cada taladro.
+                - listitem [ref=e540]:
+                  - paragraph [ref=e541]:
+                    - strong [ref=e542]: "Sobre-costo promedio por urgencia:"
+                    - text: Medida trimestral para verificar la disminución del costo adicional por urgencias.
+              - paragraph [ref=e480]: Estas métricas permitirán a DrillCon evaluar el resultado e impacto del proyecto, asegurando que las mejoras logísticas y operativas se traduzcan en beneficios tangibles para la organización.
+    - generic [ref=e124]:
+      - button "← Paso anterior" [ref=e168] [cursor=pointer]
+      - button "Siguiente paso →" [ref=e125] [cursor=pointer]

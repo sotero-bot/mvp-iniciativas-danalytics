@@ -1,0 +1,62 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - img "DrillCon" [ref=e61]
+      - heading "DrillCon" [level=2] [ref=e62]
+    - generic [ref=e74]: Paso 4 de 8
+    - 'heading "Bloque 4: Usuarios del resultado" [level=2] [ref=e208]'
+    - paragraph [ref=e77]: Definir quién usará los resultados de esta solución y para qué.
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Instrucciones
+          - generic [ref=e83]: Lee atentamente antes de comenzar
+      - paragraph [ref=e85]: "Reflexiona primero: • ¿Qué personas o roles de tu equipo usarían el resultado de esta solución en su trabajo diario? • ¿Lo usarían para tomar decisiones, para hacer seguimiento, para reportar, o para ejecutar tareas? • ¿Esas personas estarían listas para usarlo desde el primer día, o necesitarían algún tipo de capacitación o acompañamiento?"
+    - generic [ref=e209]:
+      - generic [ref=e210]:
+        - generic [ref=e211]: "1"
+        - paragraph [ref=e212]: Identifica las personas o roles que usarán el resultado. Indica para qué lo usarían y si necesitarían capacitación.
+      - generic [ref=e215]:
+        - generic [ref=e216]:
+          - generic [ref=e217]: Tu respuesta
+          - generic [ref=e218]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e219]:
+          - generic [ref=e220]:
+            - button "B" [ref=e221] [cursor=pointer]:
+              - strong [ref=e222]: B
+            - button "I" [ref=e223] [cursor=pointer]:
+              - emphasis [ref=e224]: I
+            - button "S" [ref=e225] [cursor=pointer]
+            - button "H1" [ref=e227] [cursor=pointer]
+            - button "H2" [ref=e228] [cursor=pointer]
+            - button "H3" [ref=e229] [cursor=pointer]
+            - button "≡ Lista" [ref=e231] [cursor=pointer]
+            - button "1. Lista" [ref=e232] [cursor=pointer]
+            - button "❝" [ref=e234] [cursor=pointer]
+            - button "</>" [ref=e235] [cursor=pointer]
+            - button "↩" [ref=e237] [cursor=pointer]
+            - button "↪" [ref=e238] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e240] [cursor=pointer]
+            - button "+Col" [ref=e241] [cursor=pointer]
+            - button "+Fila" [ref=e242] [cursor=pointer]
+            - button "✕ Tabla" [ref=e243] [cursor=pointer]
+          - textbox [ref=e245]:
+            - paragraph [ref=e246]: Escriba aquí su respuesta...
+    - generic [ref=e124]:
+      - button "← Paso anterior" [ref=e168] [cursor=pointer]
+      - button "Siguiente paso →" [disabled] [ref=e125]

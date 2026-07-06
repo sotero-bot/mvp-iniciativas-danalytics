@@ -1,0 +1,120 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: P
+        - generic [ref=e14]: prueba brasil·brasil
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]: P
+      - heading "prueba brasil" [level=2] [ref=e61]
+    - generic [ref=e68]: Paso 1 de 3
+    - heading "Descripción del área" [level=2] [ref=e70]
+    - paragraph [ref=e71]: Contextualizar el área de trabajo para enfocar mejor la identificación de oportunidades analíticas.
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: "1"
+        - generic [ref=e75]:
+          - generic [ref=e76]: Instrucciones
+          - generic [ref=e77]: Lee atentamente antes de comenzar
+      - paragraph [ref=e79]: Antes de explorar oportunidades, describe el área donde trabajas. Esto ayudará a enfocar las ideas y hacerlas relevantes para tu contexto real.
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - generic [ref=e82]: "1"
+        - paragraph [ref=e83]: ¿Qué hace tu área? Describe brevemente la misión o propósito del área dentro de la organización. ¿Qué problema resuelve o qué valor genera?
+      - generic [ref=e86]:
+        - generic [ref=e87]:
+          - generic [ref=e88]: Tu respuesta
+          - generic [ref=e89]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - button "B" [ref=e92] [cursor=pointer]:
+              - strong [ref=e93]: B
+            - button "I" [ref=e94] [cursor=pointer]:
+              - emphasis [ref=e95]: I
+            - button "S" [ref=e96] [cursor=pointer]
+            - button "H1" [ref=e98] [cursor=pointer]
+            - button "H2" [ref=e99] [cursor=pointer]
+            - button "H3" [ref=e100] [cursor=pointer]
+            - button "≡ Lista" [ref=e102] [cursor=pointer]
+            - button "1. Lista" [ref=e103] [cursor=pointer]
+            - button "❝" [ref=e105] [cursor=pointer]
+            - button "</>" [ref=e106] [cursor=pointer]
+            - button "↩" [ref=e108] [cursor=pointer]
+            - button "↪" [ref=e109] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e111] [cursor=pointer]
+            - button "+Col" [ref=e112] [cursor=pointer]
+            - button "+Fila" [ref=e113] [cursor=pointer]
+            - button "✕ Tabla" [ref=e114] [cursor=pointer]
+          - textbox [active] [ref=e116]:
+            - paragraph [ref=e117]: Escriba aquí su respuesta...
+    - generic [ref=e118]:
+      - generic [ref=e119]:
+        - generic [ref=e120]: "2"
+        - paragraph [ref=e121]: ¿Cuáles son sus principales procesos? Menciona los 3 a 5 procesos más importantes que se ejecutan en el área (ej. planificación, atención a clientes, compras, soporte técnico, etc.).
+      - generic [ref=e124]:
+        - generic [ref=e125]:
+          - generic [ref=e126]: Tu respuesta
+          - generic [ref=e127]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - button "B" [ref=e130] [cursor=pointer]:
+              - strong [ref=e131]: B
+            - button "I" [ref=e132] [cursor=pointer]:
+              - emphasis [ref=e133]: I
+            - button "S" [ref=e134] [cursor=pointer]
+            - button "H1" [ref=e136] [cursor=pointer]
+            - button "H2" [ref=e137] [cursor=pointer]
+            - button "H3" [ref=e138] [cursor=pointer]
+            - button "≡ Lista" [ref=e140] [cursor=pointer]
+            - button "1. Lista" [ref=e141] [cursor=pointer]
+            - button "❝" [ref=e143] [cursor=pointer]
+            - button "</>" [ref=e144] [cursor=pointer]
+            - button "↩" [ref=e146] [cursor=pointer]
+            - button "↪" [ref=e147] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e149] [cursor=pointer]
+            - button "+Col" [ref=e150] [cursor=pointer]
+            - button "+Fila" [ref=e151] [cursor=pointer]
+            - button "✕ Tabla" [ref=e152] [cursor=pointer]
+          - textbox [ref=e154]:
+            - paragraph [ref=e155]: Escriba aquí su respuesta...
+    - generic [ref=e156]:
+      - generic [ref=e157]:
+        - generic [ref=e158]: "3"
+        - paragraph [ref=e159]: ¿Cuáles son sus principales indicadores? Lista los indicadores o métricas que hoy se usan para medir el desempeño del área (ej. tiempo de respuesta, tasa de error, volumen de solicitudes, cumplimiento de SLA, etc.).
+      - generic [ref=e162]:
+        - generic [ref=e163]:
+          - generic [ref=e164]: Tu respuesta
+          - generic [ref=e165]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - button "B" [ref=e168] [cursor=pointer]:
+              - strong [ref=e169]: B
+            - button "I" [ref=e170] [cursor=pointer]:
+              - emphasis [ref=e171]: I
+            - button "S" [ref=e172] [cursor=pointer]
+            - button "H1" [ref=e174] [cursor=pointer]
+            - button "H2" [ref=e175] [cursor=pointer]
+            - button "H3" [ref=e176] [cursor=pointer]
+            - button "≡ Lista" [ref=e178] [cursor=pointer]
+            - button "1. Lista" [ref=e179] [cursor=pointer]
+            - button "❝" [ref=e181] [cursor=pointer]
+            - button "</>" [ref=e182] [cursor=pointer]
+            - button "↩" [ref=e184] [cursor=pointer]
+            - button "↪" [ref=e185] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e187] [cursor=pointer]
+            - button "+Col" [ref=e188] [cursor=pointer]
+            - button "+Fila" [ref=e189] [cursor=pointer]
+            - button "✕ Tabla" [ref=e190] [cursor=pointer]
+          - textbox [ref=e192]:
+            - paragraph [ref=e193]: Escriba aquí su respuesta...
+    - button "Siguiente paso →" [disabled] [ref=e195]

@@ -1,0 +1,41 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - img "DrillCon" [ref=e25]
+        - heading "DrillCon" [level=2] [ref=e26]
+      - generic [ref=e28]:
+        - generic [ref=e29]: "8"
+        - generic [ref=e30]: pasos
+    - generic [ref=e31]:
+      - heading "Indícanos quién eres" [level=3] [ref=e32]
+      - paragraph [ref=e33]: Estos datos quedarán vinculados a tu participación en la actividad.
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Correo Electrónico *
+          - textbox "ejemplo@empresa.com" [ref=e37]: qa+coord-suministros-1750870000@danalytics.qa
+        - generic [ref=e38]:
+          - generic [ref=e39]: Nombre Completo *
+          - textbox "Su nombre completo" [ref=e40]: María González (QA Test)
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - generic [ref=e43]: Cargo
+            - 'textbox "Ej: Director de Innovación" [ref=e44]': Coordinador de Suministros
+          - generic [ref=e45]:
+            - generic [ref=e46]: Área
+            - 'textbox "Ej: Tecnología" [ref=e47]': Suministros y Logística
+      - button "Registrando..." [disabled] [ref=e57]

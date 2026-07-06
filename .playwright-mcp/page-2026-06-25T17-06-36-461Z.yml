@@ -1,0 +1,27 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e22]:
+    - generic [ref=e689]:
+      - img "DrillCon" [ref=e690]
+      - heading "DrillCon" [level=2] [ref=e691]
+    - generic [ref=e692]: ✓
+    - heading "¡Actividad completada!" [level=1] [ref=e693]
+    - paragraph [ref=e694]: Sus respuestas han sido registradas exitosamente. Puede ver un resumen completo a continuación.
+    - generic [ref=e695]:
+      - link "Ver mis resultados →" [ref=e696] [cursor=pointer]:
+        - /url: /runner/7fbbbe24-9b40-4722-b19d-6b1ff1f48a78/resultados
+      - button "Descargar resumen HTML" [ref=e697] [cursor=pointer]
+    - paragraph [ref=e698]: También puede cerrar esta ventana.

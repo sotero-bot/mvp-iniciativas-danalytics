@@ -1,0 +1,85 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: P
+        - generic [ref=e14]: prueba brasil·brasil
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]: P
+      - heading "prueba brasil" [level=2] [ref=e61]
+    - generic [ref=e67]:
+      - generic [ref=e68]: Paso 3 de 3
+      - generic [ref=e239]: Último paso
+    - heading "Generación y priorización con IA" [level=2] [ref=e240]
+    - paragraph [ref=e71]: Obtener ideas de proyectos de analítica generadas automáticamente por IA y priorizarlas según su valor y factibilidad.
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: "1"
+        - generic [ref=e75]:
+          - generic [ref=e76]: Instrucciones
+          - generic [ref=e77]: Lee atentamente antes de comenzar
+      - paragraph [ref=e79]: "El asistente de IA analizará el contexto de tu área y los retos identificados para proponer oportunidades concretas. La generación es automática — no necesitas escribir nada. Una vez que veas los resultados: 1. Descarga la plantilla Excel pre-diligenciada. 2. Completa la tabla de priorización con tu equipo usando la escala que se encuentra en la hoja «Criterios» dentro del archivo de Excel. 3. Carga nuevamente el archivo de Excel diligenciado."
+    - generic [ref=e241]:
+      - generic [ref=e242]:
+        - generic [ref=e243]: "1"
+        - paragraph [ref=e244]: Genera las oportunidades con el asistente, revisa y descarga la plantilla pre-diligenciada, complementa la información con tu equipo y sube el archivo final.
+      - generic [ref=e246]:
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - generic [ref=e250]: "1"
+            - generic [ref=e251]: Descarga la plantilla de priorización
+          - paragraph [ref=e252]: La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
+          - generic [ref=e253]: ⏳ Generando ideas con IA...
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - generic [ref=e256]: Tu respuesta
+            - generic [ref=e257]: Sube el documento completado para avanzar al siguiente paso.
+          - generic [ref=e259]:
+            - generic [ref=e260]:
+              - generic [ref=e261]: "2"
+              - generic [ref=e262]: Sube el archivo completado
+            - generic [ref=e264] [cursor=pointer]: 📂 Seleccionar archivo (.xlsx)
+        - generic [ref=e265]:
+          - generic [ref=e266]:
+            - generic [ref=e267]: Asistente IA
+            - generic [ref=e268]: El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.
+          - generic [ref=e269]:
+            - generic [ref=e270]: ⚡
+            - generic [ref=e271]: Generación automática activada — el asistente usa el contexto de los pasos anteriores.
+          - button "Consultando..." [disabled] [ref=e272]: Consultando...
+          - generic [ref=e274]: Generando análisis con IA...
+          - generic [ref=e276]:
+            - generic [ref=e277]:
+              - button "B" [ref=e278] [cursor=pointer]:
+                - strong [ref=e279]: B
+              - button "I" [ref=e280] [cursor=pointer]:
+                - emphasis [ref=e281]: I
+              - button "S" [ref=e282] [cursor=pointer]
+              - button "H1" [ref=e284] [cursor=pointer]
+              - button "H2" [ref=e285] [cursor=pointer]
+              - button "H3" [ref=e286] [cursor=pointer]
+              - button "≡ Lista" [ref=e288] [cursor=pointer]
+              - button "1. Lista" [ref=e289] [cursor=pointer]
+              - button "❝" [ref=e291] [cursor=pointer]
+              - button "</>" [ref=e292] [cursor=pointer]
+              - button "↩" [ref=e294] [cursor=pointer]
+              - button "↪" [ref=e295] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e297] [cursor=pointer]
+              - button "+Col" [ref=e298] [cursor=pointer]
+              - button "+Fila" [ref=e299] [cursor=pointer]
+              - button "✕ Tabla" [ref=e300] [cursor=pointer]
+            - textbox [ref=e302]:
+              - paragraph [ref=e303]: La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar.
+    - generic [ref=e194]:
+      - button "← Paso anterior" [ref=e238] [cursor=pointer]
+      - button "Finalizar actividad" [disabled] [ref=e304]

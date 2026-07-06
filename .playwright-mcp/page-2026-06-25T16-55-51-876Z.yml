@@ -1,0 +1,62 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: P
+        - generic [ref=e14]: prueba brasil·brasil
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]: P
+      - heading "prueba brasil" [level=2] [ref=e61]
+    - generic [ref=e68]: Paso 2 de 3
+    - heading "Exploración y reflexión" [level=2] [ref=e199]
+    - paragraph [ref=e71]: Reconocer qué retos, fricciones y oportunidades existen en tu área. Aún no pienses en soluciones ni en tecnología — solo describe lo que vives hoy.
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: "1"
+        - generic [ref=e75]:
+          - generic [ref=e76]: Instrucciones
+          - generic [ref=e77]: Lee atentamente antes de comenzar
+      - paragraph [ref=e79]: "No pienses todavía en soluciones ni en tecnología. El objetivo es identificar qué duele, qué falla o qué genera ineficiencia en el trabajo diario. Esos dolores serán el insumo para el siguiente paso. Cada persona reflexiona de forma individual durante 5 minutos. Luego compartan en grupo y consoliden una lista de 3 a 5 dolores concretos. Preguntas comunes para todos los equipos (respondan las que más resuenen): • ¿Qué decisiones clave en tu área se toman hoy sin evidencia o con información incompleta? • ¿Qué procesos generan datos constantemente pero nadie los analiza o aprovecha? • ¿Qué tareas repetitivas consumen tiempo de personas que podrían dedicarse a algo de mayor valor? • ¿Qué información te gustaría tener para anticiparte, no solo reaccionar? • ¿Dónde se pierden oportunidades por falta de visibilidad, seguimiento o velocidad de respuesta?"
+    - generic [ref=e200]:
+      - generic [ref=e201]:
+        - generic [ref=e202]: "1"
+        - paragraph [ref=e203]: La meta es llegar a 5 o más retos concretos que la IA pueda analizar en el siguiente paso.
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - generic [ref=e208]: Tu respuesta
+          - generic [ref=e209]: Escribe aquí tu análisis o respuesta.
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - button "B" [ref=e212] [cursor=pointer]:
+              - strong [ref=e213]: B
+            - button "I" [ref=e214] [cursor=pointer]:
+              - emphasis [ref=e215]: I
+            - button "S" [ref=e216] [cursor=pointer]
+            - button "H1" [ref=e218] [cursor=pointer]
+            - button "H2" [ref=e219] [cursor=pointer]
+            - button "H3" [ref=e220] [cursor=pointer]
+            - button "≡ Lista" [ref=e222] [cursor=pointer]
+            - button "1. Lista" [ref=e223] [cursor=pointer]
+            - button "❝" [ref=e225] [cursor=pointer]
+            - button "</>" [ref=e226] [cursor=pointer]
+            - button "↩" [ref=e228] [cursor=pointer]
+            - button "↪" [ref=e229] [cursor=pointer]
+            - button "⊞ Tabla" [ref=e231] [cursor=pointer]
+            - button "+Col" [ref=e232] [cursor=pointer]
+            - button "+Fila" [ref=e233] [cursor=pointer]
+            - button "✕ Tabla" [ref=e234] [cursor=pointer]
+          - textbox [ref=e236]:
+            - paragraph [ref=e237]: Escriba aquí su respuesta...
+    - generic [ref=e194]:
+      - button "← Paso anterior" [ref=e238] [cursor=pointer]
+      - button "Siguiente paso →" [disabled] [ref=e195]

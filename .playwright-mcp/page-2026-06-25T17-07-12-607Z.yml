@@ -1,0 +1,326 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img "Danalytics" [ref=e7]
+      - generic [ref=e8]: Decisión IA
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - button "🌐 Español ▴" [expanded] [active] [ref=e314] [cursor=pointer]:
+            - generic [ref=e12]: 🌐
+            - generic [ref=e13]: Español
+            - generic [ref=e14]: ▴
+          - listbox [ref=e315]:
+            - option "🌐 Español ✓" [selected] [ref=e316] [cursor=pointer]:
+              - generic [ref=e317]: 🌐
+              - generic [ref=e318]: Español
+              - generic [ref=e319]: ✓
+            - option "🇧🇷 Português" [ref=e320] [cursor=pointer]:
+              - generic [ref=e321]: 🇧🇷
+              - generic [ref=e322]: Português
+        - button "Descargar Canvas" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: Completada
+          - heading "Canvas DrillCon" [level=1] [ref=e22]
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - generic [ref=e25]: "8"
+            - generic [ref=e26]: pasos completados
+          - generic [ref=e27]:
+            - generic [ref=e28]: 25 jun
+            - generic [ref=e29]: fecha finalización
+      - generic [ref=e30]:
+        - button "↺ Regenerar canvas" [ref=e32] [cursor=pointer]
+        - generic [ref=e33]:
+          - heading "Lienzo de oportunidad" [level=2] [ref=e34]
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: Datos y fuentes
+              - generic [ref=e38]:
+                - generic [ref=e39]: Fuentes SAP MM son confiables y están actualizadas en línea.
+                - generic [ref=e40]: El plan de pozos en Excel tiene calidad media y actualizaciones semanales.
+                - generic [ref=e41]: Los reportes diarios de perforación requieren parseo debido a su formato no estructurado.
+                - generic [ref=e42]: Faltan un catálogo único de equivalencias y registros en lugares sin WiFi.
+            - generic [ref=e43]:
+              - generic [ref=e44]: Oportunidad
+              - generic [ref=e45]:
+                - generic [ref=e46]: Analítica predictiva y BI descriptivo para mejorar pronóstico de demanda de consumibles.
+                - generic [ref=e47]: Modelo combina plan de pozos, históricos de consumo y señales operativas en tiempo real.
+                - generic [ref=e48]: Reducir compras urgentes del 35% al 15% anticipando requerimientos críticos.
+                - generic [ref=e49]: Dashboard semanal proyecta stock vs cobertura por taladro con alertas tempranas.
+            - generic [ref=e50]:
+              - generic [ref=e51]: Problema o reto actual
+              - generic [ref=e52]:
+                - generic [ref=e53]: Compras urgentes de consumibles de perforación representan el 35% del volumen mensual.
+                - generic [ref=e54]: Las compras urgentes generan sobrecostos del 20% al 28% en comparación con órdenes planeadas.
+                - generic [ref=e55]: Tiempos muertos en taladros ocurren por falta de stock crítico.
+                - generic [ref=e56]: Desviaciones operativas no se reflejan a tiempo en suministros.
+            - generic [ref=e57]:
+              - generic [ref=e58]: Usuarios
+              - generic [ref=e59]:
+                - generic [ref=e60]: El coordinador de suministros utiliza el pronóstico semanal para priorizar compras y evitar urgencias.
+                - generic [ref=e61]: El analista de planeación ajusta puntos de reorden por tipo de taladro y consumible.
+                - generic [ref=e62]: El superintendente de operaciones reprograma actividades para prevenir quiebre de stock por pozo.
+                - generic [ref=e63]: El gerente de compras analiza la demanda para decidir entre contratos marco y compras spot.
+            - generic [ref=e65]: Actores principales
+            - generic [ref=e67]:
+              - generic [ref=e68]: Indicadores de éxito
+              - generic [ref=e69]:
+                - generic [ref=e70]: "% de órdenes urgentes sobre total de compras debe reducirse del 35% al 15%."
+                - generic [ref=e71]: Reducir el sobrecosto promedio por urgencia del 24% al 10%.
+                - generic [ref=e72]: Aumentar los días promedio de cobertura de consumibles críticos de 12 días a 21 días.
+                - generic [ref=e73]: Disminuir el tiempo no productivo por falta de stock a ≤4 horas/mes/taladro.
+            - generic [ref=e74]:
+              - generic [ref=e75]: Entregables
+              - generic [ref=e76]:
+                - generic [ref=e77]: Evaluar si los entregables son suficientemente específicos para permitir acciones concretas y ágiles.
+                - generic [ref=e78]: Implementar dashboards interactivos en Power BI para decisiones rápidas en gestión de inventarios.
+                - generic [ref=e79]: Usar modelos predictivos integrados con API para mejorar la previsión de demanda.
+                - generic [ref=e80]: Sistema de alertas automatizado en tiempo real para mitigar riesgos operativos.
+            - generic [ref=e81]:
+              - generic [ref=e82]: Restricciones
+              - generic [ref=e83]:
+                - generic [ref=e84]: Reducción de compras urgentes del 35% al 15% disminuye significativamente los sobrecostos.
+                - generic [ref=e85]: Ahorro potencial de hasta 120 horas por taladro al año al reducir tiempo improductivo.
+                - generic [ref=e86]: Lograr un pronóstico con un MAPE del 20% aumenta la precisión en planificación.
+                - generic [ref=e87]: Indicadores como el porcentaje de reducción en compras urgentes verificarán el impacto del proyecto.
+            - generic [ref=e89]: Recursos requeridos
+            - generic [ref=e91]:
+              - generic [ref=e92]: Potencial de valor
+              - generic [ref=e93]:
+                - generic [ref=e94]: Beneficios alineados con los objetivos estratégicos de eficiencia operativa y disciplina financiera.
+                - generic [ref=e95]: Reducción de costos estimada entre USD 800k y USD 1.5M anuales.
+                - generic [ref=e96]: Mejora en la eficiencia operativa a corto plazo con un dashboard interactivo.
+                - generic [ref=e97]: Reducir tiempo no productivo, aumentando la productividad de los taladros hasta 120 horas anuales.
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - generic [ref=e101]: "1"
+            - generic [ref=e102]:
+              - generic [ref=e103]: "Bloque 1: Problema o reto actual"
+              - paragraph [ref=e104]: Identificar el dolor que motiva el proyecto.
+          - generic [ref=e107]:
+            - generic [ref=e108]: Copia el dolor identificado del mapa de oportunidades y complementa con más contexto si lo tienes.
+            - paragraph [ref=e110]: "Dolor identificado: Las compras urgentes (rush orders) de consumibles de perforación (brocas tricónicas, brocas PDC, lodos, casing, herramientas de fondo) representan cerca del 35% del volumen mensual y generan sobrecostos del 20% al 28% respecto a órdenes planeadas, además de tiempos muertos en taladros por falta de stock crítico. Contexto adicional: la planeación de demanda se construye en hojas de cálculo a partir de los planes de pozos, pero las desviaciones operativas (cambios de litología, fallas mecánicas) no se reflejan a tiempo en suministros, y los proveedores locales tienen lead times de 5 a 15 días que muchas veces no logramos absorber."
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - generic [ref=e113]: "2"
+            - generic [ref=e114]:
+              - generic [ref=e115]: "Bloque 2: Solución propuesta"
+              - paragraph [ref=e116]: Identificar la solución viable.
+          - generic [ref=e119]:
+            - generic [ref=e120]: Copia la solución propuesta del mapa de oportunidades y complementa con lo que consideres relevante.
+            - paragraph [ref=e122]: "Tipo de solución sugerida: Analítica predictiva + BI descriptivo. Oportunidad de mejora: Implementar un modelo de pronóstico de demanda de consumibles que combine (1) el plan de pozos consolidado, (2) consumos históricos por tipo de formación y profundidad y (3) señales operativas en tiempo real (ROP, tiempos no productivos, eventos de cambio de broca), para anticipar al menos 7 a 14 días los requerimientos críticos y reducir las compras urgentes del 35% al 15%. Complemento: un dashboard semanal de stock proyectado vs cobertura por taladro, con alertas tempranas cuando un consumible se acerca al punto de reorden ajustado dinámicamente por el plan operativo."
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - generic [ref=e125]: "3"
+            - generic [ref=e126]:
+              - generic [ref=e127]: "Bloque 3: Datos y fuentes disponibles"
+              - paragraph [ref=e128]: Identificar con qué información cuenta el equipo para desarrollar la solución.
+          - generic [ref=e131]:
+            - generic [ref=e132]: Haz un listado de las fuentes de información disponibles. Señala cuáles consideras confiables y cuáles presentan problemas de calidad o acceso.
+            - paragraph [ref=e134]: "Fuentes disponibles: 1) SAP MM (órdenes de compra, recepciones, maestros de materiales) — confiable, actualizado en línea. 2) Plan de pozos en Excel compartido con Operaciones — actualización semanal, calidad media (cambios verbales no siempre se reflejan). 3) Reportes diarios de perforación (DDR) en PDF — confiables pero no estructurados, requieren parseo. 4) Histórico de consumos por pozo en BI (Power BI) — confiable, 18 meses. 5) Maestros de proveedores con lead times — desactualizado, ~40% sin revisar en el último año. 6) Correos con cotizaciones urgentes — no estructurado, sin trazabilidad. Vacíos críticos: no hay catálogo único de equivalencias entre brocas de distintos fabricantes; no se registran consumos en taladros donde el WiFi falla; el costo real por rush order no se imputa al pozo, queda en una bolsa general."
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]: "4"
+            - generic [ref=e138]:
+              - generic [ref=e139]: "Bloque 4: Usuarios del resultado"
+              - paragraph [ref=e140]: Definir quién usará los resultados de esta solución y para qué.
+          - generic [ref=e143]:
+            - generic [ref=e144]: Identifica las personas o roles que usarán el resultado. Indica para qué lo usarían y si necesitarían capacitación.
+            - paragraph [ref=e146]: "Usuarios principales: (a) Coordinador de Suministros — usa el pronóstico semanal para liberar órdenes con lead time normal y evitar urgencias; decide priorización de compras. (b) Analista de planeación de inventarios — ajusta puntos de reorden por taladro y por consumible. (c) Superintendente de Operaciones de campo — visualiza el riesgo de quiebre de stock por pozo para reprogramar actividades. (d) Gerente de Compras — toma decisiones de contratos marco vs spot a partir de las tendencias de demanda. (e) Finanzas — monitorea sobrecostos por urgencias e imputación correcta al pozo. Capacitación: (a) y (b) usarían el modelo desde el día 1 con un onboarding técnico de 4 horas; (c) y (d) usan solo dashboards, requieren 1 hora; (e) recibe reportes automáticos, no necesita capacitación."
+        - generic [ref=e147]:
+          - generic [ref=e148]:
+            - generic [ref=e149]: "5"
+            - generic [ref=e150]:
+              - generic [ref=e151]: "Bloque 5: Entregables esperados"
+              - paragraph [ref=e152]: Definir qué productos concretos saldrán de esta solución.
+          - generic [ref=e155]:
+            - generic [ref=e156]: Describe qué debería producir esta solución, en qué formato y con qué frecuencia.
+            - generic [ref=e157]:
+              - list [ref=e158]:
+                - listitem [ref=e159]: "Cuestionamiento de los entregables propuestos:"
+              - paragraph [ref=e160]: Los entregables propuestos parecen alineados con las necesidades del negocio, ya que abordan tanto la previsión de demanda, alertas operativas, como el monitoreo de KPIs críticos. Sin embargo, es importante evaluar si estos entregables son suficientemente específicos para permitir una acción concreta y ágil. Por ejemplo, el reporte mensual puede no ser suficiente para tomar decisiones rápidas que afecten el día a día operativo.
+              - list [ref=e161]:
+                - listitem [ref=e162]: "Sugerencias de tipos de entregables concretos que podrían agregar valor:"
+              - list [ref=e163]:
+                - listitem [ref=e164]:
+                  - strong [ref=e165]: Dashboard interactivo en Power BI
+                  - text: ": Formato visual y fácil de navegar, tiempo real o diario, habilita decisiones rápidas en gestión de inventarios y detección de riesgos operativos."
+                - listitem [ref=e166]:
+                  - strong [ref=e167]: Modelo predictivo integrado con API
+                  - text: ": Para calcular demanda anticipada, actualización semanal, influye en las órdenes de compra con lead time correcto."
+                - listitem [ref=e168]:
+                  - strong [ref=e169]: Sistema de alertas automatizado
+                  - text: ": Notificaciones vía Teams y correo, tiempo real en casos críticos, permite acciones de mitigación tempranas."
+                - listitem [ref=e170]:
+                  - strong [ref=e171]: Herramienta de simulación
+                  - text: ": Para evaluar diferentes escenarios de demanda y su impacto en los inventarios y disponibilidad operativa, útil para planificación estratégica."
+              - list [ref=e172]:
+                - listitem [ref=e173]: "Formato, frecuencia y decisión habilitada para cada entregable relevante:"
+              - list [ref=e174]:
+                - listitem [ref=e175]:
+                  - strong [ref=e176]: Pronóstico semanal de demanda
+                  - text: ": Excel y Power BI, actualización semanal, permite planificación anticipada y órdenes de compra programadas."
+                - listitem [ref=e177]:
+                  - strong [ref=e178]: Alertas automáticas
+                  - text: ": Correo y Teams, tiempo real para casos críticos, habilita la reprogramación operativa y órdenes urgentes."
+                - listitem [ref=e179]:
+                  - strong [ref=e180]: Reporte mensual ejecutivo
+                  - text: ": PDF, actualización mensual, guía decisiones de estrategia de compras y contratos marco."
+              - list [ref=e181]:
+                - listitem [ref=e182]: "Propuesta para hacer los entregables más accionables:"
+              - paragraph [ref=e183]: El reporte mensual podría ser demasiado estático para algunos usuarios. Transformarlo en un dashboard interactivo que permita el filtrado por período y categoria podría mejorar su utilidad. Además, incluir insights accionables o recomendaciones específicas, como ajuste de contratos o cambios operativos, podría hacerlo más valioso.
+              - paragraph [ref=e184]: "---"
+              - paragraph [ref=e185]: Sobre los KPIs de éxito y potencial de valor, tu respuesta estará mejor dirigida si proporcionas más detalles en esos bloques en el futuro.
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - generic [ref=e188]: "6"
+            - generic [ref=e189]:
+              - generic [ref=e190]: "Bloque 7: KPIs de éxito"
+              - paragraph [ref=e191]: Definir cómo sabremos que la solución funcionó.
+          - generic [ref=e194]:
+            - generic [ref=e195]: Escribe los indicadores que usarías para medir el éxito. Para cada uno, indica cómo está hoy y a dónde quisieras llegar.
+            - paragraph [ref=e197]: "KPIs de éxito (estado hoy → meta a 6 meses): 1) % rush orders sobre total de compras: 35% → 15%. 2) Sobrecosto promedio por urgencia: 24% → 10%. 3) Días promedio de cobertura por consumible crítico: 12 → 21 días. 4) Tiempo no productivo por falta de stock (NPT-stock): 14 h/mes/taladro → ≤4 h/mes/taladro. 5) Precisión de pronóstico (MAPE) horizonte 14 días: no medido → ≤20% en categorías A/B. 6) % órdenes liberadas con lead time normal vs total: 65% → 85%. Seguimiento: Coordinador de Suministros revisa semanal; Gerencia revisa mensual en comité de operaciones. Las líneas base 1-4 vienen de Power BI; 5 se medirá desde la implementación; 6 se calcula directo de SAP MM."
+        - generic [ref=e198]:
+          - generic [ref=e199]:
+            - generic [ref=e200]: "7"
+            - generic [ref=e201]:
+              - generic [ref=e202]: "Bloque 8: Barreras y riesgos"
+              - paragraph [ref=e203]: Anticipar lo que puede dificultar el desarrollo o la implementación de la solución.
+          - generic [ref=e206]:
+            - generic [ref=e207]: Escribe las barreras y riesgos que identificas. Para cada uno, indica qué tan probable lo ves y cómo lo mitigarías.
+            - generic [ref=e208]:
+              - heading "Cuestionamiento de los beneficios descritos" [level=3] [ref=e209]
+              - list [ref=e210]:
+                - listitem [ref=e211]:
+                  - strong [ref=e212]: "Conexión con objetivos estratégicos:"
+                  - text: Los beneficios descritos en el contexto del proyecto parecen estar bien alineados con los objetivos estratégicos de DrillCon, que busca aumentar la eficiencia operativa y reducir costos en la gestión de suministros. La disminución de las compras urgentes y sus sobrecostos asociados, así como la mejora en la planificación de demanda, apuntan directamente a la optimización de procesos críticos para la empresa.
+              - list [ref=e213]:
+                - listitem [ref=e214]:
+                  - strong [ref=e215]: "Clasificación del valor potencial:"
+              - list [ref=e216]:
+                - listitem [ref=e217]:
+                  - strong [ref=e218]: "Reducción de costos:"
+                  - text: Al reducir las compras urgentes del 35% al 15% y los sobrecostos del 24% al 10%.
+                - listitem [ref=e219]:
+                  - strong [ref=e220]: "Ahorro de tiempo operativo:"
+                  - text: Reducir el tiempo improductivo debido a la falta de stock de 14 horas por mes a menos de 4 horas por taladro.
+                - listitem [ref=e221]:
+                  - strong [ref=e222]: "Mejora en calidad de decisiones:"
+                  - text: Con un modelo predictivo más preciso que disminuirá los errores en planificación y aumentará la confianza en las decisiones de compras.
+              - list [ref=e223]:
+                - listitem [ref=e224]:
+                  - strong [ref=e225]: "Estimaciones cuantificables:"
+              - list [ref=e226]:
+                - listitem [ref=e227]:
+                  - strong [ref=e228]: "Reducción de costos:"
+                  - text: Disminuir las compras urgentes podría ahorrar entre un 10% y un 15% del costo total de consumibles.
+                - listitem [ref=e229]:
+                  - strong [ref=e230]: "Ahorro de tiempo operativo:"
+                  - text: Ahorro potencial de hasta 120 horas por taladro al año si se logra disminuir el tiempo no productivo a 4 horas mensuales.
+                - listitem [ref=e231]:
+                  - strong [ref=e232]: "Aumento de la precisión en decisiones:"
+                  - text: El objetivo es lograr un pronóstico con un MAPE del 20%, lo cual puede reducir sustancialmente los errores de planificación.
+              - list [ref=e233]:
+                - listitem [ref=e234]:
+                  - strong [ref=e235]: "Horizonte de impacto:"
+              - list [ref=e236]:
+                - listitem [ref=e237]:
+                  - strong [ref=e238]: "Corto plazo (menos de 3 meses):"
+                  - text: Mejora en la calidad de decisiones a través de la implementación del dashboard interactivo.
+                - listitem [ref=e239]:
+                  - strong [ref=e240]: "Mediano plazo (3 a 12 meses):"
+                  - text: Ahorro en costos por reducción de compras urgentes y sobrecostos asociados.
+                - listitem [ref=e241]:
+                  - strong [ref=e242]: "Largo plazo (más de 12 meses):"
+                  - text: Incremento sostenido en la eficiencia operativa y la reducción del tiempo improductivo
+              - list [ref=e243]:
+                - listitem [ref=e244]:
+                  - strong [ref=e245]: "Indicadores o métricas específicas para evidenciar el valor:"
+              - list [ref=e246]:
+                - listitem [ref=e247]:
+                  - strong [ref=e248]: "Porcentaje de reducción en compras urgentes:"
+                  - text: Medir mensualmente el porcentaje de compras urgentes sobre el total.
+                - listitem [ref=e249]:
+                  - strong [ref=e250]: "Tiempo no productivo promedio por taladro:"
+                  - text: Seguimiento mensual de las horas improductivas por falta de stock en cada taladro.
+                - listitem [ref=e251]:
+                  - strong [ref=e252]: "Sobre-costo promedio por urgencia:"
+                  - text: Medida trimestral para verificar la disminución del costo adicional por urgencias.
+              - paragraph [ref=e253]: Estas métricas permitirán a DrillCon evaluar el resultado e impacto del proyecto, asegurando que las mejoras logísticas y operativas se traduzcan en beneficios tangibles para la organización.
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - generic [ref=e256]: "8"
+            - generic [ref=e257]:
+              - generic [ref=e258]: "Bloque 9: Potencial de valor estratégico"
+              - paragraph [ref=e259]: Conectar la solución con los resultados que importan para la organización.
+          - generic [ref=e262]:
+            - generic [ref=e263]: Describe por qué este proyecto vale la pena para la organización. Conecta la solución con los objetivos estratégicos y los riesgos que ayudaría a reducir.
+            - generic [ref=e264]:
+              - heading "Bloque 9 — Potencial de valor estratégico" [level=3] [ref=e265]
+              - list [ref=e266]:
+                - listitem [ref=e267]:
+                  - strong [ref=e268]: "Conexión con los objetivos estratégicos:"
+              - paragraph [ref=e269]: Los beneficios descritos están claramente alineados con los objetivos estratégicos de DrillCon. Reducir los tiempos no productivos y mejorar la eficiencia operativa responde al pilar de excelencia operativa. La recuperación de la imputación de costos por pozo y la mejora en la previsibilidad del CAPEX/OPEX resonan con la disciplina financiera. Adicionalmente, fortalecer la sostenibilidad de la cadena de suministro refleja un enfoque estratégico en consolidar relaciones contractuales y reducir la dependencia de compras urgentes.
+              - list [ref=e270]:
+                - listitem [ref=e271]:
+                  - strong [ref=e272]: "Clasificación del valor potencial:"
+              - list [ref=e273]:
+                - listitem [ref=e274]:
+                  - strong [ref=e275]: "Reducción de costos:"
+                  - text: A través de la disminución de compras urgentes y los sobrecostos asociados, con un ahorro estimado entre USD 800k y USD 1.5M anuales.
+                - listitem [ref=e276]:
+                  - strong [ref=e277]: "Ahorro de tiempo operativo:"
+                  - text: Reduciendo el tiempo no productivo, se mejora el OEE (Overall Equipment Efficiency) de los taladros.
+                - listitem [ref=e278]:
+                  - strong [ref=e279]: "Reducción de riesgo:"
+                  - text: Se minimizan riesgos de incumplimiento de cronogramas con clientes y deterioro de la relación con proveedores.
+                - listitem [ref=e280]:
+                  - strong [ref=e281]: "Mejora en la calidad de decisiones:"
+                  - text: Implementar un sistema de planeación basado en datos que es transferible a otras áreas de la compañía.
+              - list [ref=e282]:
+                - listitem [ref=e283]:
+                  - strong [ref=e284]: "Estimación cuantificable del valor potencial:"
+              - list [ref=e285]:
+                - listitem [ref=e286]:
+                  - strong [ref=e287]: "Reducción de costos:"
+                  - text: Se estima un ahorro anual de USD 800k a USD 1.5M al reducir compras urgentes y sobrecostos.
+                - listitem [ref=e288]:
+                  - strong [ref=e289]: "Ahorro en tiempo operativo:"
+                  - text: Posibilidad de aumentar la productividad de los taladros al reducir los tiempos no productivos, estimando un ahorro de hasta 120 horas por taladro al año.
+                - listitem [ref=e290]:
+                  - strong [ref=e291]: "Reducción de riesgo:"
+                  - text: Al mejorar la gestión de inventarios y relaciones con proveedores, el riesgo de multas por retrasos y deterioro de relaciones se minimiza.
+              - list [ref=e292]:
+                - listitem [ref=e293]:
+                  - strong [ref=e294]: "Horizonte de impacto:"
+              - list [ref=e295]:
+                - listitem [ref=e296]:
+                  - strong [ref=e297]: "Corto plazo (menos de 3 meses):"
+                  - text: Mejora en la eficiencia operativa con la implementación del dashboard interactivo y la reducción de tiempos no productivos.
+                - listitem [ref=e298]:
+                  - strong [ref=e299]: "Mediano plazo (3 a 12 meses):"
+                  - text: Ahorro en costos debido a la reducción de compras urgentes y la mejora en la relación con proveedores.
+                - listitem [ref=e300]:
+                  - strong [ref=e301]: "Largo plazo (más de 12 meses):"
+                  - text: Incremento sostenido en eficiencia operativa y la consolidación de relaciones contractuales.
+              - list [ref=e302]:
+                - listitem [ref=e303]:
+                  - strong [ref=e304]: "Indicadores o métricas para evidenciar el valor:"
+              - list [ref=e305]:
+                - listitem [ref=e306]:
+                  - strong [ref=e307]: "Porcentaje de reducción en compras urgentes:"
+                  - text: Medido mensualmente para verificar la disminución.
+                - listitem [ref=e308]:
+                  - strong [ref=e309]: "Tiempo no productivo promedio por taladro:"
+                  - text: Registro mensual de las horas improductivas por falta de stock.
+                - listitem [ref=e310]:
+                  - strong [ref=e311]: "Costo total de sobrecostos directos e indirectos:"
+                  - text: Medición trimestral para asegurar que se mantiene dentro del rango objetivo de reducción.
+              - paragraph [ref=e312]: Estos indicadores permitirán a DrillCon evaluar el impacto del proyecto y asegurar que las mejoras se traducen en beneficios tangibles para la organización.
+      - paragraph [ref=e313]: Puedes cerrar esta ventana.

@@ -1,0 +1,93 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "DrillCon" [ref=e13]
+        - generic [ref=e14]: DrillCon·Canvas DrillCon
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - img "DrillCon" [ref=e61]
+      - heading "DrillCon" [level=2] [ref=e62]
+    - generic [ref=e73]:
+      - generic [ref=e74]: Paso 8 de 8
+      - generic [ref=e543]: Último paso
+    - 'heading "Bloque 9: Potencial de valor estratégico" [level=2] [ref=e544]'
+    - paragraph [ref=e77]: Conectar la solución con los resultados que importan para la organización.
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Instrucciones
+          - generic [ref=e83]: Lee atentamente antes de comenzar
+      - paragraph [ref=e85]: "Reflexiona primero: • ¿Qué problema de negocio más grande está detrás de este proyecto — rentabilidad, experiencia del cliente, eficiencia operativa, cumplimiento? • ¿Cómo contribuye esta solución a los objetivos estratégicos de tu área o de la organización? • ¿Hay algún riesgo que esta solución ayudaría a reducir — pérdidas, incumplimientos, rotación, insatisfacción de clientes? Describe con tus propias palabras por qué este proyecto vale la pena para la organización, más allá de la tarea específica que resuelve. No es necesario tener cifras exactas — lo importante es conectar la solución con algo que le importe a la gerencia."
+    - generic [ref=e545]:
+      - generic [ref=e546]:
+        - generic [ref=e547]: "1"
+        - paragraph [ref=e548]: Describe por qué este proyecto vale la pena para la organización. Conecta la solución con los objetivos estratégicos y los riesgos que ayudaría a reducir.
+      - generic [ref=e550]:
+        - generic [ref=e551]:
+          - generic [ref=e552]:
+            - generic [ref=e553]: Tu respuesta
+            - generic [ref=e554]: Escribe tu respuesta inicial. Luego podrás enriquecerla con el Asistente IA.
+          - generic [ref=e555]:
+            - generic [ref=e556]:
+              - button "B" [ref=e557] [cursor=pointer]:
+                - strong [ref=e558]: B
+              - button "I" [ref=e559] [cursor=pointer]:
+                - emphasis [ref=e560]: I
+              - button "S" [ref=e561] [cursor=pointer]
+              - button "H1" [ref=e563] [cursor=pointer]
+              - button "H2" [ref=e564] [cursor=pointer]
+              - button "H3" [ref=e565] [cursor=pointer]
+              - button "≡ Lista" [ref=e567] [cursor=pointer]
+              - button "1. Lista" [ref=e568] [cursor=pointer]
+              - button "❝" [ref=e570] [cursor=pointer]
+              - button "</>" [ref=e571] [cursor=pointer]
+              - button "↩" [ref=e573] [cursor=pointer]
+              - button "↪" [ref=e574] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e576] [cursor=pointer]
+              - button "+Col" [ref=e577] [cursor=pointer]
+              - button "+Fila" [ref=e578] [cursor=pointer]
+              - button "✕ Tabla" [ref=e579] [cursor=pointer]
+            - textbox [ref=e581]:
+              - paragraph [ref=e582]: "Valor estratégico: la pérdida que está debajo de este proyecto es de eficiencia operativa y rentabilidad por pozo. Hoy las rush orders y el NPT por falta de stock cuestan a DrillCon entre USD 800k y USD 1.5M anuales en sobrecostos directos e indirectos. Estratégicamente conecta con tres pilares de la organización: (a) Excelencia operativa — reducir tiempos no productivos y mejorar OEE de los taladros, (b) Disciplina financiera — recuperar la imputación de costos por pozo y mejorar la previsibilidad del CAPEX/OPEX de perforación, (c) Sostenibilidad de la cadena de suministro — reducir dependencia de proveedores spot y consolidar relaciones contractuales en mejores términos. Reduce además dos riesgos estratégicos: (1) incumplimiento de cronograma con clientes operadores (multas por días de retraso), (2) deterioro de la relación con proveedores por compras erráticas. Más allá del ahorro, habilita una capacidad de planeación basada en datos que es transferible a otras decisiones de la compañía (logística, mantenimiento, capital de trabajo)."
+        - generic [ref=e583]:
+          - generic [ref=e584]:
+            - generic [ref=e585]: Asistente IA
+            - generic [ref=e586]: Envía tu respuesta al asistente para recibir análisis y retroalimentación.
+          - button "Consultando..." [disabled] [ref=e591]: Consultando...
+          - generic [ref=e593]: Generando análisis con IA...
+          - generic [ref=e595]:
+            - generic [ref=e596]:
+              - button "B" [ref=e597] [cursor=pointer]:
+                - strong [ref=e598]: B
+              - button "I" [ref=e599] [cursor=pointer]:
+                - emphasis [ref=e600]: I
+              - button "S" [ref=e601] [cursor=pointer]
+              - button "H1" [ref=e603] [cursor=pointer]
+              - button "H2" [ref=e604] [cursor=pointer]
+              - button "H3" [ref=e605] [cursor=pointer]
+              - button "≡ Lista" [ref=e607] [cursor=pointer]
+              - button "1. Lista" [ref=e608] [cursor=pointer]
+              - button "❝" [ref=e610] [cursor=pointer]
+              - button "</>" [ref=e611] [cursor=pointer]
+              - button "↩" [ref=e613] [cursor=pointer]
+              - button "↪" [ref=e614] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e616] [cursor=pointer]
+              - button "+Col" [ref=e617] [cursor=pointer]
+              - button "+Fila" [ref=e618] [cursor=pointer]
+              - button "✕ Tabla" [ref=e619] [cursor=pointer]
+            - textbox [ref=e621]:
+              - paragraph [ref=e622]: La respuesta del asistente aparecerá aquí. Podrás editarla antes de guardar.
+    - generic [ref=e124]:
+      - button "← Paso anterior" [ref=e168] [cursor=pointer]
+      - button "Finalizar actividad" [disabled] [ref=e590]

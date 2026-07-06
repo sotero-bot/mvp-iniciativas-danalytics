@@ -1,0 +1,260 @@
+- generic [ref=e2]:
+  - generic:
+    - generic: ⚠️
+    - text: El asistente usa IA y puede cometer errores. Por favor, verifica nuevamente las respuestas generadas.
+  - generic [ref=e7]:
+    - img "Danalytics" [ref=e8]
+    - generic [ref=e9]: Decisión IA
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: P
+        - generic [ref=e14]: prueba brasil·brasil
+      - button "🌐 Español ▾" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: 🌐
+        - generic [ref=e19]: Español
+        - generic [ref=e20]: ▾
+  - generic [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]: P
+      - heading "prueba brasil" [level=2] [ref=e61]
+    - generic [ref=e67]:
+      - generic [ref=e68]: Paso 3 de 3
+      - generic [ref=e239]: Último paso
+    - heading "Generación y priorización con IA" [level=2] [ref=e240]
+    - paragraph [ref=e71]: Obtener ideas de proyectos de analítica generadas automáticamente por IA y priorizarlas según su valor y factibilidad.
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: "1"
+        - generic [ref=e75]:
+          - generic [ref=e76]: Instrucciones
+          - generic [ref=e77]: Lee atentamente antes de comenzar
+      - paragraph [ref=e79]: "El asistente de IA analizará el contexto de tu área y los retos identificados para proponer oportunidades concretas. La generación es automática — no necesitas escribir nada. Una vez que veas los resultados: 1. Descarga la plantilla Excel pre-diligenciada. 2. Completa la tabla de priorización con tu equipo usando la escala que se encuentra en la hoja «Criterios» dentro del archivo de Excel. 3. Carga nuevamente el archivo de Excel diligenciado."
+    - generic [ref=e241]:
+      - generic [ref=e242]:
+        - generic [ref=e243]: "1"
+        - paragraph [ref=e244]: Genera las oportunidades con el asistente, revisa y descarga la plantilla pre-diligenciada, complementa la información con tu equipo y sube el archivo final.
+      - generic [ref=e246]:
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - generic [ref=e250]: "1"
+            - generic [ref=e251]: Descarga la plantilla de priorización
+          - paragraph [ref=e252]: La plantilla ya viene pre-diligenciada con las ideas generadas por el asistente. Descárgala, completa los puntajes con tu equipo y guárdala.
+          - button "⬇ Descargar plantilla pre-diligenciada" [ref=e305] [cursor=pointer]
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - generic [ref=e256]: Tu respuesta
+            - generic [ref=e257]: Sube el documento completado para avanzar al siguiente paso.
+          - generic [ref=e259]:
+            - generic [ref=e260]:
+              - generic [ref=e261]: "2"
+              - generic [ref=e262]: Sube el archivo completado
+            - generic [ref=e264] [cursor=pointer]: 📂 Seleccionar archivo (.xlsx)
+        - generic [ref=e265]:
+          - generic [ref=e266]:
+            - generic [ref=e267]: Asistente IA
+            - generic [ref=e268]: El asistente analiza automáticamente las respuestas anteriores y genera el resultado. Podrás editarlo antes de guardar.
+          - generic [ref=e269]:
+            - generic [ref=e270]: ⚡
+            - generic [ref=e271]: Generación automática activada — el asistente usa el contexto de los pasos anteriores.
+          - button "↺ Volver a consultar" [ref=e306] [cursor=pointer]
+          - generic [ref=e276]:
+            - generic [ref=e277]:
+              - button "B" [ref=e278] [cursor=pointer]:
+                - strong [ref=e279]: B
+              - button "I" [ref=e280] [cursor=pointer]:
+                - emphasis [ref=e281]: I
+              - button "S" [ref=e282] [cursor=pointer]
+              - button "H1" [ref=e284] [cursor=pointer]
+              - button "H2" [ref=e285] [cursor=pointer]
+              - button "H3" [ref=e286] [cursor=pointer]
+              - button "≡ Lista" [ref=e288] [cursor=pointer]
+              - button "1. Lista" [ref=e289] [cursor=pointer]
+              - button "❝" [ref=e291] [cursor=pointer]
+              - button "</>" [ref=e292] [cursor=pointer]
+              - button "↩" [ref=e294] [cursor=pointer]
+              - button "↪" [ref=e295] [cursor=pointer]
+              - button "⊞ Tabla" [ref=e297] [cursor=pointer]
+              - button "+Col" [ref=e298] [cursor=pointer]
+              - button "+Fila" [ref=e299] [cursor=pointer]
+              - button "✕ Tabla" [ref=e300] [cursor=pointer]
+            - textbox [ref=e302]:
+              - table [ref=e307]:
+                - rowgroup [ref=e323]:
+                  - row "Área Dolor identificado Proceso relacionado Tipo de problema Oportunidad de mejora Tipo de solución sugerida ¿Requiere IA? ¿IA generativa aplica? Justificación de la solución sugerida Alternativa más simple a evaluar Qué debe estar ordenado antes de implementar Qué aportaría la IA si esas condiciones existen Datos, documentos o insumos necesarios Orientación sobre esfuerzo técnico" [ref=e324]:
+                    - columnheader "Área" [ref=e325]:
+                      - paragraph [ref=e326]: Área
+                    - columnheader "Dolor identificado" [ref=e327]:
+                      - paragraph [ref=e328]: Dolor identificado
+                    - columnheader "Proceso relacionado" [ref=e329]:
+                      - paragraph [ref=e330]: Proceso relacionado
+                    - columnheader "Tipo de problema" [ref=e331]:
+                      - paragraph [ref=e332]: Tipo de problema
+                    - columnheader "Oportunidad de mejora" [ref=e333]:
+                      - paragraph [ref=e334]: Oportunidad de mejora
+                    - columnheader "Tipo de solución sugerida" [ref=e335]:
+                      - paragraph [ref=e336]: Tipo de solución sugerida
+                    - columnheader "¿Requiere IA?" [ref=e337]:
+                      - paragraph [ref=e338]: ¿Requiere IA?
+                    - columnheader "¿IA generativa aplica?" [ref=e339]:
+                      - paragraph [ref=e340]: ¿IA generativa aplica?
+                    - columnheader "Justificación de la solución sugerida" [ref=e341]:
+                      - paragraph [ref=e342]: Justificación de la solución sugerida
+                    - columnheader "Alternativa más simple a evaluar" [ref=e343]:
+                      - paragraph [ref=e344]: Alternativa más simple a evaluar
+                    - columnheader "Qué debe estar ordenado antes de implementar" [ref=e345]:
+                      - paragraph [ref=e346]: Qué debe estar ordenado antes de implementar
+                    - columnheader "Qué aportaría la IA si esas condiciones existen" [ref=e347]:
+                      - paragraph [ref=e348]: Qué aportaría la IA si esas condiciones existen
+                    - columnheader "Datos, documentos o insumos necesarios" [ref=e349]:
+                      - paragraph [ref=e350]: Datos, documentos o insumos necesarios
+                    - columnheader "Orientación sobre esfuerzo técnico" [ref=e351]:
+                      - paragraph [ref=e352]: Orientación sobre esfuerzo técnico
+                  - row "Quality Assurance Decisiones sobre release dependen de sensación, no de cobertura medida. Release Management Proceso no estructurado Establecer un mecanismo efectivo para medir y reportar la cobertura de pruebas antes de autorizar un release. BI o analítica descriptiva Podría resolverse con automatización o BI antes de IA No aplica inicialmente Implementar tableros de control personalizados para visualizar cobertura de pruebas y métricas en tiempo real. Comenzar con reportes manuales estandarizados para medir cobertura. Definición clara de métricas de cobertura y formatos estandarizados de reporte. Mejora en la toma de decisiones basada en datos reales sobre la cobertura. Registros de pruebas ejecutadas, métricas de cobertura previa y parámetros de calidad definidos. Podría iniciar con archivos estandarizados si el proceso ya tiene formatos consistentes." [ref=e353]:
+                    - cell "Quality Assurance" [ref=e354]:
+                      - paragraph [ref=e355]: Quality Assurance
+                    - cell "Decisiones sobre release dependen de sensación, no de cobertura medida." [ref=e356]:
+                      - paragraph [ref=e357]: Decisiones sobre release dependen de sensación, no de cobertura medida.
+                    - cell "Release Management" [ref=e358]:
+                      - paragraph [ref=e359]: Release Management
+                    - cell "Proceso no estructurado" [ref=e360]:
+                      - paragraph [ref=e361]: Proceso no estructurado
+                    - cell "Establecer un mecanismo efectivo para medir y reportar la cobertura de pruebas antes de autorizar un release." [ref=e362]:
+                      - paragraph [ref=e363]: Establecer un mecanismo efectivo para medir y reportar la cobertura de pruebas antes de autorizar un release.
+                    - cell "BI o analítica descriptiva" [ref=e364]:
+                      - paragraph [ref=e365]: BI o analítica descriptiva
+                    - cell "Podría resolverse con automatización o BI antes de IA" [ref=e366]:
+                      - paragraph [ref=e367]: Podría resolverse con automatización o BI antes de IA
+                    - cell "No aplica inicialmente" [ref=e368]:
+                      - paragraph [ref=e369]: No aplica inicialmente
+                    - cell "Implementar tableros de control personalizados para visualizar cobertura de pruebas y métricas en tiempo real." [ref=e370]:
+                      - paragraph [ref=e371]: Implementar tableros de control personalizados para visualizar cobertura de pruebas y métricas en tiempo real.
+                    - cell "Comenzar con reportes manuales estandarizados para medir cobertura." [ref=e372]:
+                      - paragraph [ref=e373]: Comenzar con reportes manuales estandarizados para medir cobertura.
+                    - cell "Definición clara de métricas de cobertura y formatos estandarizados de reporte." [ref=e374]:
+                      - paragraph [ref=e375]: Definición clara de métricas de cobertura y formatos estandarizados de reporte.
+                    - cell "Mejora en la toma de decisiones basada en datos reales sobre la cobertura." [ref=e376]:
+                      - paragraph [ref=e377]: Mejora en la toma de decisiones basada en datos reales sobre la cobertura.
+                    - cell "Registros de pruebas ejecutadas, métricas de cobertura previa y parámetros de calidad definidos." [ref=e378]:
+                      - paragraph [ref=e379]: Registros de pruebas ejecutadas, métricas de cobertura previa y parámetros de calidad definidos.
+                    - cell "Podría iniciar con archivos estandarizados si el proceso ya tiene formatos consistentes." [ref=e380]:
+                      - paragraph [ref=e381]: Podría iniciar con archivos estandarizados si el proceso ya tiene formatos consistentes.
+                  - row [ref=e382]:
+                    - cell "Quality Assurance" [ref=e383]:
+                      - paragraph [ref=e384]: Quality Assurance
+                    - cell "Logs de ejecución de pruebas se generan diariamente pero nadie los consolida." [ref=e385]:
+                      - paragraph [ref=e386]: Logs de ejecución de pruebas se generan diariamente pero nadie los consolida.
+                    - cell "Ejecución de Pruebas" [ref=e387]:
+                      - paragraph [ref=e388]: Ejecución de Pruebas
+                    - cell "Consolidación de datos" [ref=e389]:
+                      - paragraph [ref=e390]: Consolidación de datos
+                    - cell "Automatizar la consolidación diaria de logs para obtener insights y tendencias de pruebas." [ref=e391]:
+                      - paragraph [ref=e392]: Automatizar la consolidación diaria de logs para obtener insights y tendencias de pruebas.
+                    - cell "Automatización tradicional" [ref=e393]:
+                      - paragraph [ref=e394]: Automatización tradicional
+                    - cell "Podría resolverse con automatización o BI antes de IA" [ref=e395]:
+                      - paragraph [ref=e396]: Podría resolverse con automatización o BI antes de IA
+                    - cell "No aplica inicialmente" [ref=e397]:
+                      - paragraph [ref=e398]: No aplica inicialmente
+                    - cell "Automatizar la consolidación diaria usando scripts o herramientas tipo ETL para centralizar la información de los logs." [ref=e399]:
+                      - paragraph [ref=e400]: Automatizar la consolidación diaria usando scripts o herramientas tipo ETL para centralizar la información de los logs.
+                    - cell "Implementar una hoja de cálculo compartida donde todos los logs se registren diariamente." [ref=e401]:
+                      - paragraph [ref=e402]: Implementar una hoja de cálculo compartida donde todos los logs se registren diariamente.
+                    - cell "Reglas claras para la consolidación y campos a extraer de los logs diarios." [ref=e403]:
+                      - paragraph [ref=e404]: Reglas claras para la consolidación y campos a extraer de los logs diarios.
+                    - cell "Optimización en el análisis de las pruebas mediante un dashboard actualizado." [ref=e405]:
+                      - paragraph [ref=e406]: Optimización en el análisis de las pruebas mediante un dashboard actualizado.
+                    - cell "Logs de pruebas generados, registros centralizados de ejecución y matrices de consolidación deseada." [ref=e407]:
+                      - paragraph [ref=e408]: Logs de pruebas generados, registros centralizados de ejecución y matrices de consolidación deseada.
+                    - cell "Requiere validación de integridad y estructura de logs existentes para automatización de consolidación." [ref=e409]:
+                      - paragraph [ref=e410]: Requiere validación de integridad y estructura de logs existentes para automatización de consolidación.
+                  - row [ref=e411]:
+                    - cell "Quality Assurance" [ref=e412]:
+                      - paragraph [ref=e413]: Quality Assurance
+                    - cell "Triage manual de defectos consume 20% del tiempo del equipo." [ref=e414]:
+                      - paragraph [ref=e415]: Triage manual de defectos consume 20% del tiempo del equipo.
+                    - cell "Gestión de Defectos" [ref=e416]:
+                      - paragraph [ref=e417]: Gestión de Defectos
+                    - cell "Proceso manual/engorroso" [ref=e418]:
+                      - paragraph [ref=e419]: Proceso manual/engorroso
+                    - cell "Automatizar el proceso de triage de defectos para liberar tiempo del equipo." [ref=e420]:
+                      - paragraph [ref=e421]: Automatizar el proceso de triage de defectos para liberar tiempo del equipo.
+                    - cell "RPA" [ref=e422]:
+                      - paragraph [ref=e423]: RPA
+                    - cell "Podría resolverse con automatización o BI antes de IA" [ref=e424]:
+                      - paragraph [ref=e425]: Podría resolverse con automatización o BI antes de IA
+                    - cell "Aplica parcialmente" [ref=e426]:
+                      - paragraph [ref=e427]: Aplica parcialmente
+                    - cell "Uso de RPA para automatizar tareas repetitivas del triage, como clasificación y asignación básica de defectos según reglas predefinidas." [ref=e428]:
+                      - paragraph [ref=e429]: Uso de RPA para automatizar tareas repetitivas del triage, como clasificación y asignación básica de defectos según reglas predefinidas.
+                    - cell "Evaluar primero la redefinición de criterios de clasificación y asignación de defectos." [ref=e430]:
+                      - paragraph [ref=e431]: Evaluar primero la redefinición de criterios de clasificación y asignación de defectos.
+                    - cell "Reglas de negocio claras para la clasificación y asignación correcta de defectos." [ref=e432]:
+                      - paragraph [ref=e433]: Reglas de negocio claras para la clasificación y asignación correcta de defectos.
+                    - cell "Aceleración del proceso de triage y reducción de tiempo dedicado por el equipo a tareas repetitivas." [ref=e434]:
+                      - paragraph [ref=e435]: Aceleración del proceso de triage y reducción de tiempo dedicado por el equipo a tareas repetitivas.
+                    - cell "Procedimientos actuales de triage, criterios de clasificación y expectativas sobre asignación de defectos." [ref=e436]:
+                      - paragraph [ref=e437]: Procedimientos actuales de triage, criterios de clasificación y expectativas sobre asignación de defectos.
+                    - cell "Requerye revisión estructural y posibles integraciones de sistemas para automatizar tareas de triage de defectos." [ref=e438]:
+                      - paragraph [ref=e439]: Requerye revisión estructural y posibles integraciones de sistemas para automatizar tareas de triage de defectos.
+                  - row [ref=e440]:
+                    - cell "Quality Assurance" [ref=e441]:
+                      - paragraph [ref=e442]: Quality Assurance
+                    - cell "Falta de visibilidad anticipada sobre módulos con mayor regresión histórica." [ref=e443]:
+                      - paragraph [ref=e444]: Falta de visibilidad anticipada sobre módulos con mayor regresión histórica.
+                    - cell "Análisis de Regresión" [ref=e445]:
+                      - paragraph [ref=e446]: Análisis de Regresión
+                    - cell "Falta de análisis predictivo" [ref=e447]:
+                      - paragraph [ref=e448]: Falta de análisis predictivo
+                    - cell "Implementar un sistema de alerta temprana para identificar módulos propensos a regresiones con base en análisis históricos." [ref=e449]:
+                      - paragraph [ref=e450]: Implementar un sistema de alerta temprana para identificar módulos propensos a regresiones con base en análisis históricos.
+                    - cell "Machine learning predictivo" [ref=e451]:
+                      - paragraph [ref=e452]: Machine learning predictivo
+                    - cell "Requiere IA tradicional o analítica avanzada" [ref=e453]:
+                      - paragraph [ref=e454]: Requiere IA tradicional o analítica avanzada
+                    - cell "No aplica inicialmente" [ref=e455]:
+                      - paragraph [ref=e456]: No aplica inicialmente
+                    - cell "Creación de modelos predictivos que analicen historial de regresiones y detecten patrones, permitiendo la identificación proactiva de módulos críticos." [ref=e457]:
+                      - paragraph [ref=e458]: Creación de modelos predictivos que analicen historial de regresiones y detecten patrones, permitiendo la identificación proactiva de módulos críticos.
+                    - cell "Iniciar un análisis manual de los patrones de regresión en base a históricos para decidir acciones." [ref=e459]:
+                      - paragraph [ref=e460]: Iniciar un análisis manual de los patrones de regresión en base a históricos para decidir acciones.
+                    - cell "Datos históricos de regresión consolidados y criterios para definir un módulo como propenso a regresión." [ref=e461]:
+                      - paragraph [ref=e462]: Datos históricos de regresión consolidados y criterios para definir un módulo como propenso a regresión.
+                    - cell "Mejora en la planificación y reducción de riegos en releases futuros al prevenir regresiones comunes." [ref=e463]:
+                      - paragraph [ref=e464]: Mejora en la planificación y reducción de riegos en releases futuros al prevenir regresiones comunes.
+                    - cell "Historial de regresiones, datos de versiones anteriores y clasificaciones de módulos potencialmente afectados por regresión." [ref=e465]:
+                      - paragraph [ref=e466]: Historial de regresiones, datos de versiones anteriores y clasificaciones de módulos potencialmente afectados por regresión.
+                    - cell "Requiere personal calificado, como un científico de datos, y suficientes datos históricos para analizar patrones de regresión." [ref=e467]:
+                      - paragraph [ref=e468]: Requiere personal calificado, como un científico de datos, y suficientes datos históricos para analizar patrones de regresión.
+                  - row [ref=e469]:
+                    - cell "Quality Assurance" [ref=e470]:
+                      - paragraph [ref=e471]: Quality Assurance
+                    - cell "Reportes a stakeholders se construyen ad-hoc, perdiendo oportunidad de tendencias." [ref=e472]:
+                      - paragraph [ref=e473]: Reportes a stakeholders se construyen ad-hoc, perdiendo oportunidad de tendencias.
+                    - cell "Reportería a Stakeholders" [ref=e474]:
+                      - paragraph [ref=e475]: Reportería a Stakeholders
+                    - cell "Falta de estandarización" [ref=e476]:
+                      - paragraph [ref=e477]: Falta de estandarización
+                    - cell "Estandarizar la generación de reportes mediante plantillas y tableros automáticos para mejor seguimiento y análisis de tendencias." [ref=e478]:
+                      - paragraph [ref=e479]: Estandarizar la generación de reportes mediante plantillas y tableros automáticos para mejor seguimiento y análisis de tendencias.
+                    - cell "BI o analítica descriptiva" [ref=e480]:
+                      - paragraph [ref=e481]: BI o analítica descriptiva
+                    - cell "Podría resolverse con automatización o BI antes de IA" [ref=e482]:
+                      - paragraph [ref=e483]: Podría resolverse con automatización o BI antes de IA
+                    - cell "No aplica inicialmente" [ref=e484]:
+                      - paragraph [ref=e485]: No aplica inicialmente
+                    - cell "Implementar un sistema de reportes automáticos que integre datos y presente análisis visual de tendencias métricas clave a stakeholders." [ref=e486]:
+                      - paragraph [ref=e487]: Implementar un sistema de reportes automáticos que integre datos y presente análisis visual de tendencias métricas clave a stakeholders.
+                    - cell "Crear modelos de plantillas estándar para manualmente consolidar datos de manera consistente." [ref=e488]:
+                      - paragraph [ref=e489]: Crear modelos de plantillas estándar para manualmente consolidar datos de manera consistente.
+                    - cell "Plantillas estandarizadas y definidas para reportes, formatos de datos claros y accesibles." [ref=e490]:
+                      - paragraph [ref=e491]: Plantillas estandarizadas y definidas para reportes, formatos de datos claros y accesibles.
+                    - cell "Análisis rápido y comprensivo para los stakeholders con acceso a reportes dinámicos y actualizados." [ref=e492]:
+                      - paragraph [ref=e493]: Análisis rápido y comprensivo para los stakeholders con acceso a reportes dinámicos y actualizados.
+                    - cell "Plantillas de reportes actuales, formatos de datos consistentes y definiciones de métricas clave necesarias para la reportaría." [ref=e494]:
+                      - paragraph [ref=e495]: Plantillas de reportes actuales, formatos de datos consistentes y definiciones de métricas clave necesarias para la reportaría.
+                    - cell "Requiere integración de datos, uso de herramientas de visualización y la revisión de formatos actuales de reportes." [ref=e496]:
+                      - paragraph [ref=e497]: Requiere integración de datos, uso de herramientas de visualización y la revisión de formatos actuales de reportes.
+              - paragraph [ref=e303]
+    - generic [ref=e194]:
+      - button "← Paso anterior" [ref=e238] [cursor=pointer]
+      - button "Finalizar actividad" [disabled] [ref=e304]
