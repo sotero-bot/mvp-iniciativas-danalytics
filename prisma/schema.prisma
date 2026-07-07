@@ -60,6 +60,7 @@ model Empresa {
   dominioGoogleWorkspace   String?
   iniciativas              Iniciativa[]
   usuarios                 Usuario[]
+  programas                Programa[]
 }
 
 model Role {
@@ -239,28 +240,261 @@ model Respuesta {
 }
 
 model Usuario {
-  id                    String               @id @default(uuid())
-  nombre                String
-  email                 String?
-  username              String?              @unique
-  password              String?
-  roleId                String?
-  puedeIniciarSesion    Boolean              @default(false)
-  googleId              String?              @unique
-  googleEmailVerificado Boolean              @default(false)
-  cargo                 String?
-  empresaId             String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  estado                String               @default("activo")
-  activo                Boolean              @default(true)
-  area                  String?
-  instancias            InstanciaActividad[]
-  empresa               Empresa?             @relation(fields: [empresaId], references: [id])
-  role                  Role?                @relation(fields: [roleId], references: [id])
+  id                     String                   @id @default(uuid())
+  nombre                 String
+  email                  String?
+  username               String?                  @unique
+  password               String?
+  roleId                 String?
+  puedeIniciarSesion     Boolean                  @default(false)
+  googleId               String?                  @unique
+  googleEmailVerificado  Boolean                  @default(false)
+  cargo                  String?
+  empresaId              String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  estado                 String                   @default("activo")
+  activo                 Boolean                  @default(true)
+  area                   String?
+  instancias             InstanciaActividad[]
+  empresa                Empresa?                 @relation(fields: [empresaId], references: [id])
+  role                   Role?                    @relation(fields: [roleId], references: [id])
+  programasFacilita      Programa[]               @relation("ProgramaFacilitador")
+  participaciones        ParticipantePrograma[]
+  miembroGrupos          MiembroGrupo[]
+  asistencias            Asistencia[]             @relation("AsistenciaParticipante")
+  asistenciasRegistradas Asistencia[]             @relation("AsistenciaRegistrador")
+  gruposCreados          Grupo[]                  @relation("GrupoCreador")
+  observacionesRecibidas ObservacionFacilitador[] @relation("ObservacionSobreUsuario")
+  observacionesCreadas   ObservacionFacilitador[] @relation("ObservacionAutor")
+  magicLinks             MagicLink[]
 
   @@unique([empresaId, email], name: "empresa_email_unico")
   @@index([roleId])
+}
+
+enum EstadoPrograma {
+  borrador
+  activo
+  finalizado
+  cancelado
+}
+
+enum EstadoSesion {
+  pendiente
+  completada
+}
+
+enum TipoObservacion {
+  baja_participacion
+  falta_atencion
+  problema_tecnico
+  dificultades_estudiante
+  otro
+}
+
+enum NivelUrgencia {
+  normal
+  urgente
+}
+
+model Programa {
+  id            String                   @id @default(uuid())
+  nombre        String
+  descripcion   String?                  @db.Text
+  empresaId     String
+  facilitadorId String
+  estado        EstadoPrograma           @default(borrador)
+  timezone      String                   @default("America/Bogota")
+  diasGracia    Int                      @default(3) // RF-03/RN-03: 3 días HÁBILES (solo sáb/dom excluidos)
+  totalSesionesEsperadas Int?            // RF-01/RF-04: nº de sesiones esperadas (dashboard "completadas/totales")
+  marcarSesionAutomatica Boolean         @default(false) // RF-10: marcar sesión completada al guardar asistencia
+  presentacionDesdeSesion Int?           // RF-32: presentación final habilitada a partir de esta sesión
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  activo        Boolean                  @default(true)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  empresa       Empresa                  @relation(fields: [empresaId], references: [id])
+  facilitador   Usuario                  @relation("ProgramaFacilitador", fields: [facilitadorId], references: [id])
+  sesiones      Sesion[]
+  participantes ParticipantePrograma[]
+  grupos        Grupo[]
+  observaciones ObservacionFacilitador[]
+
+  @@index([empresaId, estado])
+  @@index([facilitadorId])
+}
+
+model Sesion {
+  id                   String                   @id @default(uuid())
+  programaId           String
+  numeroSesion         Int
+  titulo               String
+  descripcion          String?                  @db.Text
+  fechaProgramada      DateTime
+  materialArchivoKey   String?
+  urlGrabacion         String?
+  materialDesbloqueoEn DateTime?
+  estado               EstadoSesion             @default(pendiente)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  programa             Programa                 @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  asistencias          Asistencia[]
+  observaciones        ObservacionFacilitador[]
+
+  @@unique([programaId, numeroSesion])
+  @@index([programaId])
+}
+
+model ParticipantePrograma {
+  id         String   @id @default(uuid())
+  programaId String
+  usuarioId  String
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  programa   Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@unique([programaId, usuarioId])
+  @@index([usuarioId])
+}
+
+model Grupo {
+  id            String                   @id @default(uuid())
+  programaId    String
+  nombre        String
+  orden         Int
+  creadoPorId   String?                  // §7 groups.created_by (admin que creó el grupo)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  programa      Programa                 @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  creadoPor     Usuario?                 @relation("GrupoCreador", fields: [creadoPorId], references: [id])
+  miembros      MiembroGrupo[]
+  observaciones ObservacionFacilitador[]
+
+  @@unique([programaId, orden])
+  @@index([programaId])
+}
+
+model MiembroGrupo {
+  id        String   @id @default(uuid())
+  grupoId   String
+  usuarioId String
+  createdAt DateTime @default(now())
+  grupo     Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@unique([grupoId, usuarioId])
+  @@index([usuarioId])
+}
+
+model Asistencia {
+  id        String   @id @default(uuid())
+  sesionId  String
+  usuarioId String
+  presente       Boolean  @default(false)
+  nota           String?
+  registradoPorId String? // §7 attendance.recorded_by (facilitador que registró; RF-19 edición 24 h)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sesion    Sesion   @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation("AsistenciaParticipante", fields: [usuarioId], references: [id])
+  registradoPor Usuario? @relation("AsistenciaRegistrador", fields: [registradoPorId], references: [id])
+
+  @@unique([sesionId, usuarioId])
+  @@index([usuarioId])
+}
+
+model ObservacionFacilitador {
+  id           String          @id @default(uuid())
+  programaId   String
+  sesionId     String?
+  usuarioId    String?
+  grupoId      String?
+  autorId      String
+  tipo         TipoObservacion
+  urgencia     NivelUrgencia   @default(normal)
+  texto        String          @db.Text
+  notificadoEn DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  programa     Programa        @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  sesion       Sesion?         @relation(fields: [sesionId], references: [id])
+  usuario      Usuario?        @relation("ObservacionSobreUsuario", fields: [usuarioId], references: [id])
+  grupo        Grupo?          @relation(fields: [grupoId], references: [id])
+  autor        Usuario         @relation("ObservacionAutor", fields: [autorId], references: [id])
+
+  @@index([programaId, urgencia])
+  @@index([usuarioId])
+  @@index([autorId]) // RF-41: facilitador consulta sus propias observaciones
+}
+
+model MagicLink {
+  id                String    @id @default(uuid())
+  tokenHash         String    @unique
+  usuarioId         String
+  email             String
+  propositoRedirect String?
+  expiraEn          DateTime
+  usadoEn           DateTime?
+  ipCreacion        String?
+  ipUso             String?
+  createdAt         DateTime  @default(now())
+  usuario           Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, usadoEn])
+  @@index([expiraEn])
+}
+
+enum TipoNotificacion {
+  invitacion_participante
+  material_disponible
+  diagnostico_habilitado
+  feedback_habilitado
+  observacion_normal
+  observacion_urgente
+  invitacion_usuario_cliente
+  magic_link
+}
+
+enum EstadoEnvio {
+  pendiente
+  enviada
+  fallida
+}
+
+// RNF-12: bitácora de entrega de cada email transaccional (enviada/fallida + reenvío manual).
+// Refs a programa/usuario/observacion son "soft" (sin FK) por ser tabla de log append-only.
+model NotificacionEmail {
+  id                 String           @id @default(uuid())
+  tipo               TipoNotificacion
+  destinatario       String
+  asunto             String
+  estado             EstadoEnvio      @default(pendiente)
+  proveedorMessageId String?
+  error              String?          @db.Text
+  intentos           Int              @default(0)
+  programaId         String?
+  usuarioId          String?
+  observacionId      String?
+  createdAt          DateTime         @default(now())
+  enviadoEn          DateTime?
+  updatedAt          DateTime         @updatedAt
+
+  @@index([estado])
+  @@index([tipo, createdAt])
+  @@index([programaId])
+}
+
+// RF-40: listas de destinatarios configurables por el admin (normal vs. urgente).
+model ConfiguracionNotificacion {
+  id          String   @id @default(uuid())
+  clave       String   @unique // admins_observacion_normal | admins_observacion_urgente | ...
+  emails      String[]
+  descripcion String?
+  updatedAt   DateTime @updatedAt
 }
 
 model Translation {

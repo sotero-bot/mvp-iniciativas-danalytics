@@ -8,6 +8,8 @@ import { InstanciasPage } from './features/execution/InstanciasPage';
 import { InstanciaDetallePage } from './features/execution/InstanciaDetallePage';
 import { DashboardPage } from './features/admin/DashboardPage';
 import { UsuariosPage } from './features/admin/UsuariosPage';
+import { ProgramasPage } from './features/admin/ProgramasPage';
+import { MagicLinkConsumePage } from './features/auth/MagicLinkConsumePage';
 
 import { RunnerPage } from './features/execution/RunnerPage';
 import { EnlaceRunnerPage } from './features/execution/EnlaceRunnerPage';
@@ -41,8 +43,8 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
         </nav>
 
-        {/* Nav principal con números de orden */}
-        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.workflow_label')}</div>
+        {/* — Módulo Decisión IA — */}
+        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.decision_ia_label')}</div>
         <nav>
           {[
             { num: 1, label: t('admin:sidebar.empresas'), to: '/admin/empresas', color: '#3B82F6', bg: 'rgba(59,130,246,0.18)' },
@@ -61,7 +63,6 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               {item.label}
             </NavLink>
           ))}
-          {/* Plantillas — sin número, herramienta transversal */}
           <NavLink to="/admin/plantillas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
@@ -72,18 +73,6 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             }}>📋</span>
             {t('admin:sidebar.plantillas')}
           </NavLink>
-          {/* Usuarios — herramienta transversal */}
-          <NavLink to="/admin/usuarios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(56,189,248,0.18)',
-              border: '1px solid #38BDF840',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>👥</span>
-            {t('admin:sidebar.usuarios')}
-          </NavLink>
-          {/* Ejecuciones — número 4 */}
           <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
@@ -94,6 +83,36 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               letterSpacing: '-0.01em',
             }}>4</span>
             {t('admin:sidebar.ejecuciones')}
+          </NavLink>
+        </nav>
+
+        {/* — Módulo IA en Acción — */}
+        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.ia_en_accion_label')}</div>
+        <nav>
+          <NavLink to="/admin/programas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(20,184,166,0.18)',
+              border: '1px solid #14B8A640',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>🎓</span>
+            {t('admin:sidebar.programas')}
+          </NavLink>
+        </nav>
+
+        {/* — Gestión (transversal) — */}
+        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.gestion_label')}</div>
+        <nav>
+          <NavLink to="/admin/usuarios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(56,189,248,0.18)',
+              border: '1px solid #38BDF840',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>👥</span>
+            {t('admin:sidebar.usuarios')}
           </NavLink>
         </nav>
 
@@ -186,6 +205,7 @@ function App() {
         <Route path="/admin/plantillas" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillasPage /></Layout></AdminRoute>} />
         <Route path="/admin/plantillas/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillaPasosPage /></Layout></AdminRoute>} />
         <Route path="/admin/usuarios" element={<AdminRoute><Layout onLogout={handleLogout}><UsuariosPage /></Layout></AdminRoute>} />
+        <Route path="/admin/programas" element={<AdminRoute><Layout onLogout={handleLogout}><ProgramasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 
@@ -193,6 +213,9 @@ function App() {
         <Route path="/runner/enlace/:token" element={<EnlaceRunnerPage />} />
         <Route path="/runner/:token/resultados" element={<RunnerResultsPage />} />
         <Route path="/runner/:token" element={<RunnerPage />} />
+
+        {/* Public MagicLink consume */}
+        <Route path="/auth/link/:token" element={<MagicLinkConsumePage onLogin={handleLogin} />} />
 
         {/* Login Route */}
         <Route path="/login" element={token ? <Navigate to="/admin/inicio" replace /> : <LoginPage onLogin={handleLogin} />} />

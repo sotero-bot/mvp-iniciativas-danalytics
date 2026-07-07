@@ -25,6 +25,7 @@
   "scripts": {
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
+    "seed:demo-programa": "npx tsx scripts/seed-demo-programa.ts",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "reset-data": "npx tsx scripts/reset-data.ts",
     "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:admin"
@@ -66,6 +67,7 @@
     "react-i18next": "^17.0.8",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "resend": "^6.17.1",
     "tiptap-markdown": "^0.9.0",
     "xlsx": "^0.18.5"
   }

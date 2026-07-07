@@ -31,5 +31,16 @@
   "PDF_GENERATION_FAILED": "Não foi possível gerar o PDF.",
   "EXCEL_GENERATION_FAILED": "Não foi possível gerar o Excel.",
   "IMPORT_INVALID_JSON": "O JSON de importação não é válido.",
-  "INVALID_INPUT": "Dados de entrada inválidos."
+  "INVALID_INPUT": "Dados de entrada inválidos.",
+  "PROGRAMA_NOT_FOUND": "O programa não existe.",
+  "PROGRAMA_DUPLICATE": "Já existe um programa com esses dados.",
+  "SESION_NOT_FOUND": "A sessão não existe.",
+  "SESION_DUPLICATE": "Já existe uma sessão com esse número no programa.",
+  "PARTICIPANTE_DUPLICATE": "Este usuário já está matriculado no programa.",
+  "PARTICIPANTE_NOT_FOUND": "O participante não existe neste programa.",
+  "FACILITADOR_INVALID": "O usuário selecionado não tem função de facilitador.",
+  "MAGIC_LINK_INVALID": "O link de acesso não é válido.",
+  "MAGIC_LINK_EXPIRADO": "O link de acesso expirou. Solicite um novo.",
+  "MAGIC_LINK_USADO": "Este link de acesso já foi usado. Solicite um novo.",
+  "EMAIL_SEND_FAILED": "Não foi possível enviar o e-mail. Tente novamente mais tarde."
 }

@@ -15,6 +15,7 @@ import { AdminPlantillasController } from './modules/methodology/interfaces/admi
 import { AdminPlantillaPasosController } from './modules/methodology/interfaces/admin-plantilla-pasos.controller';
 import { AdminImportController } from './modules/organization/interfaces/admin-import.controller';
 import { AdminUsersController } from './modules/users/interfaces/admin-users.controller';
+import { AdminProgramasController } from './modules/programas/interfaces/admin-programas.controller';
 
 // Use Cases
 import { GenerarInstanciaUseCase } from './modules/execution/application/GenerarInstanciaUseCase';
@@ -38,6 +39,7 @@ import { PrismaEnlaceActividadRepository } from './modules/execution/infrastruct
 import { AuthModule } from './modules/auth/auth.module';
 import { TranslationModule } from './modules/translation/translation.module';
 import { TranslationService } from './modules/translation/translation.service';
+import { EmailModule } from './modules/email/email.module';
 
 // Methodology Module Implementations
 import { PrismaActividadRepository } from './modules/methodology/infrastructure/PrismaActividadRepository';
@@ -46,7 +48,7 @@ import { AgregarPasoActividadUseCase } from './modules/methodology/application/A
 import { ObtenerPasosActividadUseCase } from './modules/methodology/application/ObtenerPasosActividadUseCase';
 
 @Module({
-  imports: [AuthModule, TranslationModule],
+  imports: [AuthModule, TranslationModule, EmailModule],
   controllers: [
     EmpresasController,
     IniciativasController,
@@ -60,6 +62,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     AdminPlantillaPasosController,
     AdminImportController,
     AdminUsersController,
+    AdminProgramasController,
   ],
   providers: [
     PrismaService,

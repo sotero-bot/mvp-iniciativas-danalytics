@@ -9,6 +9,7 @@ import esExecution from './locales/es/execution.json';
 import esMethodology from './locales/es/methodology.json';
 import esOrganization from './locales/es/organization.json';
 import esErrors from './locales/es/errors.json';
+import esPrograma from './locales/es/programa.json';
 
 import ptCommon from './locales/pt/common.json';
 import ptAuth from './locales/pt/auth.json';
@@ -17,6 +18,7 @@ import ptExecution from './locales/pt/execution.json';
 import ptMethodology from './locales/pt/methodology.json';
 import ptOrganization from './locales/pt/organization.json';
 import ptErrors from './locales/pt/errors.json';
+import ptPrograma from './locales/pt/programa.json';
 
 export const SUPPORTED_LANGUAGES = ['es', 'pt'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -45,6 +47,7 @@ export const NAMESPACES = [
   'methodology',
   'organization',
   'errors',
+  'programa',
 ] as const;
 
 const resources = {
@@ -56,6 +59,7 @@ const resources = {
     methodology: esMethodology,
     organization: esOrganization,
     errors: esErrors,
+    programa: esPrograma,
   },
   pt: {
     common: ptCommon,
@@ -65,6 +69,7 @@ const resources = {
     methodology: ptMethodology,
     organization: ptOrganization,
     errors: ptErrors,
+    programa: ptPrograma,
   },
 };
 

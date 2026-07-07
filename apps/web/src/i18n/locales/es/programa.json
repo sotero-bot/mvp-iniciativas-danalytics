@@ -1,0 +1,12 @@
+{
+  "estado": {
+    "borrador": "Borrador",
+    "activo": "Activo",
+    "finalizado": "Finalizado",
+    "cancelado": "Cancelado"
+  },
+  "sesion_estado": {
+    "pendiente": "Pendiente",
+    "completada": "Completada"
+  }
+}

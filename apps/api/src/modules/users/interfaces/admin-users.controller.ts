@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Ip,
   Param,
   Patch,
   Post,
@@ -16,6 +17,7 @@ import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../../../prisma.service';
 import { AppError } from '../../../shared/errors/AppError';
+import { MagicLinkService } from '../../auth/application/magic-link.service';
 
 const ADMIN_SLUG = 'danalytics_admin';
 const EMPRESA_SLUGS = new Set(['estudiante', 'cliente_admin', 'usuario_cliente']);
@@ -68,36 +70,25 @@ const SELECT_PUBLIC = {
   updatedAt: true,
 } as const;
 
-// TODO(fase-1): filtro por programa. Requiere tabla `Programa` + `ParticipanteProgama`.
-//   Añadir query param `programaId` que haga JOIN a ParticipanteProgama para listar
-//   estudiantes de un programa concreto. Usado por la vista del facilitador.
-//
-// TODO(fase-1): al crear un facilitador, opcionalmente asignarlo a uno o varios
-//   `Programa`. Requiere tabla `Programa`. Puede resolverse desde el módulo de
-//   programas en lugar de aquí — decidir en Fase 1.
-//
-// TODO(fase-1): al crear un estudiante, cliente_admin o usuario_cliente con
-//   `puedeIniciarSesion=true`, disparar envío de `MagicLink` (o iniciar flujo OAuth
-//   si `Empresa.dominioGoogleWorkspace` está configurado). Requiere tabla `MagicLink`
-//   y servicio de email transaccional.
+// Asignación facilitador ↔ programa: se resuelve desde el módulo de programas
+// (admin-programas.controller). Este controller solo expone el listado filtrado.
 //
 // TODO(fase-4): al crear/editar cliente_admin o usuario_cliente, mantener sincronizada
 //   la tabla puente `UsuarioCliente(empresaId, usuarioId, invitadoPorId, activo)`.
 //   Hoy la relación se infiere solo por `Usuario.empresaId` + role.
 //
 // TODO(fase-2): scoping por rol distinto de danalytics_admin.
-//   - facilitador → solo estudiantes de sus programas (JOIN via ParticipanteProgama).
+//   - facilitador → solo estudiantes de sus programas (JOIN via ParticipantePrograma).
 //   - cliente_admin → usuarios de su empresa (lectura + invitar/revocar usuario_cliente).
 //   - usuario_cliente → misma vista de cliente_admin en lectura.
 //   Requiere: middleware que extraiga el actor del JWT y aplique WHERE por scope.
 //   Actualmente todos los endpoints asumen actor = danalytics_admin (frontend controla el gating).
-//
-// TODO(fase-4): endpoint `POST /admin/usuarios/:id/enviar-invitacion` para reenviar
-//   MagicLink a estudiantes/cliente_admin/usuario_cliente que no completaron el primer
-//   acceso. Requiere `MagicLink` + servicio de email.
 @Controller('admin')
 export class AdminUsersController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly magicLink: MagicLinkService,
+  ) {}
 
   @Get('roles')
   async listRoles() {
@@ -114,6 +105,7 @@ export class AdminUsersController {
     @Query('empresaId') empresaId?: string,
     @Query('estado') estado?: 'activo' | 'inactivo' | 'todos',
     @Query('search') search?: string,
+    @Query('programaId') programaId?: string,
   ) {
     const where: Prisma.UsuarioWhereInput = {};
 
@@ -123,6 +115,10 @@ export class AdminUsersController {
 
     if (empresaId) {
       where.empresaId = empresaId;
+    }
+
+    if (programaId) {
+      where.participaciones = { some: { programaId } };
     }
 
     if (estado === 'activo') where.activo = true;
@@ -142,6 +138,21 @@ export class AdminUsersController {
       select: SELECT_PUBLIC,
       orderBy: [{ activo: 'desc' }, { nombre: 'asc' }],
     });
+  }
+
+  @Post('usuarios/:id/enviar-invitacion')
+  async enviarInvitacion(
+    @Param('id') id: string,
+    @Body() body: { locale?: 'es' | 'pt'; propositoRedirect?: string | null },
+    @Ip() ip: string,
+  ) {
+    const { expiraEn } = await this.magicLink.createAndSend({
+      usuarioId: id,
+      locale: body?.locale ?? 'es',
+      ipCreacion: ip,
+      propositoRedirect: body?.propositoRedirect ?? null,
+    });
+    return { ok: true, expiraEn };
   }
 
   @Get('usuarios/:id')

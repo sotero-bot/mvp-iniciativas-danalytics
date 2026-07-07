@@ -8,6 +8,7 @@
  *   3. Backfillea Usuario.roleId de los usuarios existentes que aún no
  *      tienen role asignado (les asigna 'participante_legacy').
  *   4. Upsertea el admin en Usuario con role=danalytics_admin.
+ *   5. Upsertea las listas de destinatarios de notificaciones (RF-40).
  *
  * Se ejecuta en cada `vercel-build` después de `prisma db push`.
  *
@@ -72,6 +73,43 @@ async function backfillLegacyUsers() {
   }
 }
 
+function parseEmails(raw: string | undefined): string[] {
+  return (raw ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function upsertConfiguracionNotificaciones() {
+  // Configurable en runtime por el admin; el seed solo garantiza que las claves existan.
+  // Se pueblan desde env en el primer deploy; upsert no pisa cambios manuales de emails.
+  const normales = parseEmails(process.env.NOTIF_ADMIN_EMAILS);
+  const urgentes = parseEmails(process.env.NOTIF_ADMIN_EMAILS_URGENTE) ;
+
+  const configs = [
+    {
+      clave: 'admins_observacion_normal',
+      descripcion: 'Destinatarios de observaciones normales del facilitador (RF-40).',
+      emailsDefault: normales,
+    },
+    {
+      clave: 'admins_observacion_urgente',
+      descripcion: 'Destinatarios de observaciones URGENTES del facilitador (RF-40).',
+      emailsDefault: urgentes.length ? urgentes : normales,
+    },
+  ];
+
+  for (const c of configs) {
+    await prisma.configuracionNotificacion.upsert({
+      where: { clave: c.clave },
+      // No sobreescribimos "emails" en update: el admin puede haberlos editado por UI.
+      update: { descripcion: c.descripcion },
+      create: { clave: c.clave, descripcion: c.descripcion, emails: c.emailsDefault },
+    });
+  }
+  console.log(`  ${configs.length} claves de ConfiguracionNotificacion aseguradas`);
+}
+
 async function upsertAdmin() {
   const adminRole = await prisma.role.findUniqueOrThrow({
     where: { slug: 'danalytics_admin' },
@@ -105,6 +143,7 @@ async function main() {
   await upsertRoles();
   await backfillLegacyUsers();
   await upsertAdmin();
+  await upsertConfiguracionNotificaciones();
   console.log('✅  Seed completado');
 }
 

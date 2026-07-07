@@ -1,12 +1,15 @@
 {
   "sidebar": {
     "home": "Início",
-    "workflow_label": "Fluxo de trabalho",
+    "decision_ia_label": "Decisão IA",
+    "ia_en_accion_label": "IA em Ação",
+    "gestion_label": "Gestão",
     "empresas": "Empresas",
     "iniciativas": "Iniciativas",
     "actividades": "Atividades",
     "plantillas": "Modelos",
     "usuarios": "Usuários",
+    "programas": "Programas",
     "ejecuciones": "Execuções"
   },
   "usuarios": {
@@ -27,6 +30,7 @@
       "role": "Papel",
       "empresa": "Empresa",
       "estado": "Estado",
+      "programa": "Programa",
       "search": "Busca",
       "search_placeholder": "Nome, e-mail ou usuário…",
       "all": "Todos",
@@ -51,7 +55,8 @@
       "edit": "Editar",
       "reset_password": "Redefinir senha",
       "deactivate": "Desativar",
-      "reactivate": "Reativar"
+      "reactivate": "Reativar",
+      "resend_invite": "Reenviar convite"
     },
     "fields": {
       "nombre": "Nome completo",
@@ -84,7 +89,121 @@
       "updated": "Usuário atualizado",
       "deactivated": "Usuário desativado",
       "reactivated": "Usuário reativado",
-      "password_reset": "Senha atualizada"
+      "password_reset": "Senha atualizada",
+      "invitation_sent": "Convite enviado"
+    }
+  },
+  "programas": {
+    "lang": {
+      "es": "Espanhol",
+      "pt": "Português",
+      "hint": "Deixe os campos vazios se não quiser uma tradução."
+    },
+    "page_title": "Programas",
+    "page_subtitle": "Gerencie os programas de IA em Ação, suas sessões e participantes.",
+    "empty": "Não há programas que correspondam aos filtros.",
+    "filters": {
+      "empresa": "Empresa",
+      "estado": "Estado",
+      "search": "Busca",
+      "search_placeholder": "Nome ou descrição…",
+      "all": "Todos"
+    },
+    "columns": {
+      "nombre": "Nome",
+      "empresa": "Empresa",
+      "facilitador": "Facilitador",
+      "estado": "Estado",
+      "sesiones": "Sessões",
+      "participantes": "Participantes",
+      "acciones": "Ações"
+    },
+    "actions": {
+      "new": "Novo programa",
+      "edit": "Editar",
+      "details": "Ver detalhes",
+      "cancel": "Cancelar programa"
+    },
+    "fields": {
+      "nombre": "Nome do programa",
+      "descripcion": "Descrição",
+      "empresa": "Empresa",
+      "facilitador": "Facilitador",
+      "estado": "Estado",
+      "timezone": "Fuso horário",
+      "dias_gracia": "Dias de tolerância",
+      "fecha_inicio": "Data de início",
+      "fecha_fin": "Data de fim"
+    },
+    "modal": {
+      "title_create": "Criar programa",
+      "title_edit": "Editar programa"
+    },
+    "cancel_modal": {
+      "title": "Cancelar programa",
+      "message": "Tem certeza de que deseja cancelar o programa \"{{nombre}}\"? Suas sessões e participantes serão preservados, mas o programa ficará marcado como cancelado."
+    },
+    "toast": {
+      "created": "Programa criado",
+      "updated": "Programa atualizado",
+      "cancelled": "Programa cancelado",
+      "invitation_sent": "Convite enviado",
+      "session_removed": "Sessão excluída",
+      "participant_removed": "Participante desmatriculado"
+    },
+    "tabs": {
+      "sesiones": "Sessões",
+      "participantes": "Participantes"
+    },
+    "sesiones": {
+      "empty": "Ainda não há sessões. Adicione a primeira para começar.",
+      "columns": {
+        "titulo": "Título",
+        "fecha": "Data programada",
+        "estado": "Estado",
+        "acciones": "Ações"
+      },
+      "actions": {
+        "new": "Nova sessão",
+        "edit": "Editar",
+        "delete": "Excluir"
+      },
+      "fields": {
+        "numero": "Nº",
+        "titulo": "Título",
+        "descripcion": "Descrição",
+        "fecha": "Data e hora",
+        "url_grabacion": "URL da gravação"
+      },
+      "modal": {
+        "title_create": "Nova sessão",
+        "title_edit": "Editar sessão"
+      }
+    },
+    "participantes": {
+      "empty": "Ainda não há participantes matriculados.",
+      "columns": {
+        "nombre": "Nome",
+        "email": "E-mail",
+        "cargo": "Cargo",
+        "acciones": "Ações"
+      },
+      "actions": {
+        "new": "Matricular estudante",
+        "resend_invite": "Reenviar convite",
+        "remove": "Desmatricular"
+      },
+      "fields": {
+        "email": "E-mail",
+        "nombre": "Nome completo",
+        "cargo": "Cargo",
+        "area": "Área",
+        "enviar_invitacion": "Enviar convite por e-mail ao matricular"
+      },
+      "modal": {
+        "title": "Matricular estudante",
+        "hint": "Se o e-mail já existir na empresa, o usuário será reutilizado. Se não, será criado como estudante."
+      }
     }
   },
   "dashboard": {

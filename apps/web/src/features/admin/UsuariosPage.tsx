@@ -5,12 +5,6 @@ import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWit
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-// TODO(fase-1): añadir filtro por Programa. Cuando exista la tabla `Programa` y
-// `ParticipanteProgama`, agregar dropdown que envíe `programaId` al backend.
-//
-// TODO(fase-1): botón "Reenviar invitación" en la tabla (para roles con login habilitado
-// que no han completado primer acceso). Requiere `MagicLink` + endpoint que lo genere.
-//
 // TODO(fase-2): distinguir la UI según el role del usuario logueado.
 //   - facilitador: sin acciones de gestión, listado limitado a sus estudiantes.
 //   - cliente_admin: solo puede crear/revocar usuario_cliente de su empresa.
@@ -87,18 +81,22 @@ const emptyForm: FormState = {
   activo: true,
 };
 
+interface ProgramaLite { id: string; nombre: string; }
+
 export function UsuariosPage() {
-  const { t } = useTranslation(['admin', 'common']);
+  const { t, i18n } = useTranslation(['admin', 'common']);
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaLite[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [programas, setProgramas] = useState<ProgramaLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('');
   const [filterEstado, setFilterEstado] = useState<'activo' | 'inactivo' | 'todos'>('activo');
+  const [filterPrograma, setFilterPrograma] = useState<string>('');
   const [search, setSearch] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -120,6 +118,7 @@ export function UsuariosPage() {
       const params = new URLSearchParams();
       if (filterRole) params.set('role', filterRole);
       if (filterEmpresa) params.set('empresaId', filterEmpresa);
+      if (filterPrograma) params.set('programaId', filterPrograma);
       params.set('estado', filterEstado);
       if (search.trim()) params.set('search', search.trim());
 
@@ -129,6 +128,29 @@ export function UsuariosPage() {
       showToast(translateError(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProgramas = async () => {
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/programas?activo=true`);
+      const data = await res.json();
+      setProgramas(data.map((p: any) => ({ id: p.id, nombre: p.nombre })));
+    } catch (err) {
+      // Silencioso — la página funciona sin el filtro si el endpoint no responde
+    }
+  };
+
+  const reenviarInvitacion = async (u: Usuario) => {
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${u.id}/enviar-invitacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: i18n.language }),
+      });
+      showToast(t('admin:usuarios.toast.invitation_sent'));
+    } catch (err) {
+      showToast(translateError(err));
     }
   };
 
@@ -150,8 +172,8 @@ export function UsuariosPage() {
     }
   };
 
-  useEffect(() => { loadEmpresas(); loadRoles(); }, []);
-  useEffect(() => { load(); }, [filterRole, filterEmpresa, filterEstado]);
+  useEffect(() => { loadEmpresas(); loadRoles(); loadProgramas(); }, []);
+  useEffect(() => { load(); }, [filterRole, filterEmpresa, filterEstado, filterPrograma]);
 
   const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') load();
@@ -341,6 +363,15 @@ export function UsuariosPage() {
         </div>
         <div>
           <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
+            {t('admin:usuarios.filters.programa')}
+          </label>
+          <select className="input" value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)}>
+            <option value="">{t('admin:usuarios.filters.all')}</option>
+            {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
             {t('admin:usuarios.filters.search')}
           </label>
           <input
@@ -421,6 +452,14 @@ export function UsuariosPage() {
                         {' · '}
                         <button className="btn-link" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
                           {t('admin:usuarios.actions.reset_password')}
+                        </button>
+                      </>
+                    )}
+                    {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
+                      <>
+                        {' · '}
+                        <button className="btn-link" onClick={() => reenviarInvitacion(u)}>
+                          {t('admin:usuarios.actions.resend_invite')}
                         </button>
                       </>
                     )}
