@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from '../apps/api/src/app.module';
+import { ErrorCodeFilter } from '../apps/api/src/shared/errors/error-code.filter';
 import { json, urlencoded } from 'express';
 
 const express = require('express');
@@ -26,6 +27,12 @@ export const createNestServer = async (expressInstance: any) => {
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
         credentials: true,
     });
+
+    // Igual que main.ts: serializa los AppError como { code, message, statusCode }
+    // para que el frontend mapee code → t('errors:CODE'). Sin esto, prod emitía la
+    // forma por defecto de Nest ({ statusCode, message }) y el front mostraba
+    // "sesión expiró" en cualquier 401 (p. ej. credenciales inválidas).
+    nestApp.useGlobalFilters(new ErrorCodeFilter());
 
     nestApp.setGlobalPrefix('api');
 
