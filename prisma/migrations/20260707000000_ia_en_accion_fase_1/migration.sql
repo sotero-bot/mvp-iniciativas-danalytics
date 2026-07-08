@@ -92,16 +92,21 @@ CREATE UNIQUE INDEX "Grupo_programaId_orden_key" ON "Grupo"("programaId", "orden
 CREATE INDEX        "Grupo_programaId_idx"       ON "Grupo"("programaId");
 
 -- MiembroGrupo
+-- "programaId" está denormalizado desde Grupo.programaId para poder imponer RN-04
+-- (un estudiante en un solo grupo por programa) con un índice único de una sola tabla.
 CREATE TABLE "MiembroGrupo" (
-  "id"        TEXT PRIMARY KEY,
-  "grupoId"   TEXT NOT NULL,
-  "usuarioId" TEXT NOT NULL,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "MiembroGrupo_grupoId_fkey"   FOREIGN KEY ("grupoId")   REFERENCES "Grupo"("id")   ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "MiembroGrupo_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "Usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  "id"         TEXT PRIMARY KEY,
+  "grupoId"    TEXT NOT NULL,
+  "programaId" TEXT NOT NULL,
+  "usuarioId"  TEXT NOT NULL,
+  "createdAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MiembroGrupo_grupoId_fkey"    FOREIGN KEY ("grupoId")    REFERENCES "Grupo"("id")    ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT "MiembroGrupo_programaId_fkey" FOREIGN KEY ("programaId") REFERENCES "Programa"("id") ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT "MiembroGrupo_usuarioId_fkey"  FOREIGN KEY ("usuarioId")  REFERENCES "Usuario"("id")  ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "MiembroGrupo_grupoId_usuarioId_key" ON "MiembroGrupo"("grupoId", "usuarioId");
-CREATE INDEX        "MiembroGrupo_usuarioId_idx"         ON "MiembroGrupo"("usuarioId");
+CREATE UNIQUE INDEX "MiembroGrupo_programaId_usuarioId_key" ON "MiembroGrupo"("programaId", "usuarioId");
+CREATE INDEX        "MiembroGrupo_grupoId_idx"              ON "MiembroGrupo"("grupoId");
+CREATE INDEX        "MiembroGrupo_usuarioId_idx"            ON "MiembroGrupo"("usuarioId");
 
 -- Asistencia
 CREATE TABLE "Asistencia" (

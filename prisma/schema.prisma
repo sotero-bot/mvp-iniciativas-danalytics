@@ -61,6 +61,7 @@ model Empresa {
   iniciativas              Iniciativa[]
   usuarios                 Usuario[]
   programas                Programa[]
+  usuariosCliente          UsuarioCliente[]
 }
 
 model Role {
@@ -268,6 +269,12 @@ model Usuario {
   observacionesRecibidas ObservacionFacilitador[] @relation("ObservacionSobreUsuario")
   observacionesCreadas   ObservacionFacilitador[] @relation("ObservacionAutor")
   magicLinks             MagicLink[]
+  plantillasCreadas      PlantillaFormulario[]    @relation("PlantillaCreador")
+  respuestasFormulario   RespuestaFormulario[]    @relation("RespuestaRespondiente")
+  respuestasEditadas     RespuestaFormulario[]    @relation("RespuestaUltimoEditor")
+  presentacionesEntregadas PresentacionFinal[]    @relation("PresentacionEntregadaPor")
+  membresiasCliente        UsuarioCliente[]         @relation("UsuarioClienteMiembro")
+  invitacionesClienteEnviadas UsuarioCliente[]      @relation("UsuarioClienteInvitadoPor")
 
   @@unique([empresaId, email], name: "empresa_email_unico")
   @@index([roleId])
@@ -317,10 +324,14 @@ model Programa {
   updatedAt     DateTime                 @updatedAt
   empresa       Empresa                  @relation(fields: [empresaId], references: [id])
   facilitador   Usuario                  @relation("ProgramaFacilitador", fields: [facilitadorId], references: [id])
-  sesiones      Sesion[]
-  participantes ParticipantePrograma[]
-  grupos        Grupo[]
-  observaciones ObservacionFacilitador[]
+  sesiones             Sesion[]
+  participantes        ParticipantePrograma[]
+  grupos               Grupo[]
+  miembrosGrupo        MiembroGrupo[]
+  observaciones        ObservacionFacilitador[]
+  plantillasFormulario PlantillaFormulario[]
+  respuestasFormulario RespuestaFormulario[]
+  presentacionesFinales PresentacionFinal[]
 
   @@index([empresaId, estado])
   @@index([facilitadorId])
@@ -370,23 +381,28 @@ model Grupo {
   createdAt     DateTime                 @default(now())
   updatedAt     DateTime                 @updatedAt
   programa      Programa                 @relation(fields: [programaId], references: [id], onDelete: Cascade)
-  creadoPor     Usuario?                 @relation("GrupoCreador", fields: [creadoPorId], references: [id])
-  miembros      MiembroGrupo[]
-  observaciones ObservacionFacilitador[]
+  creadoPor            Usuario?                 @relation("GrupoCreador", fields: [creadoPorId], references: [id])
+  miembros             MiembroGrupo[]
+  observaciones        ObservacionFacilitador[]
+  respuestasFormulario RespuestaFormulario[]    @relation("RespuestaGrupo")
+  presentacionFinal    PresentacionFinal?
 
   @@unique([programaId, orden])
   @@index([programaId])
 }
 
 model MiembroGrupo {
-  id        String   @id @default(uuid())
-  grupoId   String
-  usuarioId String
-  createdAt DateTime @default(now())
-  grupo     Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  id         String   @id @default(uuid())
+  grupoId    String
+  programaId String   // RN-04: denormalizado desde Grupo.programaId para poder imponer unicidad por programa
+  usuarioId  String
+  createdAt  DateTime @default(now())
+  grupo      Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  programa   Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
 
-  @@unique([grupoId, usuarioId])
+  @@unique([programaId, usuarioId]) // RN-04: un estudiante en un solo grupo por programa
+  @@index([grupoId])
   @@index([usuarioId])
 }
 
@@ -495,6 +511,193 @@ model ConfiguracionNotificacion {
   emails      String[]
   descripcion String?
   updatedAt   DateTime @updatedAt
+}
+
+// ============================================================
+// FASE 2 — Form builder configurable (Plan 1 §4, requisitos §7.2)
+// ============================================================
+
+enum TipoFormulario {
+  diagnostico_inicial
+  diagnostico_final
+  feedback
+  bitacora
+  plantilla_proyecto
+}
+
+enum TipoCampo {
+  texto_corto
+  texto_largo
+  numero
+  likert
+  opcion_multiple
+  tabla
+  grupo_repetible
+}
+
+enum EstadoRespuesta {
+  draft
+  submitted
+}
+
+// RF-22/23/27: programaId=null → template global editable por el admin;
+// programaId=X → snapshot inmutable del programa X (RF-46/47/48, RN-10).
+model PlantillaFormulario {
+  id             String                @id @default(uuid())
+  programaId     String?
+  tipoFormulario TipoFormulario
+  nombre         String
+  descripcion    String?               @db.Text
+  version        Int                   @default(1) // RF-23: template activo con respuestas no se edita, se versiona
+  activa         Boolean               @default(true)
+  snapshotDeId   String? // RF-49: global de origen del snapshot (comparar updatedAt del global vs createdAt del snapshot)
+  creadoPorId    String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  programa       Programa?             @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  snapshotDe     PlantillaFormulario?  @relation("PlantillaSnapshot", fields: [snapshotDeId], references: [id], onDelete: SetNull)
+  snapshots      PlantillaFormulario[] @relation("PlantillaSnapshot")
+  creadoPor      Usuario?              @relation("PlantillaCreador", fields: [creadoPorId], references: [id])
+  campos         CampoFormulario[]
+  respuestas     RespuestaFormulario[]
+
+  @@index([programaId, tipoFormulario])
+  @@index([tipoFormulario, activa])
+}
+
+// RF-24/25/26. ⚠ RNF-04/RN-02: configJson contiene los scores ocultos del
+// diagnóstico; NUNCA se serializa a roles ≠ danalytics_admin (select sin
+// configJson en la capa de servicio). Checkboxes = opcion_multiple con
+// {"multiple": true} en configJson (el enum queda en los 7 tipos del RF-24).
+model CampoFormulario {
+  id            String              @id @default(uuid())
+  plantillaId   String
+  campoPadreId  String? // hijos de un grupo_repetible (iteraciones de bitácora, RF-30)
+  tipoCampo     TipoCampo
+  etiqueta      String              @db.Text
+  descripcion   String?             @db.Text
+  dimension     String? // RF-26: agrupa resultados en reportes (scoring del diagnóstico)
+  esObligatorio Boolean             @default(false)
+  orden         Int
+  configJson    Json                @default("{}")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  plantilla     PlantillaFormulario @relation(fields: [plantillaId], references: [id], onDelete: Cascade)
+  campoPadre    CampoFormulario?    @relation("CampoHijos", fields: [campoPadreId], references: [id], onDelete: Cascade)
+  hijos         CampoFormulario[]   @relation("CampoHijos")
+
+  @@index([plantillaId, orden])
+  @@index([campoPadreId])
+}
+
+// RF-28/29. Individual (diagnóstico/feedback) → usuarioRespondienteId;
+// grupal (bitácora/plantilla proyecto) → grupoRespondienteId. El XOR y la
+// unicidad por plantilla se garantizan con CHECK + índices únicos parciales
+// creados en scripts/seed-admin.ts (ensureIndices) — db push NO los crea.
+model RespuestaFormulario {
+  id                     String              @id @default(uuid())
+  plantillaId            String
+  programaId             String
+  usuarioRespondienteId  String?
+  grupoRespondienteId    String?
+  datosRespuestaJson     Json                @default("{}")
+  scoresPorDimensionJson Json? // RF-29: calculado SOLO server-side; el estudiante nunca lo ve
+  estado                 EstadoRespuesta     @default(draft)
+  ultimoEditorId         String? // RF-16: last_edited_by en recursos de grupo
+  ultimaEdicionEn        DateTime?
+  enviadoEn              DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  plantilla              PlantillaFormulario @relation(fields: [plantillaId], references: [id])
+  programa               Programa            @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  usuarioRespondiente    Usuario?            @relation("RespuestaRespondiente", fields: [usuarioRespondienteId], references: [id])
+  grupoRespondiente      Grupo?              @relation("RespuestaGrupo", fields: [grupoRespondienteId], references: [id])
+  ultimoEditor           Usuario?            @relation("RespuestaUltimoEditor", fields: [ultimoEditorId], references: [id])
+
+  @@index([programaId, estado])
+  @@index([plantillaId])
+  @@index([usuarioRespondienteId])
+  @@index([grupoRespondienteId])
+}
+
+// ============================================================
+// FASE 3 — Reto con IA: presentación final (Plan 1 §5, requisitos §7.3)
+// ============================================================
+
+// RF-32 (§7.3 final_presentations). Una presentación por grupo (@@unique([grupoId])).
+// El grupo entrega link (urlPresentacion) O archivo PDF/PPT en S3 (archivoKey): al
+// menos uno debe estar presente. Ese CHECK ("url o archivo") lo aplica
+// scripts/seed-admin.ts (ensureIndices) — db push NO crea CHECK constraints.
+// programaId está denormalizado para consultas por programa (RF-37/38).
+model PresentacionFinal {
+  id              String    @id @default(uuid())
+  grupoId         String
+  programaId      String
+  urlPresentacion String?
+  archivoKey      String? // S3
+  entregadoPorId  String? // §7.3 submitted_by
+  entregadoEn     DateTime? // §7.3 submitted_at
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  grupo           Grupo     @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  programa        Programa  @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  entregadoPor    Usuario?  @relation("PresentacionEntregadaPor", fields: [entregadoPorId], references: [id], onDelete: SetNull)
+
+  @@unique([grupoId])
+  @@index([programaId])
+}
+
+// ============================================================
+// FASE 4 — Portal del cliente y auditoría (Plan 1 §6, requisitos RF-42..RF-45)
+// ============================================================
+
+// RF-44/45: tabla puente Usuario (role=cliente_admin/usuario_cliente) ↔ Empresa.
+// La revocación de acceso NO borra la fila: se marca activo=false para conservar
+// la historia (quién invitó, cuándo). La unicidad de un solo cliente_admin ACTIVO
+// por empresa se garantiza con un índice único PARCIAL sobre Usuario, creado en
+// scripts/seed-admin.ts (usuario_cliente_admin_unico_por_empresa) — db push NO
+// crea índices parciales. Ver Plan 1 §6/§12 y Plan 2 §4.4 (CLIENTE_ADMIN_UNICO).
+model UsuarioCliente {
+  id            String   @id @default(uuid())
+  empresaId     String
+  usuarioId     String
+  invitadoPorId String? // quién invitó (RF-44); soft-nullable si fue creado por danalytics_admin
+  invitadoEn    DateTime @default(now())
+  activo        Boolean  @default(true) // revocación = false (no borrado, conserva historia — RF-44)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuario       Usuario  @relation("UsuarioClienteMiembro", fields: [usuarioId], references: [id])
+  invitadoPor   Usuario? @relation("UsuarioClienteInvitadoPor", fields: [invitadoPorId], references: [id])
+
+  @@unique([empresaId, usuarioId])
+  @@index([usuarioId])
+  @@index([empresaId, activo])
+}
+
+// RNF-13: bitácora de auditoría append-only. Refs "soft" (SIN foreign key) a
+// usuarioId/recursoId — mismo patrón que NotificacionEmail — para que la baja de
+// un usuario nunca borre ni bloquee el log de auditoría.
+// `accion` y `tipoRecurso` son String (NO enum): la lista de valores crece con el
+// tiempo y no queremos una migración por cada valor nuevo.
+//   accion (esperado):      login | logout | crear_usuario | editar_usuario |
+//     eliminar_usuario | reset_password | invitar_usuario_cliente |
+//     revocar_usuario_cliente | reenviar_invitacion | ver_programa |
+//     ver_registro_acceso
+//   tipoRecurso (esperado): usuario | usuario_cliente | programa | sesion |
+//     respuesta_formulario | presentacion_final | registro_acceso
+model RegistroAcceso {
+  id          String   @id @default(uuid())
+  usuarioId   String // soft ref (sin FK) — quién ejecutó la acción
+  role        String // slug del rol en el momento de la acción (snapshot denormalizado)
+  accion      String
+  tipoRecurso String
+  recursoId   String? // soft ref (sin FK) — id del recurso afectado
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  creadoEn    DateTime @default(now())
+
+  @@index([usuarioId, creadoEn])
 }
 
 model Translation {

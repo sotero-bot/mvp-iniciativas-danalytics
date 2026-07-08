@@ -47,6 +47,75 @@ async function ensureIndices() {
       WHERE "empresaId" IS NULL AND "email" IS NOT NULL;
   `);
   console.log('  Índice usuario_email_sin_empresa asegurado');
+
+  // Fase 2 — una respuesta por (plantilla, usuario) y por (plantilla, grupo).
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "resp_form_usuario"
+      ON "RespuestaFormulario"("plantillaId", "usuarioRespondienteId")
+      WHERE "usuarioRespondienteId" IS NOT NULL;
+  `);
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "resp_form_grupo"
+      ON "RespuestaFormulario"("plantillaId", "grupoRespondienteId")
+      WHERE "grupoRespondienteId" IS NOT NULL;
+  `);
+  console.log('  Índices resp_form_usuario / resp_form_grupo asegurados');
+
+  // Fase 2 — XOR: la respuesta es de un usuario O de un grupo, nunca ambos/ninguno.
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'respuesta_formulario_respondiente_xor'
+          AND conrelid = '"RespuestaFormulario"'::regclass
+      ) THEN
+        ALTER TABLE "RespuestaFormulario"
+          ADD CONSTRAINT respuesta_formulario_respondiente_xor
+          CHECK (
+            ("usuarioRespondienteId" IS NOT NULL AND "grupoRespondienteId" IS NULL)
+            OR ("usuarioRespondienteId" IS NULL AND "grupoRespondienteId" IS NOT NULL)
+          );
+      END IF;
+    END $$;
+  `);
+  console.log('  CHECK respuesta_formulario_respondiente_xor asegurado');
+
+  // Fase 3 — RF-32: la presentación final debe traer al menos un link o un archivo.
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'presentacion_final_url_o_archivo'
+          AND conrelid = '"PresentacionFinal"'::regclass
+      ) THEN
+        ALTER TABLE "PresentacionFinal"
+          ADD CONSTRAINT presentacion_final_url_o_archivo
+          CHECK (
+            "urlPresentacion" IS NOT NULL OR "archivoKey" IS NOT NULL
+          );
+      END IF;
+    END $$;
+  `);
+  console.log('  CHECK presentacion_final_url_o_archivo asegurado');
+}
+
+// Fase 4 — RF-44 / CLIENTE_ADMIN_UNICO (Plan 2 §4.4): a lo sumo un Usuario ACTIVO
+// con rol cliente_admin por empresa. El predicado necesita el rol, y la única tabla
+// con empresaId + rol + activo en una sola fila es Usuario; por eso el índice va ahí.
+// roleId se interpola en tiempo de seed (el id es estable por el upsert por slug).
+// Se ejecuta DESPUÉS de upsertRoles() para garantizar que el rol exista.
+async function ensureIndiceClienteAdminUnico() {
+  const clienteAdminRole = await prisma.role.findUniqueOrThrow({
+    where: { slug: 'cliente_admin' },
+  });
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "usuario_cliente_admin_unico_por_empresa"
+      ON "Usuario"("empresaId")
+      WHERE "roleId" = '${clienteAdminRole.id}' AND "activo" = true AND "empresaId" IS NOT NULL;
+  `);
+  console.log('  Índice usuario_cliente_admin_unico_por_empresa asegurado');
 }
 
 async function upsertRoles() {
@@ -141,6 +210,7 @@ async function main() {
   console.log('🌱  Seed de roles y admin');
   await ensureIndices();
   await upsertRoles();
+  await ensureIndiceClienteAdminUnico();
   await backfillLegacyUsers();
   await upsertAdmin();
   await upsertConfiguracionNotificaciones();
