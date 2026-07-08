@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { GenerarEnlaceActividadUseCase } from '../application/GenerarEnlaceActividadUseCase';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/enlaces')
 export class AdminEnlaceController {
     constructor(

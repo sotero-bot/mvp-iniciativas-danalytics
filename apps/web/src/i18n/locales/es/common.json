@@ -1,5 +1,38 @@
 {
   "app_name": "Decisión IA",
+  "roles": {
+    "danalytics_admin": "Administrador",
+    "facilitador": "Facilitador",
+    "estudiante": "Estudiante",
+    "cliente_admin": "Cliente (admin)",
+    "usuario_cliente": "Cliente"
+  },
+  "home": {
+    "brand": "Danalytics",
+    "greeting": "Hola, {{name}} 👋",
+    "greeting_no_name": "Hola 👋",
+    "subtitle": "Este es tu espacio en la plataforma.",
+    "coming_soon": "Próximamente",
+    "logout": "Cerrar sesión",
+    "no_sections": "Aún no tienes secciones disponibles.",
+    "cards": {
+      "adm_empresas": { "title": "Empresas", "desc": "Gestiona las organizaciones cliente." },
+      "adm_programas": { "title": "Programas", "desc": "Programas de IA en Acción, sesiones y participantes." },
+      "adm_usuarios": { "title": "Usuarios", "desc": "Administra usuarios, roles e invitaciones." },
+      "adm_actividades": { "title": "Actividades", "desc": "Actividades y plantillas de Decisión IA." },
+      "fac_programas": { "title": "Mis programas", "desc": "Programas que facilitas." },
+      "fac_asistencia": { "title": "Asistencia", "desc": "Registra la asistencia de tus sesiones." },
+      "fac_observaciones": { "title": "Observaciones", "desc": "Reporta observaciones al equipo." },
+      "fac_bitacoras": { "title": "Bitácoras y proyectos", "desc": "Consulta el avance de los grupos." },
+      "est_programas": { "title": "Mis programas", "desc": "Programas en los que participas." },
+      "est_sesiones": { "title": "Sesiones y material", "desc": "Accede a tus sesiones y contenidos." },
+      "est_formularios": { "title": "Formularios", "desc": "Diagnóstico y encuestas del programa." },
+      "est_grupo": { "title": "Mi grupo y reto", "desc": "Trabaja el reto con tu grupo." },
+      "cli_programas": { "title": "Programas", "desc": "Programas de tu organización." },
+      "cli_resultados": { "title": "Resultados", "desc": "Avance y resultados agregados." },
+      "cli_usuarios": { "title": "Usuarios", "desc": "Gestiona los usuarios de tu empresa." }
+    }
+  },
   "buttons": {
     "save": "Guardar",
     "cancel": "Cancelar",

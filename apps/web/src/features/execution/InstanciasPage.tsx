@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -44,37 +44,37 @@ export function InstanciasPage() {
 
   const handleDeleteInstancia = async () => {
     if (!deleteModal) return;
-    await fetch(`${API_URL}/admin/instancias/${deleteModal}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/admin/instancias/${deleteModal}`, withAuth({ method: 'DELETE' }));
     setDeleteModal(null);
     load();
   };
 
   const handleDeleteEnlace = async () => {
     if (!deleteEnlaceModal) return;
-    await fetch(`${API_URL}/admin/enlaces/${deleteEnlaceModal}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/admin/enlaces/${deleteEnlaceModal}`, withAuth({ method: 'DELETE' }));
     setDeleteEnlaceModal(null);
     load();
   };
 
   const load = async () => {
     const [resInst, resEnl] = await Promise.all([
-      fetch(`${API_URL}/admin/instancias`),
-      fetch(`${API_URL}/admin/enlaces`),
+      fetch(`${API_URL}/admin/instancias`, withAuth()),
+      fetch(`${API_URL}/admin/enlaces`, withAuth()),
     ]);
     if (resInst.ok) setInstancias(await resInst.json());
     if (resEnl.ok) setEnlaces(await resEnl.json());
   };
 
   const loadActividades = async () => {
-    const res = await fetch(`${API_URL}/methodology/actividades`);
+    const res = await fetch(`${API_URL}/methodology/actividades`, withAuth());
     if (res.ok) setActividades(await res.json());
   };
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/admin/instancias`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/admin/enlaces`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/methodology/actividades`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/admin/instancias`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/admin/enlaces`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/methodology/actividades`, withAuth()).then(r => r.ok ? r.json() : []),
     ]).then(([inst, enl, acts]) => {
       setInstancias(inst);
       setEnlaces(enl);

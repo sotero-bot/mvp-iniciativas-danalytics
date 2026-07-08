@@ -250,6 +250,13 @@ select.input {
   padding: 1.25rem 0.875rem;
   flex-shrink: 0;
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.15);
+  /* Sidebar fijo a la altura de la ventana con scroll propio: así la tarjeta de
+     usuario (nombre · rol · empresa, con marginTop:auto) queda SIEMPRE visible
+     al pie, aunque el contenido de la página sea largo (páginas de admin). */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-title {

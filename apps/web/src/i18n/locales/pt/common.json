@@ -1,5 +1,38 @@
 {
   "app_name": "Decisão IA",
+  "roles": {
+    "danalytics_admin": "Administrador",
+    "facilitador": "Facilitador",
+    "estudiante": "Estudante",
+    "cliente_admin": "Cliente (admin)",
+    "usuario_cliente": "Cliente"
+  },
+  "home": {
+    "brand": "Danalytics",
+    "greeting": "Olá, {{name}} 👋",
+    "greeting_no_name": "Olá 👋",
+    "subtitle": "Este é o seu espaço na plataforma.",
+    "coming_soon": "Em breve",
+    "logout": "Sair",
+    "no_sections": "Você ainda não tem seções disponíveis.",
+    "cards": {
+      "adm_empresas": { "title": "Empresas", "desc": "Gerencie as organizações cliente." },
+      "adm_programas": { "title": "Programas", "desc": "Programas de IA em Ação, sessões e participantes." },
+      "adm_usuarios": { "title": "Usuários", "desc": "Administre usuários, papéis e convites." },
+      "adm_actividades": { "title": "Atividades", "desc": "Atividades e modelos de Decisão IA." },
+      "fac_programas": { "title": "Meus programas", "desc": "Programas que você facilita." },
+      "fac_asistencia": { "title": "Presença", "desc": "Registre a presença das suas sessões." },
+      "fac_observaciones": { "title": "Observações", "desc": "Reporte observações à equipe." },
+      "fac_bitacoras": { "title": "Diários e projetos", "desc": "Acompanhe o progresso dos grupos." },
+      "est_programas": { "title": "Meus programas", "desc": "Programas em que você participa." },
+      "est_sesiones": { "title": "Sessões e material", "desc": "Acesse suas sessões e conteúdos." },
+      "est_formularios": { "title": "Formulários", "desc": "Diagnóstico e pesquisas do programa." },
+      "est_grupo": { "title": "Meu grupo e desafio", "desc": "Trabalhe o desafio com seu grupo." },
+      "cli_programas": { "title": "Programas", "desc": "Programas da sua organização." },
+      "cli_resultados": { "title": "Resultados", "desc": "Progresso e resultados agregados." },
+      "cli_usuarios": { "title": "Usuários", "desc": "Gerencie os usuários da sua empresa." }
+    }
+  },
   "buttons": {
     "save": "Salvar",
     "cancel": "Cancelar",

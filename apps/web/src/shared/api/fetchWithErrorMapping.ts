@@ -36,10 +36,27 @@ function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   );
 }
 
+/**
+ * Adjunta el JWT de sesión (localStorage 'admin_token') al `RequestInit`, salvo que
+ * quien llama ya haya puesto su propio Authorization. Sirve para CUALQUIER usuario con
+ * sesión (admin, facilitador, estudiante, cliente): el backend decide por endpoint qué
+ * rol puede. Los endpoints públicos (login, magic-link, runner por token) ignoran el
+ * header, así que enviarlo no molesta. Úsalo en `fetch()` crudos:
+ *   `fetch(url, withAuth({ method: 'DELETE' }))`
+ * Guard `typeof localStorage` para el entorno de tests (node).
+ */
+export function withAuth(init?: RequestInit): RequestInit | undefined {
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  if (!token) return init;
+  const headers = new Headers(init?.headers);
+  if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+  return { ...init, headers };
+}
+
 export async function fetchWithErrorMapping(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(input, init);
+    response = await fetch(input, withAuth(init));
   } catch (err) {
     throw new ApiError({ code: 'NETWORK_ERROR', message: (err as Error)?.message }, 0);
   }

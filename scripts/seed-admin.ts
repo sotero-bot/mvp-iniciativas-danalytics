@@ -21,9 +21,16 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-const ADMIN_USERNAME = 'admin';
-const ADMIN_NOMBRE = 'Admin Principal';
-const ADMIN_PASSWORD = 'dax1973*';
+// Credenciales del admin desde el entorno (.env local / Env Vars de Vercel).
+// ADMIN_PASSWORD es obligatoria: nunca hardcodeamos la contraseña en el repo.
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? 'admin';
+const ADMIN_NOMBRE = process.env.ADMIN_NOMBRE ?? 'Admin Principal';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  throw new Error(
+    'ADMIN_PASSWORD no está definida. Añádela al .env (local) o a las Environment Variables de Vercel.',
+  );
+}
 
 interface RoleSeed {
   slug: string;

@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { parseTableFromContent } from '../../../shared/utils/parseTableFromContent';
 import { GenerarInstanciaUseCase } from '../application/GenerarInstanciaUseCase';
 import { ObtenerInstanciaDetalleUseCase } from '../application/ObtenerInstanciaDetalleUseCase';
@@ -9,6 +10,8 @@ import { ResourceNotFoundError } from '../../../shared/domain/ResourceNotFoundEr
 import { generatePdfBuffer, loadInstanciaForPdf, buildBaseFilename, buildZipFilename, slugSegment } from './pdfDetalleGenerator';
 import { AppError } from '../../../shared/errors/AppError';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/instancias')
 export class AdminExecutionController {
   constructor(

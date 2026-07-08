@@ -5,7 +5,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
-import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const PASO_TRANS_FIELDS: TranslationField[] = [
   { key: 'titulo', label: 'Título' },
@@ -51,9 +51,9 @@ export function ActividadPasosPage() {
   const handleDeleteEjemplo = async () => {
     if (!deleteEjemploModal) return;
     try {
-      const res = await fetch(`${API_URL}/admin/actividades/${id}/pasos/${deleteEjemploModal.pasoId}/ejemplo`, {
+      const res = await fetch(`${API_URL}/admin/actividades/${id}/pasos/${deleteEjemploModal.pasoId}/ejemplo`, withAuth({
         method: 'DELETE',
-      });
+      }));
       if (!res.ok && res.status !== 204) { alert(t('methodology:pasos.ejemplo.errors.delete_failed')); return; }
       setDeleteEjemploModal(null);
       loadPasos();
@@ -145,7 +145,7 @@ export function ActividadPasosPage() {
 
   const handleDelete = async () => {
     if (!modal) return;
-    await fetch(`${API_URL}/admin/actividades/${id}/pasos/${modal.id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/admin/actividades/${id}/pasos/${modal.id}`, withAuth({ method: 'DELETE' }));
     setModal(null);
     loadPasos();
   };

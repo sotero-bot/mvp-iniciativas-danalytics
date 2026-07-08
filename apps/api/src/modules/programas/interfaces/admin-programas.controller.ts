@@ -9,12 +9,14 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { EstadoPrograma, EstadoSesion, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../../../prisma.service';
 import { MagicLinkService } from '../../auth/application/magic-link.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
 import { TranslationService } from '../../translation/translation.service';
 import {
@@ -139,6 +141,12 @@ interface TraduccionProgramaDto {
   }[];
 }
 
+// Autorización (Plan 2 §0.1, RNF-01/02): todos los endpoints de este controller
+// requieren un JWT válido y rol `danalytics_admin`. Un rol distinto → 403 (FORBIDDEN).
+// La regla se aplica a nivel de clase; endpoints con otros roles la sobreescriben con
+// su propio @Roles(...) a nivel de método.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin')
 export class AdminProgramasController {
   constructor(

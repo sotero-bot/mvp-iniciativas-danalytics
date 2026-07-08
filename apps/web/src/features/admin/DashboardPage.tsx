@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -19,10 +20,10 @@ export function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/organization/empresas`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/organization/iniciativas`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/methodology/actividades`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/admin/instancias`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/organization/empresas`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/organization/iniciativas`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/methodology/actividades`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/admin/instancias`, withAuth()).then(r => r.ok ? r.json() : []),
     ]).then(([e, i, a, inst]) => {
       setStats({
         empresas: Array.isArray(e) ? e.length : 0,

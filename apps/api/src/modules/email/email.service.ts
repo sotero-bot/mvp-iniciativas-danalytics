@@ -1,6 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
-import { AppError } from '../../shared/errors/AppError';
+import { Inject, Injectable } from '@nestjs/common';
+import { EMAIL_TRANSPORT, EmailTransport } from './transports/email-transport.interface';
 
 type Locale = 'es' | 'pt';
 
@@ -61,42 +60,12 @@ function escapeHtml(input: string): string {
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
-  private readonly resend: Resend | null;
-  private readonly from: string;
-
-  constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    this.from = process.env.EMAIL_FROM || 'Danalytics <no-reply@danalytics.co>';
-    this.resend = apiKey ? new Resend(apiKey) : null;
-    if (!this.resend) {
-      this.logger.warn(
-        'RESEND_API_KEY no configurado. Los envíos se logueárán a consola en vez de enviarse.',
-      );
-    }
-  }
+  constructor(@Inject(EMAIL_TRANSPORT) private readonly transport: EmailTransport) {}
 
   async sendMagicLink(payload: MagicLinkPayload): Promise<void> {
     const subject = SUBJECT[payload.locale] ?? SUBJECT.es;
     const html = (BODY_HTML[payload.locale] ?? BODY_HTML.es)(payload);
 
-    if (!this.resend) {
-      this.logger.log(
-        `[DEV] MagicLink para ${payload.to}: ${payload.url}`,
-      );
-      return;
-    }
-
-    const { error } = await this.resend.emails.send({
-      from: this.from,
-      to: payload.to,
-      subject,
-      html,
-    });
-
-    if (error) {
-      this.logger.error(`Error enviando MagicLink a ${payload.to}: ${error.message}`);
-      throw new AppError('EMAIL_SEND_FAILED', { message: error.message });
-    }
+    await this.transport.send({ to: payload.to, subject, html });
   }
 }

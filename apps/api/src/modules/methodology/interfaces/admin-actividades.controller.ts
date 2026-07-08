@@ -1,5 +1,6 @@
-import { Controller, Post, Put, Patch, Delete, Get, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Put, Patch, Delete, Get, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
 import { ObtenerPasosActividadUseCase } from '../application/ObtenerPasosActividadUseCase';
@@ -12,6 +13,8 @@ import { AppError } from '../../../shared/errors/AppError';
 import { TranslationService } from '../../translation/translation.service';
 import { TRANSLATABLE_LOCALES, PASO_TRANS_FIELDS, PREGUNTA_TRANS_FIELDS } from '../../../shared/i18n/translatable-locales';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/actividades')
 export class AdminActividadesController {
   constructor(

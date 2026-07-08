@@ -1,5 +1,6 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { randomUUID } from 'crypto';
 import { AppError } from '../../../shared/errors/AppError';
 
@@ -46,6 +47,8 @@ interface ImportBody {
   iniciativas: IniciativaInput[];
 }
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/import')
 export class AdminImportController {
   constructor(private readonly prisma: PrismaService) {}

@@ -42,5 +42,8 @@
   "MAGIC_LINK_INVALID": "O link de acesso não é válido.",
   "MAGIC_LINK_EXPIRADO": "O link de acesso expirou. Solicite um novo.",
   "MAGIC_LINK_USADO": "Este link de acesso já foi usado. Solicite um novo.",
+  "OAUTH_EMAIL_NO_VERIFICADO": "Sua conta do Google não tem o e-mail verificado.",
+  "OAUTH_USUARIO_NO_REGISTRADO": "Não existe uma conta registrada com este e-mail. Entre em contato com o administrador.",
+  "OAUTH_DOMINIO_NO_AUTORIZADO": "O domínio do seu e-mail não está autorizado para acessar com Google.",
   "EMAIL_SEND_FAILED": "Não foi possível enviar o e-mail. Tente novamente mais tarde."
 }

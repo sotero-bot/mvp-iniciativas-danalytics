@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { randomUUID } from 'crypto';
 import { AppError } from '../../../shared/errors/AppError';
 import { TranslationService } from '../../translation/translation.service';
@@ -8,6 +9,8 @@ interface PreguntaTransInput { orden: number; enunciado?: string; promptIa?: str
 interface PasoTransInput { orden: number; titulo?: string; objetivo?: string; instrucciones?: string; promptIa?: string; preguntas?: PreguntaTransInput[] }
 interface PlantillaTransInput { locale: string; nombre?: string; descripcion?: string; pasos?: PasoTransInput[] }
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/plantillas')
 export class AdminPlantillasController {
   constructor(

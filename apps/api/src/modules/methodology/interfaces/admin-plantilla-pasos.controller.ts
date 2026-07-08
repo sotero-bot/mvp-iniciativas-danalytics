@@ -1,11 +1,14 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { randomUUID } from 'crypto';
 import { S3Service } from '../../storage/S3Service';
 import { AppError } from '../../../shared/errors/AppError';
 import { TranslationService } from '../../translation/translation.service';
 import { TRANSLATABLE_LOCALES, PASO_TRANS_FIELDS, PREGUNTA_TRANS_FIELDS } from '../../../shared/i18n/translatable-locales';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/plantillas/:plantillaId/pasos')
 export class AdminPlantillaPasosController {
   constructor(

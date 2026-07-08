@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -18,6 +19,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AppError } from '../../../shared/errors/AppError';
 import { MagicLinkService } from '../../auth/application/magic-link.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
 const ADMIN_SLUG = 'danalytics_admin';
 const EMPRESA_SLUGS = new Set(['estudiante', 'cliente_admin', 'usuario_cliente']);
@@ -83,6 +85,8 @@ const SELECT_PUBLIC = {
 //   - usuario_cliente → misma vista de cliente_admin en lectura.
 //   Requiere: middleware que extraiga el actor del JWT y aplique WHERE por scope.
 //   Actualmente todos los endpoints asumen actor = danalytics_admin (frontend controla el gating).
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin')
 export class AdminUsersController {
   constructor(

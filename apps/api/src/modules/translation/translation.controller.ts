@@ -1,5 +1,6 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
 import { AppError } from '../../shared/errors/AppError';
 
 interface PreguntaInput { orden: number; enunciado?: string; promptIa?: string }
@@ -15,6 +16,8 @@ interface LoadResult {
   warnings: string[];
 }
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('admin/translations')
 export class TranslationController {
   constructor(private readonly prisma: PrismaService) {}
