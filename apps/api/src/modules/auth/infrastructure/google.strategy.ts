@@ -45,12 +45,25 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       if (!email) throw new AppError('OAUTH_USUARIO_NO_REGISTRADO');
       if (emailVerified === false) throw new AppError('OAUTH_EMAIL_NO_VERIFICADO');
 
-      const usuario = await this.prisma.usuario.findFirst({
-        where: { email, activo: true, puedeIniciarSesion: true },
+      // Match determinista por `username` (== email). `username` es @unique global, así que
+      // devuelve UN solo usuario; `email` solo es único por empresa y podría estar duplicado
+      // (p. ej. mismo correo como admin sin empresa y como estudiante con empresa) → antes
+      // `findFirst({email})` devolvía uno arbitrario y podías entrar con el rol equivocado.
+      // Fallback a email para usuarios legacy cuyo username aún no es el email.
+      let usuario = await this.prisma.usuario.findUnique({
+        where: { username: email },
         include: { role: true, empresa: true },
       });
+      if (!usuario) {
+        usuario = await this.prisma.usuario.findFirst({
+          where: { email, activo: true, puedeIniciarSesion: true },
+          include: { role: true, empresa: true },
+        });
+      }
       // NUNCA crear usuarios desde OAuth — solo usuarios ya persistidos (regla dura del proyecto).
-      if (!usuario) throw new AppError('OAUTH_USUARIO_NO_REGISTRADO');
+      if (!usuario || !usuario.activo || !usuario.puedeIniciarSesion) {
+        throw new AppError('OAUTH_USUARIO_NO_REGISTRADO');
+      }
 
       // Si la empresa del usuario declara dominio Workspace, el correo debe pertenecer a él.
       const dominio = email.split('@')[1];

@@ -153,15 +153,19 @@ export class MagicLinkService {
 
     if (!this.allowRequest(normalized)) return;
 
-    const usuario = await this.prisma.usuario.findFirst({
-      where: {
-        email: normalized,
-        activo: true,
-        puedeIniciarSesion: true,
-      },
+    // Match determinista por `username` (== email; @unique global). Fallback a email para
+    // usuarios legacy cuyo username aún no es el email. Evita que un email duplicado (mismo
+    // correo en cuentas de distinta empresa) resuelva a un usuario arbitrario.
+    let usuario = await this.prisma.usuario.findUnique({
+      where: { username: normalized },
     });
+    if (!usuario) {
+      usuario = await this.prisma.usuario.findFirst({
+        where: { email: normalized },
+      });
+    }
     // No filtramos por si existe: mismo comportamiento OK/silencioso para evitar user enumeration.
-    if (!usuario) return;
+    if (!usuario || !usuario.activo || !usuario.puedeIniciarSesion) return;
 
     await this.createAndSend({
       usuarioId: usuario.id,

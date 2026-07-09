@@ -175,7 +175,12 @@ export class AdminUsersController {
     const roleSlug = body.role;
 
     const email = body.email?.toLowerCase().trim() || null;
-    const username = body.username?.trim() || null;
+    // Regla: TODO usuario con email tiene `username = email` (admins incluidos). `username` es
+    // @unique global (`email` solo es único por empresa), así se evita duplicar cuentas con el
+    // mismo correo y el login por email (Google/magic link) es determinista (busca por username).
+    // ÚNICA excepción: el admin raíz SIN correo (p. ej. `admin` del seed), que conserva su
+    // username propio y entra solo por usuario+contraseña.
+    const username = email ?? (body.username?.trim() || null);
     const empresaId = body.empresaId || null;
 
     if (roleSlug === ADMIN_SLUG) {
