@@ -2,7 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AppError } from '../../../shared/errors/AppError';
+import { addBusinessDays } from '../../../shared/utils/businessDays';
 import { AuthUser } from '../guards/auth-user';
+
+type ProgramaAccesoRow = {
+  id: string;
+  estado: string;
+  fechaFin: Date | null;
+  diasGracia: number;
+};
 
 /**
  * Scoping por actor (Plan 2 §0.1, RNF-02 / RN-09).
@@ -54,17 +62,27 @@ export class ActorScopeService {
   /**
    * Verifica que el actor puede acceder a un `Programa` concreto; si no, 403.
    * Resuelve el scope contra la BD (una sola query por `id` + filtro de actor).
+   *
+   * RF-03/RN-03: si el actor es `facilitador` y el programa está `finalizado` con
+   * el plazo de gracia (días hábiles) ya vencido, también es 403 — así se revoca
+   * el acceso del facilitador sin necesitar un cron.
    */
   async assertProgramaAccessible(
-    prisma: { programa: { findFirst: (args: unknown) => Promise<{ id: string } | null> } },
+    prisma: { programa: { findFirst: (args: unknown) => Promise<ProgramaAccesoRow | null> } },
     actor: AuthUser,
     programaId: string,
   ): Promise<void> {
     const found = await prisma.programa.findFirst({
       where: { AND: [{ id: programaId }, this.programaScope(actor)] },
-      select: { id: true },
+      select: { id: true, estado: true, fechaFin: true, diasGracia: true },
     });
     if (!found) throw new AppError('FORBIDDEN');
+    if (actor.role === 'facilitador' && found.estado === 'finalizado' && found.fechaFin) {
+      const vigenteHasta = addBusinessDays(found.fechaFin, found.diasGracia);
+      if (vigenteHasta.getTime() < Date.now()) {
+        throw new AppError('FORBIDDEN');
+      }
+    }
   }
 
   private requireEmpresa(actor: AuthUser): string {

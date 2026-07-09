@@ -31,34 +31,25 @@ export class AuthService {
     return usuario;
   }
 
-  async validateAdmin(username: string, pass: string): Promise<any> {
-    console.log(`[AuthService] Intentando validar usuario: ${username}`);
-    const admin = await this.prisma.usuario.findFirst({
-      where: { username, role: { slug: 'danalytics_admin' } },
+  /**
+   * Valida credenciales username/password de CUALQUIER rol activo con login
+   * habilitado (§0.1: el payload del JWT es agnóstico al rol). El gating por rol
+   * lo hace `RolesGuard` en cada endpoint, no el login. Los roles cuyo canal
+   * canónico es magic link / OAuth (facilitador, estudiante, cliente) igualmente
+   * pueden autenticarse por contraseña si se les configuró una.
+   */
+  async validateUser(username: string, pass: string): Promise<any> {
+    const usuario = await this.prisma.usuario.findFirst({
+      where: { username },
       include: { role: true },
     });
-    if (admin) {
-      if (!admin.activo || !admin.puedeIniciarSesion) {
-        console.log(`[AuthService] Usuario INACTIVO o sin login habilitado: ${username}`);
-        return null;
-      }
-      if (!admin.password) {
-        console.log(`[AuthService] Usuario sin password configurado: ${username}`);
-        return null;
-      }
-      console.log(`[AuthService] Usuario encontrado en BD, verificando password...`);
-      const isMatch = await bcrypt.compare(pass, admin.password);
-      if (isMatch) {
-        console.log(`[AuthService] Password Correcto`);
-        const { password, ...result } = admin;
-        return result;
-      } else {
-        console.log(`[AuthService] Password INCORRECTO`);
-      }
-    } else {
-      console.log(`[AuthService] Usuario NO encontrado: ${username}`);
-    }
-    return null;
+    if (!usuario) return null;
+    if (!usuario.activo || !usuario.puedeIniciarSesion) return null;
+    if (!usuario.password) return null;
+    const isMatch = await bcrypt.compare(pass, usuario.password);
+    if (!isMatch) return null;
+    const { password, ...result } = usuario;
+    return result;
   }
 
   async login(user: any) {

@@ -1,0 +1,15 @@
+{
+  "programas": {
+    "title": "Meus programas",
+    "empty": "Você não está matriculado em nenhum programa."
+  },
+  "sesiones": {
+    "title": "Sessões",
+    "back": "← Voltar aos meus programas",
+    "numero": "Sessão {{numero}}",
+    "locked": "Disponível no dia seguinte à sessão",
+    "material": "Ver material",
+    "grabacion": "Ver gravação",
+    "empty": "Este programa ainda não tem sessões."
+  }
+}

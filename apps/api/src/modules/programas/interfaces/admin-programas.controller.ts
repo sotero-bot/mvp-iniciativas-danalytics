@@ -24,6 +24,7 @@ import {
   SESION_TRANS_FIELDS,
   TRANSLATABLE_LOCALES,
 } from '../../../shared/i18n/translatable-locales';
+import { startOfNextDayInTimeZone } from '../../../shared/utils/timezone';
 
 const FACILITADOR_SLUG = 'facilitador';
 const ESTUDIANTE_SLUG = 'estudiante';
@@ -221,6 +222,48 @@ export class AdminProgramasController {
     return programas.map(p => this.applyProgramaOverlay(p, overlay));
   }
 
+  // RF-04: dashboard de programas activos. Debe declararse ANTES de 'programas/:id'
+  // para que Nest no intente resolver "dashboard" como un :id.
+  @Get('programas/dashboard')
+  async dashboard() {
+    const programas = await this.prisma.programa.findMany({
+      where: { estado: EstadoPrograma.activo },
+      select: {
+        id: true,
+        nombre: true,
+        totalSesionesEsperadas: true,
+        sesiones: { select: { id: true, estado: true } },
+      },
+    });
+
+    return Promise.all(
+      programas.map(async (programa) => {
+        const totalSesiones = programa.totalSesionesEsperadas ?? programa.sesiones.length;
+        const sesionesCompletadas = programa.sesiones.filter(
+          (s) => s.estado === EstadoSesion.completada,
+        ).length;
+
+        const [participantesActivos, asistencias] = await Promise.all([
+          this.prisma.participantePrograma.count({ where: { programaId: programa.id, activo: true } }),
+          this.prisma.asistencia.findMany({ where: { sesion: { programaId: programa.id } } }),
+        ]);
+        const asistenciaPromedio =
+          asistencias.length > 0
+            ? asistencias.filter((a) => a.presente).length / asistencias.length
+            : null;
+
+        return {
+          id: programa.id,
+          nombre: programa.nombre,
+          sesionesCompletadas,
+          totalSesiones,
+          participantesActivos,
+          asistenciaPromedio,
+        };
+      }),
+    );
+  }
+
   @Get('programas/:id')
   async getPrograma(@Param('id') id: string, @Query('locale') locale?: string) {
     const programa = await this.prisma.programa.findUnique({
@@ -291,6 +334,9 @@ export class AdminProgramasController {
     if (body.facilitadorId !== undefined) {
       await this.assertFacilitador(body.facilitadorId);
     }
+    if (body.estado !== undefined && body.estado !== existing.estado) {
+      this.assertTransicionValida(existing.estado, body.estado);
+    }
     const data: Prisma.ProgramaUpdateInput = {};
     if (body.nombre !== undefined) data.nombre = body.nombre;
     if (body.descripcion !== undefined) data.descripcion = body.descripcion ?? null;
@@ -330,6 +376,7 @@ export class AdminProgramasController {
   async createSesion(@Param('id') programaId: string, @Body() body: CreateSesionDto) {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+    const fechaProgramada = new Date(body.fechaProgramada);
     try {
       return await this.prisma.sesion.create({
         data: {
@@ -338,10 +385,14 @@ export class AdminProgramasController {
           numeroSesion: body.numeroSesion,
           titulo: body.titulo,
           descripcion: body.descripcion ?? null,
-          fechaProgramada: new Date(body.fechaProgramada),
+          fechaProgramada,
           materialArchivoKey: body.materialArchivoKey ?? null,
           urlGrabacion: body.urlGrabacion ?? null,
-          materialDesbloqueoEn: body.materialDesbloqueoEn ? new Date(body.materialDesbloqueoEn) : null,
+          // RF-09/RN-05: si no se envía explícito, se calcula automáticamente
+          // (00:01 del día siguiente a fechaProgramada, en la timezone del programa).
+          materialDesbloqueoEn: body.materialDesbloqueoEn
+            ? new Date(body.materialDesbloqueoEn)
+            : startOfNextDayInTimeZone(fechaProgramada, programa.timezone),
         },
         select: SESION_SELECT,
       });
@@ -368,6 +419,11 @@ export class AdminProgramasController {
     if (body.urlGrabacion !== undefined) data.urlGrabacion = body.urlGrabacion ?? null;
     if (body.materialDesbloqueoEn !== undefined) {
       data.materialDesbloqueoEn = body.materialDesbloqueoEn ? new Date(body.materialDesbloqueoEn) : null;
+    } else if (body.fechaProgramada !== undefined) {
+      // RF-09/RN-05: si cambia fechaProgramada y no se envía materialDesbloqueoEn
+      // explícito, se recalcula automáticamente en la timezone del programa.
+      const programa = await this.prisma.programa.findUnique({ where: { id: existing.programaId } });
+      data.materialDesbloqueoEn = startOfNextDayInTimeZone(new Date(body.fechaProgramada), programa!.timezone);
     }
     if (body.estado !== undefined) data.estado = body.estado;
     try {
@@ -596,6 +652,27 @@ export class AdminProgramasController {
   }
 
   // --------- Helpers ---------
+
+  // RF-02: máquina de estados de Programa. "cancelado" es alcanzable desde
+  // cualquier estado (mismo criterio que el soft-delete de más arriba);
+  // el resto de transiciones sigue el flujo lineal borrador→activo→finalizado.
+  private static readonly TRANSICIONES_VALIDAS: Record<EstadoPrograma, EstadoPrograma[]> = {
+    [EstadoPrograma.borrador]: [EstadoPrograma.activo],
+    [EstadoPrograma.activo]: [EstadoPrograma.finalizado],
+    [EstadoPrograma.finalizado]: [],
+    [EstadoPrograma.cancelado]: [],
+  };
+
+  private assertTransicionValida(desde: EstadoPrograma, hacia: EstadoPrograma) {
+    const permitido =
+      hacia === EstadoPrograma.cancelado ||
+      AdminProgramasController.TRANSICIONES_VALIDAS[desde].includes(hacia);
+    if (!permitido) {
+      throw new AppError('PROGRAMA_TRANSICION_INVALIDA', {
+        message: `No se puede pasar de "${desde}" a "${hacia}"`,
+      });
+    }
+  }
 
   private async assertFacilitador(usuarioId: string) {
     const u = await this.prisma.usuario.findUnique({

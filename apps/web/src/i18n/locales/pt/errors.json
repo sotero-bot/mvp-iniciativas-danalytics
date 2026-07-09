@@ -45,5 +45,15 @@
   "OAUTH_EMAIL_NO_VERIFICADO": "Sua conta do Google não tem o e-mail verificado.",
   "OAUTH_USUARIO_NO_REGISTRADO": "Não existe uma conta registrada com este e-mail. Entre em contato com o administrador.",
   "OAUTH_DOMINIO_NO_AUTORIZADO": "O domínio do seu e-mail não está autorizado para acessar com Google.",
-  "EMAIL_SEND_FAILED": "Não foi possível enviar o e-mail. Tente novamente mais tarde."
+  "EMAIL_SEND_FAILED": "Não foi possível enviar o e-mail. Tente novamente mais tarde.",
+  "PROGRAMA_TRANSICION_INVALIDA": "Não é possível mudar o programa para esse estado a partir do estado atual.",
+  "SESION_FUTURA": "Esta sessão ainda não aconteceu.",
+  "SESION_BLOQUEADA": "O material desta sessão ainda não está disponível.",
+  "ASISTENCIA_FUERA_DE_PLAZO": "O prazo de 24 horas para editar esta presença já passou.",
+  "ASISTENCIA_NOT_FOUND": "O registro de presença não existe.",
+  "MIEMBRO_YA_EN_GRUPO": "Este participante já pertence a um grupo neste programa.",
+  "MIEMBRO_NO_PARTICIPA": "Este usuário não está matriculado como participante ativo do programa.",
+  "GRUPO_NOT_FOUND": "O grupo não existe.",
+  "OBSERVACION_NOT_FOUND": "A observação não existe.",
+  "NOTIFICACION_NOT_FOUND": "A notificação não existe."
 }

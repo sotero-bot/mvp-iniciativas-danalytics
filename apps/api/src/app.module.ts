@@ -16,6 +16,15 @@ import { AdminPlantillaPasosController } from './modules/methodology/interfaces/
 import { AdminImportController } from './modules/organization/interfaces/admin-import.controller';
 import { AdminUsersController } from './modules/users/interfaces/admin-users.controller';
 import { AdminProgramasController } from './modules/programas/interfaces/admin-programas.controller';
+import { AdminGruposController } from './modules/grupos/interfaces/admin-grupos.controller';
+import { FacilitadorGruposController } from './modules/grupos/interfaces/facilitador-grupos.controller';
+import { FacilitadorAsistenciaController } from './modules/asistencia/interfaces/facilitador-asistencia.controller';
+import { AdminAsistenciaController } from './modules/asistencia/interfaces/admin-asistencia.controller';
+import { FacilitadorObservacionesController } from './modules/observaciones/interfaces/facilitador-observaciones.controller';
+import { AdminObservacionesController } from './modules/observaciones/interfaces/admin-observaciones.controller';
+import { AdminNotificacionesController } from './modules/notificaciones/interfaces/admin-notificaciones.controller';
+import { InternalJobsController } from './modules/notificaciones/interfaces/internal-jobs.controller';
+import { ActorSesionesController } from './modules/sesiones/interfaces/actor-sesiones.controller';
 
 // Use Cases
 import { GenerarInstanciaUseCase } from './modules/execution/application/GenerarInstanciaUseCase';
@@ -63,6 +72,15 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     AdminImportController,
     AdminUsersController,
     AdminProgramasController,
+    AdminGruposController,
+    FacilitadorGruposController,
+    FacilitadorAsistenciaController,
+    AdminAsistenciaController,
+    FacilitadorObservacionesController,
+    AdminObservacionesController,
+    AdminNotificacionesController,
+    InternalJobsController,
+    ActorSesionesController,
   ],
   providers: [
     PrismaService,

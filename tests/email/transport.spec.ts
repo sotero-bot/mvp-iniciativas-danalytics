@@ -24,6 +24,15 @@ vi.mock('resend', () => ({
   }),
 }));
 
+function buildPrismaMock() {
+  return {
+    notificacionEmail: {
+      create: vi.fn().mockResolvedValue({ id: 'n1' }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+  } as never;
+}
+
 const ENV_KEYS = [
   'EMAIL_TRANSPORT',
   'EMAIL_FROM',
@@ -50,7 +59,7 @@ describe('EmailService.sendMagicLink', () => {
   it('delega en transport.send con to/subject/html de la plantilla es', async () => {
     const { EmailService } = await import('../../apps/api/src/modules/email/email.service');
     const transport = { send: vi.fn().mockResolvedValue(undefined) };
-    const service = new EmailService(transport as never);
+    const service = new EmailService(transport as never, buildPrismaMock());
 
     await service.sendMagicLink({
       to: 'user@acme.com',
@@ -72,7 +81,7 @@ describe('EmailService.sendMagicLink', () => {
   it('usa la plantilla pt cuando locale=pt', async () => {
     const { EmailService } = await import('../../apps/api/src/modules/email/email.service');
     const transport = { send: vi.fn().mockResolvedValue(undefined) };
-    const service = new EmailService(transport as never);
+    const service = new EmailService(transport as never, buildPrismaMock());
 
     await service.sendMagicLink({
       to: 'user@acme.com',
@@ -93,7 +102,7 @@ describe('EmailService.sendMagicLink', () => {
     const transport = {
       send: vi.fn().mockRejectedValue(new AppError('EMAIL_SEND_FAILED', { message: 'boom' })),
     };
-    const service = new EmailService(transport as never);
+    const service = new EmailService(transport as never, buildPrismaMock());
 
     await expect(
       service.sendMagicLink({

@@ -28,14 +28,12 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
     { key: 'adm_actividades', icon: '🧩', color: '#F59E0B', to: '/admin/actividades' },
   ],
   facilitador: [
-    { key: 'fac_programas', icon: '🎓', color: '#38BDF8' },
-    { key: 'fac_asistencia', icon: '✅', color: '#22C55E' },
+    { key: 'fac_programas', icon: '🎓', color: '#38BDF8', to: '/facilitador/programas' },
     { key: 'fac_observaciones', icon: '📝', color: '#F59E0B' },
     { key: 'fac_bitacoras', icon: '📓', color: '#A78BFA' },
   ],
   estudiante: [
-    { key: 'est_programas', icon: '🎓', color: '#38BDF8' },
-    { key: 'est_sesiones', icon: '📚', color: '#3B82F6' },
+    { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },
     { key: 'est_formularios', icon: '🧾', color: '#F59E0B' },
     { key: 'est_grupo', icon: '🤝', color: '#A78BFA' },
   ],

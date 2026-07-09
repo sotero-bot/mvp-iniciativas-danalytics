@@ -45,5 +45,15 @@
   "OAUTH_EMAIL_NO_VERIFICADO": "Tu cuenta de Google no tiene el correo verificado.",
   "OAUTH_USUARIO_NO_REGISTRADO": "No existe una cuenta registrada con este correo. Contacta al administrador.",
   "OAUTH_DOMINIO_NO_AUTORIZADO": "El dominio de tu correo no está autorizado para acceder con Google.",
-  "EMAIL_SEND_FAILED": "No se pudo enviar el correo. Intenta de nuevo más tarde."
+  "EMAIL_SEND_FAILED": "No se pudo enviar el correo. Intenta de nuevo más tarde.",
+  "PROGRAMA_TRANSICION_INVALIDA": "No se puede cambiar el programa a ese estado desde su estado actual.",
+  "SESION_FUTURA": "Esta sesión todavía no ha ocurrido.",
+  "SESION_BLOQUEADA": "El material de esta sesión todavía no está disponible.",
+  "ASISTENCIA_FUERA_DE_PLAZO": "Ya pasó el plazo de 24 horas para editar esta asistencia.",
+  "ASISTENCIA_NOT_FOUND": "El registro de asistencia no existe.",
+  "MIEMBRO_YA_EN_GRUPO": "Este participante ya pertenece a un grupo en este programa.",
+  "MIEMBRO_NO_PARTICIPA": "Este usuario no está matriculado como participante activo del programa.",
+  "GRUPO_NOT_FOUND": "El grupo no existe.",
+  "OBSERVACION_NOT_FOUND": "La observación no existe.",
+  "NOTIFICACION_NOT_FOUND": "La notificación no existe."
 }

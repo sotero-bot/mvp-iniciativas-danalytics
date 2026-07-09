@@ -1,0 +1,58 @@
+{
+  "programas": {
+    "title": "Meus programas",
+    "empty": "Você não tem programas atribuídos.",
+    "estado": {
+      "borrador": "Rascunho",
+      "activo": "Ativo",
+      "finalizado": "Finalizado",
+      "cancelado": "Cancelado"
+    }
+  },
+  "sesiones": {
+    "title": "Sessões",
+    "back": "← Voltar aos meus programas",
+    "numero": "Sessão {{numero}}",
+    "locked": "Disponível quando a sessão ocorrer",
+    "material": "Ver material",
+    "grabacion": "Ver gravação",
+    "empty": "Este programa ainda não tem sessões."
+  },
+  "asistencia": {
+    "title": "Registrar presença",
+    "presente": "Presente",
+    "nota": "Nota (opcional)",
+    "save": "Salvar presença",
+    "saved": "Presença salva",
+    "locked_banner": "Já passaram 24h desde o primeiro registro. Peça a um administrador para editá-la.",
+    "future_banner": "Esta sessão ainda não aconteceu.",
+    "empty": "Não há participantes ativos neste programa."
+  },
+  "grupos": {
+    "title": "Grupos",
+    "empty": "Este programa ainda não tem grupos.",
+    "miembros": "Membros"
+  },
+  "observaciones": {
+    "title": "Observações",
+    "new": "Nova observação",
+    "tipo": "Tipo",
+    "urgencia": "Urgência",
+    "texto": "Descrição",
+    "send": "Enviar",
+    "sent": "Observação enviada",
+    "history": "Histórico",
+    "empty": "Você ainda não registrou observações neste programa.",
+    "tipos": {
+      "baja_participacion": "Baixa participação",
+      "falta_atencion": "Falta de atenção",
+      "problema_tecnico": "Problema técnico",
+      "dificultades_estudiante": "Dificuldades do estudante",
+      "otro": "Outro"
+    },
+    "urgencias": {
+      "normal": "Normal",
+      "urgente": "Urgente"
+    }
+  }
+}

@@ -14,6 +14,12 @@
 import { PrismaClient, EstadoPrograma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
+// 🔒 Seed de datos DEMO/prueba. NUNCA debe correr en producción/Vercel.
+if (process.env.VERCEL || process.env.CI || process.env.NODE_ENV === 'production') {
+  console.error('⛔  seed:demo-programa está bloqueado en producción/Vercel/CI. Abortado.');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 const EMPRESA_NOMBRE = 'Danalytics Demo';
@@ -119,12 +125,20 @@ async function main() {
     console.log(`  Programa existente: ${programa.nombre}`);
   }
 
-  // 5. Sesiones (3)
+  // 5. Sesiones. S1 en el pasado para que el estudiante vea una sesión DESBLOQUEADA
+  // (RF-09: el material se ve desde el día siguiente a la sesión).
   const sesiones = [
-    { numeroSesion: 1, titulo: 'Kickoff — Introducción al reto con IA', dias: 0 },
-    { numeroSesion: 2, titulo: 'Diagnóstico inicial y grupos de trabajo', dias: 7 },
-    { numeroSesion: 3, titulo: 'Prototipado con IA y presentación final', dias: 14 },
+    { numeroSesion: 1, titulo: 'Kickoff — Introducción al reto con IA', dias: -7 },
+    { numeroSesion: 2, titulo: 'Diagnóstico inicial y grupos de trabajo', dias: 0 },
+    { numeroSesion: 3, titulo: 'Prototipado con IA y presentación final', dias: 7 },
   ];
+  // ~00:01 del día siguiente a `fecha` (aprox. de startOfNextDayInTimeZone, RF-09).
+  const nextDayUnlock = (fecha: Date): Date => {
+    const x = new Date(fecha);
+    x.setDate(x.getDate() + 1);
+    x.setHours(0, 1, 0, 0);
+    return x;
+  };
   for (const s of sesiones) {
     const existing = await prisma.sesion.findFirst({
       where: { programaId: programa.id, numeroSesion: s.numeroSesion },
@@ -139,6 +153,9 @@ async function main() {
         numeroSesion: s.numeroSesion,
         titulo: s.titulo,
         fechaProgramada: fecha,
+        // RF-09: sin este campo el material queda bloqueado para el estudiante
+        // PARA SIEMPRE (el gating exige materialDesbloqueoEn <= ahora).
+        materialDesbloqueoEn: nextDayUnlock(fecha),
       },
     });
   }

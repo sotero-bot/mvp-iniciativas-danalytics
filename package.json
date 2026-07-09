@@ -25,8 +25,10 @@
   },
   "scripts": {
     "start:dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"ts-node-dev --respawn apps/api/src/main.ts\" \"vite\"",
+    "test": "vitest run",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
     "seed:demo-programa": "npx tsx scripts/seed-demo-programa.ts",
+    "seed:rbac-scopes": "npx tsx scripts/seed-rbac-scopes.ts",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "reset-data": "npx tsx scripts/reset-data.ts",
     "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:admin"
@@ -67,6 +69,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^6.1.200",
     "pdfkit": "^0.18.0",
     "react-i18next": "^17.0.8",
     "react-markdown": "^10.1.0",

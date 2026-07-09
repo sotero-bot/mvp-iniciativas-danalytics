@@ -10,6 +10,8 @@ import esMethodology from './locales/es/methodology.json';
 import esOrganization from './locales/es/organization.json';
 import esErrors from './locales/es/errors.json';
 import esPrograma from './locales/es/programa.json';
+import esFacilitador from './locales/es/facilitador.json';
+import esEstudiante from './locales/es/estudiante.json';
 
 import ptCommon from './locales/pt/common.json';
 import ptAuth from './locales/pt/auth.json';
@@ -19,6 +21,8 @@ import ptMethodology from './locales/pt/methodology.json';
 import ptOrganization from './locales/pt/organization.json';
 import ptErrors from './locales/pt/errors.json';
 import ptPrograma from './locales/pt/programa.json';
+import ptFacilitador from './locales/pt/facilitador.json';
+import ptEstudiante from './locales/pt/estudiante.json';
 
 export const SUPPORTED_LANGUAGES = ['es', 'pt'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -48,6 +52,8 @@ export const NAMESPACES = [
   'organization',
   'errors',
   'programa',
+  'facilitador',
+  'estudiante',
 ] as const;
 
 const resources = {
@@ -60,6 +66,8 @@ const resources = {
     organization: esOrganization,
     errors: esErrors,
     programa: esPrograma,
+    facilitador: esFacilitador,
+    estudiante: esEstudiante,
   },
   pt: {
     common: ptCommon,
@@ -70,6 +78,8 @@ const resources = {
     organization: ptOrganization,
     errors: ptErrors,
     programa: ptPrograma,
+    facilitador: ptFacilitador,
+    estudiante: ptEstudiante,
   },
 };
 

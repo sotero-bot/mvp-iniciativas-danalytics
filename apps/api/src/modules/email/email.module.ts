@@ -1,5 +1,6 @@
 import { Logger, Module } from '@nestjs/common';
 import { EmailService } from './email.service';
+import { PrismaService } from '../../prisma.service';
 import { ConsoleTransport } from './transports/console.transport';
 import { EMAIL_TRANSPORT, EmailTransport } from './transports/email-transport.interface';
 import { GmailApiTransport } from './transports/gmail-api.transport';
@@ -42,6 +43,7 @@ export function buildTransport(): EmailTransport {
 @Module({
   providers: [
     { provide: EMAIL_TRANSPORT, useFactory: buildTransport },
+    PrismaService,
     EmailService,
   ],
   exports: [EmailService],

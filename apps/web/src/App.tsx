@@ -20,6 +20,13 @@ import { PlantillasPage } from './features/methodology/PlantillasPage';
 import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { HomePage, ROLE_CARDS } from './features/home/HomePage';
+import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
+import { FacilitadorSesionesPage } from './features/facilitador/SesionesPage';
+import { FacilitadorAsistenciaPage } from './features/facilitador/AsistenciaPage';
+import { FacilitadorGruposPage } from './features/facilitador/GruposPage';
+import { FacilitadorObservacionesPage } from './features/facilitador/ObservacionesPage';
+import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
+import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -325,6 +332,15 @@ function App() {
     return <>{children}</>;
   };
 
+  // Ruta para un rol de portal específico (facilitador/estudiante). Igual criterio
+  // que AdminRoute: sin token → login; con token pero otro rol → a su propio inicio.
+  // RNF-01: gating de UI únicamente, la autorización real la imponen los guards del backend.
+  const PortalRoute = ({ allow, children }: { allow: string; children: React.ReactNode }) => {
+    if (!token) return <LoginPage onLogin={handleLogin} />;
+    if (role !== allow) return <Navigate to={homePath} replace />;
+    return <Layout onLogout={handleLogout}>{children}</Layout>;
+  };
+
   // Inicio general para usuarios autenticados no-admin (dashboard por rol),
   // dentro del Layout con sidebar.
   const HomeRoute = () => {
@@ -358,6 +374,17 @@ function App() {
 
         {/* Inicio general para roles no-admin (facilitador/estudiante/cliente) */}
         <Route path="/inicio" element={<HomeRoute />} />
+
+        {/* Portal Facilitador */}
+        <Route path="/facilitador/programas" element={<PortalRoute allow="facilitador"><FacilitadorProgramasPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/sesiones" element={<PortalRoute allow="facilitador"><FacilitadorSesionesPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/grupos" element={<PortalRoute allow="facilitador"><FacilitadorGruposPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/observaciones" element={<PortalRoute allow="facilitador"><FacilitadorObservacionesPage /></PortalRoute>} />
+        <Route path="/facilitador/sesiones/:id/asistencia" element={<PortalRoute allow="facilitador"><FacilitadorAsistenciaPage /></PortalRoute>} />
+
+        {/* Portal Estudiante */}
+        <Route path="/estudiante/programas" element={<PortalRoute allow="estudiante"><EstudianteProgramasPage /></PortalRoute>} />
+        <Route path="/estudiante/programas/:id/sesiones" element={<PortalRoute allow="estudiante"><EstudianteSesionesPage /></PortalRoute>} />
 
         {/* Public MagicLink consume */}
         <Route path="/auth/link/:token" element={<MagicLinkConsumePage onLogin={handleLogin} />} />
