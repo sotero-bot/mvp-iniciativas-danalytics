@@ -187,9 +187,8 @@ export class AdminUsersController {
       if (!username) {
         throw new AppError('VALIDATION_ERROR', { message: 'username requerido para danalytics_admin' });
       }
-      if (!body.password) {
-        throw new AppError('VALIDATION_ERROR', { message: 'password requerido para danalytics_admin' });
-      }
+      // La contraseña NO es obligatoria: un admin cuyo username es su correo entra por Google.
+      // Solo el admin raíz sin correo depende de la contraseña (se define en el seed).
     } else {
       if (!email) {
         throw new AppError('VALIDATION_ERROR', { message: 'email requerido para este rol' });

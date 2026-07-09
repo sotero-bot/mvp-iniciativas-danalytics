@@ -526,14 +526,13 @@ export function UsuariosPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                      {editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password')}
+                      {editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password_optional_create')}
                     </label>
                     <input
                       type="password"
                       className="input"
                       value={form.password}
                       onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      required={!editing}
                       placeholder={editing ? t('admin:usuarios.fields.password_keep') : ''}
                     />
                   </div>

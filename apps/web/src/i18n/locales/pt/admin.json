@@ -65,6 +65,7 @@
       "username": "Usuário (username)",
       "password": "Senha",
       "password_optional": "Senha (deixe em branco para não alterar)",
+      "password_optional_create": "Senha (opcional — pode entrar com Google)",
       "password_keep": "Sem alterações",
       "empresa": "Empresa",
       "cargo": "Cargo",
