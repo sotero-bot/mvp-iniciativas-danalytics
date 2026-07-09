@@ -58,15 +58,19 @@ describe('GoogleStrategy.validate (§1.1)', () => {
   it('match por username (== email): devuelve el usuario único, no uno arbitrario por email', async () => {
     // findUnique({username}) encuentra al usuario correcto; findFirst NO debe ni llamarse.
     const findFirst = vi.fn().mockResolvedValue({ id: 'OTRO', role: { slug: 'estudiante' } });
-    const prisma = { usuario: {
-      findUnique: vi.fn().mockResolvedValue({
-        id: 'admin1', email: 'user@acme.com', username: 'user@acme.com', empresaId: null,
-        activo: true, puedeIniciarSesion: true,
-        role: { slug: 'danalytics_admin' }, empresa: null,
-      }),
-      findFirst,
-      update: vi.fn().mockResolvedValue({}),
-    } };
+    const prisma = {
+      usuario: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'admin1', email: 'user@acme.com', username: 'user@acme.com', empresaId: null,
+          activo: true, puedeIniciarSesion: true,
+          role: { slug: 'danalytics_admin' }, empresa: null,
+        }),
+        findFirst,
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      $transaction: vi.fn().mockResolvedValue([]),
+    };
     const s = await makeStrategy(prisma);
     const { err, user } = await run(s, profile('user@acme.com'));
     expect(err).toBeNull();
@@ -91,8 +95,9 @@ describe('GoogleStrategy.validate (§1.1)', () => {
     expect((err as { code?: string })?.code).toBe('OAUTH_DOMINIO_NO_AUTORIZADO');
   });
 
-  it('camino feliz → done(null, AuthUser) y vincula googleId', async () => {
+  it('camino feliz → done(null, AuthUser) y vincula googleId (reclamando de duplicados)', async () => {
     const update = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = {
       usuario: {
         findUnique: vi.fn().mockResolvedValue({
@@ -101,13 +106,20 @@ describe('GoogleStrategy.validate (§1.1)', () => {
           role: { slug: 'estudiante' }, empresa: { dominioGoogleWorkspace: 'acme.com' },
         }),
         findFirst: vi.fn(),
+        updateMany,
         update,
       },
+      $transaction: vi.fn().mockResolvedValue([]),
     };
     const s = await makeStrategy(prisma);
     const { err, user } = await run(s, profile('user@acme.com'));
     expect(err).toBeNull();
     expect(user).toMatchObject({ sub: 'u1', role: 'estudiante', empresaId: 'e1' });
+    // Limpia el googleId de cualquier otra fila y lo asigna al usuario canónico.
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { googleId: 'g-123', NOT: { id: 'u1' } },
+      data: { googleId: null },
+    });
     expect(update).toHaveBeenCalledWith({
       where: { id: 'u1' },
       data: { googleId: 'g-123', googleEmailVerificado: true },

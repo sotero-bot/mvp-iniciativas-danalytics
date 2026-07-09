@@ -73,10 +73,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       }
 
       // Vincula/confirma la identidad de Google en el usuario ya existente.
-      await this.prisma.usuario.update({
-        where: { id: usuario.id },
-        data: { googleId: profile.id, googleEmailVerificado: true },
-      });
+      // `googleId` es @unique: si otra fila (un duplicado histórico con el mismo correo) ya lo
+      // tiene, se lo quitamos ANTES de asignarlo aquí, para no violar la unicidad y "reclamar"
+      // la identidad al usuario canónico (el del match por username=email). Transacción atómica.
+      await this.prisma.$transaction([
+        this.prisma.usuario.updateMany({
+          where: { googleId: profile.id, NOT: { id: usuario.id } },
+          data: { googleId: null },
+        }),
+        this.prisma.usuario.update({
+          where: { id: usuario.id },
+          data: { googleId: profile.id, googleEmailVerificado: true },
+        }),
+      ]);
 
       const authUser: AuthUser = {
         sub: usuario.id,
