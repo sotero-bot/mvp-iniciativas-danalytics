@@ -43,3 +43,6 @@ Thumbs.db
 
 # Testing
 /coverage
+
+# Playwright MCP (artefactos temporales de debugging)
+.playwright-mcp/
