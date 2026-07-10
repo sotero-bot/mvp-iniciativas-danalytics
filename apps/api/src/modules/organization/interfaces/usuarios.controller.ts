@@ -1,7 +1,12 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
+// RNF-01/RNF-02: el registro de usuarios es exclusivo de danalytics_admin.
+// Ni facilitador ni ningún otro rol puede crear usuarios por esta vía.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('organization/usuarios')
 export class UsuariosController {
   constructor(private readonly prisma: PrismaService) {}

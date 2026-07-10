@@ -1,10 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AgregarPasoActividadUseCase } from '../application/AgregarPasoActividadUseCase';
 import { InstanciarPlantillaUseCase } from '../application/InstanciarPlantillaUseCase';
 import { AgregarPasoDto } from './dtos/agregar-paso.dto';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
+// RNF-01/RNF-02: CRUD de actividades exclusivo del panel admin (el runner
+// público accede por token vía ExecutionController, no por aquí).
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('methodology/actividades')
 export class ActividadesController {
   constructor(

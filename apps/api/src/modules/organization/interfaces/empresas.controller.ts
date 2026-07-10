@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
@@ -8,7 +8,11 @@ import * as fs from 'fs';
 import { PrismaService } from '../../../prisma.service';
 import { extractTextFromFile } from '../../../shared/utils/extractTextFromFile';
 import { AppError } from '../../../shared/errors/AppError';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
+// RNF-01/RNF-02: CRUD de empresas exclusivo del panel admin.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('organization/empresas')
 export class EmpresasController {
   constructor(private readonly prisma: PrismaService) { }

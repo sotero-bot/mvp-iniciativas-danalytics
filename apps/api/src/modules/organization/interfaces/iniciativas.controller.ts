@@ -1,7 +1,11 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 
+// RNF-01/RNF-02: CRUD de iniciativas exclusivo del panel admin.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('danalytics_admin')
 @Controller('organization/iniciativas')
 export class IniciativasController {
   constructor(private readonly prisma: PrismaService) { }
