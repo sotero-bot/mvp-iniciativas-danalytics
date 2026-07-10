@@ -10,7 +10,8 @@
     "plantillas": "Plantillas",
     "usuarios": "Usuarios",
     "programas": "Programas",
-    "ejecuciones": "Ejecuciones"
+    "ejecuciones": "Ejecuciones",
+    "formularios": "Formularios"
   },
   "usuarios": {
     "page_title": "Usuarios",
@@ -123,7 +124,8 @@
       "new": "Nuevo programa",
       "edit": "Editar",
       "details": "Ver detalle",
-      "cancel": "Cancelar programa"
+      "cancel": "Cancelar programa",
+      "diagnostico": "Diagnóstico"
     },
     "fields": {
       "nombre": "Nombre del programa",
@@ -150,11 +152,17 @@
       "cancelled": "Programa cancelado",
       "invitation_sent": "Invitación enviada",
       "session_removed": "Sesión eliminada",
-      "participant_removed": "Participante desmatriculado"
+      "participant_removed": "Participante desmatriculado",
+      "group_created": "Grupo creado",
+      "group_updated": "Grupo actualizado",
+      "group_removed": "Grupo eliminado",
+      "member_added": "Integrante agregado al grupo",
+      "member_removed": "Integrante quitado del grupo"
     },
     "tabs": {
       "sesiones": "Sesiones",
-      "participantes": "Participantes"
+      "participantes": "Participantes",
+      "grupos": "Grupos"
     },
     "sesiones": {
       "empty": "Aún no hay sesiones. Añade la primera para arrancar.",
@@ -204,6 +212,32 @@
       "modal": {
         "title": "Matricular estudiante",
         "hint": "Si el email ya existe en la empresa, se reutilizará el usuario. Si no, se creará como estudiante."
+      }
+    },
+    "grupos": {
+      "empty": "Aún no hay grupos. Crea el primero para asignar participantes.",
+      "members": "Integrantes",
+      "no_members": "Sin integrantes",
+      "add_member": "Agregar integrante…",
+      "all_assigned": "Todos los participantes ya están asignados a un grupo.",
+      "remove_member": "Quitar",
+      "incomplete": "Mínimo 2 integrantes",
+      "min_hint": "Cada grupo debe tener al menos 2 integrantes. El programa no se puede activar con grupos incompletos.",
+      "actions": {
+        "new": "Nuevo grupo",
+        "rename": "Renombrar",
+        "delete": "Eliminar"
+      },
+      "fields": {
+        "nombre": "Nombre del grupo"
+      },
+      "modal": {
+        "title_create": "Nuevo grupo",
+        "title_edit": "Renombrar grupo"
+      },
+      "confirm_delete": {
+        "title": "Eliminar grupo",
+        "message": "¿Eliminar el grupo «{{nombre}}»? Sus integrantes quedarán sin grupo (siguen matriculados en el programa)."
       }
     }
   },

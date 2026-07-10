@@ -41,6 +41,7 @@ interface UpdateUsuarioDto {
   role?: string;
   email?: string | null;
   username?: string | null;
+  password?: string | null;
   empresaId?: string | null;
   cargo?: string | null;
   area?: string | null;
@@ -227,7 +228,7 @@ export class AdminUsersController {
 
   @Patch('usuarios/:id')
   async update(@Param('id') id: string, @Body() body: UpdateUsuarioDto) {
-    const existing = await this.prisma.usuario.findUnique({ where: { id } });
+    const existing = await this.prisma.usuario.findUnique({ where: { id }, include: { role: true } });
     if (!existing) throw new AppError('USUARIO_NOT_FOUND');
 
     const data: Prisma.UsuarioUpdateInput = {};
@@ -238,6 +239,30 @@ export class AdminUsersController {
     }
     if (body.email !== undefined) data.email = body.email?.toLowerCase().trim() || null;
     if (body.username !== undefined) data.username = body.username?.trim() || null;
+    if (body.password) {
+      // password es un método de login alternativo a magic link/OAuth, disponible
+      // para cualquier rol (no exclusivo de danalytics_admin) — el danalytics_admin
+      // que administra usuarios puede poner/cambiar la contraseña de cualquiera.
+      data.password = await bcrypt.hash(body.password, 10);
+      // El login por contraseña busca por `username` (no por email, ver
+      // AuthService.validateUser). Usuarios matriculados como estudiante/facilitador
+      // (ej. desde `matricular` en admin-programas) nunca tienen `username` seteado
+      // porque su canal normal es magic link/OAuth — sin este backfill quedarían con
+      // password válido pero sin username contra el cual hacer match, y el login
+      // fallaría con AUTH_INVALID_CREDENTIALS pese a la contraseña correcta.
+      if (body.username === undefined && !existing.username) {
+        const emailParaUsername = (body.email !== undefined ? body.email : existing.email)
+          ?.toLowerCase()
+          .trim();
+        if (emailParaUsername) {
+          data.username = emailParaUsername;
+        } else {
+          throw new AppError('VALIDATION_ERROR', {
+            message: 'Este usuario no tiene username ni email: asígnale uno antes de ponerle contraseña, o no podrá iniciar sesión.',
+          });
+        }
+      }
+    }
     if (body.cargo !== undefined) data.cargo = body.cargo ?? null;
     if (body.area !== undefined) data.area = body.area ?? null;
     if (body.puedeIniciarSesion !== undefined) data.puedeIniciarSesion = body.puedeIniciarSesion;
@@ -268,16 +293,21 @@ export class AdminUsersController {
     if (!body?.password) {
       throw new AppError('VALIDATION_ERROR', { message: 'password requerido' });
     }
-    const existing = await this.prisma.usuario.findUnique({
-      where: { id },
-      include: { role: true },
-    });
+    const existing = await this.prisma.usuario.findUnique({ where: { id } });
     if (!existing) throw new AppError('USUARIO_NOT_FOUND');
-    if (existing.role?.slug !== ADMIN_SLUG) {
-      throw new AppError('VALIDATION_ERROR', { message: 'Solo danalytics_admin usa password' });
-    }
     const passwordHash = await bcrypt.hash(body.password, 10);
-    await this.prisma.usuario.update({ where: { id }, data: { password: passwordHash } });
+    const data: Prisma.UsuarioUpdateInput = { password: passwordHash };
+    // Mismo backfill que en update(): sin username, la contraseña nueva no sirve
+    // para loguearse (el login busca por username, no por email).
+    if (!existing.username) {
+      if (!existing.email) {
+        throw new AppError('VALIDATION_ERROR', {
+          message: 'Este usuario no tiene username ni email: asígnale uno antes de resetear la contraseña, o no podrá iniciar sesión.',
+        });
+      }
+      data.username = existing.email.toLowerCase().trim();
+    }
+    await this.prisma.usuario.update({ where: { id }, data });
   }
 
   @Delete('usuarios/:id')

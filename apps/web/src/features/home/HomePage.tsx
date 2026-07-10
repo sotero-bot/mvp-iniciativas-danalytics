@@ -34,7 +34,7 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
   ],
   estudiante: [
     { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },
-    { key: 'est_formularios', icon: '🧾', color: '#F59E0B' },
+    { key: 'est_formularios', icon: '🧾', color: '#F59E0B', to: '/estudiante/formularios' },
     { key: 'est_grupo', icon: '🤝', color: '#A78BFA' },
   ],
   cliente_admin: [

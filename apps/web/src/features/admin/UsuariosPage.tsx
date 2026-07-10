@@ -447,14 +447,10 @@ export function UsuariosPage() {
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn-link" onClick={() => openEdit(u)}>{t('admin:usuarios.actions.edit')}</button>
-                    {u.role?.slug === 'danalytics_admin' && (
-                      <>
-                        {' · '}
-                        <button className="btn-link" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
-                          {t('admin:usuarios.actions.reset_password')}
-                        </button>
-                      </>
-                    )}
+                    {' · '}
+                    <button className="btn-link" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
+                      {t('admin:usuarios.actions.reset_password')}
+                    </button>
                     {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
                       <>
                         {' · '}
@@ -517,26 +513,12 @@ export function UsuariosPage() {
               </div>
 
               {isAdminRole ? (
-                <>
-                  <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                      {t('admin:usuarios.fields.username')}
-                    </label>
-                    <input className="input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                      {editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password_optional_create')}
-                    </label>
-                    <input
-                      type="password"
-                      className="input"
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      placeholder={editing ? t('admin:usuarios.fields.password_keep') : ''}
-                    />
-                  </div>
-                </>
+                <div>
+                  <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
+                    {t('admin:usuarios.fields.username')}
+                  </label>
+                  <input className="input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
+                </div>
               ) : (
                 <>
                   <div>
@@ -558,6 +540,22 @@ export function UsuariosPage() {
                   )}
                 </>
               )}
+
+              {/* RN: como danalytics_admin se puede poner/cambiar la contraseña de
+                  CUALQUIER usuario, sin importar el rol — es un método de login
+                  alternativo al magic link/OAuth, no exclusivo de danalytics_admin. */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
+                  {editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password_optional_create')}
+                </label>
+                <input
+                  type="password"
+                  className="input"
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder={editing ? t('admin:usuarios.fields.password_keep') : ''}
+                />
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>

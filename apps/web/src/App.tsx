@@ -27,6 +27,11 @@ import { FacilitadorGruposPage } from './features/facilitador/GruposPage';
 import { FacilitadorObservacionesPage } from './features/facilitador/ObservacionesPage';
 import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
 import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
+import { EstudianteFormulariosPage } from './features/estudiante/FormulariosPage';
+import { FormularioResponderPage } from './features/estudiante/FormularioResponderPage';
+import { FacilitadorResultadosPage } from './features/facilitador/ResultadosPage';
+import { FormBuilderPage } from './features/admin/FormBuilderPage';
+import { AdminDiagnosticoPage } from './features/admin/AdminDiagnosticoPage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -54,17 +59,22 @@ interface SessionPayload {
   role: string | null;
   empresaId: string | null;
   username?: string | null;
+  exp?: number; // segundos UNIX (claim estándar del JWT)
 }
 
 // Decodifica el rol del JWT de forma SÍNCRONA (sin red), para poder proteger
 // las rutas sin parpadeos. La autorización real vive en el backend (RNF-01);
 // esto es solo gating de UI/navegación.
+// Un token EXPIRADO se trata como "sin sesión": si no, la app seguiría
+// renderizando como logueado con un JWT muerto (el backend ya devuelve 401).
 function decodeSession(token: string | null): SessionPayload | null {
   if (!token) return null;
   try {
     const part = token.split('.')[1];
     const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json) as SessionPayload;
+    const payload = JSON.parse(json) as SessionPayload;
+    if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) return null;
+    return payload;
   } catch {
     return null;
   }
@@ -210,6 +220,16 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             }}>🎓</span>
             {t('admin:sidebar.programas')}
           </NavLink>
+          <NavLink to="/admin/formularios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(245,158,11,0.18)',
+              border: '1px solid #F59E0B40',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>🧾</span>
+            {t('admin:sidebar.formularios')}
+          </NavLink>
         </nav>
 
         {/* — Gestión (transversal) — */}
@@ -308,7 +328,9 @@ function AiDisclaimerFooter() {
 
 function App() {
   const [token, setToken] = React.useState<string | null>(localStorage.getItem('admin_token'));
-  const role = decodeSession(token)?.role ?? null;
+  const session = decodeSession(token);
+  const isAuthenticated = !!session; // token presente Y no expirado
+  const role = session?.role ?? null;
   const isAdmin = role === ADMIN_SLUG;
   const homePath = isAdmin ? '/admin/inicio' : '/inicio';
 
@@ -317,17 +339,28 @@ function App() {
     setToken(newToken);
   };
 
-  const handleLogout = () => {
+  const handleLogout = React.useCallback(() => {
     localStorage.removeItem('admin_token');
     clearCurrentUserCache();
     setToken(null);
-  };
+  }, []);
+
+  // Sesión expirada: (a) si el JWT en localStorage ya venció al montar, lo
+  // limpiamos; (b) cuando una llamada al API devuelve 401 de token, el helper
+  // dispara 'auth:session-expired' y aquí cerramos sesión → redirige a login.
+  // Esto evita el estado inconsistente "mensaje de sesión expirada pero sigo dentro".
+  React.useEffect(() => {
+    if (token && !decodeSession(token)) handleLogout();
+    const onExpired = () => handleLogout();
+    window.addEventListener('auth:session-expired', onExpired);
+    return () => window.removeEventListener('auth:session-expired', onExpired);
+  }, [token, handleLogout]);
 
   // Ruta solo para danalytics_admin. Sin token → login; con token pero otro rol
   // → redirige a su inicio (bloquea el acceso por URL directa). RNF-01: esto es
   // gating de UI; la autorización efectiva la imponen los guards del backend.
   const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!token) return <LoginPage onLogin={handleLogin} />;
+    if (!isAuthenticated) return <LoginPage onLogin={handleLogin} />;
     if (!isAdmin) return <Navigate to="/inicio" replace />;
     return <>{children}</>;
   };
@@ -336,7 +369,7 @@ function App() {
   // que AdminRoute: sin token → login; con token pero otro rol → a su propio inicio.
   // RNF-01: gating de UI únicamente, la autorización real la imponen los guards del backend.
   const PortalRoute = ({ allow, children }: { allow: string; children: React.ReactNode }) => {
-    if (!token) return <LoginPage onLogin={handleLogin} />;
+    if (!isAuthenticated) return <LoginPage onLogin={handleLogin} />;
     if (role !== allow) return <Navigate to={homePath} replace />;
     return <Layout onLogout={handleLogout}>{children}</Layout>;
   };
@@ -345,7 +378,7 @@ function App() {
   // dentro del Layout con sidebar.
   const HomeRoute = () => {
     const currentUser = useCurrentUser();
-    if (!token) return <LoginPage onLogin={handleLogin} />;
+    if (!isAuthenticated) return <LoginPage onLogin={handleLogin} />;
     if (isAdmin) return <Navigate to="/admin/inicio" replace />;
     return <Layout onLogout={handleLogout}><HomePage user={currentUser} /></Layout>;
   };
@@ -364,6 +397,8 @@ function App() {
         <Route path="/admin/plantillas/:id/pasos" element={<AdminRoute><Layout onLogout={handleLogout}><PlantillaPasosPage /></Layout></AdminRoute>} />
         <Route path="/admin/usuarios" element={<AdminRoute><Layout onLogout={handleLogout}><UsuariosPage /></Layout></AdminRoute>} />
         <Route path="/admin/programas" element={<AdminRoute><Layout onLogout={handleLogout}><ProgramasPage /></Layout></AdminRoute>} />
+        <Route path="/admin/programas/:id/diagnostico" element={<AdminRoute><Layout onLogout={handleLogout}><AdminDiagnosticoPage /></Layout></AdminRoute>} />
+        <Route path="/admin/formularios" element={<AdminRoute><Layout onLogout={handleLogout}><FormBuilderPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 
@@ -381,10 +416,13 @@ function App() {
         <Route path="/facilitador/programas/:id/grupos" element={<PortalRoute allow="facilitador"><FacilitadorGruposPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/observaciones" element={<PortalRoute allow="facilitador"><FacilitadorObservacionesPage /></PortalRoute>} />
         <Route path="/facilitador/sesiones/:id/asistencia" element={<PortalRoute allow="facilitador"><FacilitadorAsistenciaPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/resultados" element={<PortalRoute allow="facilitador"><FacilitadorResultadosPage /></PortalRoute>} />
 
         {/* Portal Estudiante */}
         <Route path="/estudiante/programas" element={<PortalRoute allow="estudiante"><EstudianteProgramasPage /></PortalRoute>} />
         <Route path="/estudiante/programas/:id/sesiones" element={<PortalRoute allow="estudiante"><EstudianteSesionesPage /></PortalRoute>} />
+        <Route path="/estudiante/formularios" element={<PortalRoute allow="estudiante"><EstudianteFormulariosPage /></PortalRoute>} />
+        <Route path="/estudiante/formularios/:plantillaId" element={<PortalRoute allow="estudiante"><FormularioResponderPage /></PortalRoute>} />
 
         {/* Public MagicLink consume */}
         <Route path="/auth/link/:token" element={<MagicLinkConsumePage onLogin={handleLogin} />} />
@@ -393,16 +431,16 @@ function App() {
         <Route path="/auth/google/callback" element={<GoogleCallbackPage onLogin={handleLogin} />} />
 
         {/* Login Route */}
-        <Route path="/login" element={token ? <Navigate to={homePath} replace /> : <LoginPage onLogin={handleLogin} />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to={homePath} replace /> : <LoginPage onLogin={handleLogin} />} />
 
         {/* Root redirect */}
-        <Route path="/" element={<Navigate to={token ? homePath : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={isAuthenticated ? homePath : '/login'} replace />} />
 
         {/* Admin base redirect */}
         <Route path="/admin" element={<Navigate to={homePath} replace />} />
 
         {/* Default Redirect */}
-        <Route path="*" element={<Navigate to={token ? homePath : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? homePath : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   );

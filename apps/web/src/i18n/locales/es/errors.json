@@ -54,6 +54,13 @@
   "MIEMBRO_YA_EN_GRUPO": "Este participante ya pertenece a un grupo en este programa.",
   "MIEMBRO_NO_PARTICIPA": "Este usuario no está matriculado como participante activo del programa.",
   "GRUPO_NOT_FOUND": "El grupo no existe.",
+  "GRUPO_MIN_INTEGRANTES": "Cada grupo debe tener al menos 2 integrantes.",
   "OBSERVACION_NOT_FOUND": "La observación no existe.",
-  "NOTIFICACION_NOT_FOUND": "La notificación no existe."
+  "NOTIFICACION_NOT_FOUND": "La notificación no existe.",
+  "PLANTILLA_INMUTABLE": "Esta plantilla ya tiene respuestas y no se puede editar. Duplícala para crear una nueva versión.",
+  "CAMPO_NOT_FOUND": "El campo del formulario no existe.",
+  "CAMPO_CONFIG_INVALIDA": "La configuración del campo no es válida para su tipo.",
+  "RESPUESTA_DUPLICADA": "Ya existe una respuesta para este formulario.",
+  "RESPUESTA_YA_ENVIADA": "Este formulario ya fue enviado y no se puede modificar.",
+  "SNAPSHOT_CON_RESPUESTAS": "No se puede regenerar el snapshot: los formularios del programa ya tienen respuestas."
 }

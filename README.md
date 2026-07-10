@@ -62,14 +62,27 @@ npm run seed:admin
 *(Crea el usuario `admin` con contraseña `dax1973*`)*
 
 
-### 5. Borrar y Recargar Datos de Prueba
+### 5. Seed del Diagnóstico Inicial (IA en Acción, opcional)
+Crea el template global del formulario "Encuesta de inicio sobre el Uso de IA Generativa"
+(réplica del Google Form real) en el form builder:
+```bash
+npm run seed:diagnostico-inicial
+```
+- Es **idempotente**: si ya existe un template global activo de tipo `diagnostico_inicial`, aborta sin tocar nada (edítalo o duplícalo desde `/admin/formularios`).
+- Al **activar** un programa, este template se copia automáticamente como snapshot inmutable del programa (RF-46).
+- Por defecto omite las preguntas de correo/nombre/cargo (la respuesta ya queda ligada al usuario autenticado). Para la réplica literal del Google Form:
+  ```bash
+  npm run seed:diagnostico-inicial -- --con-datos-personales
+  ```
+
+### 6. Borrar y Recargar Datos de Prueba
 Para limpiar toda la data (instancias, respuestas, usuarios, empresas, etc.) y volver al estado inicial con los seeds:
 ```bash
 npm run reset-data
 ```
 > ⚠️ Borra **todo** excepto el usuario admin. Útil para demo o desarrollo.
 
-### 6. Ejecutar la Aplicación
+### 7. Ejecutar la Aplicación
 Inicia tanto la API como el Frontend concurrentemente:
 ```bash
 npm run start:dev

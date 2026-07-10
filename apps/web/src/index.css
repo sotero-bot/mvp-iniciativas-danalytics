@@ -999,3 +999,298 @@ tr:hover td {
   color: #3B82F6;
   margin: 0;
 }
+/* ─── Formulario respondiente (estilo Google Forms) — Fase 2 IA en Acción ─── */
+.gform-container {
+  --gform-accent: #0D9488;
+  --gform-accent-soft: rgba(13, 148, 136, 0.08);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.gform-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-top: 10px solid var(--gform-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem 1.75rem;
+  margin-top: 0.75rem;
+}
+
+.gform-header h1 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.gform-header .gform-desc {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.gform-required-note {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  color: #DC2626;
+}
+
+.gform-section {
+  background: var(--gform-accent);
+  color: #FFFFFF;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 1.5rem;
+  letter-spacing: 0.01em;
+}
+
+.gform-section + .gform-card {
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.gform-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem 1.5rem 1.4rem;
+  margin-top: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gform-card:focus-within {
+  border-color: var(--gform-accent);
+  box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.18);
+}
+
+.gform-question {
+  font-size: 0.975rem;
+  font-weight: 500;
+  color: var(--color-text-main);
+  line-height: 1.45;
+}
+
+.gform-question .gform-req {
+  color: #DC2626;
+  margin-left: 0.25rem;
+}
+
+.gform-help {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-top: 0.3rem;
+}
+
+.gform-answer {
+  margin-top: 0.9rem;
+}
+
+/* Texto corto / número: solo línea inferior, como Google Forms */
+.gform-input {
+  display: block;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.45rem 0.1rem;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  color: var(--color-text-main);
+  transition: border-color 0.15s ease;
+}
+
+.gform-input:focus {
+  outline: none;
+  border-bottom: 2px solid var(--gform-accent);
+  padding-bottom: calc(0.45rem - 1px);
+}
+
+.gform-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.gform-input--short {
+  max-width: 380px;
+}
+
+.gform-input--num {
+  max-width: 160px;
+}
+
+textarea.gform-input {
+  resize: vertical;
+  min-height: 4.5rem;
+  line-height: 1.5;
+}
+
+/* Opciones (radio / checkbox) */
+.gform-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.gform-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.gform-option:hover {
+  background: var(--gform-accent-soft);
+}
+
+.gform-option input[type='radio'],
+.gform-option input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--gform-accent);
+  cursor: pointer;
+}
+
+/* Escala Likert */
+.gform-likert {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.gform-likert-extreme {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  max-width: 120px;
+  padding-bottom: 0.15rem;
+  line-height: 1.3;
+}
+
+.gform-likert-extreme--max {
+  text-align: right;
+}
+
+.gform-likert-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.gform-likert-opt input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gform-accent);
+  cursor: pointer;
+}
+
+/* Tabla y grupo repetible */
+.gform-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.gform-table th {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.gform-table td {
+  padding: 0.3rem 0.5rem;
+}
+
+.gform-iteracion {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.gform-add {
+  background: none;
+  border: none;
+  padding: 0.4rem 0.2rem;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gform-accent);
+  cursor: pointer;
+}
+
+.gform-add:hover {
+  text-decoration: underline;
+}
+
+/* Pie: enviar + autosave */
+.gform-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.gform-submit {
+  background: var(--gform-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1.5rem;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.gform-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.gform-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gform-autosave {
+  font-size: 0.78rem;
+  color: #15803D;
+}
+
+.gform-sent {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-top: 10px solid #22C55E;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 1.75rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--color-text-main);
+}

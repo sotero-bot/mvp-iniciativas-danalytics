@@ -19,7 +19,11 @@ import { EmailModule } from '../email/email.module';
     PassportModule,
     JwtModule.register({
       secret: process.env.SUPABASE_JWT_SECRET || 'SECRET_KEY_MVP',
-      signOptions: { expiresIn: '60m' },
+      // Duración de la sesión (JWT). Configurable por env; default 12 h.
+      // Cast al tipo de jsonwebtoken (StringValue | number): process.env es string.
+      signOptions: {
+        expiresIn: (process.env.JWT_EXPIRES_IN || '12h') as import('jsonwebtoken').SignOptions['expiresIn'],
+      },
     }),
     EmailModule,
   ],

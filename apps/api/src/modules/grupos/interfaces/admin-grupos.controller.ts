@@ -141,6 +141,12 @@ export class AdminGruposController {
   async removeMiembro(@Param('id') grupoId: string, @Param('usuarioId') usuarioId: string) {
     const miembro = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
     if (!miembro) throw new AppError('MIEMBRO_NO_PARTICIPA');
+
+    // Regla: mínimo 2 integrantes por grupo. No se puede dejar el grupo en 1;
+    // si tiene exactamente 2, para quitar a alguien hay que eliminar el grupo.
+    const total = await this.prisma.miembroGrupo.count({ where: { grupoId } });
+    if (total === 2) throw new AppError('GRUPO_MIN_INTEGRANTES');
+
     await this.prisma.miembroGrupo.delete({ where: { id: miembro.id } });
   }
 }

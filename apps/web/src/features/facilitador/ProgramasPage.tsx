@@ -14,7 +14,7 @@ interface Programa {
 }
 
 export function FacilitadorProgramasPage() {
-  const { t } = useTranslation(['facilitador', 'common']);
+  const { t } = useTranslation(['facilitador', 'formularios', 'common']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -47,6 +47,7 @@ export function FacilitadorProgramasPage() {
               <Link to={`/facilitador/programas/${p.id}/sesiones`}>{t('facilitador:sesiones.title')}</Link>
               <Link to={`/facilitador/programas/${p.id}/grupos`}>{t('facilitador:grupos.title')}</Link>
               <Link to={`/facilitador/programas/${p.id}/observaciones`}>{t('facilitador:observaciones.title')}</Link>
+              <Link to={`/facilitador/programas/${p.id}/resultados`}>{t('formularios:resultados.title')}</Link>
             </div>
           </div>
         ))}

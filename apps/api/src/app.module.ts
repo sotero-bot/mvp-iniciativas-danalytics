@@ -25,6 +25,13 @@ import { AdminObservacionesController } from './modules/observaciones/interfaces
 import { AdminNotificacionesController } from './modules/notificaciones/interfaces/admin-notificaciones.controller';
 import { InternalJobsController } from './modules/notificaciones/interfaces/internal-jobs.controller';
 import { ActorSesionesController } from './modules/sesiones/interfaces/actor-sesiones.controller';
+import { AdminFormulariosController } from './modules/formularios/interfaces/admin-formularios.controller';
+import { EstudianteFormulariosController } from './modules/formularios/interfaces/estudiante-formularios.controller';
+import { FacilitadorResultadosController } from './modules/formularios/interfaces/facilitador-resultados.controller';
+import { ClienteResultadosController } from './modules/formularios/interfaces/cliente-resultados.controller';
+import { AdminResultadosController } from './modules/formularios/interfaces/admin-resultados.controller';
+import { SnapshotFormulariosService } from './modules/formularios/application/snapshot-formularios.service';
+import { ResultadosService } from './modules/formularios/application/resultados.service';
 
 // Use Cases
 import { GenerarInstanciaUseCase } from './modules/execution/application/GenerarInstanciaUseCase';
@@ -81,6 +88,11 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     AdminNotificacionesController,
     InternalJobsController,
     ActorSesionesController,
+    AdminFormulariosController,
+    EstudianteFormulariosController,
+    FacilitadorResultadosController,
+    ClienteResultadosController,
+    AdminResultadosController,
   ],
   providers: [
     PrismaService,
@@ -183,6 +195,8 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
       inject: [PrismaService],
     },
     TranslationService,
+    SnapshotFormulariosService,
+    ResultadosService,
   ],
 })
 export class AppModule { }

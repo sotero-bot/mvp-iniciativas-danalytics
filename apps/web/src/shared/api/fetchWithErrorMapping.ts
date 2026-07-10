@@ -87,6 +87,14 @@ export async function fetchWithErrorMapping(input: RequestInfo | URL, init?: Req
     payload = { code, message: response.statusText };
   }
 
+  // Sesión muerta (token ausente/expirado/inválido): limpiamos el JWT y avisamos
+  // a la app para que cierre sesión y redirija a login. Resuelve el estado
+  // inconsistente "mensaje de sesión expirada pero el usuario sigue dentro".
+  if (payload.code === 'AUTH_TOKEN_INVALID' || payload.code === 'AUTH_TOKEN_MISSING') {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('admin_token');
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('auth:session-expired'));
+  }
+
   throw new ApiError(payload, response.status);
 }
 

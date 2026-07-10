@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
@@ -372,6 +373,10 @@ export function ProgramasPage() {
                     <button className="btn-link" onClick={() => openEdit(p)}>
                       {t('admin:programas.actions.edit')}
                     </button>
+                    {' · '}
+                    <Link className="btn-link" to={`/admin/programas/${p.id}/diagnostico`}>
+                      {t('admin:programas.actions.diagnostico')}
+                    </Link>
                     {p.activo && p.estado !== 'cancelado' && (
                       <>
                         {' · '}
@@ -639,6 +644,20 @@ interface Participante {
   };
 }
 
+interface GrupoMiembro {
+  id: string;
+  usuarioId: string;
+  usuario: { id: string; nombre: string; email: string | null };
+}
+
+interface Grupo {
+  id: string;
+  programaId: string;
+  nombre: string;
+  orden: number;
+  miembros: GrupoMiembro[];
+}
+
 interface ProgramaDetail extends Programa {
   sesiones: Sesion[];
   participantes: Participante[];
@@ -649,11 +668,14 @@ function ProgramaDetailDrawer({
 }: { programaId: string; onClose: () => void; onError: (msg: string) => void }) {
   const { t, i18n } = useTranslation(['admin', 'common', 'programa']);
   const [programa, setPrograma] = useState<ProgramaDetail | null>(null);
-  const [tab, setTab] = useState<'sesiones' | 'participantes'>('sesiones');
+  const [tab, setTab] = useState<'sesiones' | 'participantes' | 'grupos'>('sesiones');
   const [loading, setLoading] = useState(false);
   const [sesionModalOpen, setSesionModalOpen] = useState(false);
   const [editingSesion, setEditingSesion] = useState<Sesion | null>(null);
   const [matriculaOpen, setMatriculaOpen] = useState(false);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [grupoModal, setGrupoModal] = useState<{ editing: Grupo | null } | null>(null);
+  const [deleteGrupoModal, setDeleteGrupoModal] = useState<Grupo | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -667,7 +689,16 @@ function ProgramaDetailDrawer({
     }
   };
 
-  useEffect(() => { load(); }, [programaId, i18n.language]);
+  const loadGrupos = async () => {
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/grupos`);
+      setGrupos(await res.json());
+    } catch (err) {
+      onError(translateError(err));
+    }
+  };
+
+  useEffect(() => { load(); loadGrupos(); }, [programaId, i18n.language]);
 
   const reenviarInvitacion = async (usuarioId: string) => {
     try {
@@ -706,6 +737,46 @@ function ProgramaDetailDrawer({
       onError(translateError(err));
     }
   };
+
+  const eliminarGrupo = async (grupoId: string) => {
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}`, { method: 'DELETE' });
+      onError(t('admin:programas.toast.group_removed'));
+      loadGrupos();
+    } catch (err) {
+      onError(translateError(err));
+    }
+  };
+
+  const agregarMiembro = async (grupoId: string, usuarioId: string) => {
+    if (!usuarioId) return;
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}/miembros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId }),
+      });
+      onError(t('admin:programas.toast.member_added'));
+      loadGrupos();
+    } catch (err) {
+      onError(translateError(err));
+    }
+  };
+
+  const quitarMiembro = async (grupoId: string, usuarioId: string) => {
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}/miembros/${usuarioId}`, { method: 'DELETE' });
+      onError(t('admin:programas.toast.member_removed'));
+      loadGrupos();
+    } catch (err) {
+      onError(translateError(err));
+    }
+  };
+
+  // RN-04: un estudiante en un solo grupo por programa → participantes aún sin grupo.
+  const usuariosAsignados = new Set(grupos.flatMap(g => g.miembros.map(m => m.usuarioId)));
+  const participantesSinGrupo = (programa?.participantes ?? [])
+    .filter(p => p.activo && !usuariosAsignados.has(p.usuarioId));
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -747,6 +818,18 @@ function ProgramaDetailDrawer({
             }}
           >
             {t('admin:programas.tabs.participantes')} ({programa?.participantes.length ?? 0})
+          </button>
+          <button
+            onClick={() => setTab('grupos')}
+            className="btn-link"
+            style={{
+              padding: '8px 12px',
+              borderBottom: tab === 'grupos' ? '2px solid #2563EB' : '2px solid transparent',
+              color: tab === 'grupos' ? '#2563EB' : '#64748B',
+              fontWeight: 500,
+            }}
+          >
+            {t('admin:programas.tabs.grupos')} ({grupos.length})
           </button>
         </div>
 
@@ -852,6 +935,101 @@ function ProgramaDetailDrawer({
           </>
         )}
 
+        {!loading && programa && tab === 'grupos' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                {participantesSinGrupo.length > 0
+                  ? `${participantesSinGrupo.length} ${t('admin:programas.tabs.participantes').toLowerCase()} ${t('admin:programas.grupos.no_members').toLowerCase()}`
+                  : t('admin:programas.grupos.all_assigned')}
+              </span>
+              <button className="btn btn-primary" onClick={() => setGrupoModal({ editing: null })}>
+                + {t('admin:programas.grupos.actions.new')}
+              </button>
+            </div>
+
+            {grupos.length === 0 && (
+              <div style={{ padding: 24, textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: 8 }}>
+                {t('admin:programas.grupos.empty')}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gap: 12 }}>
+              {grupos.map(g => (
+                <div key={g.id} style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <strong style={{ fontSize: '0.95rem' }}>{g.nombre}</strong>
+                      {g.miembros.length < 2 && (
+                        <span
+                          title={t('admin:programas.grupos.min_hint')}
+                          style={{
+                            fontSize: '0.7rem', color: '#B45309', background: 'rgba(245,158,11,0.14)',
+                            border: '1px solid rgba(245,158,11,0.35)', borderRadius: 999, padding: '2px 8px',
+                          }}
+                        >⚠ {t('admin:programas.grupos.incomplete')}</span>
+                      )}
+                    </span>
+                    <div>
+                      <button className="btn-link" onClick={() => setGrupoModal({ editing: g })}>
+                        {t('admin:programas.grupos.actions.rename')}
+                      </button>
+                      {' · '}
+                      <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => setDeleteGrupoModal(g)}>
+                        {t('admin:programas.grupos.actions.delete')}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 6 }}>
+                    {t('admin:programas.grupos.members')} ({g.miembros.length})
+                  </div>
+                  {g.miembros.length === 0 && (
+                    <div style={{ fontSize: '0.85rem', color: '#CBD5E1', marginBottom: 8 }}>
+                      {t('admin:programas.grupos.no_members')}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {g.miembros.map(m => (
+                      <span key={m.id} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: '#F1F5F9', borderRadius: 999, padding: '3px 6px 3px 10px', fontSize: '0.82rem',
+                      }}>
+                        {m.usuario.nombre}
+                        <button
+                          className="btn-link"
+                          title={t('admin:programas.grupos.remove_member')}
+                          style={{ color: '#B91C1C', fontSize: '0.9rem', lineHeight: 1 }}
+                          onClick={() => quitarMiembro(g.id, m.usuarioId)}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+
+                  <select
+                    className="input"
+                    value=""
+                    disabled={participantesSinGrupo.length === 0}
+                    onChange={e => agregarMiembro(g.id, e.target.value)}
+                    style={{ maxWidth: 320 }}
+                  >
+                    <option value="">
+                      {participantesSinGrupo.length === 0
+                        ? t('admin:programas.grupos.all_assigned')
+                        : t('admin:programas.grupos.add_member')}
+                    </option>
+                    {participantesSinGrupo.map(p => (
+                      <option key={p.usuarioId} value={p.usuarioId}>
+                        {p.usuario.nombre}{p.usuario.email ? ` — ${p.usuario.email}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         {sesionModalOpen && programa && (
           <SesionFormModal
             programaId={programa.id}
@@ -862,6 +1040,24 @@ function ProgramaDetailDrawer({
             onError={onError}
           />
         )}
+
+        {grupoModal && programa && (
+          <GrupoFormModal
+            programaId={programa.id}
+            editing={grupoModal.editing}
+            onClose={() => setGrupoModal(null)}
+            onSaved={() => { setGrupoModal(null); loadGrupos(); }}
+            onError={onError}
+          />
+        )}
+
+        <ConfirmModal
+          isOpen={!!deleteGrupoModal}
+          title={t('admin:programas.grupos.confirm_delete.title')}
+          message={t('admin:programas.grupos.confirm_delete.message', { nombre: deleteGrupoModal?.nombre ?? '' })}
+          onConfirm={() => { if (deleteGrupoModal) { eliminarGrupo(deleteGrupoModal.id); setDeleteGrupoModal(null); } }}
+          onCancel={() => setDeleteGrupoModal(null)}
+        />
 
         {matriculaOpen && programa && (
           <MatriculaModal
@@ -1201,6 +1397,80 @@ function MatriculaModal({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? t('common:saving') : t('common:save')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Modal para crear / renombrar grupo (RF-14, solo danalytics_admin)
+// ─────────────────────────────────────────────────────────────
+function GrupoFormModal({
+  programaId, editing, onClose, onSaved, onError,
+}: {
+  programaId: string;
+  editing: Grupo | null;
+  onClose: () => void;
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const { t } = useTranslation(['admin', 'common']);
+  const [saving, setSaving] = useState(false);
+  const [nombre, setNombre] = useState(editing?.nombre ?? '');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      if (editing) {
+        await fetchWithErrorMapping(`${API_URL}/admin/grupos/${editing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre }),
+        });
+        onError(t('admin:programas.toast.group_updated'));
+      } else {
+        await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/grupos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre }),
+        });
+        onError(t('admin:programas.toast.group_created'));
+      }
+      onSaved();
+    } catch (err) {
+      onError(translateError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ margin: 0 }}>
+            {editing ? t('admin:programas.grupos.modal.title_edit') : t('admin:programas.grupos.modal.title_create')}
+          </h3>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
+          }}>×</button>
+        </div>
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
+              {t('admin:programas.grupos.fields.nombre')}
+            </label>
+            <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} required autoFocus />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving || !nombre.trim()}>
               {saving ? t('common:saving') : t('common:save')}
             </button>
           </div>

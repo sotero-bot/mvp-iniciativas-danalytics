@@ -25,6 +25,7 @@ import {
   TRANSLATABLE_LOCALES,
 } from '../../../shared/i18n/translatable-locales';
 import { startOfNextDayInTimeZone } from '../../../shared/utils/timezone';
+import { SnapshotFormulariosService } from '../../formularios/application/snapshot-formularios.service';
 
 const FACILITADOR_SLUG = 'facilitador';
 const ESTUDIANTE_SLUG = 'estudiante';
@@ -154,6 +155,7 @@ export class AdminProgramasController {
     private readonly prisma: PrismaService,
     private readonly magicLink: MagicLinkService,
     private readonly translations: TranslationService,
+    private readonly snapshots: SnapshotFormulariosService,
   ) {}
 
   private applyProgramaOverlay<T extends { id: string; nombre: string; descripcion: string | null }>(
@@ -302,7 +304,7 @@ export class AdminProgramasController {
   async createPrograma(@Body() body: CreateProgramaDto) {
     await this.assertFacilitador(body.facilitadorId);
     try {
-      return await this.prisma.programa.create({
+      const programa = await this.prisma.programa.create({
         data: {
           id: randomUUID(),
           nombre: body.nombre,
@@ -317,6 +319,14 @@ export class AdminProgramasController {
         },
         select: PROGRAMA_SELECT,
       });
+
+      // RF-46/RN-10: un programa creado DIRECTAMENTE en "activo" (sin pasar por la
+      // transición borrador→activo, p. ej. seeds o alta rápida) también necesita
+      // su snapshot de formularios.
+      if (programa.estado === EstadoPrograma.activo) {
+        await this.snapshots.snapshotPrograma(programa.id);
+      }
+      return programa;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
         throw new AppError('VALIDATION_ERROR', {
@@ -336,6 +346,10 @@ export class AdminProgramasController {
     }
     if (body.estado !== undefined && body.estado !== existing.estado) {
       this.assertTransicionValida(existing.estado, body.estado);
+      // Al activar: todo grupo existente debe tener ≥2 integrantes (regla min-2).
+      if (body.estado === EstadoPrograma.activo) {
+        await this.assertGruposCompletos(id);
+      }
     }
     const data: Prisma.ProgramaUpdateInput = {};
     if (body.nombre !== undefined) data.nombre = body.nombre;
@@ -347,7 +361,15 @@ export class AdminProgramasController {
     if (body.fechaFin !== undefined) data.fechaFin = body.fechaFin ? new Date(body.fechaFin) : null;
     if (body.estado !== undefined) data.estado = body.estado;
     if (body.activo !== undefined) data.activo = body.activo;
-    return this.prisma.programa.update({ where: { id }, data, select: PROGRAMA_SELECT });
+    const actualizado = await this.prisma.programa.update({ where: { id }, data, select: PROGRAMA_SELECT });
+
+    // RF-46/RN-10 (Fase 2): al pasar borrador→activo se toma el snapshot de los
+    // templates globales activos para el programa. Idempotente: si ya existe
+    // snapshot de un global, no lo duplica.
+    if (existing.estado === EstadoPrograma.borrador && body.estado === EstadoPrograma.activo) {
+      await this.snapshots.snapshotPrograma(id);
+    }
+    return actualizado;
   }
 
   @Delete('programas/:id')
@@ -671,6 +693,19 @@ export class AdminProgramasController {
       throw new AppError('PROGRAMA_TRANSICION_INVALIDA', {
         message: `No se puede pasar de "${desde}" a "${hacia}"`,
       });
+    }
+  }
+
+  // Regla min-2: al activar el programa, ningún grupo existente puede tener
+  // menos de 2 integrantes (los grupos vacíos/incompletos deben completarse o
+  // eliminarse antes de activar).
+  private async assertGruposCompletos(programaId: string) {
+    const grupos = await this.prisma.grupo.findMany({
+      where: { programaId },
+      select: { _count: { select: { miembros: true } } },
+    });
+    if (grupos.some((g) => g._count.miembros < 2)) {
+      throw new AppError('GRUPO_MIN_INTEGRANTES');
     }
   }
 
