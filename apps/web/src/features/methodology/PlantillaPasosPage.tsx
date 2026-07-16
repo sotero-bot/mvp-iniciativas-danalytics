@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
+import { Modal, Field, Alert, Loading, EmptyState, PageHeader } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -249,10 +250,10 @@ export function PlantillaPasosPage() {
     }
   };
 
-  if (loading) return <div className="runner-center">{t('methodology:pasos.loading')}</div>;
+  if (loading) return <div className="runner-center"><Loading label={t('methodology:pasos.loading')} /></div>;
   if (error) return (
     <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ color: '#ef4444' }}>{error}</div>
+      <Alert variant="danger">{error}</Alert>
       <button className="btn btn-secondary" onClick={() => navigate('/admin/plantillas')}>{t('methodology:pasos.back')}</button>
     </div>
   );
@@ -274,113 +275,103 @@ export function PlantillaPasosPage() {
         onCancel={() => setPreguntaModal(null)}
       />
 
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <button className="btn btn-secondary"
-            style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '0.8rem' }}
-            onClick={() => navigate('/admin/plantillas')}>
-            {t('methodology:pasos.back_to_plantillas')}
-          </button>
-          <h1>{t('methodology:pasos.page_title_plantilla')}</h1>
-          <p style={{ color: 'var(--color-text-secondary)' }}>{t('methodology:pasos.plantilla_label')} <strong>{nombrePlantilla}</strong></p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn btn-secondary" onClick={openTrans}>🌐 Traducciones</button>
-          {!showForm && (
-            <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
-              {t('methodology:pasos.add_button')}
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        back={{ to: '/admin/plantillas', label: t('methodology:pasos.back_to_plantillas') }}
+        title={t('methodology:pasos.page_title_plantilla')}
+        description={<>{t('methodology:pasos.plantilla_label')} <strong>{nombrePlantilla}</strong></>}
+        actions={
+          <>
+            <button className="btn btn-secondary" onClick={openTrans}>🌐 Traducciones</button>
+            {!showForm && (
+              <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
+                {t('methodology:pasos.add_button')}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* ── Modal cargar traducciones ── */}
-      {transOpen && (
-        <div className="modal-overlay" onClick={() => setTransOpen(false)}>
-          <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h3 style={{ margin: 0 }}>🌐 Cargar traducciones</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{nombrePlantilla}</p>
-              </div>
-              <button onClick={() => setTransOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4 }}>×</button>
+      <Modal
+        isOpen={transOpen}
+        onClose={() => setTransOpen(false)}
+        title="🌐 Cargar traducciones"
+        maxWidth={520}
+      >
+        <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{nombrePlantilla}</p>
+
+        {!transPreview && !transResult && (
+          <>
+            <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+              Sube un JSON con <code>locale</code>, <code>nombre</code>, <code>descripcion</code> y <code>pasos</code> (ordenados por <code>orden</code>).
+            </p>
+            <div
+              onDragOver={e => { e.preventDefault(); setTransDragging(true); }}
+              onDragLeave={() => setTransDragging(false)}
+              onDrop={e => { e.preventDefault(); setTransDragging(false); const f = e.dataTransfer.files[0]; if (f) parseTransFile(f); }}
+              onClick={() => transInputRef.current?.click()}
+              style={{
+                border: `2px dashed ${transDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                borderRadius: 8, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
+                background: transDragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>🌐</div>
+              <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>{transFileName || 'Arrastra el JSON de traducciones aquí'}</p>
+              <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>o haz clic para seleccionar</p>
+              <input ref={transInputRef} type="file" accept=".json" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) parseTransFile(f); }} />
             </div>
+          </>
+        )}
 
-            {!transPreview && !transResult && (
-              <>
-                <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                  Sube un JSON con <code>locale</code>, <code>nombre</code>, <code>descripcion</code> y <code>pasos</code> (ordenados por <code>orden</code>).
-                </p>
-                <div
-                  onDragOver={e => { e.preventDefault(); setTransDragging(true); }}
-                  onDragLeave={() => setTransDragging(false)}
-                  onDrop={e => { e.preventDefault(); setTransDragging(false); const f = e.dataTransfer.files[0]; if (f) parseTransFile(f); }}
-                  onClick={() => transInputRef.current?.click()}
-                  style={{
-                    border: `2px dashed ${transDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    borderRadius: 8, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
-                    background: transDragging ? 'var(--color-primary-light, #f0f7ff)' : 'var(--color-bg-secondary)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>🌐</div>
-                  <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>{transFileName || 'Arrastra el JSON de traducciones aquí'}</p>
-                  <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>o haz clic para seleccionar</p>
-                  <input ref={transInputRef} type="file" accept=".json" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) parseTransFile(f); }} />
-                </div>
-              </>
-            )}
-
-            {transError && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 6, background: '#fee2e2', color: '#b91c1c', fontSize: '0.875rem' }}>
-                {transError}
-              </div>
-            )}
-
-            {transPreview && (
-              <div style={{ marginTop: 4 }}>
-                <div style={{ background: 'var(--color-bg-secondary)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#065f46', borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
-                      {transPreview.locale?.toUpperCase()}
-                    </span>
-                    {transPreview.nombre && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{transPreview.nombre}</span>}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                    {(transPreview.pasos ?? []).length} paso(s) · {(transPreview.pasos ?? []).reduce((s: number, p: any) => s + (p.preguntas ?? []).length, 0)} pregunta(s)
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={() => { setTransPreview(null); setTransFileName(''); }}>Cambiar archivo</button>
-                  <button className="btn btn-primary" disabled={transLoading} onClick={handleLoadTrans}>
-                    {transLoading ? 'Cargando...' : 'Cargar traducciones'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {transResult && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ padding: '14px 16px', borderRadius: 8, background: '#dcfce7', color: '#15803d', marginBottom: 14 }}>
-                  <strong>✅ {transResult.total} traducciones cargadas</strong>
-                  <span style={{ marginLeft: 12, fontSize: '0.85rem', color: '#166534' }}>
-                    {transResult.pasos} pasos · {transResult.preguntas} preguntas
-                  </span>
-                </div>
-                {transResult.warnings?.length > 0 && (
-                  <ul style={{ margin: '0 0 14px', paddingLeft: 18, color: '#92400e', fontSize: '0.825rem' }}>
-                    {transResult.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
-                  </ul>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-primary" onClick={() => setTransOpen(false)}>Cerrar</button>
-                </div>
-              </div>
-            )}
+        {transError && (
+          <div style={{ marginTop: 12 }}>
+            <Alert variant="danger">{transError}</Alert>
           </div>
-        </div>
-      )}
+        )}
+
+        {transPreview && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ background: 'var(--color-bg-subtle)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#065f46', borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
+                  {transPreview.locale?.toUpperCase()}
+                </span>
+                {transPreview.nombre && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{transPreview.nombre}</span>}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                {(transPreview.pasos ?? []).length} paso(s) · {(transPreview.pasos ?? []).reduce((s: number, p: any) => s + (p.preguntas ?? []).length, 0)} pregunta(s)
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => { setTransPreview(null); setTransFileName(''); }}>Cambiar archivo</button>
+              <button className="btn btn-primary" disabled={transLoading} onClick={handleLoadTrans}>
+                {transLoading ? 'Cargando...' : 'Cargar traducciones'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {transResult && (
+          <div style={{ marginTop: 8 }}>
+            <Alert variant="success" title={<>✅ {transResult.total} traducciones cargadas</>}>
+              <span style={{ fontSize: '0.85rem' }}>
+                {transResult.pasos} pasos · {transResult.preguntas} preguntas
+              </span>
+            </Alert>
+            {transResult.warnings?.length > 0 && (
+              <ul style={{ margin: '12px 0 14px', paddingLeft: 18, color: 'var(--color-warning-strong)', fontSize: '0.825rem' }}>
+                {transResult.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary" onClick={() => setTransOpen(false)}>Cerrar</button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* ── Paso form ── */}
       {showForm && (
@@ -393,29 +384,37 @@ export function PlantillaPasosPage() {
             noValidate
           >
             <div style={{ gridColumn: 'span 2' }}>
-              <label className="required-label">{t('methodology:pasos.fields.titulo')}</label>
-              <input className="input" required value={form.titulo}
-                onChange={e => setForm({ ...form, titulo: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.titulo')} />
-              <div className="invalid-feedback">{t('methodology:pasos.validation.titulo_required')}</div>
+              <Field label={t('methodology:pasos.fields.titulo')} required htmlFor="paso-titulo">
+                <>
+                  <input id="paso-titulo" className="input" required value={form.titulo}
+                    onChange={e => setForm({ ...form, titulo: e.target.value })}
+                    placeholder={t('methodology:pasos.placeholders.titulo')} />
+                  <div className="invalid-feedback">{t('methodology:pasos.validation.titulo_required')}</div>
+                </>
+              </Field>
             </div>
             <div>
-              <label className="required-label">{t('methodology:pasos.fields.orden')}</label>
-              <input className="input" type="number" required value={form.orden}
-                onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-              <div className="invalid-feedback">{t('methodology:pasos.validation.orden_required')}</div>
+              <Field label={t('methodology:pasos.fields.orden')} required htmlFor="paso-orden">
+                <>
+                  <input id="paso-orden" className="input" type="number" required value={form.orden}
+                    onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
+                  <div className="invalid-feedback">{t('methodology:pasos.validation.orden_required')}</div>
+                </>
+              </Field>
             </div>
             <div>
-              <label>{t('methodology:pasos.fields.objetivo')}</label>
-              <input className="input" value={form.objetivo}
-                onChange={e => setForm({ ...form, objetivo: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.objetivo')} />
+              <Field label={t('methodology:pasos.fields.objetivo')}>
+                <input className="input" value={form.objetivo}
+                  onChange={e => setForm({ ...form, objetivo: e.target.value })}
+                  placeholder={t('methodology:pasos.placeholders.objetivo')} />
+              </Field>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label>{t('methodology:pasos.fields.instrucciones')}</label>
-              <textarea className="input" rows={3} value={form.instrucciones}
-                onChange={e => setForm({ ...form, instrucciones: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.instrucciones_plantilla')} />
+              <Field label={t('methodology:pasos.fields.instrucciones')}>
+                <textarea className="input" rows={3} value={form.instrucciones}
+                  onChange={e => setForm({ ...form, instrucciones: e.target.value })}
+                  placeholder={t('methodology:pasos.placeholders.instrucciones_plantilla')} />
+              </Field>
             </div>
 
             <TranslationFields
@@ -439,9 +438,7 @@ export function PlantillaPasosPage() {
       {/* ── Paso cards ── */}
       {pasos.length === 0 ? (
         <div className="card">
-          <p style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-secondary)' }}>
-            {t('methodology:pasos.empty_plantilla')}
-          </p>
+          <EmptyState title={t('methodology:pasos.empty_plantilla')} />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -466,7 +463,7 @@ export function PlantillaPasosPage() {
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
                     </button>
-                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
                       onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
                       🗑️
                     </button>
@@ -507,9 +504,9 @@ export function PlantillaPasosPage() {
                               />
                             ) : (
                               <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
-                                  <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 6 }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
+                                  <span style={{ flex: 1, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>{q.enunciado}</span>
                                   <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                                     {q.usarIa && (
                                       <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
@@ -519,13 +516,13 @@ export function PlantillaPasosPage() {
                                     {q.soloArchivo ? (
                                       <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
                                     ) : q.permitirArchivo ? (
-                                      <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
+                                      <span className="status-badge" style={{ background: 'var(--color-success-strong)', color: '#fff', fontSize: '0.65rem' }}>📎</span>
                                     ) : null}
                                     <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
                                       onClick={() => openEditPregunta(p.id, q)}>
                                       {t('common:buttons.edit')}
                                     </button>
-                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
                                       onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
                                       🗑️
                                     </button>
@@ -584,6 +581,7 @@ interface PreguntaFormProps {
 
 function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel, promptApiBase }: PreguntaFormProps) {
   const { t } = useTranslation(['methodology', 'common']);
+  const fid = useId();
   return (
     <div style={{ border: '1px solid var(--color-primary)', borderRadius: 8, padding: '1rem', background: '#fafbff' }}>
       <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>
@@ -596,18 +594,24 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
         noValidate
       >
         <div style={{ gridColumn: 'span 2' }}>
-          <label className="required-label">{t('methodology:preguntas.fields.enunciado')}</label>
-          <textarea className="input" rows={2} required value={form.enunciado}
-            onChange={e => setForm({ ...form, enunciado: e.target.value })}
-            placeholder={t('methodology:preguntas.placeholders.enunciado')} />
-          <div className="invalid-feedback">{t('methodology:preguntas.validation.enunciado_required')}</div>
+          <Field label={t('methodology:preguntas.fields.enunciado')} required htmlFor={`${fid}-enunciado`}>
+            <>
+              <textarea id={`${fid}-enunciado`} className="input" rows={2} required value={form.enunciado}
+                onChange={e => setForm({ ...form, enunciado: e.target.value })}
+                placeholder={t('methodology:preguntas.placeholders.enunciado')} />
+              <div className="invalid-feedback">{t('methodology:preguntas.validation.enunciado_required')}</div>
+            </>
+          </Field>
         </div>
 
         <div>
-          <label className="required-label">{t('methodology:preguntas.fields.orden')}</label>
-          <input className="input" type="number" required min={1} value={form.orden}
-            onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-          <div className="invalid-feedback">{t('methodology:preguntas.validation.orden_required')}</div>
+          <Field label={t('methodology:preguntas.fields.orden')} required htmlFor={`${fid}-orden`}>
+            <>
+              <input id={`${fid}-orden`} className="input" type="number" required min={1} value={form.orden}
+                onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
+              <div className="invalid-feedback">{t('methodology:preguntas.validation.orden_required')}</div>
+            </>
+          </Field>
         </div>
 
         {/* Archivo flags */}
@@ -615,7 +619,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
             <input type="checkbox" checked={form.permitirArchivo}
               onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false })}
-              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
+              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
             <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
           </label>
           {form.permitirArchivo && (
@@ -631,7 +635,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
               title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
               <input type="checkbox" checked={form.subirArchivoS3}
                 onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
+                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
               <span>{t('methodology:preguntas.options.subir_archivo_s3')}</span>
             </label>
           )}
@@ -639,16 +643,17 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
 
         {form.permitirArchivo && (
           <div style={{ gridColumn: 'span 2' }}>
-            <label>{t('methodology:preguntas.fields.url_plantilla')}</label>
-            <input className="input" value={form.urlPlantilla}
-              onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
-              placeholder={t('methodology:preguntas.placeholders.url_plantilla')} />
+            <Field label={t('methodology:preguntas.fields.url_plantilla')}>
+              <input className="input" value={form.urlPlantilla}
+                onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
+                placeholder={t('methodology:preguntas.placeholders.url_plantilla')} />
+            </Field>
           </div>
         )}
 
         {/* IA flags — TODO(IA-por-pregunta): revisar al implementar REQ-11 */}
-        <div style={{ gridColumn: 'span 2', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {t('methodology:preguntas.ia_config_title')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -680,11 +685,14 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
                 />
               </div>
               <div style={{ marginTop: '0.5rem' }}>
-                <label className="required-label">{t('methodology:pasos.fields.prompt_ia')}</label>
-                <textarea className="input" rows={2} required={form.usarIa && !form.urlPromptTemplate} value={form.promptIa}
-                  onChange={e => setForm({ ...form, promptIa: e.target.value })}
-                  placeholder={t('methodology:preguntas.placeholders.prompt_ia')} />
-                <div className="invalid-feedback">{t('methodology:preguntas.validation.prompt_required')}</div>
+                <Field label={t('methodology:pasos.fields.prompt_ia')} required htmlFor={`${fid}-prompt-ia`}>
+                  <>
+                    <textarea id={`${fid}-prompt-ia`} className="input" rows={2} required={form.usarIa && !form.urlPromptTemplate} value={form.promptIa}
+                      onChange={e => setForm({ ...form, promptIa: e.target.value })}
+                      placeholder={t('methodology:preguntas.placeholders.prompt_ia')} />
+                    <div className="invalid-feedback">{t('methodology:preguntas.validation.prompt_required')}</div>
+                  </>
+                </Field>
               </div>
             </div>
           )}

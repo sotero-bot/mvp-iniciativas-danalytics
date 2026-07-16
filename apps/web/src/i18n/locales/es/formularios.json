@@ -25,6 +25,8 @@
     "inactive": "Inactiva",
     "respuestas": "{{count}} respuestas",
     "duplicate": "Duplicar (nueva versión)",
+    "ver_respuestas": "Ver respuestas",
+    "versiones_anteriores": "Versiones anteriores ({{count}})",
     "activate": "Activar",
     "deactivate": "Desactivar",
     "immutable_hint": "Esta plantilla ya tiene respuestas: es inmutable. Duplícala para crear una nueva versión.",
@@ -65,6 +67,7 @@
   "estudiante": {
     "title": "Mis formularios",
     "empty": "No tienes formularios disponibles por ahora.",
+    "global": "Disponible para todos",
     "responder": "Responder",
     "continuar": "Continuar",
     "ver_estado": "Ver estado",
@@ -89,8 +92,56 @@
     "add_iteracion": "Añadir iteración",
     "quitar": "Quitar"
   },
+  "grupo": {
+    "title": "Mi grupo",
+    "empty": "Aún no perteneces a ningún grupo.",
+    "back": "← Volver a mi grupo",
+    "miembros": "Integrantes",
+    "abrir": "Abrir",
+    "estado_sin_iniciar": "Sin iniciar",
+    "bitacora_bloqueada": "Aún no habilitada",
+    "estado_en_progreso": "En progreso",
+    "estado_entregado": "Entregado",
+    "guardar": "Guardar cambios",
+    "cerrado_banner": "El grupo entregó la presentación final: este recurso quedó cerrado y ya no se puede modificar.",
+    "ultima_edicion": "Última edición: {{nombre}} — {{fecha}}"
+  },
+  "presentacion": {
+    "title": "Presentación final",
+    "hint": "Entrega el link o sube el archivo (PDF/PPT) de la presentación final del grupo.",
+    "no_habilitada": "La entrega de la presentación final aún no está habilitada.",
+    "no_habilitada_sesion": "La entrega se habilita a partir de la sesión {{n}}.",
+    "url_label": "Link de la presentación",
+    "archivo_label": "Archivo (PDF/PPT)",
+    "falta_entrega": "Ingresa un link o selecciona un archivo antes de entregar.",
+    "subir": "Entregar",
+    "subiendo": "Entregando…",
+    "entregada": "Entrega registrada",
+    "entregada_por": "Entregada por {{nombre}} — {{fecha}}",
+    "reemplazar_hint": "Puedes volver a entregar para reemplazar el link o el archivo.",
+    "ver_link": "Abrir link",
+    "archivo_actual": "Archivo entregado"
+  },
+  "reto": {
+    "title": "Reto con IA",
+    "solo_lectura": "Vista de solo lectura de los avances de cada grupo.",
+    "bitacoras": "Bitácoras",
+    "plantillas": "Plantillas de proyecto",
+    "sin_plantilla": "El programa no tiene una plantilla de este tipo en su snapshot.",
+    "sin_respuesta": "Este grupo aún no ha registrado avances.",
+    "sin_grupos": "El programa no tiene grupos todavía.",
+    "bitacora_habilitada": "La bitácora está habilitada para los grupos.",
+    "bitacora_no_habilitada": "La bitácora aún NO está habilitada: los grupos no pueden llenarla.",
+    "bitacora_habilitar": "Habilitar bitácora",
+    "bitacora_deshabilitar": "Deshabilitar"
+  },
   "resultados": {
     "title": "Resultados",
+    "global_title": "Diagnóstico de inicio (global)",
+    "global_hint": "Respuestas del diagnóstico de inicio abierto a todos los estudiantes, independiente de programa.",
+    "por_pregunta": "Por pregunta",
+    "filtro_todas_empresas": "Todas las empresas",
+    "filtro_todos_programas": "Todos los programas",
     "back": "← Volver",
     "diagnostico": "Diagnóstico (agregado)",
     "inicial": "Inicial",
@@ -115,7 +166,9 @@
       "al_dia": "Al día",
       "generar": "Generar snapshot",
       "regenerar": "Regenerar snapshot",
-      "regenerado": "Snapshot regenerado."
+      "regenerado": "Snapshot regenerado.",
+      "sincronizar": "Sincronizar plantillas faltantes",
+      "sincronizado": "{{count}} plantilla(s) agregada(s) al snapshot."
     }
   }
 }

@@ -141,10 +141,16 @@ async function ensurePrograma(opts: {
     fechaInicio: opts.fechaInicio ?? null,
     fechaFin: opts.fechaFin ?? null,
   };
-  if (existing) {
-    return prisma.programa.update({ where: { id: existing.id }, data });
-  }
-  return prisma.programa.create({ data: { id: randomUUID(), ...data } });
+  const programa = existing
+    ? await prisma.programa.update({ where: { id: existing.id }, data })
+    : await prisma.programa.create({ data: { id: randomUUID(), ...data } });
+  // C-01: asegura la fila N:M ProgramaFacilitador (el scoping del facilitador ya la usa).
+  await prisma.programaFacilitador.upsert({
+    where: { programaId_usuarioId: { programaId: programa.id, usuarioId: opts.facilitadorId } },
+    create: { programaId: programa.id, usuarioId: opts.facilitadorId },
+    update: {},
+  });
+  return programa;
 }
 
 async function ensureSesion(opts: {

@@ -11,6 +11,17 @@ export function startOfNextDayInTimeZone(date: Date, timeZone: string): Date {
   return new Date(guess.getTime() - offsetMinutes * 60_000);
 }
 
+/**
+ * Devuelve el día calendario de `date` en `timeZone` como entero comparable
+ * `YYYYMMDD` (ej. 20260830). Útil para comparar "en qué día cae" un instante
+ * sin arrastrar la hora. Para límites almacenados como medianoche UTC (fechas
+ * sin hora, p. ej. Programa.fechaInicio/fechaFin) usa `timeZone = 'UTC'`.
+ */
+export function dayNumberInTimeZone(date: Date, timeZone: string): number {
+  const { year, month, day } = getDatePartsInTimeZone(date, timeZone);
+  return year * 10000 + month * 100 + day;
+}
+
 function getDatePartsInTimeZone(date: Date, timeZone: string): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,

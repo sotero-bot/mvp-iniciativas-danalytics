@@ -75,14 +75,23 @@ npm run seed:diagnostico-inicial
   npm run seed:diagnostico-inicial -- --con-datos-personales
   ```
 
-### 6. Borrar y Recargar Datos de Prueba
+### 6. Seed de los Formularios del Reto con IA (opcional)
+Crea los templates globales grupales de la Fase 3 — "Bitácora del proyecto con IA" y
+"Plantilla del proyecto con IA" (réplica de los documentos de `_tareas_realizar/formularios/`):
+```bash
+npm run seed:formularios-reto
+```
+- Es **idempotente por tipo**: si ya existe un template global activo de `bitacora` o `plantilla_proyecto`, ese tipo se salta sin tocar nada.
+- Al **activar** un programa se snapshotean automáticamente (RF-46) y los grupos los responden desde el portal estudiante ("Mi grupo").
+
+### 7. Borrar y Recargar Datos de Prueba
 Para limpiar toda la data (instancias, respuestas, usuarios, empresas, etc.) y volver al estado inicial con los seeds:
 ```bash
 npm run reset-data
 ```
 > ⚠️ Borra **todo** excepto el usuario admin. Útil para demo o desarrollo.
 
-### 7. Ejecutar la Aplicación
+### 8. Ejecutar la Aplicación
 Inicia tanto la API como el Frontend concurrentemente:
 ```bash
 npm run start:dev

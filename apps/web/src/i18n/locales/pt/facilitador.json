@@ -13,13 +13,18 @@
     "title": "Sessões",
     "back": "← Voltar aos meus programas",
     "numero": "Sessão {{numero}}",
-    "locked": "Disponível quando a sessão ocorrer",
+    "locked": "Disponível uma semana antes da sessão",
     "material": "Ver material",
     "grabacion": "Ver gravação",
-    "empty": "Este programa ainda não tem sessões."
+    "grabacion_placeholder": "Cole o link da gravação (Drive, YouTube, …)",
+    "grabacion_guardar": "Salvar gravação",
+    "grabacion_guardada": "Link de gravação salvo",
+    "empty": "Este programa ainda não tem sessões.",
+    "presentacion": "Ver apresentação"
   },
   "asistencia": {
     "title": "Registrar presença",
+    "participante": "Participante",
     "presente": "Presente",
     "nota": "Nota (opcional)",
     "save": "Salvar presença",
@@ -31,7 +36,13 @@
   "grupos": {
     "title": "Grupos",
     "empty": "Este programa ainda não tem grupos.",
-    "miembros": "Membros"
+    "miembros": "Membros",
+    "nuevo_nombre": "Nome do grupo",
+    "crear": "Criar grupo",
+    "creado": "Grupo criado",
+    "asignar": "Adicionar integrante…",
+    "integrante_agregado": "Integrante adicionado",
+    "todos_asignados": "Todos os participantes já têm grupo"
   },
   "observaciones": {
     "title": "Observações",

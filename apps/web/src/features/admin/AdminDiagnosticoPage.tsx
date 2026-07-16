@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
+import { PageHeader, StatusBadge, Loading } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -95,35 +96,56 @@ export function AdminDiagnosticoPage() {
     }
   };
 
+  // Rellena los tipos que faltan en el snapshot (aditivo, no toca los existentes ni
+  // sus respuestas): útil cuando se creó un global nuevo después de activar el programa.
+  const sincronizar = async () => {
+    try {
+      const { creados } = await fetchWithErrorMapping(
+        `${API_URL}/admin/programas/${programaId}/sincronizar-plantillas`,
+        { method: 'POST' },
+      ).then(r => r.json());
+      setToast(t('formularios:resultados.snapshot.sincronizado', { count: creados }));
+      await load();
+    } catch (err) {
+      setToast(translateError(err));
+    }
+  };
+
   const dimensiones = detalle
     ? [...new Set([...detalle.inicial.dimensiones, ...detalle.final.dimensiones].map(d => d.dimension))].sort()
     : [];
 
   return (
     <div style={{ padding: '2rem', maxWidth: 960 }}>
-      <Link to="/admin/programas" style={{ fontSize: '0.85rem' }}>{t('formularios:resultados.back')}</Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: '1.4rem', margin: '0.75rem 0 1.25rem' }}>
-          {t('formularios:resultados.diagnostico')}
-        </h1>
-        <button className="btn" onClick={exportar}>⬇ {t('formularios:resultados.export')}</button>
-      </div>
+      <PageHeader
+        back={{ to: '/admin/programas', label: t('formularios:resultados.back') }}
+        title={t('formularios:resultados.diagnostico')}
+        actions={<button className="btn" onClick={exportar}>⬇ {t('formularios:resultados.export')}</button>}
+      />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
 
       {/* RF-49: snapshot por tipo */}
       <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.05rem', margin: 0 }}>{t('formularios:resultados.snapshot.title')}</h2>
-          {/* Visible también sin snapshot (programas activados antes de crear los
-              templates globales): el mismo endpoint lo genera desde cero (RF-47). */}
-          {snapshots.every(s => s.respuestas === 0) && !loading && (
-            <button className="btn-link" onClick={regenerar}>
-              ↻ {snapshots.length === 0
-                ? t('formularios:resultados.snapshot.generar')
-                : t('formularios:resultados.snapshot.regenerar')}
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            {/* Aditivo y seguro: rellena tipos faltantes sin tocar los existentes. */}
+            {!loading && (
+              <button className="btn-link" onClick={sincronizar}>
+                ＋ {t('formularios:resultados.snapshot.sincronizar')}
+              </button>
+            )}
+            {/* Visible también sin snapshot (programas activados antes de crear los
+                templates globales): el mismo endpoint lo genera desde cero (RF-47). */}
+            {snapshots.every(s => s.respuestas === 0) && !loading && (
+              <button className="btn-link" onClick={regenerar}>
+                ↻ {snapshots.length === 0
+                  ? t('formularios:resultados.snapshot.generar')
+                  : t('formularios:resultados.snapshot.regenerar')}
+              </button>
+            )}
+          </div>
         </div>
         {snapshots.length === 0 && !loading && (
           <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
@@ -139,13 +161,13 @@ export function AdminDiagnosticoPage() {
             </span>
             <span>{t('formularios:builder.respuestas', { count: s.respuestas })}</span>
             {s.desactualizado ? (
-              <span style={{ padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600, borderRadius: 999, background: 'rgba(245,158,11,0.15)', color: '#B45309' }}>
+              <StatusBadge variant="warning">
                 {t('formularios:resultados.snapshot.desactualizado')}
-              </span>
+              </StatusBadge>
             ) : (
-              <span style={{ padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600, borderRadius: 999, background: 'rgba(34,197,94,0.15)', color: '#15803D' }}>
+              <StatusBadge variant="success">
                 {t('formularios:resultados.snapshot.al_dia')}
-              </span>
+              </StatusBadge>
             )}
           </div>
         ))}
@@ -159,24 +181,26 @@ export function AdminDiagnosticoPage() {
             {detalle.comparativo.length === 0 ? (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('formularios:resultados.sin_datos')}</p>
             ) : (
-              <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', color: '#64748B' }}>
-                    <th style={{ padding: '6px 10px' }}>{t('formularios:resultados.dimension')}</th>
-                    <th style={{ padding: '6px 10px' }}>{t('formularios:resultados.inicial')}</th>
-                    <th style={{ padding: '6px 10px' }}>{t('formularios:resultados.final')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detalle.comparativo.map(fila => (
-                    <tr key={fila.dimension} style={{ borderTop: '1px solid #E2E8F0' }}>
-                      <td style={{ padding: '6px 10px', textTransform: 'capitalize' }}>{fila.dimension}</td>
-                      <td style={{ padding: '6px 10px' }}>{fila.inicial?.toFixed(2) ?? '—'}</td>
-                      <td style={{ padding: '6px 10px', fontWeight: 600 }}>{fila.final?.toFixed(2) ?? '—'}</td>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t('formularios:resultados.dimension')}</th>
+                      <th>{t('formularios:resultados.inicial')}</th>
+                      <th>{t('formularios:resultados.final')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {detalle.comparativo.map(fila => (
+                      <tr key={fila.dimension}>
+                        <td style={{ textTransform: 'capitalize' }}>{fila.dimension}</td>
+                        <td>{fila.inicial?.toFixed(2) ?? '—'}</td>
+                        <td style={{ fontWeight: 600 }}>{fila.final?.toFixed(2) ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
@@ -188,39 +212,41 @@ export function AdminDiagnosticoPage() {
               </h2>
               {bloque.dimensiones.length > 0 && <BarrasDimensiones dimensiones={bloque.dimensiones} />}
               {bloque.individuales.length > 0 && (
-                <div style={{ marginTop: 14, overflowX: 'auto' }}>
+                <div style={{ marginTop: 14 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 6 }}>
                     {t('formularios:resultados.individuales')}
                   </div>
-                  <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.82rem' }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', color: '#64748B' }}>
-                        <th style={{ padding: '6px 10px' }}>{t('formularios:resultados.participante')}</th>
-                        <th style={{ padding: '6px 10px' }}>{t('formularios:resultados.enviado')}</th>
-                        {dimensiones.map(d => (
-                          <th key={d} style={{ padding: '6px 10px', textTransform: 'capitalize' }}>{d}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bloque.individuales.map(ind => (
-                        <tr key={ind.usuario.id} style={{ borderTop: '1px solid #E2E8F0' }}>
-                          <td style={{ padding: '6px 10px' }}>
-                            {ind.usuario.nombre}
-                            <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{ind.usuario.email}</div>
-                          </td>
-                          <td style={{ padding: '6px 10px' }}>
-                            {ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'}
-                          </td>
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>{t('formularios:resultados.participante')}</th>
+                          <th>{t('formularios:resultados.enviado')}</th>
                           {dimensiones.map(d => (
-                            <td key={d} style={{ padding: '6px 10px' }}>
-                              {ind.scores?.[d]?.promedio?.toFixed(2) ?? '—'}
-                            </td>
+                            <th key={d} style={{ textTransform: 'capitalize' }}>{d}</th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {bloque.individuales.map(ind => (
+                          <tr key={ind.usuario.id}>
+                            <td>
+                              {ind.usuario.nombre}
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{ind.usuario.email}</div>
+                            </td>
+                            <td>
+                              {ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'}
+                            </td>
+                            {dimensiones.map(d => (
+                              <td key={d}>
+                                {ind.scores?.[d]?.promedio?.toFixed(2) ?? '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

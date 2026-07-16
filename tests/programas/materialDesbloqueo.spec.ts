@@ -16,6 +16,8 @@ function buildController(overrides: Record<string, unknown> = {}) {
       create: vi.fn().mockImplementation(({ data }: any) => Promise.resolve(data)),
       update: vi.fn().mockImplementation(({ data }: any) => Promise.resolve(data)),
       findUnique: vi.fn().mockResolvedValue({ id: 's1', programaId: 'p1' }),
+      // No hay sesiones hermanas → la validación de intervalo mínimo pasa.
+      findMany: vi.fn().mockResolvedValue([]),
     },
     ...overrides,
   };
@@ -59,5 +61,24 @@ describe('AdminProgramasController.updateSesion — materialDesbloqueoEn automá
     const { controller } = buildController();
     const result = await controller.updateSesion('s1', { titulo: 'Nuevo título' } as any);
     expect((result as any).materialDesbloqueoEn).toBeUndefined();
+  });
+});
+
+describe('AdminProgramasController — URL de la presentación (solo admin)', () => {
+  it('persiste urlPresentacion al crear la sesión', async () => {
+    const { controller } = buildController();
+    const result = await controller.createSesion('p1', {
+      numeroSesion: 1,
+      titulo: 'Sesión 1',
+      fechaProgramada: '2026-07-06T17:00:00Z',
+      urlPresentacion: 'https://slides.example/deck',
+    } as any);
+    expect((result as any).urlPresentacion).toBe('https://slides.example/deck');
+  });
+
+  it('actualiza urlPresentacion (y la limpia con null)', async () => {
+    const { controller } = buildController();
+    const result = await controller.updateSesion('s1', { urlPresentacion: null } as any);
+    expect((result as any).urlPresentacion).toBeNull();
   });
 });

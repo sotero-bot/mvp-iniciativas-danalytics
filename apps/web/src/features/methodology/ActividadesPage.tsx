@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Modal, Field, EmptyState } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -157,54 +158,45 @@ export function ActividadesPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(null)}>
-          <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>{t('methodology:actividades.edit_modal_title')}</h3>
-              <button onClick={() => setEditModal(null)} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-              }}>×</button>
-            </div>
-            <form
-              className={editWasValidated ? 'was-validated' : ''}
-              onSubmit={handleEdit}
-              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-              noValidate
-            >
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.iniciativa')}</label>
-                <select className="input" required value={editForm.iniciativaId}
-                  onChange={e => setEditForm({ ...editForm, iniciativaId: e.target.value })}>
-                  <option value="">{t('methodology:actividades.placeholders.select_iniciativa_alt')}</option>
-                  {iniciativas.map(ini => (
-                    <option key={ini.id} value={ini.id}>{t('methodology:actividades.iniciativa_option_with_empresa', { nombre: ini.nombre, empresa: ini.empresa?.nombre ?? '' })}</option>
-                  ))}
-                </select>
-                <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
-              </div>
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.nombre')}</label>
-                <input className="input" required value={editForm.nombre}
-                  onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
-                <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required_short')}</div>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('methodology:actividades.fields.descripcion')}</label>
-                <textarea className="input" rows={4} value={editForm.descripcion}
-                  onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} />
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={!!editModal}
+        onClose={() => setEditModal(null)}
+        title={t('methodology:actividades.edit_modal_title')}
+        maxWidth={520}
+      >
+        <form
+          className={editWasValidated ? 'was-validated' : ''}
+          onSubmit={handleEdit}
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+          noValidate
+        >
+          <Field label={t('methodology:actividades.fields.iniciativa')} htmlFor="act-edit-iniciativa" required>
+            <select id="act-edit-iniciativa" className="input" required value={editForm.iniciativaId}
+              onChange={e => setEditForm({ ...editForm, iniciativaId: e.target.value })}>
+              <option value="">{t('methodology:actividades.placeholders.select_iniciativa_alt')}</option>
+              {iniciativas.map(ini => (
+                <option key={ini.id} value={ini.id}>{t('methodology:actividades.iniciativa_option_with_empresa', { nombre: ini.nombre, empresa: ini.empresa?.nombre ?? '' })}</option>
+              ))}
+            </select>
+            <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
+          </Field>
+          <Field label={t('methodology:actividades.fields.nombre')} htmlFor="act-edit-nombre" required>
+            <input id="act-edit-nombre" className="input" required value={editForm.nombre}
+              onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
+            <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required_short')}</div>
+          </Field>
+          <Field label={t('methodology:actividades.fields.descripcion')} htmlFor="act-edit-descripcion">
+            <textarea id="act-edit-descripcion" className="input" rows={4} value={editForm.descripcion}
+              onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} />
+          </Field>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Page header */}
       <div className="page-header">
@@ -231,18 +223,19 @@ export function ActividadesPage() {
       {loaded && empresas.length > 1 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '0.75rem',
-          background: 'white', border: '1px solid var(--color-border)',
+          background: 'var(--color-bg-card)', border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-md)', padding: '0.625rem 1rem',
-          marginBottom: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          marginBottom: '1.25rem', boxShadow: 'var(--shadow-xs)',
         }}>
           <span style={{ fontSize: '1rem', lineHeight: 1 }}>🏢</span>
-          <label style={{
+          <label htmlFor="act-empresa-filtro" style={{
             fontWeight: 600, fontSize: '0.875rem',
             color: 'var(--color-text-main)', whiteSpace: 'nowrap',
           }}>
             {t('methodology:actividades.filter.empresa_label')}
           </label>
           <select
+            id="act-empresa-filtro"
             className="input"
             style={{ flex: 1, maxWidth: 320, marginBottom: 0 }}
             value={empresaFiltro}
@@ -296,9 +289,8 @@ export function ActividadesPage() {
             style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
             noValidate
           >
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.iniciativa')}</label>
-              <select className="input" required value={form.iniciativaId}
+            <Field label={t('methodology:actividades.fields.iniciativa')} htmlFor="act-iniciativa" required>
+              <select id="act-iniciativa" className="input" required value={form.iniciativaId}
                 onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
                 disabled={iniciativasFiltradas.length === 0}>
                 <option value="">{iniciativasFiltradas.length === 0 ? t('methodology:actividades.placeholders.no_iniciativas') : t('methodology:actividades.placeholders.select_iniciativa')}</option>
@@ -307,14 +299,16 @@ export function ActividadesPage() {
                 ))}
               </select>
               <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
-            </div>
+            </Field>
 
             {/* Selector de plantilla */}
-            <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.plantilla')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></label>
+            <Field
+              label={<>{t('methodology:actividades.fields.plantilla')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
+              htmlFor="act-plantilla"
+            >
               {plantillas.length === 0 ? (
                 <>
-                  <select className="input" disabled>
+                  <select id="act-plantilla" className="input" disabled>
                     <option>{t('methodology:actividades.placeholders.no_plantillas')}</option>
                   </select>
                   <div style={{ marginTop: 4, fontSize: '0.78rem' }}>
@@ -323,7 +317,7 @@ export function ActividadesPage() {
                 </>
               ) : (
                 <>
-                  <select className="input" value={form.plantillaId}
+                  <select id="act-plantilla" className="input" value={form.plantillaId}
                     onChange={e => setForm({ ...form, plantillaId: e.target.value })}
                     disabled={iniciativasFiltradas.length === 0}>
                     <option value="">{t('methodology:actividades.placeholders.no_plantilla')}</option>
@@ -333,7 +327,7 @@ export function ActividadesPage() {
                   </select>
                   {plantillaSeleccionada && (
                     plantillaSeleccionada._count.pasos > 0 ? (
-                      <div style={{ marginTop: 6, padding: '8px 12px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: '#166534' }}>
+                      <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--color-success-strong)' }}>
                         <Trans
                           i18nKey="methodology:actividades.plantilla_info_with_pasos"
                           values={{ count: plantillaSeleccionada._count.pasos }}
@@ -341,28 +335,29 @@ export function ActividadesPage() {
                         />
                       </div>
                     ) : (
-                      <div style={{ marginTop: 6, padding: '8px 12px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: '#92400E' }}>
+                      <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--color-warning-strong)' }}>
                         {t('methodology:actividades.plantilla_info_no_pasos')}
                       </div>
                     )
                   )}
                 </>
               )}
-            </div>
+            </Field>
 
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.nombre')}</label>
-              <input className="input" required placeholder={t('methodology:actividades.placeholders.nombre')}
+            <Field label={t('methodology:actividades.fields.nombre')} htmlFor="act-nombre" required>
+              <input id="act-nombre" className="input" required placeholder={t('methodology:actividades.placeholders.nombre')}
                 value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
                 disabled={iniciativasFiltradas.length === 0} />
               <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required')}</div>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>{t('methodology:actividades.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></label>
-              <textarea className="input" placeholder={t('methodology:actividades.placeholders.descripcion')}
+            </Field>
+            <Field
+              label={<>{t('methodology:actividades.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
+              htmlFor="act-descripcion"
+            >
+              <textarea id="act-descripcion" className="input" placeholder={t('methodology:actividades.placeholders.descripcion')}
                 value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
                 rows={4} disabled={iniciativasFiltradas.length === 0} />
-            </div>
+            </Field>
             <button type="submit" className="btn btn-primary" disabled={iniciativasFiltradas.length === 0}>
               {t('methodology:actividades.create_submit')}
             </button>
@@ -373,24 +368,20 @@ export function ActividadesPage() {
         <div>
           {listFiltrada.length === 0 ? (
             <div className="card">
-              <div className="empty-state">
-                <div className="empty-state-icon">⚡</div>
-                <p className="empty-state-title">
-                  {empresaFiltro ? t('methodology:actividades.empty.title_filter') : t('methodology:actividades.empty.title_default')}
-                </p>
-                <p className="empty-state-desc">
-                  {iniciativas.length === 0
-                    ? t('methodology:actividades.empty.no_iniciativas')
-                    : empresaFiltro
-                      ? t('methodology:actividades.empty.filter_default')
-                      : t('methodology:actividades.empty.default')}
-                </p>
-                {iniciativas.length === 0 && (
-                  <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', marginTop: 4, fontSize: '0.8125rem' }}>
+              <EmptyState
+                icon="⚡"
+                title={empresaFiltro ? t('methodology:actividades.empty.title_filter') : t('methodology:actividades.empty.title_default')}
+                description={iniciativas.length === 0
+                  ? t('methodology:actividades.empty.no_iniciativas')
+                  : empresaFiltro
+                    ? t('methodology:actividades.empty.filter_default')
+                    : t('methodology:actividades.empty.default')}
+                action={iniciativas.length === 0 ? (
+                  <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', fontSize: '0.8125rem' }}>
                     {t('methodology:actividades.empty.link_iniciativas')}
                   </Link>
-                )}
-              </div>
+                ) : undefined}
+              />
             </div>
           ) : (
             listFiltrada.map((a: any) => (

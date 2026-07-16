@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CanvasGrid } from './CanvasGrid';
+import { PageHeader, StatusBadge, Loading, Alert } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -69,11 +70,11 @@ export function InstanciaDetallePage() {
     fetchDetail();
   }, [id]);
 
-  if (loading) return <div className="runner-center">{t('execution:instancia_detalle.loading')}</div>;
+  if (loading) return <div className="runner-center"><Loading label={t('execution:instancia_detalle.loading')} /></div>;
   if (error || !data) {
     return (
       <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ color: '#ef4444' }}>{error || t('execution:instancia_detalle.errors.unknown')}</div>
+        <Alert variant="danger">{error || t('execution:instancia_detalle.errors.unknown')}</Alert>
         <button className="btn btn-secondary" onClick={() => navigate('/admin/instancias')}>{t('execution:instancia_detalle.back_to_list_button')}</button>
       </div>
     );
@@ -83,29 +84,22 @@ export function InstanciaDetallePage() {
 
   return (
     <div className="layout-content">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <button
-            className="btn btn-secondary"
-            style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '0.8rem' }}
-            onClick={() => navigate('/admin/instancias')}
-          >
-            {t('execution:instancia_detalle.back_to_list')}
-          </button>
-          <h1>{t('execution:instancia_detalle.page_title')}</h1>
-          <p style={{ color: 'var(--color-text-secondary)' }}>{t('execution:instancia_detalle.id_label')} {data.id}</p>
-        </div>
-        <span className={`status-badge ${data.estado === 'finalizado' ? 'status-success' :
-            data.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
-          }`} style={{ fontSize: '1rem', padding: '8px 16px' }}>
-          {data.estado.toUpperCase()}
-        </span>
-      </div>
+      <PageHeader
+        back={{ to: '/admin/instancias', label: t('execution:instancia_detalle.back_to_list') }}
+        title={t('execution:instancia_detalle.page_title')}
+        description={<>{t('execution:instancia_detalle.id_label')} {data.id}</>}
+        actions={
+          <StatusBadge variant={data.estado === 'finalizado' ? 'success' :
+            data.estado === 'iniciado' ? 'warning' : 'neutral'}>
+            {data.estado.toUpperCase()}
+          </StatusBadge>
+        }
+      />
 
       {!isFinalizado && (
-        <div className="card mb-6" style={{ backgroundColor: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412' }}>
+        <Alert variant="warning" className="mb-6">
           {t('execution:instancia_detalle.warning_not_finished')}
-        </div>
+        </Alert>
       )}
 
       {/* Sección 1: Información General */}
@@ -211,12 +205,12 @@ export function InstanciaDetallePage() {
                 <div style={{
                   marginBottom: '1.5rem',
                   padding: '1rem',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'var(--color-bg-page)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '6px',
                   fontSize: '0.9rem'
                 }}>
-                  <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('execution:instancia_detalle.prompt_ia_label')}</strong>
+                  <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('execution:instancia_detalle.prompt_ia_label')}</strong>
                   <div style={{ color: '#334155', fontStyle: 'normal' }}>{p.promptIa}</div>
                 </div>
               )}
@@ -225,31 +219,31 @@ export function InstanciaDetallePage() {
               {(p.preguntas ?? []).length > 0 ? (
                 <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {(p.preguntas ?? []).map((q, qIdx) => (
-                    <div key={q.preguntaId} style={{ paddingBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1.25rem' : 0, borderBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                    <div key={q.preguntaId} style={{ paddingBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1.25rem' : 0, borderBottom: qIdx < (p.preguntas?.length ?? 0) - 1 ? '1px solid var(--color-bg-subtle)' : 'none' }}>
                       {(p.preguntas?.length ?? 0) > 1 && (
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           {t('execution:instancia_detalle.pregunta_label', { num: qIdx + 1 })}
                         </div>
                       )}
                       <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: 10 }}>{q.enunciado}</div>
                       {q.archivoNombre && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8, marginBottom: 10 }}>
-                          <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {q.archivoNombre}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--color-primary-light)', border: '1px solid #93C5FD', borderRadius: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-primary-hover)', fontWeight: 600 }}>📎 {q.archivoNombre}</span>
                         </div>
                       )}
                       {q.respuesta ? (
-                        <div style={{ padding: '1rem 1.25rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '0.95rem', color: '#1e293b', overflowX: 'auto' }}>
+                        <div style={{ padding: '1rem 1.25rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '0.95rem', color: 'var(--color-text-main)', overflowX: 'auto' }}>
                           <div className="markdown-anterior">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.respuesta}</ReactMarkdown>
                           </div>
                           {q.fechaRespuesta && (
-                            <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem', color: '#94a3b8', textAlign: 'right' }}>
+                            <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-bg-subtle)', fontSize: '0.78rem', color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
                               {t('execution:instancia_detalle.answered_on', { date: new Date(q.fechaRespuesta).toLocaleString() })}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div style={{ padding: '1.25rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.875rem' }}>
+                        <div style={{ padding: '1.25rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed var(--color-border-strong)', borderRadius: '8px', color: 'var(--color-text-tertiary)', fontStyle: 'italic', fontSize: '0.875rem' }}>
                           {t('execution:instancia_detalle.no_response_yet')}
                         </div>
                       )}
@@ -260,28 +254,28 @@ export function InstanciaDetallePage() {
                 /* Legacy: pasos sin preguntas */
                 <>
                   {p.archivoNombre && (
-                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#EFF6FF', border: '1px solid #93C5FD', borderRadius: 8 }}>
-                      <span style={{ fontSize: '0.82rem', color: '#1D4ED8', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
+                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--color-primary-light)', border: '1px solid #93C5FD', borderRadius: 8 }}>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--color-primary-hover)', fontWeight: 600 }}>📎 {p.archivoNombre}</span>
                       <a href={`${API_URL}/admin/instancias/${data.id}/excel/${p.pasoId}`} download={p.archivoNombre}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', fontSize: '0.78rem', background: '#2563EB', color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', fontSize: '0.78rem', background: 'var(--color-primary)', color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none' }}>
                         {t('execution:instancia_detalle.download_legacy')}
                       </a>
                     </div>
                   )}
                   <div style={{ marginTop: '1rem' }}>
                     {p.respuesta ? (
-                      <div style={{ padding: '1.5rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '1.05rem', color: '#1e293b', overflowX: 'auto' }}>
+                      <div style={{ padding: '1.5rem', backgroundColor: 'white', border: '1px solid var(--color-bg-page)', borderRadius: '8px', lineHeight: '1.6', fontSize: '1.05rem', color: 'var(--color-text-main)', overflowX: 'auto' }}>
                         <div className="markdown-anterior">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.respuesta}</ReactMarkdown>
                         </div>
                         {p.fechaRespuesta && (
-                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'right' }}>
+                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-bg-subtle)', fontSize: '0.8rem', color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
                             {t('execution:instancia_detalle.answered_on', { date: new Date(p.fechaRespuesta).toLocaleString() })}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#94a3b8', fontStyle: 'italic' }}>
+                      <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#fcfcfc', border: '1px dashed var(--color-border-strong)', borderRadius: '8px', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
                         {t('execution:instancia_detalle.no_response_yet')}
                       </div>
                     )}

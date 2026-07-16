@@ -8,8 +8,12 @@
     "back": "← Voltar aos meus programas",
     "numero": "Sessão {{numero}}",
     "locked": "Disponível no dia seguinte à sessão",
+    "se_desbloquea": "Desbloqueia em {{fecha}}",
+    "sin_recursos": "Ainda sem recursos disponíveis",
     "material": "Ver material",
     "grabacion": "Ver gravação",
-    "empty": "Este programa ainda não tem sessões."
+    "empty": "Este programa ainda não tem sessões.",
+    "presentacion": "Ver apresentação",
+    "facilitador": "Facilitador"
   }
 }

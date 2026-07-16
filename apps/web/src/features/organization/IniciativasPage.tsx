@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Modal, Field } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -138,51 +139,41 @@ export function IniciativasPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(null)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>{t('organization:iniciativas.edit_modal_title')}</h3>
-              <button onClick={() => setEditModal(null)} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-              }}>×</button>
-            </div>
-            <form
-              className={editWasValidated ? 'was-validated' : ''}
-              onSubmit={handleEdit}
-              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-              noValidate
-            >
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:iniciativas.fields.empresa')}</label>
-                <select className="input" value={editEmpresaId} onChange={e => setEditEmpresaId(e.target.value)} required>
-                  <option value="">{t('organization:iniciativas.placeholders.select_empresa')}</option>
-                  {empresas.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.nombre}</option>
-                  ))}
-                </select>
-                <div className="invalid-feedback">{t('organization:iniciativas.validation.empresa_required_short')}</div>
-              </div>
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:iniciativas.fields.nombre')}</label>
-                <input className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
-                <div className="invalid-feedback">{t('organization:iniciativas.validation.nombre_required')}</div>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 5, fontWeight: 500, fontSize: '0.875rem' }}>{t('organization:iniciativas.fields.descripcion')}</label>
-                <textarea className="input" value={editDescripcion} onChange={e => setEditDescripcion(e.target.value)} rows={3} />
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={!!editModal}
+        onClose={() => setEditModal(null)}
+        title={t('organization:iniciativas.edit_modal_title')}
+      >
+        <form
+          className={editWasValidated ? 'was-validated' : ''}
+          onSubmit={handleEdit}
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+          noValidate
+        >
+          <Field label={t('organization:iniciativas.fields.empresa')} htmlFor="ini-edit-empresa" required>
+            <select id="ini-edit-empresa" className="input" value={editEmpresaId} onChange={e => setEditEmpresaId(e.target.value)} required>
+              <option value="">{t('organization:iniciativas.placeholders.select_empresa')}</option>
+              {empresas.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+              ))}
+            </select>
+            <div className="invalid-feedback">{t('organization:iniciativas.validation.empresa_required_short')}</div>
+          </Field>
+          <Field label={t('organization:iniciativas.fields.nombre')} htmlFor="ini-edit-nombre" required>
+            <input id="ini-edit-nombre" className="input" value={editNombre} onChange={e => setEditNombre(e.target.value)} required />
+            <div className="invalid-feedback">{t('organization:iniciativas.validation.nombre_required')}</div>
+          </Field>
+          <Field label={t('organization:iniciativas.fields.descripcion')} htmlFor="ini-edit-descripcion">
+            <textarea id="ini-edit-descripcion" className="input" value={editDescripcion} onChange={e => setEditDescripcion(e.target.value)} rows={3} />
+          </Field>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Page header */}
       <div className="page-header">
@@ -234,27 +225,27 @@ export function IniciativasPage() {
             style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
             noValidate
           >
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('organization:iniciativas.fields.empresa')}</label>
-              <select className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required disabled={empresas.length === 0}>
+            <Field label={t('organization:iniciativas.fields.empresa')} htmlFor="ini-empresa" required>
+              <select id="ini-empresa" className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required disabled={empresas.length === 0}>
                 <option value="">{empresas.length === 0 ? t('organization:iniciativas.placeholders.no_empresas') : t('organization:iniciativas.placeholders.select_empresa')}</option>
                 {empresas.map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.nombre}</option>
                 ))}
               </select>
               <div className="invalid-feedback">{t('organization:iniciativas.validation.empresa_required')}</div>
-            </div>
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 5 }}>{t('organization:iniciativas.fields.nombre')}</label>
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)}
+            </Field>
+            <Field label={t('organization:iniciativas.fields.nombre')} htmlFor="ini-nombre" required>
+              <input id="ini-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)}
                 placeholder={t('organization:iniciativas.placeholders.nombre')} required disabled={empresas.length === 0} />
               <div className="invalid-feedback">{t('organization:iniciativas.validation.nombre_required')}</div>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 5 }}>{t('organization:iniciativas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('organization:iniciativas.optional_label')}</span></label>
-              <textarea className="input" value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            </Field>
+            <Field
+              label={<>{t('organization:iniciativas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('organization:iniciativas.optional_label')}</span></>}
+              htmlFor="ini-descripcion"
+            >
+              <textarea id="ini-descripcion" className="input" value={descripcion} onChange={e => setDescripcion(e.target.value)}
                 placeholder={t('organization:iniciativas.placeholders.descripcion')} rows={3} disabled={empresas.length === 0} />
-            </div>
+            </Field>
             <button type="submit" className="btn btn-primary" disabled={empresas.length === 0}>
               {t('organization:iniciativas.create_submit')}
             </button>
@@ -267,7 +258,7 @@ export function IniciativasPage() {
             <h3 style={{ margin: 0 }}>{t('organization:iniciativas.table.header_title')}</h3>
             {iniciativas.length > 0 && (
               <span style={{
-                background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE',
+                background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: '1px solid var(--color-info-border)',
                 borderRadius: 9999, padding: '2px 10px', fontSize: '0.72rem', fontWeight: 600,
               }}>{iniciativas.length}</span>
             )}

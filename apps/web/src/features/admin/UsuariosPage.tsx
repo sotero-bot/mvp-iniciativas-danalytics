@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { PageHeader, Field, Modal, StatusBadge, Loading, EmptyState } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-// TODO(fase-2): distinguir la UI según el role del usuario logueado.
-//   - facilitador: sin acciones de gestión, listado limitado a sus estudiantes.
-//   - cliente_admin: solo puede crear/revocar usuario_cliente de su empresa.
-//   - usuario_cliente: solo lectura, sin botón "Nuevo usuario".
-//   Hoy la página asume que el actor es danalytics_admin.
+// Cierre Fase 4 (Plan 2 §4.2): esta página es EXCLUSIVA de danalytics_admin
+// (AdminRoute + @Roles en el backend). El antiguo TODO(fase-2) de "UI por rol"
+// quedó resuelto por diseño: el cliente_admin gestiona sus usuario_cliente en
+// su propio portal (PortalUsuariosPage → /portal/usuarios) y el facilitador ve
+// a sus estudiantes vía grupos/asistencia — ningún rol no-admin entra aquí.
 
 type RoleSlug = string;
 
@@ -106,6 +107,9 @@ export function UsuariosPage() {
   const [resetPasswordModal, setResetPasswordModal] = useState<Usuario | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [deleteModal, setDeleteModal] = useState<Usuario | null>(null);
+  // C-07: asignación de programas de IA en Acción a un usuario_cliente.
+  const [programasModal, setProgramasModal] = useState<Usuario | null>(null);
+  const [programasCliente, setProgramasCliente] = useState<{ programas: ProgramaLite[]; asignados: string[] } | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -138,6 +142,38 @@ export function UsuariosPage() {
       setProgramas(data.map((p: any) => ({ id: p.id, nombre: p.nombre })));
     } catch (err) {
       // Silencioso — la página funciona sin el filtro si el endpoint no responde
+    }
+  };
+
+  // C-07: abre el modal de programas de un usuario_cliente y carga su estado.
+  const abrirProgramasCliente = async (u: Usuario) => {
+    setProgramasModal(u);
+    setProgramasCliente(null);
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${u.id}/programas-cliente`);
+      setProgramasCliente(await res.json());
+    } catch (err) {
+      showToast(translateError(err));
+    }
+  };
+
+  const toggleProgramaCliente = async (usuarioId: string, programaId: string, asignar: boolean) => {
+    try {
+      if (asignar) {
+        const res = await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${usuarioId}/programas-cliente`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ programaId }),
+        });
+        setProgramasCliente(await res.json());
+      } else {
+        await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${usuarioId}/programas-cliente/${programaId}`, {
+          method: 'DELETE',
+        });
+        setProgramasCliente(d => (d ? { ...d, asignados: d.asignados.filter(id => id !== programaId) } : d));
+      }
+    } catch (err) {
+      showToast(translateError(err));
     }
   };
 
@@ -310,17 +346,15 @@ export function UsuariosPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{t('admin:usuarios.page_title')}</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-            {t('admin:usuarios.page_subtitle')}
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          + {t('admin:usuarios.actions.new')}
-        </button>
-      </div>
+      <PageHeader
+        title={t('admin:usuarios.page_title')}
+        description={t('admin:usuarios.page_subtitle')}
+        actions={
+          <button className="btn btn-primary" onClick={openCreate}>
+            + {t('admin:usuarios.actions.new')}
+          </button>
+        }
+      />
 
       {/* Filtros */}
       <div style={{
@@ -329,51 +363,36 @@ export function UsuariosPage() {
         gap: 12,
         marginBottom: 16,
         padding: 16,
-        background: '#F8FAFC',
-        border: '1px solid #E2E8F0',
+        background: 'var(--color-bg-page)',
+        border: '1px solid var(--color-border)',
         borderRadius: 8,
       }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:usuarios.filters.role')}
-          </label>
+        <Field label={t('admin:usuarios.filters.role')}>
           <select className="input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
             <option value="">{t('admin:usuarios.filters.all')}</option>
             {roles.map(r => <option key={r.id} value={r.slug}>{r.nombre}</option>)}
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:usuarios.filters.empresa')}
-          </label>
+        </Field>
+        <Field label={t('admin:usuarios.filters.empresa')}>
           <select className="input" value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}>
             <option value="">{t('admin:usuarios.filters.all')}</option>
             {empresaOptions.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:usuarios.filters.estado')}
-          </label>
+        </Field>
+        <Field label={t('admin:usuarios.filters.estado')}>
           <select className="input" value={filterEstado} onChange={e => setFilterEstado(e.target.value as any)}>
             <option value="activo">{t('admin:usuarios.filters.estado_activo')}</option>
             <option value="inactivo">{t('admin:usuarios.filters.estado_inactivo')}</option>
             <option value="todos">{t('admin:usuarios.filters.all')}</option>
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:usuarios.filters.programa')}
-          </label>
+        </Field>
+        <Field label={t('admin:usuarios.filters.programa')}>
           <select className="input" value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)}>
             <option value="">{t('admin:usuarios.filters.all')}</option>
             {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:usuarios.filters.search')}
-          </label>
+        </Field>
+        <Field label={t('admin:usuarios.filters.search')}>
           <input
             className="input"
             value={search}
@@ -382,45 +401,45 @@ export function UsuariosPage() {
             onBlur={load}
             placeholder={t('admin:usuarios.filters.search_placeholder')}
           />
-        </div>
+        </Field>
       </div>
 
       {/* Tabla */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-container">
+        <table>
           <thead>
-            <tr style={{ background: '#F1F5F9', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:usuarios.columns.nombre')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:usuarios.columns.identificacion')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:usuarios.columns.role')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:usuarios.columns.empresa')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('admin:usuarios.columns.login')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('admin:usuarios.columns.estado')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'right' }}>{t('admin:usuarios.columns.acciones')}</th>
+            <tr>
+              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.nombre')}</th>
+              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.identificacion')}</th>
+              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.role')}</th>
+              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.empresa')}</th>
+              <th style={{ textAlign: 'center' }}>{t('admin:usuarios.columns.login')}</th>
+              <th style={{ textAlign: 'center' }}>{t('admin:usuarios.columns.estado')}</th>
+              <th style={{ textAlign: 'right' }}>{t('admin:usuarios.columns.acciones')}</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94A3B8' }}>{t('common:loading')}</td></tr>
+              <tr><td colSpan={7}><Loading label={t('common:loading')} /></td></tr>
             )}
             {!loading && usuarios.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94A3B8' }}>{t('admin:usuarios.empty')}</td></tr>
+              <tr><td colSpan={7}><EmptyState title={t('admin:usuarios.empty')} /></td></tr>
             )}
             {usuarios.map(u => {
               const slug = u.role?.slug ?? 'participante_legacy';
               const c = ROLE_COLORS[slug] ?? DEFAULT_ROLE_COLOR;
               return (
-                <tr key={u.id} style={{ borderTop: '1px solid #E2E8F0', opacity: u.activo ? 1 : 0.55 }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 500 }}>
+                <tr key={u.id} style={{ opacity: u.activo ? 1 : 0.55 }}>
+                  <td style={{ fontWeight: 500 }}>
                     {u.nombre}
-                    {u.cargo && <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{u.cargo}</div>}
+                    {u.cargo && <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{u.cargo}</div>}
                   </td>
-                  <td style={{ padding: '10px 14px', fontSize: '0.85rem', color: '#475569' }}>
+                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                     {u.username && <div>@{u.username}</div>}
                     {u.email && <div>{u.email}</div>}
-                    {!u.username && !u.email && <span style={{ color: '#CBD5E1' }}>—</span>}
+                    {!u.username && !u.email && <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
                   </td>
-                  <td style={{ padding: '10px 14px' }}>
+                  <td>
                     <span style={{
                       display: 'inline-block', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600,
                       background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 999,
@@ -428,29 +447,33 @@ export function UsuariosPage() {
                       {u.role?.nombre ?? t(`admin:usuarios.roles.${slug}`)}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 14px', fontSize: '0.85rem', color: '#475569' }}>
-                    {u.empresa?.nombre ?? <span style={{ color: '#CBD5E1' }}>—</span>}
+                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    {u.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center' }}>
                     <span title={u.puedeIniciarSesion ? t('admin:usuarios.login_enabled') : t('admin:usuarios.login_disabled')}>
                       {u.puedeIniciarSesion ? '🔓' : '🔒'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '0.75rem' }}>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 999,
-                      background: u.activo ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                      color: u.activo ? '#15803D' : '#B91C1C',
-                    }}>
+                  <td style={{ textAlign: 'center' }}>
+                    <StatusBadge variant={u.activo ? 'success' : 'danger'}>
                       {u.activo ? t('admin:usuarios.status.active') : t('admin:usuarios.status.inactive')}
-                    </span>
+                    </StatusBadge>
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn-link" onClick={() => openEdit(u)}>{t('admin:usuarios.actions.edit')}</button>
                     {' · '}
                     <button className="btn-link" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
                       {t('admin:usuarios.actions.reset_password')}
                     </button>
+                    {u.role?.slug === 'usuario_cliente' && (
+                      <>
+                        {' · '}
+                        <button className="btn-link" onClick={() => abrirProgramasCliente(u)}>
+                          {t('admin:usuarios.actions.programas_cliente')}
+                        </button>
+                      </>
+                    )}
                     {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
                       <>
                         {' · '}
@@ -462,14 +485,14 @@ export function UsuariosPage() {
                     {u.activo ? (
                       <>
                         {' · '}
-                        <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => setDeleteModal(u)}>
+                        <button className="btn-link btn-link-danger" onClick={() => setDeleteModal(u)}>
                           {t('admin:usuarios.actions.deactivate')}
                         </button>
                       </>
                     ) : (
                       <>
                         {' · '}
-                        <button className="btn-link" style={{ color: '#15803D' }} onClick={() => handleReactivate(u)}>
+                        <button className="btn-link btn-link-success" onClick={() => handleReactivate(u)}>
                           {t('admin:usuarios.actions.reactivate')}
                         </button>
                       </>
@@ -483,159 +506,151 @@ export function UsuariosPage() {
       </div>
 
       {/* Modal crear/editar */}
-      {modalOpen && (
-        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>
-                {editing ? t('admin:usuarios.modal.title_edit') : t('admin:usuarios.modal.title_create')}
-              </h3>
-              <button onClick={() => setModalOpen(false)} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-              }}>×</button>
-            </div>
-            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:usuarios.fields.nombre')}
-                </label>
-                <input className="input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
-              </div>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? t('admin:usuarios.modal.title_edit') : t('admin:usuarios.modal.title_create')}
+        maxWidth={560}
+      >
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column' }}>
+          <Field label={t('admin:usuarios.fields.nombre')} required>
+            <input className="input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
+          </Field>
 
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:usuarios.fields.role')}
-                </label>
-                <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} required>
-                  {roles.map(r => <option key={r.id} value={r.slug}>{r.nombre}</option>)}
-                </select>
-              </div>
+          <Field label={t('admin:usuarios.fields.role')} required>
+            <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} required>
+              {roles.map(r => <option key={r.id} value={r.slug}>{r.nombre}</option>)}
+            </select>
+          </Field>
 
-              {isAdminRole ? (
-                <div>
-                  <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                    {t('admin:usuarios.fields.username')}
-                  </label>
-                  <input className="input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                      {t('admin:usuarios.fields.email')}
-                    </label>
-                    <input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-                  </div>
-                  {isEmpresaRole && (
-                    <div>
-                      <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                        {t('admin:usuarios.fields.empresa')}
-                      </label>
-                      <select className="input" value={form.empresaId} onChange={e => setForm(f => ({ ...f, empresaId: e.target.value }))} required>
-                        <option value="">—</option>
-                        {empresaOptions.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
-                      </select>
-                    </div>
-                  )}
-                </>
+          {isAdminRole ? (
+            <Field label={t('admin:usuarios.fields.username')} required>
+              <input className="input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
+            </Field>
+          ) : (
+            <>
+              <Field label={t('admin:usuarios.fields.email')} required>
+                <input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+              </Field>
+              {isEmpresaRole && (
+                <Field label={t('admin:usuarios.fields.empresa')} required>
+                  <select className="input" value={form.empresaId} onChange={e => setForm(f => ({ ...f, empresaId: e.target.value }))} required>
+                    <option value="">—</option>
+                    {empresaOptions.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
+                  </select>
+                </Field>
               )}
+            </>
+          )}
 
-              {/* RN: como danalytics_admin se puede poner/cambiar la contraseña de
-                  CUALQUIER usuario, sin importar el rol — es un método de login
-                  alternativo al magic link/OAuth, no exclusivo de danalytics_admin. */}
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password_optional_create')}
-                </label>
-                <input
-                  type="password"
-                  className="input"
-                  value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder={editing ? t('admin:usuarios.fields.password_keep') : ''}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                    {t('admin:usuarios.fields.cargo')}
-                  </label>
-                  <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                    {t('admin:usuarios.fields.area')}
-                  </label>
-                  <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
-                </div>
-              </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={form.puedeIniciarSesion}
-                  onChange={e => setForm(f => ({ ...f, puedeIniciarSesion: e.target.checked }))}
-                />
-                {t('admin:usuarios.fields.puede_iniciar_sesion')}
-              </label>
-
-              {editing && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={form.activo}
-                    onChange={e => setForm(f => ({ ...f, activo: e.target.checked }))}
-                  />
-                  {t('admin:usuarios.fields.activo')}
-                </label>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>
-                  {t('common:cancel')}
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? t('common:saving') : t('common:save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal reset password */}
-      {resetPasswordModal && (
-        <div className="modal-overlay" onClick={() => setResetPasswordModal(null)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>{t('admin:usuarios.reset_password_modal.title')}</h3>
-              <button onClick={() => setResetPasswordModal(null)} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-              }}>×</button>
-            </div>
-            <p style={{ marginTop: 0, color: '#64748B', fontSize: '0.9rem' }}>
-              {t('admin:usuarios.reset_password_modal.message', { nombre: resetPasswordModal.nombre })}
-            </p>
+          {/* RN: como danalytics_admin se puede poner/cambiar la contraseña de
+              CUALQUIER usuario, sin importar el rol — es un método de login
+              alternativo al magic link/OAuth, no exclusivo de danalytics_admin. */}
+          <Field label={editing ? t('admin:usuarios.fields.password_optional') : t('admin:usuarios.fields.password_optional_create')}>
             <input
               type="password"
               className="input"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder={t('admin:usuarios.fields.password')}
-              autoFocus
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              placeholder={editing ? t('admin:usuarios.fields.password_keep') : ''}
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-              <button className="btn btn-secondary" onClick={() => setResetPasswordModal(null)}>{t('common:cancel')}</button>
-              <button className="btn btn-primary" onClick={submitResetPassword} disabled={!newPassword}>
-                {t('common:save')}
-              </button>
-            </div>
+          </Field>
+
+          <div className="form-grid">
+            <Field label={t('admin:usuarios.fields.cargo')}>
+              <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
+            </Field>
+            <Field label={t('admin:usuarios.fields.area')}>
+              <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
+            </Field>
           </div>
-        </div>
-      )}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer', marginBottom: 14 }}>
+            <input
+              type="checkbox"
+              checked={form.puedeIniciarSesion}
+              onChange={e => setForm(f => ({ ...f, puedeIniciarSesion: e.target.checked }))}
+            />
+            {t('admin:usuarios.fields.puede_iniciar_sesion')}
+          </label>
+
+          {editing && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer', marginBottom: 14 }}>
+              <input
+                type="checkbox"
+                checked={form.activo}
+                onChange={e => setForm(f => ({ ...f, activo: e.target.checked }))}
+              />
+              {t('admin:usuarios.fields.activo')}
+            </label>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+              {t('common:cancel')}
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? t('common:saving') : t('common:save')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal reset password */}
+      <Modal
+        isOpen={!!resetPasswordModal}
+        onClose={() => setResetPasswordModal(null)}
+        title={t('admin:usuarios.reset_password_modal.title')}
+        maxWidth={420}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setResetPasswordModal(null)}>{t('common:cancel')}</button>
+            <button className="btn btn-primary" onClick={submitResetPassword} disabled={!newPassword}>
+              {t('common:save')}
+            </button>
+          </>
+        }
+      >
+        <p style={{ marginTop: 0, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+          {resetPasswordModal && t('admin:usuarios.reset_password_modal.message', { nombre: resetPasswordModal.nombre })}
+        </p>
+        <Field label={t('admin:usuarios.fields.password')}>
+          <input
+            type="password"
+            className="input"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            placeholder={t('admin:usuarios.fields.password')}
+            autoFocus
+          />
+        </Field>
+      </Modal>
+
+      {/* C-07: modal de programas asignados a un usuario_cliente */}
+      <Modal
+        isOpen={!!programasModal}
+        onClose={() => { setProgramasModal(null); setProgramasCliente(null); }}
+        title={t('admin:usuarios.programas_modal.title')}
+        maxWidth={520}
+      >
+        <p style={{ margin: '0 0 12px', color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>
+          {programasModal && t('admin:usuarios.programas_modal.subtitle', { nombre: programasModal.nombre })}
+        </p>
+        {!programasCliente && <Loading label={t('common:loading')} inline />}
+        {programasCliente && programasCliente.programas.length === 0 && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('admin:usuarios.programas_modal.empty')}</p>
+        )}
+        {programasCliente && programasModal && programasCliente.programas.map(p => (
+          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: '0.88rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={programasCliente.asignados.includes(p.id)}
+              onChange={e => toggleProgramaCliente(programasModal.id, p.id, e.target.checked)}
+            />
+            {p.nombre}
+          </label>
+        ))}
+      </Modal>
     </div>
   );
 }

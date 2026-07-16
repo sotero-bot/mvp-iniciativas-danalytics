@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 
 import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
@@ -6,6 +6,9 @@ import { ActorScopeService } from '../../auth/scoping/actor-scope.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+
+// C-03: el facilitador ve la presentación desde 7 días calendario antes de la sesión.
+const FACILITADOR_ANTELACION_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SESION_SELECT = {
   id: true,
@@ -15,6 +18,7 @@ const SESION_SELECT = {
   descripcion: true,
   fechaProgramada: true,
   materialArchivoKey: true,
+  urlPresentacion: true,
   urlGrabacion: true,
   materialDesbloqueoEn: true,
   estado: true,
@@ -47,13 +51,39 @@ export class ActorSesionesController {
   @Get('programas/:id/sesiones')
   async listSesiones(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
     await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
-    const sesiones = await this.prisma.sesion.findMany({
-      where: { programaId },
-      select: SESION_SELECT,
-      orderBy: { numeroSesion: 'asc' },
-    });
+    const [sesiones, programa] = await Promise.all([
+      this.prisma.sesion.findMany({
+        where: { programaId },
+        select: SESION_SELECT,
+        orderBy: { numeroSesion: 'asc' },
+      }),
+      // C-01: los facilitadores son del programa (N:M), no de la sesión; se
+      // adjuntan a cada sesión para que el estudiante vea de quién es. Siempre
+      // visibles (el nombre no es material, no se gatea).
+      this.prisma.programa.findUnique({
+        where: { id: programaId },
+        select: {
+          timezone: true,
+          facilitadores: { select: { usuario: { select: { id: true, nombre: true } } } },
+        },
+      }),
+    ]);
+    const facilitadores = (programa?.facilitadores ?? []).map((f) => f.usuario);
+    const timezone = programa?.timezone ?? 'UTC';
     const now = Date.now();
-    return sesiones.map((s) => ({ ...s, bloqueada: this.estaBloqueada(s, actor.role, now) }));
+    return sesiones.map((s) => {
+      const bloqueada = this.estaBloqueada(s, actor.role, now);
+      // No filtrar los enlaces (presentación/grabación) mientras la sesión siga
+      // bloqueada para el rol: el gating es servidor, no solo cosmético en la UI.
+      return {
+        ...s,
+        facilitadores,
+        timezone,
+        urlPresentacion: bloqueada ? null : s.urlPresentacion,
+        urlGrabacion: bloqueada ? null : s.urlGrabacion,
+        bloqueada,
+      };
+    });
   }
 
   @Get('sesiones/:id/material')
@@ -70,7 +100,30 @@ export class ActorSesionesController {
     // downloadFilename para que quede "inline" y el visor de PDF.js pueda
     // renderizarla en <canvas> en vez de forzar descarga.
     const url = sesion.materialArchivoKey ? await this.s3.getPresignedGetUrl(sesion.materialArchivoKey, 3600) : null;
-    return { url, urlGrabacion: sesion.urlGrabacion };
+    // La URL de la presentación se entrega junto al material (mismo gating de arriba).
+    return { url, urlPresentacion: sesion.urlPresentacion, urlGrabacion: sesion.urlGrabacion };
+  }
+
+  // C-04 (aclaración 2026-07-14): el facilitador sube el enlace de grabación de una
+  // sesión suya. El admin sube la presentación/material; la grabación la pone el
+  // facilitador tras dar la sesión. Solo sesión actual o pasada (SESION_FUTURA si no).
+  @Patch('facilitador/sesiones/:id/grabacion')
+  @Roles('facilitador')
+  async subirGrabacion(
+    @Param('id') sesionId: string,
+    @Body() body: { urlGrabacion: string | null },
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const sesion = await this.prisma.sesion.findUnique({
+      where: { id: sesionId },
+      select: { id: true, programaId: true, fechaProgramada: true },
+    });
+    if (!sesion) throw new AppError('SESION_NOT_FOUND');
+    await this.scope.assertProgramaAccessible(this.prisma, actor, sesion.programaId);
+    if (sesion.fechaProgramada.getTime() > Date.now()) throw new AppError('SESION_FUTURA');
+    const url = body?.urlGrabacion?.trim() || null;
+    await this.prisma.sesion.update({ where: { id: sesionId }, data: { urlGrabacion: url } });
+    return { id: sesionId, urlGrabacion: url };
   }
 
   private estaBloqueada(
@@ -79,10 +132,12 @@ export class ActorSesionesController {
     now: number,
   ): boolean {
     if (role === 'facilitador') {
-      // RF-08/RN-01: el facilitador ve la sesión actual y anteriores de su programa.
-      return sesion.fechaProgramada.getTime() > now;
+      // C-03 (aclaración 2026-07-14): el facilitador ve la presentación desde 7 días
+      // calendario antes de la fecha de la sesión (antes: solo actual y anteriores).
+      return sesion.fechaProgramada.getTime() - FACILITADOR_ANTELACION_MS > now;
     }
-    // RF-09/RN-05: el estudiante ve el material desde las 00:01 del día siguiente.
-    return !sesion.materialDesbloqueoEn || sesion.materialDesbloqueoEn.getTime() > now;
+    // RF-09 (aclaración 2026-07-16): el estudiante ve los recursos (presentación /
+    // grabación) SOLO una vez que la sesión ya ocurrió; antes, bloqueada.
+    return sesion.fechaProgramada.getTime() > now;
   }
 }

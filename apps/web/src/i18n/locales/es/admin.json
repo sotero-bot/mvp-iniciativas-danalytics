@@ -11,7 +11,24 @@
     "usuarios": "Usuarios",
     "programas": "Programas",
     "ejecuciones": "Ejecuciones",
-    "formularios": "Formularios"
+    "formularios": "Formularios",
+    "observaciones": "Observaciones",
+    "notificaciones": "Notificaciones",
+    "registro_acceso": "Registro de acceso"
+  },
+  "registro_acceso": {
+    "title": "Registro de acceso",
+    "subtitle": "Bitácora de auditoría de acciones de facilitadores, estudiantes y clientes (solo lectura).",
+    "rol": "Rol",
+    "tipo_recurso": "Tipo de recurso",
+    "usuario_id": "ID de usuario",
+    "todos": "Todos",
+    "fecha": "Fecha",
+    "usuario": "Usuario",
+    "accion": "Acción",
+    "recurso": "Recurso",
+    "registros": "registros",
+    "empty": "No hay registros con esos filtros."
   },
   "usuarios": {
     "page_title": "Usuarios",
@@ -57,7 +74,8 @@
       "reset_password": "Restablecer clave",
       "deactivate": "Desactivar",
       "reactivate": "Reactivar",
-      "resend_invite": "Reenviar invitación"
+      "resend_invite": "Reenviar invitación",
+      "programas_cliente": "Programas"
     },
     "fields": {
       "nombre": "Nombre completo",
@@ -86,6 +104,11 @@
       "title": "Restablecer contraseña",
       "message": "Introduce una nueva contraseña para {{nombre}}."
     },
+    "programas_modal": {
+      "title": "Programas visibles",
+      "subtitle": "Programas de IA en Acción que {{nombre}} puede ver en el portal.",
+      "empty": "No hay programas de IA en Acción en la empresa de este usuario."
+    },
     "toast": {
       "created": "Usuario creado",
       "updated": "Usuario actualizado",
@@ -100,6 +123,12 @@
       "es": "Español",
       "pt": "Português",
       "hint": "Deja los campos vacíos si no quieres una traducción."
+    },
+    "plantillas": {
+      "title": "Formularios del programa (snapshot)",
+      "hint": "Elige la versión de cada formulario que se congela para este programa. Por defecto, la última versión. Deja «Ninguna» para no incluir ese formulario. No se podrá cambiar después de crear el programa.",
+      "ninguna": "— Ninguna —",
+      "inactiva": "inactiva"
     },
     "page_title": "Programas",
     "page_subtitle": "Gestiona los programas de IA en Acción, sus sesiones y participantes.",
@@ -125,13 +154,17 @@
       "edit": "Editar",
       "details": "Ver detalle",
       "cancel": "Cancelar programa",
-      "diagnostico": "Diagnóstico"
+      "diagnostico": "Diagnóstico",
+      "asistencia": "Asistencia",
+      "matricular": "Matricular"
     },
     "fields": {
       "nombre": "Nombre del programa",
       "descripcion": "Descripción",
       "empresa": "Empresa",
       "facilitador": "Facilitador",
+      "facilitadores": "Facilitadores",
+      "sin_facilitadores": "No hay facilitadores activos. Créalos en Usuarios.",
       "estado": "Estado",
       "timezone": "Zona horaria",
       "dias_gracia": "Días de gracia",
@@ -157,12 +190,19 @@
       "group_updated": "Grupo actualizado",
       "group_removed": "Grupo eliminado",
       "member_added": "Integrante agregado al grupo",
-      "member_removed": "Integrante quitado del grupo"
+      "member_removed": "Integrante quitado del grupo",
+      "participant_added": "Estudiante matriculado"
     },
     "tabs": {
       "sesiones": "Sesiones",
       "participantes": "Participantes",
       "grupos": "Grupos"
+    },
+    "bitacora": {
+      "habilitada": "Bitácora habilitada para los grupos.",
+      "no_habilitada": "Bitácora aún no habilitada: los grupos no pueden llenarla.",
+      "habilitar": "Habilitar bitácora",
+      "deshabilitar": "Deshabilitar"
     },
     "sesiones": {
       "empty": "Aún no hay sesiones. Añade la primera para arrancar.",
@@ -182,7 +222,8 @@
         "titulo": "Título",
         "descripcion": "Descripción",
         "fecha": "Fecha y hora",
-        "url_grabacion": "URL de grabación"
+        "url_grabacion": "URL de grabación",
+        "url_presentacion": "URL de la presentación"
       },
       "modal": {
         "title_create": "Nueva sesión",
@@ -212,6 +253,18 @@
       "modal": {
         "title": "Matricular estudiante",
         "hint": "Si el email ya existe en la empresa, se reutilizará el usuario. Si no, se creará como estudiante."
+      },
+      "picker": {
+        "registrados": "Estudiantes de la empresa",
+        "buscar": "Buscar por nombre o email",
+        "empty": "No hay estudiantes registrados en esta empresa.",
+        "loading": "Cargando estudiantes…",
+        "anadir": "Añadir",
+        "ya_matriculado": "Ya matriculado",
+        "otros_programas": "También en:",
+        "sin_otros": "Sin otros programas",
+        "nuevo_toggle": "¿No está en la lista? Registrar un estudiante nuevo",
+        "nuevo_title": "Registrar estudiante nuevo"
       }
     },
     "grupos": {
@@ -309,6 +362,62 @@
         "desc": "Genera enlaces para distribuir actividades y monitorea el progreso en tiempo real.",
         "locked": "Primero necesitas agregar una actividad"
       }
+    }
+  },
+  "dashboard_programas": {
+    "title": "Programas activos",
+    "activos_one": "{{count}} programa",
+    "activos_other": "{{count}} programas",
+    "ocultar": "Ocultar",
+    "mostrar": "Mostrar",
+    "sesiones": "Sesiones completadas",
+    "participantes": "Participantes",
+    "asistencia": "Asistencia prom."
+  },
+  "asistencia": {
+    "back": "← Volver a programas",
+    "title": "Resumen de asistencia",
+    "export": "Exportar Excel",
+    "empty": "Aún no hay datos de asistencia para este programa.",
+    "participante": "Participante",
+    "sesion_n": "S{{n}}",
+    "presente": "Presente",
+    "ausente": "Ausente"
+  },
+  "observaciones": {
+    "title": "Observaciones",
+    "subtitle": "Historial completo de observaciones de facilitadores. Filtra por programa, urgencia o tipo.",
+    "programa": "Programa",
+    "urgencia": "Urgencia",
+    "tipo": "Tipo",
+    "todos": "Todos",
+    "empty": "No hay observaciones con esos filtros.",
+    "notificado": "Notificado: {{fecha}}",
+    "no_notificado": "Sin notificar"
+  },
+  "notificaciones": {
+    "title": "Notificaciones",
+    "subtitle": "Bitácora de emails transaccionales y configuración de las listas de destinatarios.",
+    "config_title": "Listas de destinatarios",
+    "config_empty": "No hay listas de destinatarios configuradas.",
+    "config_guardar": "Guardar",
+    "config_guardada": "Lista actualizada",
+    "config_emails": "Emails (uno por línea)",
+    "config_placeholder": "correo@empresa.com",
+    "bitacora_title": "Bitácora de envíos",
+    "bitacora_empty": "No hay envíos con ese estado.",
+    "estado": "Estado",
+    "todos": "Todos",
+    "fecha": "Fecha",
+    "tipo": "Tipo",
+    "destinatario": "Destinatario",
+    "asunto": "Asunto",
+    "reenviar": "Reenviar",
+    "reenviado": "Reenvío encolado",
+    "estados": {
+      "pendiente": "Pendiente",
+      "enviada": "Enviada",
+      "fallida": "Fallida"
     }
   },
   "import": {

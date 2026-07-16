@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { withAuth } from '../../shared/api/fetchWithErrorMapping';
+import { Loading } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -110,7 +111,7 @@ export function DashboardPage() {
             <h1 style={{ color: 'white', fontSize: '1.75rem', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
               {t('admin:dashboard_v2.hero_title')}
             </h1>
-            <p style={{ color: '#94A3B8', margin: 0, maxWidth: 460, lineHeight: 1.65, fontSize: '0.875rem' }}>
+            <p style={{ color: 'var(--color-text-tertiary)', margin: 0, maxWidth: 460, lineHeight: 1.65, fontSize: '0.875rem' }}>
               {t('admin:dashboard_v2.hero_subtitle')}
             </p>
           </div>
@@ -132,7 +133,7 @@ export function DashboardPage() {
                   textAlign: 'center',
                 }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: 3, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', marginTop: 3, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -210,25 +211,21 @@ export function DashboardPage() {
       )}
 
       {!loading && allDone && (
-        <div className="cta-banner" style={{ background: 'linear-gradient(135deg, #F0FDF4, #ECFDF5)', borderColor: '#86EFAC' }}>
+        <div className="cta-banner" style={{ background: 'linear-gradient(135deg, var(--color-success-bg), var(--color-success-bg))', borderColor: 'var(--color-success-border)' }}>
           <span className="cta-banner-icon">🎉</span>
           <div className="cta-banner-body">
             <p className="cta-banner-title" style={{ color: '#065F46' }}>{t('admin:dashboard_v2.all_configured_title')}</p>
-            <p className="cta-banner-text" style={{ color: '#059669' }}>
+            <p className="cta-banner-text" style={{ color: 'var(--color-success)' }}>
               {t('admin:dashboard_v2.all_configured_text')}
             </p>
           </div>
-          <Link to="/admin/instancias" className="btn btn-primary" style={{ textDecoration: 'none', flexShrink: 0, background: '#059669' }}>
+          <Link to="/admin/instancias" className="btn btn-primary" style={{ textDecoration: 'none', flexShrink: 0, background: 'var(--color-success)' }}>
             {t('admin:dashboard_v2.view_executions')}
           </Link>
         </div>
       )}
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-          {t('admin:dashboard_v2.loading_info')}
-        </div>
-      )}
+      {loading && <Loading label={t('admin:dashboard_v2.loading_info')} />}
     </div>
   );
 }

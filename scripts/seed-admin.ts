@@ -149,6 +149,24 @@ async function backfillLegacyUsers() {
   }
 }
 
+// C-01: migra el FK único Programa.facilitadorId (deprecado) a la tabla N:M ProgramaFacilitador.
+// Idempotente (skipDuplicates). Corre mientras la columna facilitadorId siga existiendo; se puede
+// retirar la columna en una release futura una vez confirmado el backfill.
+async function backfillFacilitadores() {
+  const programas = await prisma.programa.findMany({
+    where: { facilitadorId: { not: null } },
+    select: { id: true, facilitadorId: true },
+  });
+  if (programas.length === 0) return;
+  const result = await prisma.programaFacilitador.createMany({
+    data: programas.map((p) => ({ programaId: p.id, usuarioId: p.facilitadorId as string })),
+    skipDuplicates: true,
+  });
+  if (result.count > 0) {
+    console.log(`  ${result.count} asignaciones facilitador→programa migradas a ProgramaFacilitador`);
+  }
+}
+
 function parseEmails(raw: string | undefined): string[] {
   return (raw ?? '')
     .split(',')
@@ -219,6 +237,7 @@ async function main() {
   await upsertRoles();
   await ensureIndiceClienteAdminUnico();
   await backfillLegacyUsers();
+  await backfillFacilitadores();
   await upsertAdmin();
   await upsertConfiguracionNotificaciones();
   console.log('✅  Seed completado');

@@ -21,9 +21,10 @@ type ProgramaAccesoRow = {
  * frontend y para que la lógica viva en un único sitio auditable.
  *
  *   - `danalytics_admin` → sin filtro.
- *   - `facilitador`      → solo programas donde `facilitadorId = sub`.
+ *   - `facilitador`      → solo programas donde está asignado (N:M ProgramaFacilitador, C-01).
  *   - `estudiante`       → solo programas con `ParticipantePrograma` activo del actor.
- *   - `cliente_admin` / `usuario_cliente` → `empresaId = jwt.empresaId` (RN-09).
+ *   - `cliente_admin`    → `empresaId = jwt.empresaId` (RN-09, ve todos los de su empresa).
+ *   - `usuario_cliente`  → `empresaId` + solo programas asignados (N:M UsuarioClientePrograma, C-07).
  *
  * La ENFORCEMENT en cada endpoint (Fase 1+) hace `WHERE: { ...scope, ...filtros }`.
  */
@@ -38,12 +39,18 @@ export class ActorScopeService {
       case 'danalytics_admin':
         return {};
       case 'facilitador':
-        return { facilitadorId: actor.sub };
+        // C-01: N:M — el facilitador ve los programas donde está asignado.
+        return { facilitadores: { some: { usuarioId: actor.sub } } };
       case 'estudiante':
         return { participantes: { some: { usuarioId: actor.sub, activo: true } } };
       case 'cliente_admin':
-      case 'usuario_cliente':
         return { empresaId: this.requireEmpresa(actor) };
+      case 'usuario_cliente':
+        // C-07: además de su empresa, solo los programas explícitamente asignados.
+        return {
+          empresaId: this.requireEmpresa(actor),
+          asignacionesCliente: { some: { usuarioId: actor.sub } },
+        };
       default:
         // Rol desconocido o ausente: no ve nada.
         throw new AppError('FORBIDDEN');

@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import type { StatusVariant } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface FormularioDisponible {
   id: string;
-  programaId: string;
-  programa: { id: string; nombre: string };
+  programaId: string | null;
+  programa: { id: string; nombre: string } | null;
   tipoFormulario: string;
   nombre: string;
   descripcion: string | null;
@@ -16,10 +18,10 @@ interface FormularioDisponible {
   enviadoEn: string | null;
 }
 
-const ESTADO_STYLE: Record<string, { bg: string; fg: string }> = {
-  pendiente: { bg: 'rgba(245,158,11,0.15)', fg: '#B45309' },
-  en_progreso: { bg: 'rgba(59,130,246,0.15)', fg: '#1D4ED8' },
-  enviado: { bg: 'rgba(34,197,94,0.15)', fg: '#15803D' },
+const ESTADO_VARIANT: Record<string, StatusVariant> = {
+  pendiente: 'warning',
+  en_progreso: 'info',
+  enviado: 'success',
 };
 
 // RF-28: dashboard de formularios del estudiante con su estado.
@@ -41,15 +43,14 @@ export function EstudianteFormulariosPage() {
   }, []);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.4rem', marginBottom: '1.25rem' }}>{t('formularios:estudiante.title')}</h1>
+    <div className="page">
+      <PageHeader title={t('formularios:estudiante.title')} />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && formularios.length === 0 && <p>{t('formularios:estudiante.empty')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && formularios.length === 0 && <EmptyState title={t('formularios:estudiante.empty')} />}
 
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+      <div className="card-grid">
         {formularios.map((f) => {
-          const estilo = ESTADO_STYLE[f.estado];
           return (
             <div key={f.id} className="card" style={{ padding: '1rem' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#14B8A6', textTransform: 'uppercase' }}>
@@ -57,12 +58,12 @@ export function EstudianteFormulariosPage() {
               </div>
               <div style={{ fontWeight: 600, margin: '4px 0' }}>{f.nombre}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
-                {f.programa?.nombre}
+                {f.programa?.nombre ?? t('formularios:estudiante.global')}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600, borderRadius: 999, background: estilo.bg, color: estilo.fg }}>
+                <StatusBadge variant={ESTADO_VARIANT[f.estado] ?? 'neutral'}>
                   {t(`formularios:estudiante.estado.${f.estado}`)}
-                </span>
+                </StatusBadge>
                 <Link className="btn" to={`/estudiante/formularios/${f.id}`}>
                   {f.estado === 'pendiente'
                     ? t('formularios:estudiante.responder')

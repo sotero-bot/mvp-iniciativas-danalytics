@@ -113,7 +113,8 @@ async function main() {
         nombre: PROGRAMA_NOMBRE,
         descripcion: 'Programa demo con datos ficticios para desarrollo local.',
         empresaId: empresa.id,
-        facilitadorId: facilitador.id,
+        facilitadorId: facilitador.id, // C-01: columna deprecada; se mantiene para backfill
+        facilitadores: { create: [{ usuarioId: facilitador.id }] }, // C-01: N:M
         estado: EstadoPrograma.activo,
         timezone: 'America/Bogota',
         diasGracia: 7,

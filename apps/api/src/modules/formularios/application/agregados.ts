@@ -105,3 +105,55 @@ export function agregarPorCampo(
     }
   });
 }
+
+export interface CampoParaFormato {
+  id: string;
+  tipoCampo: TipoCampo;
+  etiqueta: string;
+  configJson: unknown;
+  campoPadreId?: string | null;
+}
+
+/**
+ * Convierte el valor guardado de un campo en un texto legible para reportes/Excel
+ * (RF-34, admin): opción múltiple → etiqueta(s), likert/numero/texto → tal cual,
+ * tabla → filas "col: valor", grupo_repetible → iteraciones con sus hijos.
+ */
+export function formatValorLegible(
+  campo: CampoParaFormato,
+  valor: unknown,
+  hijosPorPadre?: Map<string, CampoParaFormato[]>,
+): string {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const config = (campo.configJson ?? {}) as ConfigCampo;
+
+  switch (campo.tipoCampo) {
+    case 'opcion_multiple': {
+      const elegidos = Array.isArray(valor) ? valor : [valor];
+      const opciones = config.opciones ?? [];
+      return elegidos
+        .map(v => opciones.find(op => op.valor === v)?.etiqueta ?? String(v))
+        .join('; ');
+    }
+    case 'tabla': {
+      const columnas = config.columnas ?? [];
+      const filas = Array.isArray(valor) ? (valor as Record<string, unknown>[]) : [];
+      return filas
+        .map((fila, i) => `#${i + 1} ` + columnas.map(c => `${c}: ${fila?.[c] ?? ''}`).join(', '))
+        .join(' | ');
+    }
+    case 'grupo_repetible': {
+      const iteraciones = Array.isArray(valor) ? (valor as Record<string, unknown>[]) : [];
+      const hijos = hijosPorPadre?.get(campo.id) ?? [];
+      return iteraciones
+        .map(
+          (it, i) =>
+            `#${i + 1} ` +
+            hijos.map(h => `${h.etiqueta}: ${formatValorLegible(h, it[h.id], hijosPorPadre)}`).join(', '),
+        )
+        .join(' | ');
+    }
+    default:
+      return String(valor);
+  }
+}

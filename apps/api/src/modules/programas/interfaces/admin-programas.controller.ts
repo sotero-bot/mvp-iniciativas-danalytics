@@ -24,7 +24,7 @@ import {
   SESION_TRANS_FIELDS,
   TRANSLATABLE_LOCALES,
 } from '../../../shared/i18n/translatable-locales';
-import { startOfNextDayInTimeZone } from '../../../shared/utils/timezone';
+import { startOfNextDayInTimeZone, dayNumberInTimeZone } from '../../../shared/utils/timezone';
 import { SnapshotFormulariosService } from '../../formularios/application/snapshot-formularios.service';
 
 const FACILITADOR_SLUG = 'facilitador';
@@ -35,18 +35,22 @@ interface CreateProgramaDto {
   nombre: string;
   descripcion?: string | null;
   empresaId: string;
-  facilitadorId: string;
+  facilitadorIds?: string[]; // C-01: N:M — uno o varios facilitadores (opcional en creación)
   timezone?: string;
   diasGracia?: number;
   fechaInicio?: string | null;
   fechaFin?: string | null;
   estado?: EstadoPrograma;
+  // RF-46: selección explícita de qué plantillas globales congela el snapshot del
+  // programa (una por tipo, opcional). Si se omite, el snapshot copia todas las
+  // globales activas (comportamiento por defecto).
+  plantillaGlobalIds?: string[];
 }
 
 interface UpdateProgramaDto {
   nombre?: string;
   descripcion?: string | null;
-  facilitadorId?: string;
+  facilitadorIds?: string[]; // C-01: si viene, reemplaza el conjunto de facilitadores
   timezone?: string;
   diasGracia?: number;
   fechaInicio?: string | null;
@@ -61,6 +65,7 @@ interface CreateSesionDto {
   descripcion?: string | null;
   fechaProgramada: string;
   materialArchivoKey?: string | null;
+  urlPresentacion?: string | null;
   urlGrabacion?: string | null;
   materialDesbloqueoEn?: string | null;
 }
@@ -84,19 +89,31 @@ const PROGRAMA_SELECT = {
   nombre: true,
   descripcion: true,
   empresaId: true,
-  facilitadorId: true,
   estado: true,
   timezone: true,
   diasGracia: true,
   fechaInicio: true,
   fechaFin: true,
   activo: true,
+  bitacoraHabilitadaEn: true, // O-01
   createdAt: true,
   updatedAt: true,
   empresa: { select: { id: true, nombre: true } },
-  facilitador: { select: { id: true, nombre: true, email: true } },
+  // C-01: N:M — lista de facilitadores asignados.
+  facilitadores: {
+    select: { usuario: { select: { id: true, nombre: true, email: true } } },
+  },
   _count: { select: { sesiones: true, participantes: true } },
 } satisfies Prisma.ProgramaSelect;
+
+// Aplana `facilitadores: [{ usuario }]` a `facilitadores: [{ id, nombre, email }]` para el cliente.
+function shapePrograma<T extends { facilitadores?: { usuario: unknown }[] }>(programa: T) {
+  if (!programa?.facilitadores) return programa;
+  return {
+    ...programa,
+    facilitadores: programa.facilitadores.map((f) => f.usuario),
+  };
+}
 
 const SESION_SELECT = {
   id: true,
@@ -106,6 +123,7 @@ const SESION_SELECT = {
   descripcion: true,
   fechaProgramada: true,
   materialArchivoKey: true,
+  urlPresentacion: true,
   urlGrabacion: true,
   materialDesbloqueoEn: true,
   estado: true,
@@ -197,7 +215,7 @@ export class AdminProgramasController {
   ) {
     const where: Prisma.ProgramaWhereInput = {};
     if (empresaId) where.empresaId = empresaId;
-    if (facilitadorId) where.facilitadorId = facilitadorId;
+    if (facilitadorId) where.facilitadores = { some: { usuarioId: facilitadorId } };
     if (estado) where.estado = estado;
     if (activo === 'true') where.activo = true;
     else if (activo === 'false') where.activo = false;
@@ -214,14 +232,14 @@ export class AdminProgramasController {
       orderBy: [{ activo: 'desc' }, { createdAt: 'desc' }],
     });
 
-    if (!locale || locale === 'es' || programas.length === 0) return programas;
+    if (!locale || locale === 'es' || programas.length === 0) return programas.map(shapePrograma);
     const overlay = await this.translations.applyOverlay(
       'Programa',
       programas.map(p => p.id),
       locale,
       PROGRAMA_TRANS_FIELDS,
     );
-    return programas.map(p => this.applyProgramaOverlay(p, overlay));
+    return programas.map(p => shapePrograma(this.applyProgramaOverlay(p, overlay)));
   }
 
   // RF-04: dashboard de programas activos. Debe declararse ANTES de 'programas/:id'
@@ -284,7 +302,7 @@ export class AdminProgramasController {
     });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
 
-    if (!locale || locale === 'es') return programa;
+    if (!locale || locale === 'es') return shapePrograma(programa);
     const [progOverlay, sesionOverlay] = await Promise.all([
       this.translations.applyOverlay('Programa', [programa.id], locale, PROGRAMA_TRANS_FIELDS),
       this.translations.applyOverlay(
@@ -302,7 +320,9 @@ export class AdminProgramasController {
 
   @Post('programas')
   async createPrograma(@Body() body: CreateProgramaDto) {
-    await this.assertFacilitador(body.facilitadorId);
+    // C-01: N:M — valida cada facilitador (puede venir vacío; se asignan luego).
+    const facilitadorIds = [...new Set(body.facilitadorIds ?? [])];
+    for (const fid of facilitadorIds) await this.assertFacilitador(fid);
     try {
       const programa = await this.prisma.programa.create({
         data: {
@@ -310,23 +330,31 @@ export class AdminProgramasController {
           nombre: body.nombre,
           descripcion: body.descripcion ?? null,
           empresaId: body.empresaId,
-          facilitadorId: body.facilitadorId,
           timezone: body.timezone ?? 'America/Bogota',
           diasGracia: body.diasGracia ?? 3, // RF-03/RN-03: 3 días hábiles
           fechaInicio: body.fechaInicio ? new Date(body.fechaInicio) : null,
           fechaFin: body.fechaFin ? new Date(body.fechaFin) : null,
           estado: body.estado ?? EstadoPrograma.borrador,
+          facilitadores: facilitadorIds.length
+            ? { create: facilitadorIds.map((usuarioId) => ({ usuarioId })) }
+            : undefined,
         },
         select: PROGRAMA_SELECT,
       });
 
-      // RF-46/RN-10: un programa creado DIRECTAMENTE en "activo" (sin pasar por la
-      // transición borrador→activo, p. ej. seeds o alta rápida) también necesita
-      // su snapshot de formularios.
-      if (programa.estado === EstadoPrograma.activo) {
+      // RF-46/RN-10: snapshot de formularios del programa.
+      const seleccion = [...new Set(body.plantillaGlobalIds ?? [])].filter(Boolean);
+      if (seleccion.length > 0) {
+        // Selección explícita: congela SOLO las plantillas elegidas (una por tipo).
+        // Se toma ya (aunque sea borrador) para fijar la versión elegida; la
+        // activación posterior no la sobrescribe (ver updatePrograma).
+        await this.snapshots.snapshotDesdeSeleccion(programa.id, seleccion);
+      } else if (programa.estado === EstadoPrograma.activo) {
+        // Sin selección: un programa creado DIRECTAMENTE en "activo" (seeds/alta
+        // rápida) copia todas las globales activas.
         await this.snapshots.snapshotPrograma(programa.id);
       }
-      return programa;
+      return shapePrograma(programa);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
         throw new AppError('VALIDATION_ERROR', {
@@ -341,8 +369,10 @@ export class AdminProgramasController {
   async updatePrograma(@Param('id') id: string, @Body() body: UpdateProgramaDto) {
     const existing = await this.prisma.programa.findUnique({ where: { id } });
     if (!existing) throw new AppError('PROGRAMA_NOT_FOUND');
-    if (body.facilitadorId !== undefined) {
-      await this.assertFacilitador(body.facilitadorId);
+    let facilitadorIds: string[] | undefined;
+    if (body.facilitadorIds !== undefined) {
+      facilitadorIds = [...new Set(body.facilitadorIds)];
+      for (const fid of facilitadorIds) await this.assertFacilitador(fid);
     }
     if (body.estado !== undefined && body.estado !== existing.estado) {
       this.assertTransicionValida(existing.estado, body.estado);
@@ -354,7 +384,13 @@ export class AdminProgramasController {
     const data: Prisma.ProgramaUpdateInput = {};
     if (body.nombre !== undefined) data.nombre = body.nombre;
     if (body.descripcion !== undefined) data.descripcion = body.descripcion ?? null;
-    if (body.facilitadorId !== undefined) data.facilitador = { connect: { id: body.facilitadorId } };
+    // C-01: reemplaza el conjunto completo de facilitadores.
+    if (facilitadorIds !== undefined) {
+      data.facilitadores = {
+        deleteMany: {},
+        create: facilitadorIds.map((usuarioId) => ({ usuarioId })),
+      };
+    }
     if (body.timezone !== undefined) data.timezone = body.timezone;
     if (body.diasGracia !== undefined) data.diasGracia = body.diasGracia;
     if (body.fechaInicio !== undefined) data.fechaInicio = body.fechaInicio ? new Date(body.fechaInicio) : null;
@@ -364,11 +400,57 @@ export class AdminProgramasController {
     const actualizado = await this.prisma.programa.update({ where: { id }, data, select: PROGRAMA_SELECT });
 
     // RF-46/RN-10 (Fase 2): al pasar borrador→activo se toma el snapshot de los
-    // templates globales activos para el programa. Idempotente: si ya existe
-    // snapshot de un global, no lo duplica.
+    // templates globales activos — PERO solo si el programa aún no tiene snapshot.
+    // Si ya lo tiene (porque se eligieron plantillas al crearlo), se respeta esa
+    // selección y no se agregan tipos excluidos.
     if (existing.estado === EstadoPrograma.borrador && body.estado === EstadoPrograma.activo) {
-      await this.snapshots.snapshotPrograma(id);
+      const yaTieneSnapshot = await this.prisma.plantillaFormulario.count({ where: { programaId: id } });
+      if (yaTieneSnapshot === 0) await this.snapshots.snapshotPrograma(id);
     }
+    return shapePrograma(actualizado);
+  }
+
+  // --------- Facilitadores del programa (C-01, N:M) ---------
+
+  @Post('programas/:id/facilitadores')
+  async asignarFacilitador(@Param('id') programaId: string, @Body() body: { usuarioId: string }) {
+    const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
+    if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+    await this.assertFacilitador(body.usuarioId);
+    try {
+      await this.prisma.programaFacilitador.create({
+        data: { programaId, usuarioId: body.usuarioId },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new AppError('FACILITADOR_YA_ASIGNADO');
+      }
+      throw e;
+    }
+    return shapePrograma(
+      await this.prisma.programa.findUniqueOrThrow({ where: { id: programaId }, select: PROGRAMA_SELECT }),
+    );
+  }
+
+  @Delete('programas/:id/facilitadores/:usuarioId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async quitarFacilitador(@Param('id') programaId: string, @Param('usuarioId') usuarioId: string) {
+    await this.prisma.programaFacilitador.deleteMany({ where: { programaId, usuarioId } });
+  }
+
+  // O-01 (aclaración 2026-07-14): habilitar/deshabilitar la bitácora del programa.
+  // Mientras `bitacoraHabilitadaEn` sea null, los grupos ven la bitácora bloqueada.
+  // Lo pueden accionar admin (aquí) o facilitador (FacilitadorRetoController).
+  @Post('programas/:id/bitacora/habilitar')
+  async habilitarBitacora(@Param('id') programaId: string, @Body() body: { habilitar?: boolean }) {
+    const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
+    if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+    const habilitar = body?.habilitar !== false; // default true
+    const actualizado = await this.prisma.programa.update({
+      where: { id: programaId },
+      data: { bitacoraHabilitadaEn: habilitar ? new Date() : null },
+      select: { id: true, bitacoraHabilitadaEn: true },
+    });
     return actualizado;
   }
 
@@ -399,6 +481,7 @@ export class AdminProgramasController {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
     const fechaProgramada = new Date(body.fechaProgramada);
+    await this.assertSesionSchedule(programa, fechaProgramada);
     try {
       return await this.prisma.sesion.create({
         data: {
@@ -409,6 +492,7 @@ export class AdminProgramasController {
           descripcion: body.descripcion ?? null,
           fechaProgramada,
           materialArchivoKey: body.materialArchivoKey ?? null,
+          urlPresentacion: body.urlPresentacion ?? null,
           urlGrabacion: body.urlGrabacion ?? null,
           // RF-09/RN-05: si no se envía explícito, se calcula automáticamente
           // (00:01 del día siguiente a fechaProgramada, en la timezone del programa).
@@ -436,15 +520,25 @@ export class AdminProgramasController {
     if (body.numeroSesion !== undefined) data.numeroSesion = body.numeroSesion;
     if (body.titulo !== undefined) data.titulo = body.titulo;
     if (body.descripcion !== undefined) data.descripcion = body.descripcion ?? null;
-    if (body.fechaProgramada !== undefined) data.fechaProgramada = new Date(body.fechaProgramada);
+    // Si cambia la fecha, valida rango del programa e intervalo mínimo (excluyéndose
+    // a sí misma) antes de tocar nada. Se reutiliza `programa` para materialDesbloqueoEn.
+    const programa =
+      body.fechaProgramada !== undefined
+        ? await this.prisma.programa.findUnique({ where: { id: existing.programaId } })
+        : null;
+    if (body.fechaProgramada !== undefined) {
+      const fechaProgramada = new Date(body.fechaProgramada);
+      await this.assertSesionSchedule(programa!, fechaProgramada, id);
+      data.fechaProgramada = fechaProgramada;
+    }
     if (body.materialArchivoKey !== undefined) data.materialArchivoKey = body.materialArchivoKey ?? null;
+    if (body.urlPresentacion !== undefined) data.urlPresentacion = body.urlPresentacion ?? null;
     if (body.urlGrabacion !== undefined) data.urlGrabacion = body.urlGrabacion ?? null;
     if (body.materialDesbloqueoEn !== undefined) {
       data.materialDesbloqueoEn = body.materialDesbloqueoEn ? new Date(body.materialDesbloqueoEn) : null;
     } else if (body.fechaProgramada !== undefined) {
       // RF-09/RN-05: si cambia fechaProgramada y no se envía materialDesbloqueoEn
       // explícito, se recalcula automáticamente en la timezone del programa.
-      const programa = await this.prisma.programa.findUnique({ where: { id: existing.programaId } });
       data.materialDesbloqueoEn = startOfNextDayInTimeZone(new Date(body.fechaProgramada), programa!.timezone);
     }
     if (body.estado !== undefined) data.estado = body.estado;
@@ -491,13 +585,25 @@ export class AdminProgramasController {
           message: 'Debes enviar usuarioId o email',
         });
       }
-      const existente = await this.prisma.usuario.findFirst({
-        where: { email, empresaId: programa.empresaId },
+      // Unicidad del estudiante por email: el email es único por empresa
+      // (@@unique([empresaId, email])), así que se busca en TODAS las empresas.
+      // Si ya existe en la MISMA empresa se reutiliza; si existe en OTRA empresa
+      // se bloquea (un estudiante no puede pertenecer a dos empresas).
+      const conMismoEmail = await this.prisma.usuario.findMany({
+        where: { email },
         include: { role: true },
       });
+      const existente = conMismoEmail.find((u) => u.empresaId === programa.empresaId);
+      const enOtraEmpresa = conMismoEmail.find(
+        (u) => u.empresaId && u.empresaId !== programa.empresaId,
+      );
       if (existente) {
         usuarioId = existente.id;
         await this.promoverAEstudianteSiLegacy(existente.id, existente.role?.slug);
+      } else if (enOtraEmpresa) {
+        throw new AppError('USUARIO_OTRA_EMPRESA', {
+          message: 'Ya existe un usuario con ese email en otra empresa',
+        });
       } else {
         if (!body.nombre) {
           throw new AppError('VALIDATION_ERROR', {
@@ -527,6 +633,12 @@ export class AdminProgramasController {
         include: { role: true },
       });
       if (!existente) throw new AppError('USUARIO_NOT_FOUND');
+      // Un estudiante de otra empresa no puede matricularse en este programa.
+      if (existente.empresaId && existente.empresaId !== programa.empresaId) {
+        throw new AppError('USUARIO_OTRA_EMPRESA', {
+          message: 'El usuario pertenece a otra empresa',
+        });
+      }
       await this.promoverAEstudianteSiLegacy(existente.id, existente.role?.slug);
     }
 
@@ -706,6 +818,57 @@ export class AdminProgramasController {
     });
     if (grupos.some((g) => g._count.miembros < 2)) {
       throw new AppError('GRUPO_MIN_INTEGRANTES');
+    }
+  }
+
+  // Separación mínima entre sesiones del mismo programa (aclaración 2026-07-15):
+  // no se pueden agendar dos sesiones a menos de 4 horas de distancia.
+  private static readonly SESION_INTERVALO_MIN_MS = 4 * 60 * 60 * 1000;
+
+  // Valida que la fecha de una sesión (1) caiga dentro del rango de fechas del
+  // programa y (2) mantenga ≥4 h de separación con cualquier otra sesión del
+  // mismo programa. `excludeSesionId` evita que una sesión choque consigo misma
+  // al editarla.
+  private async assertSesionSchedule(
+    programa: { id: string; timezone: string; fechaInicio: Date | null; fechaFin: Date | null },
+    fechaProgramada: Date,
+    excludeSesionId?: string,
+  ) {
+    if (Number.isNaN(fechaProgramada.getTime())) {
+      throw new AppError('VALIDATION_ERROR', { message: 'fechaProgramada inválida' });
+    }
+
+    // (1) Dentro del rango del programa. Los límites se guardan como medianoche
+    // UTC (fechas sin hora), así que se comparan como día calendario: el de la
+    // sesión en la timezone del programa vs. el del límite en UTC.
+    const diaSesion = dayNumberInTimeZone(fechaProgramada, programa.timezone);
+    if (programa.fechaInicio && diaSesion < dayNumberInTimeZone(programa.fechaInicio, 'UTC')) {
+      throw new AppError('SESION_FUERA_DE_RANGO', {
+        message: 'La fecha de la sesión es anterior al inicio del programa',
+      });
+    }
+    if (programa.fechaFin && diaSesion > dayNumberInTimeZone(programa.fechaFin, 'UTC')) {
+      throw new AppError('SESION_FUERA_DE_RANGO', {
+        message: 'La fecha de la sesión es posterior al fin del programa',
+      });
+    }
+
+    // (2) Separación mínima con las demás sesiones del programa.
+    const hermanas = await this.prisma.sesion.findMany({
+      where: {
+        programaId: programa.id,
+        ...(excludeSesionId ? { id: { not: excludeSesionId } } : {}),
+      },
+      select: { fechaProgramada: true },
+    });
+    const t = fechaProgramada.getTime();
+    const choca = hermanas.some(
+      (s) => Math.abs(s.fechaProgramada.getTime() - t) < AdminProgramasController.SESION_INTERVALO_MIN_MS,
+    );
+    if (choca) {
+      throw new AppError('SESION_INTERVALO_MINIMO', {
+        message: 'Debe haber al menos 4 horas entre sesiones del mismo programa',
+      });
     }
   }
 

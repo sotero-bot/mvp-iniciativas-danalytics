@@ -5,6 +5,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
+import { Loading, Alert } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const PASO_TRANS_FIELDS: TranslationField[] = [
@@ -219,10 +220,10 @@ export function ActividadPasosPage() {
     loadPasos();
   };
 
-  if (loading) return <div className="runner-center">{t('methodology:pasos.loading')}</div>;
+  if (loading) return <div className="runner-center"><Loading label={t('methodology:pasos.loading')} /></div>;
   if (error) return (
     <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ color: '#ef4444' }}>{error}</div>
+      <Alert variant="danger">{error}</Alert>
       <button className="btn btn-secondary" onClick={() => navigate('/admin/actividades')}>{t('common:buttons.back')}</button>
     </div>
   );
@@ -352,7 +353,7 @@ export function ActividadPasosPage() {
                     <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
                     </button>
-                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
                       onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
                       🗑️
                     </button>
@@ -370,10 +371,10 @@ export function ActividadPasosPage() {
                 )}
 
                 <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--color-bg-page)', background: '#FAFAFA', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>{t('methodology:pasos.ejemplo.label')}</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{t('methodology:pasos.ejemplo.label')}</span>
                   {p.ejemploKey ? (
                     <>
-                      <span style={{ fontSize: '0.78rem', color: '#16a34a' }}>{t('methodology:pasos.ejemplo.uploaded_badge')}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-success-strong)' }}>{t('methodology:pasos.ejemplo.uploaded_badge')}</span>
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '2px 8px', fontSize: '0.72rem' }}
@@ -387,9 +388,9 @@ export function ActividadPasosPage() {
                       >{t('methodology:pasos.ejemplo.download_button')}</button>
                     </>
                   ) : (
-                    <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontStyle: 'italic' }}>{t('methodology:pasos.ejemplo.no_file')}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('methodology:pasos.ejemplo.no_file')}</span>
                   )}
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 10px', fontSize: '0.72rem', background: uploadingEjemploId === p.id ? '#E2E8F0' : 'white', color: '#475569', border: '1px solid #CBD5E1', borderRadius: 5, cursor: uploadingEjemploId === p.id ? 'wait' : 'pointer', fontWeight: 500 }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 10px', fontSize: '0.72rem', background: uploadingEjemploId === p.id ? 'var(--color-border)' : 'white', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-strong)', borderRadius: 5, cursor: uploadingEjemploId === p.id ? 'wait' : 'pointer', fontWeight: 500 }}>
                     {uploadingEjemploId === p.id ? t('methodology:pasos.ejemplo.uploading') : (p.ejemploKey ? t('methodology:pasos.ejemplo.replace_button') : t('methodology:pasos.ejemplo.upload_button'))}
                     <input type="file" style={{ display: 'none' }} disabled={uploadingEjemploId === p.id}
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadEjemplo(p, f); e.target.value = ''; }} />
@@ -397,7 +398,7 @@ export function ActividadPasosPage() {
                   {p.ejemploKey && (
                     <button
                       className="btn"
-                      style={{ padding: '2px 8px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                      style={{ padding: '2px 8px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
                       disabled={uploadingEjemploId === p.id}
                       onClick={() => setDeleteEjemploModal({ pasoId: p.id, titulo: p.titulo })}
                     >🗑️ {t('common:buttons.delete')}</button>
@@ -436,9 +437,9 @@ export function ActividadPasosPage() {
                               />
                             ) : (
                               <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
-                                  <span style={{ flex: 1, fontSize: '0.88rem', color: '#1E293B' }}>{q.enunciado}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 6 }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
+                                  <span style={{ flex: 1, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>{q.enunciado}</span>
                                   <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                                     {q.usarIa && (
                                       <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
@@ -448,13 +449,13 @@ export function ActividadPasosPage() {
                                     {q.soloArchivo ? (
                                       <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
                                     ) : q.permitirArchivo ? (
-                                      <span className="status-badge" style={{ background: '#16a34a', color: '#fff', fontSize: '0.65rem' }}>📎</span>
+                                      <span className="status-badge" style={{ background: 'var(--color-success-strong)', color: '#fff', fontSize: '0.65rem' }}>📎</span>
                                     ) : null}
                                     <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
                                       onClick={() => openEditPregunta(p.id, q)}>
                                       {t('common:buttons.edit')}
                                     </button>
-                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
                                       onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
                                       🗑️
                                     </button>
@@ -539,7 +540,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
             <input type="checkbox" checked={form.permitirArchivo}
               onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false })}
-              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
+              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
             <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
           </label>
           {form.permitirArchivo && (
@@ -555,7 +556,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
               title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
               <input type="checkbox" checked={form.subirArchivoS3}
                 onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }} />
+                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
               <span>{t('methodology:preguntas.options.subir_archivo_s3')}</span>
             </label>
           )}
@@ -570,8 +571,8 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
           </div>
         )}
 
-        <div style={{ gridColumn: 'span 2', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {t('methodology:preguntas.ia_config_title')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

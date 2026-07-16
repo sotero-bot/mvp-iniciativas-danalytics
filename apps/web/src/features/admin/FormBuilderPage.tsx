@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageHeader, Field, Modal, Alert, Loading, EmptyState } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -77,6 +79,7 @@ export function FormBuilderPage() {
   const [nueva, setNueva] = useState({ tipoFormulario: 'diagnostico_inicial', nombre: '', descripcion: '' });
   const [campoForm, setCampoForm] = useState<CampoForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const [historialAbierto, setHistorialAbierto] = useState<Record<string, boolean>>({});
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -246,50 +249,113 @@ export function FormBuilderPage() {
 
   const grupos = campos.filter(c => c.tipoCampo === 'grupo_repetible');
 
+  // Agrupa por tipo: una tarjeta por formulario con su versión vigente (activa, o la
+  // más reciente) al frente y las versiones anteriores plegadas.
+  const gruposPorTipo = useMemo(() => {
+    const map = new Map<string, Plantilla[]>();
+    for (const p of plantillas) {
+      const arr = map.get(p.tipoFormulario) ?? [];
+      arr.push(p);
+      map.set(p.tipoFormulario, arr);
+    }
+    const tiposOrdenados = [
+      ...TIPOS_FORMULARIO.filter(tp => map.has(tp)),
+      ...[...map.keys()].filter(tp => !TIPOS_FORMULARIO.includes(tp as (typeof TIPOS_FORMULARIO)[number])),
+    ];
+    return tiposOrdenados.map(tipo => {
+      const versiones = [...map.get(tipo)!].sort((a, b) => b.version - a.version);
+      const actual = versiones.find(v => v.activa) ?? versiones[0];
+      return { tipo, actual, anteriores: versiones.filter(v => v.id !== actual.id) };
+    });
+  }, [plantillas]);
+
   return (
     <div style={{ padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '1.4rem', margin: 0 }}>{t('formularios:builder.title')}</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginTop: 6 }}>
-            {t('formularios:builder.subtitle')}
-          </p>
-        </div>
-        <button className="btn" onClick={() => setModalOpen(true)}>+ {t('formularios:builder.new')}</button>
-      </div>
+      <PageHeader
+        title={t('formularios:builder.title')}
+        description={t('formularios:builder.subtitle')}
+        actions={<button className="btn" onClick={() => setModalOpen(true)}>+ {t('formularios:builder.new')}</button>}
+      />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && plantillas.length === 0 && <p>{t('formularios:builder.empty')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && plantillas.length === 0 && <EmptyState title={t('formularios:builder.empty')} />}
 
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', marginTop: '1rem' }}>
-        {plantillas.map(p => (
-          <div
-            key={p.id}
-            className="card"
-            style={{
-              padding: '1rem',
-              cursor: 'pointer',
-              border: selected?.id === p.id ? '2px solid #14B8A6' : undefined,
-              opacity: p.activa ? 1 : 0.55,
-            }}
-            onClick={() => openPlantilla(p)}
-          >
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#14B8A6', textTransform: 'uppercase' }}>
-              {t(`formularios:tipos.${p.tipoFormulario}`)} · {t('formularios:builder.version', { version: p.version })}
+      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', marginTop: '1rem' }}>
+        {gruposPorTipo.map(({ tipo, actual, anteriores }) => {
+          const abierto = historialAbierto[tipo] ?? false;
+          return (
+            <div
+              key={tipo}
+              className="card"
+              style={{
+                padding: '1rem',
+                cursor: 'pointer',
+                border: selected?.id === actual.id ? '2px solid #14B8A6' : undefined,
+                opacity: actual.activa ? 1 : 0.55,
+              }}
+              onClick={() => openPlantilla(actual)}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#14B8A6', textTransform: 'uppercase' }}>
+                {t(`formularios:tipos.${actual.tipoFormulario}`)} · {t('formularios:builder.version', { version: actual.version })}
+              </div>
+              <div style={{ fontWeight: 600, margin: '4px 0' }}>{actual.nombre}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                {actual._count.campos} {t('formularios:builder.campos.title').toLowerCase()} · {t('formularios:builder.respuestas', { count: actual._count.respuestas })} ·{' '}
+                {actual.activa ? t('formularios:builder.active') : t('formularios:builder.inactive')}
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: '0.8rem' }} onClick={e => e.stopPropagation()}>
+                <button className="btn-link" onClick={() => duplicar(actual)}>{t('formularios:builder.duplicate')}</button>
+                <button className="btn-link" onClick={() => toggleActiva(actual)}>
+                  {actual.activa ? t('formularios:builder.deactivate') : t('formularios:builder.activate')}
+                </button>
+                {actual.tipoFormulario === 'diagnostico_inicial' && (
+                  <Link className="btn-link" to="/admin/diagnostico-inicial-global">
+                    {t('formularios:builder.ver_respuestas')}
+                  </Link>
+                )}
+              </div>
+
+              {anteriores.length > 0 && (
+                <div style={{ marginTop: 10, borderTop: '1px solid var(--color-border)', paddingTop: 8 }} onClick={e => e.stopPropagation()}>
+                  <button
+                    className="btn-link"
+                    style={{ fontSize: '0.78rem' }}
+                    onClick={() => setHistorialAbierto(h => ({ ...h, [tipo]: !abierto }))}
+                  >
+                    {abierto ? '▾' : '▸'} {t('formularios:builder.versiones_anteriores', { count: anteriores.length })}
+                  </button>
+                  {abierto && (
+                    <div style={{ marginTop: 6, display: 'grid', gap: 6 }}>
+                      {anteriores.map(v => (
+                        <div
+                          key={v.id}
+                          onClick={() => openPlantilla(v)}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+                            fontSize: '0.78rem', padding: '4px 6px', borderRadius: 6,
+                            background: 'var(--color-bg-subtle, rgba(0,0,0,0.03))',
+                            cursor: 'pointer', opacity: v.activa ? 1 : 0.7,
+                          }}
+                        >
+                          <span>
+                            {t('formularios:builder.version', { version: v.version })} · {t('formularios:builder.respuestas', { count: v._count.respuestas })}
+                            {v.activa ? ` · ${t('formularios:builder.active')}` : ''}
+                          </span>
+                          <span style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
+                            <button className="btn-link" onClick={() => toggleActiva(v)}>
+                              {v.activa ? t('formularios:builder.deactivate') : t('formularios:builder.activate')}
+                            </button>
+                            <button className="btn-link" onClick={() => duplicar(v)}>{t('formularios:builder.duplicate')}</button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div style={{ fontWeight: 600, margin: '4px 0' }}>{p.nombre}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-              {p._count.campos} {t('formularios:builder.campos.title').toLowerCase()} · {t('formularios:builder.respuestas', { count: p._count.respuestas })} ·{' '}
-              {p.activa ? t('formularios:builder.active') : t('formularios:builder.inactive')}
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: '0.8rem' }} onClick={e => e.stopPropagation()}>
-              <button className="btn-link" onClick={() => duplicar(p)}>{t('formularios:builder.duplicate')}</button>
-              <button className="btn-link" onClick={() => toggleActiva(p)}>
-                {p.activa ? t('formularios:builder.deactivate') : t('formularios:builder.activate')}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {selected && (
@@ -305,21 +371,21 @@ export function FormBuilderPage() {
             )}
           </div>
           {inmutable && (
-            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', color: '#78350F', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem', marginTop: 10 }}>
-              {t('formularios:builder.immutable_hint')}
+            <div style={{ marginTop: 10 }}>
+              <Alert variant="warning">{t('formularios:builder.immutable_hint')}</Alert>
             </div>
           )}
-          {campos.length === 0 && <p style={{ marginTop: 12 }}>{t('formularios:builder.campos.empty')}</p>}
+          {campos.length === 0 && <EmptyState title={t('formularios:builder.campos.empty')} />}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
             {campos.map((c, i) => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--color-border, #E2E8F0)', borderRadius: 8, padding: '8px 12px', marginLeft: c.campoPadreId ? 24 : 0 }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748B', minWidth: 90 }}>
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px', marginLeft: c.campoPadreId ? 24 : 0 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 90 }}>
                   {t(`formularios:tipos_campo.${c.tipoCampo}`)}
                 </span>
                 <span style={{ flex: 1, fontSize: '0.9rem' }}>
                   {c.etiqueta}
-                  {c.esObligatorio && <span style={{ color: '#DC2626' }}> *</span>}
+                  {c.esObligatorio && <span style={{ color: 'var(--color-danger)' }}> *</span>}
                   {c.dimension && (
                     <span style={{ fontSize: '0.72rem', color: '#0D9488', marginLeft: 8 }}>[{c.dimension}]</span>
                   )}
@@ -345,7 +411,7 @@ export function FormBuilderPage() {
                     >
                       {t('formularios:builder.campos.edit')}
                     </button>
-                    <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => borrarCampo(c)}>
+                    <button className="btn-link btn-link-danger" onClick={() => borrarCampo(c)}>
                       {t('formularios:builder.campos.delete')}
                     </button>
                   </span>
@@ -355,65 +421,55 @@ export function FormBuilderPage() {
           </div>
 
           {campoForm && !inmutable && (
-            <div style={{ marginTop: 16, borderTop: '1px solid #E2E8F0', paddingTop: 16, display: 'grid', gap: 10, maxWidth: 640 }}>
-              <label style={{ fontSize: '0.82rem' }}>
-                {t('formularios:builder.campos.tipo')}
+            <div style={{ marginTop: 16, borderTop: '1px solid var(--color-border)', paddingTop: 16, maxWidth: 640 }}>
+              <Field label={t('formularios:builder.campos.tipo')}>
                 <select
                   className="input"
                   value={campoForm.tipoCampo}
                   onChange={e => setCampoForm({ ...campoForm, tipoCampo: e.target.value })}
-                  style={{ display: 'block', width: '100%', marginTop: 4 }}
                 >
                   {TIPOS_CAMPO.map(tc => (
                     <option key={tc} value={tc}>{t(`formularios:tipos_campo.${tc}`)}</option>
                   ))}
                 </select>
-              </label>
-              <label style={{ fontSize: '0.82rem' }}>
-                {t('formularios:builder.campos.etiqueta')}
+              </Field>
+              <Field label={t('formularios:builder.campos.etiqueta')}>
                 <input
                   className="input"
                   value={campoForm.etiqueta}
                   onChange={e => setCampoForm({ ...campoForm, etiqueta: e.target.value })}
-                  style={{ display: 'block', width: '100%', marginTop: 4 }}
                 />
-              </label>
-              <label style={{ fontSize: '0.82rem' }}>
-                {t('formularios:builder.campos.descripcion')}
+              </Field>
+              <Field label={t('formularios:builder.campos.descripcion')}>
                 <input
                   className="input"
                   value={campoForm.descripcion}
                   onChange={e => setCampoForm({ ...campoForm, descripcion: e.target.value })}
-                  style={{ display: 'block', width: '100%', marginTop: 4 }}
                 />
-              </label>
-              <label style={{ fontSize: '0.82rem' }}>
-                {t('formularios:builder.campos.dimension')}
+              </Field>
+              <Field label={t('formularios:builder.campos.dimension')}>
                 <input
                   className="input"
                   value={campoForm.dimension}
                   onChange={e => setCampoForm({ ...campoForm, dimension: e.target.value })}
                   placeholder={t('formularios:builder.campos.dimension_hint')}
-                  style={{ display: 'block', width: '100%', marginTop: 4 }}
                 />
-              </label>
+              </Field>
               {grupos.length > 0 && (
-                <label style={{ fontSize: '0.82rem' }}>
-                  {t('formularios:builder.campos.padre')}
+                <Field label={t('formularios:builder.campos.padre')}>
                   <select
                     className="input"
                     value={campoForm.campoPadreId}
                     onChange={e => setCampoForm({ ...campoForm, campoPadreId: e.target.value })}
-                    style={{ display: 'block', width: '100%', marginTop: 4 }}
                   >
                     <option value="">{t('formularios:builder.campos.sin_padre')}</option>
                     {grupos.filter(g => g.id !== campoForm.id).map(g => (
                       <option key={g.id} value={g.id}>{g.etiqueta}</option>
                     ))}
                   </select>
-                </label>
+                </Field>
               )}
-              <label style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem' }}>
                 <input
                   type="checkbox"
                   checked={campoForm.esObligatorio}
@@ -421,17 +477,15 @@ export function FormBuilderPage() {
                 />
                 {t('formularios:builder.campos.obligatorio')}
               </label>
-              <label style={{ fontSize: '0.82rem' }}>
-                {t('formularios:builder.campos.config')}
+              <Field label={t('formularios:builder.campos.config')} hint={configHint}>
                 <textarea
                   className="textarea"
                   value={campoForm.configText}
                   onChange={e => setCampoForm({ ...campoForm, configText: e.target.value })}
                   rows={5}
-                  style={{ display: 'block', width: '100%', marginTop: 4, fontFamily: 'monospace', fontSize: '0.78rem' }}
+                  style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}
                 />
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>{configHint}</span>
-              </label>
+              </Field>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn" disabled={saving || !campoForm.etiqueta.trim()} onClick={guardarCampo}>
                   {t('formularios:builder.campos.save')}
@@ -445,51 +499,47 @@ export function FormBuilderPage() {
         </div>
       )}
 
-      {modalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ padding: '1.5rem', width: 420, background: 'var(--color-surface, #fff)' }}>
-            <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>{t('formularios:builder.form.title_new')}</h2>
-            <label style={{ fontSize: '0.82rem', display: 'block', marginBottom: 10 }}>
-              {t('formularios:builder.form.tipo')}
-              <select
-                className="input"
-                value={nueva.tipoFormulario}
-                onChange={e => setNueva({ ...nueva, tipoFormulario: e.target.value })}
-                style={{ display: 'block', width: '100%', marginTop: 4 }}
-              >
-                {TIPOS_FORMULARIO.map(tf => (
-                  <option key={tf} value={tf}>{t(`formularios:tipos.${tf}`)}</option>
-                ))}
-              </select>
-            </label>
-            <label style={{ fontSize: '0.82rem', display: 'block', marginBottom: 10 }}>
-              {t('formularios:builder.form.nombre')}
-              <input
-                className="input"
-                value={nueva.nombre}
-                onChange={e => setNueva({ ...nueva, nombre: e.target.value })}
-                style={{ display: 'block', width: '100%', marginTop: 4 }}
-              />
-            </label>
-            <label style={{ fontSize: '0.82rem', display: 'block', marginBottom: 14 }}>
-              {t('formularios:builder.form.descripcion')}
-              <textarea
-                className="textarea"
-                value={nueva.descripcion}
-                onChange={e => setNueva({ ...nueva, descripcion: e.target.value })}
-                rows={3}
-                style={{ display: 'block', width: '100%', marginTop: 4 }}
-              />
-            </label>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn-link" onClick={() => setModalOpen(false)}>{t('formularios:builder.form.cancel')}</button>
-              <button className="btn" disabled={saving || !nueva.nombre.trim()} onClick={crearPlantilla}>
-                {t('formularios:builder.form.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={t('formularios:builder.form.title_new')}
+        maxWidth={420}
+        footer={
+          <>
+            <button className="btn-link" onClick={() => setModalOpen(false)}>{t('formularios:builder.form.cancel')}</button>
+            <button className="btn" disabled={saving || !nueva.nombre.trim()} onClick={crearPlantilla}>
+              {t('formularios:builder.form.save')}
+            </button>
+          </>
+        }
+      >
+        <Field label={t('formularios:builder.form.tipo')}>
+          <select
+            className="input"
+            value={nueva.tipoFormulario}
+            onChange={e => setNueva({ ...nueva, tipoFormulario: e.target.value })}
+          >
+            {TIPOS_FORMULARIO.map(tf => (
+              <option key={tf} value={tf}>{t(`formularios:tipos.${tf}`)}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t('formularios:builder.form.nombre')}>
+          <input
+            className="input"
+            value={nueva.nombre}
+            onChange={e => setNueva({ ...nueva, nombre: e.target.value })}
+          />
+        </Field>
+        <Field label={t('formularios:builder.form.descripcion')}>
+          <textarea
+            className="textarea"
+            value={nueva.descripcion}
+            onChange={e => setNueva({ ...nueva, descripcion: e.target.value })}
+            rows={3}
+          />
+        </Field>
+      </Modal>
     </div>
   );
 }

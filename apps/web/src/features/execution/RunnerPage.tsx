@@ -10,6 +10,7 @@ import { Toast } from '../../components/Toast';
 import { buildResumenHtml } from './buildResumenHtml';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { StatusBadge } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -103,21 +104,21 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
         style={{ height: 36, objectFit: 'contain', flexShrink: 0, justifySelf: 'start' }}
       />
 
-      <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
+      <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-main)', letterSpacing: '-0.02em' }}>
         {t('app_name')}
       </span>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end' }}>
         {(nombreEmpresa || nombreActividad) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0 }}>
-            <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 20, background: 'var(--color-border)', flexShrink: 0 }} />
             {logoEmpresa ? (
               <img src={logoEmpresa} alt={nombreEmpresa}
-                style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', flexShrink: 0, border: '1px solid #E2E8F0' }} />
+                style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', flexShrink: 0, border: '1px solid var(--color-border)' }} />
             ) : nombreEmpresa ? (
               <div style={{
                 width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+                background: 'linear-gradient(135deg, var(--color-primary), var(--color-text-main))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.6rem', fontWeight: 700, color: 'white',
               }}>
@@ -125,16 +126,16 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
               </div>
             ) : null}
             <span style={{
-              fontSize: '0.78rem', color: '#475569', overflow: 'hidden',
+              fontSize: '0.78rem', color: 'var(--color-text-secondary)', overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {nombreEmpresa && <span style={{ fontWeight: 600 }}>{nombreEmpresa}</span>}
-              {nombreEmpresa && nombreActividad && <span style={{ color: '#CBD5E1', margin: '0 5px' }}>·</span>}
+              {nombreEmpresa && nombreActividad && <span style={{ color: 'var(--color-border-strong)', margin: '0 5px' }}>·</span>}
               {nombreActividad && <span>{nombreActividad}</span>}
             </span>
           </div>
         )}
-        <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 20, background: 'var(--color-border)', flexShrink: 0 }} />
         <LanguageSwitcher variant="header" />
       </div>
     </div>
@@ -149,7 +150,7 @@ function SectionBlock({
   color: 'blue' | 'violet' | 'purple'; children: React.ReactNode;
 }) {
   const palette = {
-    blue:   { bg: '#EFF6FF', border: '#BFDBFE', accent: '#2563EB', titleColor: '#1D4ED8', descColor: '#3B82F6' },
+    blue:   { bg: 'var(--color-primary-light)', border: 'var(--color-info-border)', accent: 'var(--color-primary)', titleColor: 'var(--color-primary-hover)', descColor: '#3B82F6' },
     violet: { bg: '#FDFCFF', border: '#EDE9FE', accent: '#7C3AED', titleColor: '#5B21B6', descColor: '#7C3AED' },
     purple: { bg: '#F5F3FF', border: '#DDD6FE', accent: '#8B5CF6', titleColor: '#6D28D9', descColor: '#7C3AED' },
   };
@@ -192,11 +193,11 @@ function ActivityBranding({ nombreActividad, nombreEmpresa, logoEmpresa, border 
     }}>
       {logoEmpresa ? (
         <img src={logoEmpresa} alt={nombreEmpresa}
-          style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0', background: '#fff', display: 'block', margin: '0 auto 10px' }} />
+          style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'contain', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', display: 'block', margin: '0 auto 10px' }} />
       ) : nombreEmpresa ? (
         <div style={{
           width: 64, height: 64, borderRadius: 12,
-          background: 'linear-gradient(135deg, #2563EB, #0F172A)',
+          background: 'linear-gradient(135deg, var(--color-primary), var(--color-text-main))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '1.4rem', fontWeight: 700, color: 'white',
           margin: '0 auto 10px',
@@ -221,7 +222,7 @@ function StepPills({ total, current }: { total: number; current: number }) {
           flex: 1,
           maxWidth: 48,
           borderRadius: 9999,
-          background: i < current ? '#2563EB' : i === current ? '#93C5FD' : '#E2E8F0',
+          background: i < current ? 'var(--color-primary)' : i === current ? '#93C5FD' : 'var(--color-border)',
           transition: 'background 0.3s ease',
         }} />
       ))}
@@ -752,9 +753,8 @@ export function RunnerPage() {
     <>
       <RunnerHeader />
       <div className="runner-center" style={{ paddingTop: 52 }}>
-        <div style={{ width: 20, height: 20, border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <span className="spinner" aria-hidden="true" />
         {t('execution:runner.loading_activity')}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </>
   );
@@ -762,7 +762,7 @@ export function RunnerPage() {
   if (error) return (
     <>
       <RunnerHeader />
-      <div className="runner-center" style={{ paddingTop: 52, color: '#EF4444' }}>⚠ {error}</div>
+      <div className="runner-center" style={{ paddingTop: 52, color: 'var(--color-danger)' }}>⚠ {error}</div>
     </>
   );
 
@@ -915,7 +915,7 @@ export function RunnerPage() {
             />
             <div style={{
               width: 64, height: 64, borderRadius: '50%',
-              background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--color-success-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.5rem', fontSize: '1.75rem',
             }}>✓</div>
             <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>{t('execution:runner.completed.title')}</h1>
@@ -1007,7 +1007,7 @@ export function RunnerPage() {
                           {t('execution:runner.plantilla_anterior.step_label', { orden: r.pasoOrden, titulo: r.pasoTitulo })}
                         </div>
                         {contenido ? (
-                          <div style={{ fontSize: '0.875rem', color: '#1E293B', lineHeight: 1.65 }} className="markdown-anterior">
+                          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-main)', lineHeight: 1.65 }} className="markdown-anterior">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{contenido}</ReactMarkdown>
                           </div>
                         ) : (
@@ -1029,9 +1029,7 @@ export function RunnerPage() {
                 {t('execution:runner.step_progress', { current: currentStepIndex + 1, total: data.pasos.length })}
               </span>
               {isLastStep && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D97706', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 10px', borderRadius: 9999 }}>
-                  {t('execution:runner.last_step')}
-                </span>
+                <StatusBadge variant="warning">{t('execution:runner.last_step')}</StatusBadge>
               )}
             </div>
           </div>
@@ -1058,8 +1056,8 @@ export function RunnerPage() {
                 <div style={{
                   marginTop: currentPaso.instrucciones ? 14 : 0,
                   padding: '10px 14px',
-                  background: '#F0FDF4',
-                  border: '1px solid #86EFAC',
+                  background: 'var(--color-success-bg)',
+                  border: '1px solid var(--color-success-border)',
                   borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
@@ -1067,12 +1065,12 @@ export function RunnerPage() {
                   flexWrap: 'wrap',
                 }}>
                   <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#14532D' }}>{t('execution:runner.example_file.title')}</span>
-                  <span style={{ fontSize: '0.78rem', color: '#166534', flex: 1, minWidth: 160 }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--color-success-strong)', flex: 1, minWidth: 160 }}>
                     {t('execution:runner.example_file.subtitle')}
                   </span>
                   <button
                     className="btn"
-                    style={{ padding: '5px 14px', fontSize: '0.82rem', background: '#16A34A', color: 'white', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}
+                    style={{ padding: '5px 14px', fontSize: '0.82rem', background: 'var(--color-success-strong)', color: 'white', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}
                     onClick={async () => {
                       try {
                         const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
@@ -1098,7 +1096,7 @@ export function RunnerPage() {
 
             return (
               <div key={pregunta.id} style={{
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--color-border)',
                 borderRadius: 12,
                 overflow: 'hidden',
                 marginBottom: 16,
@@ -1107,16 +1105,16 @@ export function RunnerPage() {
                 <div style={{
                   display: 'flex', alignItems: 'flex-start', gap: 10,
                   padding: '12px 20px',
-                  background: '#F8FAFC',
-                  borderBottom: '1px solid #E2E8F0',
+                  background: 'var(--color-bg-page)',
+                  borderBottom: '1px solid var(--color-border)',
                 }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                    background: '#0F172A', color: 'white',
+                    background: 'var(--color-text-main)', color: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.7rem', fontWeight: 700, marginTop: 2,
                   }}>{qIdx + 1}</div>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.6, fontWeight: 500 }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.6, fontWeight: 500 }}>
                     {pregunta.enunciado}
                   </p>
                 </div>
@@ -1128,12 +1126,12 @@ export function RunnerPage() {
                   {/* Template download — order 0 when iaFirst: shown before IA and before upload */}
                   {iaFirst && pregunta.urlPlantilla && (
                     <div style={{ order: 0 }}>
-                      <div style={{ padding: '16px 20px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10 }}>
+                      <div style={{ padding: '16px 20px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: '#16A34A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: 'var(--color-success-strong)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
                           <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>{t('execution:runner.plantilla_priorizacion.title')}</span>
                         </div>
-                        <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
+                        <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: 'var(--color-success-strong)', lineHeight: 1.5 }}>
                           {t('execution:runner.plantilla_priorizacion.description')}
                         </p>
                         <div style={{ marginLeft: 34 }}>
@@ -1145,12 +1143,12 @@ export function RunnerPage() {
                             <button
                               onClick={() => handleDescargarPlantillaPrediligenciada(currentPaso.id, pregunta.id)}
                               disabled={descargandoExcel}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white', borderRadius: 8, fontWeight: 600, border: 'none', cursor: descargandoExcel ? 'wait' : 'pointer', boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)' }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: descargandoExcel ? 'var(--color-success-bg)' : 'var(--color-success-strong)', color: descargandoExcel ? 'var(--color-success-strong)' : 'white', borderRadius: 8, fontWeight: 600, border: 'none', cursor: descargandoExcel ? 'wait' : 'pointer', boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)' }}
                             >
                               {descargandoExcel ? t('execution:runner.plantilla_priorizacion.generating') : t('execution:runner.plantilla_priorizacion.download_prefilled')}
                             </button>
                           ) : (
-                            <a href={pregunta.urlPlantilla} download style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: '#16A34A', color: 'white', borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none', boxShadow: '0 1px 4px rgba(22,163,74,0.3)' }}>
+                            <a href={pregunta.urlPlantilla} download style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', fontSize: '0.85rem', background: 'var(--color-success-strong)', color: 'white', borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none', boxShadow: '0 1px 4px rgba(22,163,74,0.3)' }}>
                               {t('execution:runner.plantilla_priorizacion.download_empty')}
                             </a>
                           )}
@@ -1164,11 +1162,11 @@ export function RunnerPage() {
                     <div style={iaFirst ? { order: 1 } : undefined}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <span style={{
-                          fontSize: '0.72rem', fontWeight: 700, color: '#1D4ED8',
-                          background: '#EFF6FF', border: '1px solid #BFDBFE',
+                          fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-hover)',
+                          background: 'var(--color-primary-light)', border: '1px solid var(--color-info-border)',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
                         }}>{t('execution:runner.your_response_label')}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                           {(pregunta.permitirArchivo || pregunta.soloArchivo)
                             ? t('execution:runner.your_response_help_file')
                             : pregunta.usarIa
@@ -1193,12 +1191,12 @@ export function RunnerPage() {
 
                           {!iaFirst && pregunta.urlPlantilla && (() => {
                             return (
-                              <div style={{ padding: '16px 20px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10 }}>
+                              <div style={{ padding: '16px 20px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: '#16A34A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
+                                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: 'var(--color-success-strong)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>1</div>
                                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#14532D' }}>{t('execution:runner.plantilla_priorizacion.title')}</span>
                                 </div>
-                                <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: '#166534', lineHeight: 1.5 }}>
+                                <p style={{ margin: '0 0 12px 34px', fontSize: '0.82rem', color: 'var(--color-success-strong)', lineHeight: 1.5 }}>
                                   {t('execution:runner.plantilla_priorizacion.description')}
                                 </p>
                                 <div style={{ marginLeft: 34 }}>
@@ -1213,7 +1211,7 @@ export function RunnerPage() {
                                       style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 8,
                                         padding: '8px 18px', fontSize: '0.85rem',
-                                        background: descargandoExcel ? '#DCFCE7' : '#16A34A', color: descargandoExcel ? '#166534' : 'white',
+                                        background: descargandoExcel ? 'var(--color-success-bg)' : 'var(--color-success-strong)', color: descargandoExcel ? 'var(--color-success-strong)' : 'white',
                                         borderRadius: 8, fontWeight: 600, border: 'none', cursor: descargandoExcel ? 'wait' : 'pointer',
                                         boxShadow: descargandoExcel ? 'none' : '0 1px 4px rgba(22,163,74,0.3)',
                                       }}
@@ -1224,7 +1222,7 @@ export function RunnerPage() {
                                     <a href={pregunta.urlPlantilla} download style={{
                                       display: 'inline-flex', alignItems: 'center', gap: 8,
                                       padding: '8px 18px', fontSize: '0.85rem',
-                                      background: '#16A34A', color: 'white',
+                                      background: 'var(--color-success-strong)', color: 'white',
                                       borderRadius: 8, fontWeight: 600, border: 'none', textDecoration: 'none',
                                       boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
                                     }}>{t('execution:runner.plantilla_priorizacion.download_empty')}</a>
@@ -1237,23 +1235,23 @@ export function RunnerPage() {
                           {/* Subir archivo */}
                           <div style={{
                             padding: '16px 20px',
-                            background: archivoResp ? '#EFF6FF' : '#F8FAFC',
-                            border: `2px ${archivoResp ? 'solid #93C5FD' : 'dashed #CBD5E1'}`,
+                            background: archivoResp ? 'var(--color-primary-light)' : 'var(--color-bg-page)',
+                            border: `2px ${archivoResp ? 'solid #93C5FD' : 'dashed var(--color-border-strong)'}`,
                             borderRadius: 10,
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                              <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: archivoResp ? '#2563EB' : '#94A3B8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
+                              <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: archivoResp ? 'var(--color-primary)' : 'var(--color-text-tertiary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
                                 {pregunta.urlPlantilla ? '2' : '1'}
                               </div>
-                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoResp ? '#1E3A8A' : '#475569' }}>{t('execution:runner.upload_file.title')}</span>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: archivoResp ? '#1E3A8A' : 'var(--color-text-secondary)' }}>{t('execution:runner.upload_file.title')}</span>
                             </div>
                             <div style={{ marginLeft: 34, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                               <label style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 8,
                                 padding: '8px 18px', fontSize: '0.85rem',
-                                background: archivoResp ? '#DBEAFE' : 'white', color: archivoResp ? '#1D4ED8' : '#475569',
+                                background: archivoResp ? 'var(--color-primary-muted)' : 'white', color: archivoResp ? 'var(--color-primary-hover)' : 'var(--color-text-secondary)',
                                 borderRadius: 8, cursor: 'pointer', fontWeight: 600,
-                                border: `1px solid ${archivoResp ? '#93C5FD' : '#CBD5E1'}`,
+                                border: `1px solid ${archivoResp ? '#93C5FD' : 'var(--color-border-strong)'}`,
                               }}>
                                 {archivoResp ? `✓ ${archivoResp.name}` : t('execution:runner.upload_file.select_button')}
                                 <input type="file" accept=".xlsx,.xls,.csv"
@@ -1271,7 +1269,7 @@ export function RunnerPage() {
                               if (!prev?.archivoNombre || !prev?.archivoKey) return null;
                               return (
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{t('execution:runner.upload_file.already_uploaded')} <strong>{prev.archivoNombre}</strong></span>
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('execution:runner.upload_file.already_uploaded')} <strong>{prev.archivoNombre}</strong></span>
                                   <button
                                     className="btn btn-secondary"
                                     style={{ padding: '3px 10px', fontSize: '0.75rem' }}
@@ -1305,7 +1303,7 @@ export function RunnerPage() {
                           background: '#F5F3FF', border: '1px solid #DDD6FE',
                           padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em',
                         }}>{t('execution:runner.ia_label')}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                           {pregunta.iaAutomatica
                             ? t('execution:runner.ia_help_automatica')
                             : t('execution:runner.ia_help_manual')}

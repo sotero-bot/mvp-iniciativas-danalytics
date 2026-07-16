@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Field, Loading, EmptyState } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -59,41 +60,45 @@ export function FacilitadorObservacionesPage() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <Link to="/facilitador/programas" style={{ fontSize: '0.85rem' }}>{t('facilitador:sesiones.back')}</Link>
-      <h1 style={{ fontSize: '1.4rem', margin: '0.75rem 0 1.25rem' }}>{t('facilitador:observaciones.title')}</h1>
+    <div className="page">
+      <PageHeader
+        back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
+        title={t('facilitador:observaciones.title')}
+      />
       {toast && <div className="toast">{toast}</div>}
 
-      <form onSubmit={enviar} className="card" style={{ padding: '1rem', marginBottom: '1.5rem', maxWidth: 480 }}>
+      <form onSubmit={enviar} className="card" style={{ marginBottom: '1.5rem', maxWidth: 480 }}>
         <div style={{ fontWeight: 600, marginBottom: 10 }}>{t('facilitador:observaciones.new')}</div>
-        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 4 }}>{t('facilitador:observaciones.tipo')}</label>
-        <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)} style={{ marginBottom: 10, width: '100%' }}>
-          {TIPOS.map((tp) => (
-            <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>
-          ))}
-        </select>
-        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 4 }}>{t('facilitador:observaciones.urgencia')}</label>
-        <select className="input" value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={{ marginBottom: 10, width: '100%' }}>
-          {URGENCIAS.map((u) => (
-            <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>
-          ))}
-        </select>
-        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 4 }}>{t('facilitador:observaciones.texto')}</label>
-        <textarea
-          className="input"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          rows={4}
-          style={{ width: '100%', marginBottom: 10 }}
-        />
+        <Field label={t('facilitador:observaciones.tipo')}>
+          <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+            {TIPOS.map((tp) => (
+              <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t('facilitador:observaciones.urgencia')}>
+          <select className="input" value={urgencia} onChange={(e) => setUrgencia(e.target.value)}>
+            {URGENCIAS.map((u) => (
+              <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t('facilitador:observaciones.texto')}>
+          <textarea
+            className="textarea"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            rows={4}
+          />
+        </Field>
         <button className="btn btn-primary" type="submit" disabled={sending}>
           {t('facilitador:observaciones.send')}
         </button>
       </form>
 
       <div style={{ fontWeight: 600, marginBottom: 10 }}>{t('facilitador:observaciones.history')}</div>
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && observaciones.length === 0 && <p>{t('facilitador:observaciones.empty')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && observaciones.length === 0 && <EmptyState title={t('facilitador:observaciones.empty')} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {observaciones.map((o) => (
           <div key={o.id} className="card" style={{ padding: '0.75rem 1rem' }}>

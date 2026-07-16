@@ -31,17 +31,9 @@ export function GoogleCallbackPage({ onLogin }: { onLogin: (token: string) => vo
   }, [params]);
 
   return (
-    <div style={{
-      display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
-      position: 'relative', padding: 24,
-    }}>
+    <div className="auth-layout-center">
       <LanguageSwitcher variant="floating" />
-      <div style={{
-        maxWidth: 420, width: '100%', padding: '2.5rem 2rem',
-        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 12, textAlign: 'center',
-      }}>
+      <div className="auth-status-card" role="status" aria-live="polite">
         <img src="/logo-horizontal.png" alt="Danalytics" style={{ height: 40, marginBottom: 24, objectFit: 'contain' }} />
 
         {status === 'loading' && (
@@ -55,7 +47,7 @@ export function GoogleCallbackPage({ onLogin }: { onLogin: (token: string) => vo
           <>
             <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✅</div>
             <h2 style={{ color: 'white', margin: 0, fontSize: '1.1rem' }}>{t('auth:google_callback.success')}</h2>
-            <p style={{ color: '#94A3B8', fontSize: '0.9rem', marginTop: 8 }}>{t('auth:google_callback.redirecting')}</p>
+            <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.9rem', marginTop: 8 }}>{t('auth:google_callback.redirecting')}</p>
           </>
         )}
 
@@ -63,7 +55,7 @@ export function GoogleCallbackPage({ onLogin }: { onLogin: (token: string) => vo
           <>
             <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
             <h2 style={{ color: 'white', margin: 0, fontSize: '1.1rem' }}>{t('auth:google_callback.error_title')}</h2>
-            <p style={{ color: '#FCA5A5', fontSize: '0.9rem', marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6 }}>
+            <p style={{ color: '#FCA5A5', fontSize: '0.9rem', marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)' }}>
               {t('auth:google_callback.no_token')}
             </p>
             <button className="btn btn-primary" onClick={() => navigate('/login', { replace: true })} style={{ marginTop: 20 }}>

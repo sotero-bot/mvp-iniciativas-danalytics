@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageHeader, Field, Alert, EmptyState } from '../../components/ui';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -109,14 +110,10 @@ export function ImportPage() {
 
   return (
     <div className="layout-content">
-      <div className="page-header">
-        <div>
-          <h1>{t('admin:import.page_title')}</h1>
-          <p className="page-description">
-            {t('admin:import.page_description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('admin:import.page_title')}
+        description={t('admin:import.page_description')}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
 
@@ -125,25 +122,22 @@ export function ImportPage() {
 
           {/* Selector de empresa */}
           <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: 8 }}>
-              {t('admin:import.empresa_label')} <span style={{ color: '#EF4444' }}>*</span>
-            </label>
-            <select
-              className="input"
-              style={{ marginBottom: 0 }}
-              value={empresaId}
-              onChange={e => setEmpresaId(e.target.value)}
+            <Field
+              label={t('admin:import.empresa_label')}
+              required
+              hint={empresas.length === 0 ? t('admin:import.empresas_empty') : undefined}
             >
-              <option value="">{t('admin:import.empresa_placeholder')}</option>
-              {empresas.map(e => (
-                <option key={e.id} value={e.id}>{e.nombre}</option>
-              ))}
-            </select>
-            {empresas.length === 0 && (
-              <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
-                {t('admin:import.empresas_empty')}
-              </p>
-            )}
+              <select
+                className="input"
+                value={empresaId}
+                onChange={e => setEmpresaId(e.target.value)}
+              >
+                <option value="">{t('admin:import.empresa_placeholder')}</option>
+                {empresas.map(e => (
+                  <option key={e.id} value={e.id}>{e.nombre}</option>
+                ))}
+              </select>
+            </Field>
           </div>
 
           {/* Drop zone */}
@@ -158,7 +152,7 @@ export function ImportPage() {
               padding: '2rem 1.5rem',
               textAlign: 'center',
               cursor: 'pointer',
-              background: dragging ? '#EFF6FF' : 'var(--color-bg-subtle)',
+              background: dragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
               transition: 'all 0.15s',
             }}
           >
@@ -172,9 +166,7 @@ export function ImportPage() {
           </div>
 
           {parseError && (
-            <div style={{ padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--radius-sm)', color: '#DC2626', fontSize: '0.875rem' }}>
-              ⚠ {parseError}
-            </div>
+            <Alert variant="danger">{parseError}</Alert>
           )}
 
           {/* Formato esperado */}
@@ -184,7 +176,7 @@ export function ImportPage() {
             </p>
             <pre style={{
               margin: 0, fontSize: '0.72rem', lineHeight: 1.6,
-              color: '#334155', background: '#F8FAFC',
+              color: 'var(--color-text-secondary)', background: 'var(--color-bg-page)',
               border: '1px solid var(--color-border)',
               borderRadius: 6, padding: '0.75rem',
               overflowX: 'auto', whiteSpace: 'pre',

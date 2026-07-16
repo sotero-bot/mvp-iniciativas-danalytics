@@ -94,13 +94,13 @@ describe('AdminProgramasController.updatePrograma — transición de estado (RF-
     await controller.createPrograma({
       nombre: 'P',
       empresaId: 'e1',
-      facilitadorId: 'f1',
+      facilitadorIds: ['f1'],
       estado: 'activo' as any,
     });
     expect(snapshotsMock.snapshotPrograma).toHaveBeenCalledTimes(1);
 
     snapshotsMock.snapshotPrograma.mockClear();
-    await controller.createPrograma({ nombre: 'P2', empresaId: 'e1', facilitadorId: 'f1' });
+    await controller.createPrograma({ nombre: 'P2', empresaId: 'e1', facilitadorIds: ['f1'] });
     expect(snapshotsMock.snapshotPrograma).not.toHaveBeenCalled();
   });
 

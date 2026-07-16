@@ -3,16 +3,19 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { ProgramasDashboardPanel } from './ProgramasDashboardPanel';
+import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader } from '../../components/ui';
+import type { StatusVariant } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 type EstadoPrograma = 'borrador' | 'activo' | 'finalizado' | 'cancelado';
 
-const ESTADO_COLORS: Record<EstadoPrograma, { bg: string; fg: string; border: string }> = {
-  borrador:   { bg: 'rgba(100,116,139,0.12)', fg: '#475569', border: 'rgba(100,116,139,0.35)' },
-  activo:     { bg: 'rgba(34,197,94,0.12)',   fg: '#15803D', border: 'rgba(34,197,94,0.35)' },
-  finalizado: { bg: 'rgba(37,99,235,0.12)',   fg: '#1D4ED8', border: 'rgba(37,99,235,0.35)' },
-  cancelado:  { bg: 'rgba(239,68,68,0.12)',   fg: '#B91C1C', border: 'rgba(239,68,68,0.35)' },
+const ESTADO_VARIANTS: Record<EstadoPrograma, StatusVariant> = {
+  borrador:   'neutral',
+  activo:     'success',
+  finalizado: 'info',
+  cancelado:  'danger',
 };
 
 interface EmpresaLite { id: string; nombre: string; }
@@ -23,17 +26,18 @@ interface Programa {
   nombre: string;
   descripcion: string | null;
   empresaId: string;
-  facilitadorId: string;
   estado: EstadoPrograma;
   timezone: string;
   diasGracia: number;
   fechaInicio: string | null;
   fechaFin: string | null;
   activo: boolean;
+  bitacoraHabilitadaEn: string | null; // O-01
   createdAt: string;
   updatedAt: string;
   empresa: { id: string; nombre: string } | null;
-  facilitador: { id: string; nombre: string; email: string | null } | null;
+  // C-01: N:M — un programa puede tener varios facilitadores.
+  facilitadores: { id: string; nombre: string; email: string | null }[];
   _count: { sesiones: number; participantes: number };
 }
 
@@ -42,30 +46,56 @@ interface TraduccionCampos {
   descripcion: string;
 }
 
+interface PlantillaGlobalLite {
+  id: string;
+  tipoFormulario: string;
+  nombre: string;
+  version: number;
+  activa: boolean;
+}
+
+// Tipos de formulario que se congelan en el snapshot del programa (RF-46), en orden.
+const TIPOS_SNAPSHOT = ['diagnostico_inicial', 'diagnostico_final', 'feedback', 'bitacora', 'plantilla_proyecto'];
+
+// Selección por defecto: la versión vigente (activa, o la más reciente) de cada tipo.
+// `globs` viene ordenado por version desc del backend.
+function defaultPlantillaSeleccion(globs: PlantillaGlobalLite[]): Record<string, string> {
+  const sel: Record<string, string> = {};
+  for (const tipo of TIPOS_SNAPSHOT) {
+    const delTipo = globs.filter(g => g.tipoFormulario === tipo);
+    if (delTipo.length === 0) continue;
+    sel[tipo] = (delTipo.find(g => g.activa) ?? delTipo[0]).id;
+  }
+  return sel;
+}
+
 interface FormState {
   nombre: string;
   descripcion: string;
   empresaId: string;
-  facilitadorId: string;
+  facilitadorIds: string[];
   estado: EstadoPrograma;
   timezone: string;
   diasGracia: number;
   fechaInicio: string;
   fechaFin: string;
   traduccionesPt: TraduccionCampos;
+  // RF-46: plantilla global elegida por tipo (''=ninguna). Solo aplica al crear.
+  plantillaSeleccion: Record<string, string>;
 }
 
 const emptyForm: FormState = {
   nombre: '',
   descripcion: '',
   empresaId: '',
-  facilitadorId: '',
+  facilitadorIds: [],
   estado: 'borrador',
   timezone: 'America/Bogota',
   diasGracia: 3,
   fechaInicio: '',
   fechaFin: '',
   traduccionesPt: { nombre: '', descripcion: '' },
+  plantillaSeleccion: {},
 };
 
 export function ProgramasPage() {
@@ -74,6 +104,7 @@ export function ProgramasPage() {
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaLite[]>([]);
   const [facilitadores, setFacilitadores] = useState<FacilitadorLite[]>([]);
+  const [plantillasGlobales, setPlantillasGlobales] = useState<PlantillaGlobalLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -87,6 +118,8 @@ export function ProgramasPage() {
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState<Programa | null>(null);
   const [detailOpen, setDetailOpen] = useState<Programa | null>(null);
+  // Matrícula rápida desde la lista, sin abrir el panel del programa.
+  const [matriculaFor, setMatriculaFor] = useState<Programa | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -129,12 +162,21 @@ export function ProgramasPage() {
     }
   };
 
-  useEffect(() => { loadEmpresas(); loadFacilitadores(); }, []);
+  const loadPlantillasGlobales = async () => {
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas-formulario`);
+      setPlantillasGlobales(await res.json());
+    } catch (err) {
+      showToast(translateError(err));
+    }
+  };
+
+  useEffect(() => { loadEmpresas(); loadFacilitadores(); loadPlantillasGlobales(); }, []);
   useEffect(() => { load(); }, [filterEmpresa, filterEstado]);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, plantillaSeleccion: defaultPlantillaSeleccion(plantillasGlobales) });
     setModalOpen(true);
   };
 
@@ -144,13 +186,14 @@ export function ProgramasPage() {
       nombre: p.nombre,
       descripcion: p.descripcion ?? '',
       empresaId: p.empresaId,
-      facilitadorId: p.facilitadorId,
+      facilitadorIds: p.facilitadores.map(f => f.id),
       estado: p.estado,
       timezone: p.timezone,
       diasGracia: p.diasGracia,
       fechaInicio: p.fechaInicio ? p.fechaInicio.slice(0, 10) : '',
       fechaFin: p.fechaFin ? p.fechaFin.slice(0, 10) : '',
       traduccionesPt: { nombre: '', descripcion: '' },
+      plantillaSeleccion: {}, // no aplica al editar (el snapshot ya está tomado)
     };
     setForm(baseForm);
     setModalOpen(true);
@@ -177,16 +220,18 @@ export function ProgramasPage() {
         nombre: form.nombre,
         descripcion: form.descripcion || null,
         empresaId: form.empresaId,
-        facilitadorId: form.facilitadorId,
+        facilitadorIds: form.facilitadorIds,
         estado: form.estado,
         timezone: form.timezone,
         diasGracia: form.diasGracia,
         fechaInicio: form.fechaInicio || null,
         fechaFin: form.fechaFin || null,
+        // RF-46: plantillas globales elegidas (una por tipo). Solo se envía al crear.
+        plantillaGlobalIds: Object.values(form.plantillaSeleccion).filter(Boolean),
       };
       let programaId: string;
       if (editing) {
-        const { empresaId, ...updateBody } = body;
+        const { empresaId, plantillaGlobalIds, ...updateBody } = body;
         await fetchWithErrorMapping(`${API_URL}/admin/programas/${editing.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -254,17 +299,18 @@ export function ProgramasPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{t('admin:programas.page_title')}</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-            {t('admin:programas.page_subtitle')}
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          + {t('admin:programas.actions.new')}
-        </button>
-      </div>
+      <PageHeader
+        title={t('admin:programas.page_title')}
+        description={t('admin:programas.page_subtitle')}
+        actions={
+          <button className="btn btn-primary" onClick={openCreate}>
+            + {t('admin:programas.actions.new')}
+          </button>
+        }
+      />
+
+      {/* RF-04: dashboard de programas activos */}
+      <ProgramasDashboardPanel />
 
       <div style={{
         display: 'grid',
@@ -272,23 +318,17 @@ export function ProgramasPage() {
         gap: 12,
         marginBottom: 16,
         padding: 16,
-        background: '#F8FAFC',
-        border: '1px solid #E2E8F0',
+        background: 'var(--color-bg-page)',
+        border: '1px solid var(--color-border)',
         borderRadius: 8,
       }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:programas.filters.empresa')}
-          </label>
+        <Field label={t('admin:programas.filters.empresa')}>
           <select className="input" value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}>
             <option value="">{t('admin:programas.filters.all')}</option>
             {empresaOptions.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:programas.filters.estado')}
-          </label>
+        </Field>
+        <Field label={t('admin:programas.filters.estado')}>
           <select className="input" value={filterEstado} onChange={e => setFilterEstado(e.target.value as any)}>
             <option value="">{t('admin:programas.filters.all')}</option>
             <option value="borrador">{t('programa:estado.borrador')}</option>
@@ -296,11 +336,8 @@ export function ProgramasPage() {
             <option value="finalizado">{t('programa:estado.finalizado')}</option>
             <option value="cancelado">{t('programa:estado.cancelado')}</option>
           </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: 4 }}>
-            {t('admin:programas.filters.search')}
-          </label>
+        </Field>
+        <Field label={t('admin:programas.filters.search')}>
           <input
             className="input"
             value={search}
@@ -309,63 +346,65 @@ export function ProgramasPage() {
             onBlur={load}
             placeholder={t('admin:programas.filters.search_placeholder')}
           />
-        </div>
+        </Field>
       </div>
 
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-container">
+        <table>
           <thead>
-            <tr style={{ background: '#F1F5F9', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:programas.columns.nombre')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:programas.columns.empresa')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('admin:programas.columns.facilitador')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('admin:programas.columns.estado')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('admin:programas.columns.sesiones')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('admin:programas.columns.participantes')}</th>
-              <th style={{ padding: '10px 14px', textAlign: 'right' }}>{t('admin:programas.columns.acciones')}</th>
+            <tr>
+              <th>{t('admin:programas.columns.nombre')}</th>
+              <th>{t('admin:programas.columns.empresa')}</th>
+              <th>{t('admin:programas.columns.facilitador')}</th>
+              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.estado')}</th>
+              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.sesiones')}</th>
+              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.participantes')}</th>
+              <th style={{ textAlign: 'right' }}>{t('admin:programas.columns.acciones')}</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94A3B8' }}>{t('common:loading')}</td></tr>
+              <tr><td colSpan={7}><Loading label={t('common:loading')} /></td></tr>
             )}
             {!loading && programas.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94A3B8' }}>{t('admin:programas.empty')}</td></tr>
+              <tr><td colSpan={7}><EmptyState title={t('admin:programas.empty')} /></td></tr>
             )}
             {programas.map(p => {
-              const c = ESTADO_COLORS[p.estado];
               return (
-                <tr key={p.id} style={{ borderTop: '1px solid #E2E8F0', opacity: p.activo ? 1 : 0.5 }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 500 }}>
+                <tr key={p.id} style={{ opacity: p.activo ? 1 : 0.5 }}>
+                  <td style={{ fontWeight: 500 }}>
                     <button className="btn-link" onClick={() => setDetailOpen(p)} style={{ padding: 0, textAlign: 'left' }}>
                       {p.nombre}
                     </button>
-                    {p.descripcion && <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{p.descripcion.slice(0, 80)}</div>}
+                    {p.descripcion && <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{p.descripcion.slice(0, 80)}</div>}
                   </td>
-                  <td style={{ padding: '10px 14px', fontSize: '0.85rem', color: '#475569' }}>
-                    {p.empresa?.nombre ?? <span style={{ color: '#CBD5E1' }}>—</span>}
+                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    {p.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
                   </td>
-                  <td style={{ padding: '10px 14px', fontSize: '0.85rem', color: '#475569' }}>
-                    {p.facilitador?.nombre ?? <span style={{ color: '#CBD5E1' }}>—</span>}
-                    {p.facilitador?.email && (
-                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{p.facilitador.email}</div>
+                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    {p.facilitadores.length === 0 ? (
+                      <span style={{ color: 'var(--color-border-strong)' }}>—</span>
+                    ) : (
+                      p.facilitadores.map(f => (
+                        <div key={f.id}>
+                          {f.nombre}
+                          {f.email && <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}> · {f.email}</span>}
+                        </div>
+                      ))
                     )}
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    <span style={{
-                      display: 'inline-block', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600,
-                      background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 999,
-                    }}>
+                  <td style={{ textAlign: 'center' }}>
+                    <StatusBadge variant={ESTADO_VARIANTS[p.estado]}>
                       {t(`programa:estado.${p.estado}`)}
-                    </span>
+                    </StatusBadge>
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '0.85rem', color: '#475569' }}>
+                  <td style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                     {p._count.sesiones}
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '0.85rem', color: '#475569' }}>
+                  <td style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                     {p._count.participantes}
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn-link" onClick={() => setDetailOpen(p)}>
                       {t('admin:programas.actions.details')}
                     </button>
@@ -377,10 +416,22 @@ export function ProgramasPage() {
                     <Link className="btn-link" to={`/admin/programas/${p.id}/diagnostico`}>
                       {t('admin:programas.actions.diagnostico')}
                     </Link>
+                    {' · '}
+                    <Link className="btn-link" to={`/admin/programas/${p.id}/asistencia`}>
+                      {t('admin:programas.actions.asistencia')}
+                    </Link>
+                    {p.activo && (
+                      <>
+                        {' · '}
+                        <button className="btn-link" onClick={() => setMatriculaFor(p)}>
+                          {t('admin:programas.actions.matricular')}
+                        </button>
+                      </>
+                    )}
                     {p.activo && p.estado !== 'cancelado' && (
                       <>
                         {' · '}
-                        <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => setDeleteModal(p)}>
+                        <button className="btn-link btn-link-danger" onClick={() => setDeleteModal(p)}>
                           {t('admin:programas.actions.cancel')}
                         </button>
                       </>
@@ -400,6 +451,7 @@ export function ProgramasPage() {
           editing={editing}
           empresas={empresaOptions}
           facilitadores={facilitadores}
+          plantillasGlobales={plantillasGlobales}
           saving={saving}
           onClose={() => setModalOpen(false)}
           onSubmit={submit}
@@ -410,6 +462,19 @@ export function ProgramasPage() {
         <ProgramaDetailDrawer
           programaId={detailOpen.id}
           onClose={() => setDetailOpen(null)}
+          onError={showToast}
+        />
+      )}
+
+      {matriculaFor && (
+        <MatriculaModal
+          programaId={matriculaFor.id}
+          empresaId={matriculaFor.empresaId}
+          onClose={() => setMatriculaFor(null)}
+          onSaved={() => {
+            showToast(t('admin:programas.toast.participant_added'));
+            load();
+          }}
           onError={showToast}
         />
       )}
@@ -426,39 +491,35 @@ interface ProgramaFormModalProps {
   editing: Programa | null;
   empresas: EmpresaLite[];
   facilitadores: FacilitadorLite[];
+  plantillasGlobales: PlantillaGlobalLite[];
   saving: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
 function ProgramaFormModal({
-  form, setForm, editing, empresas, facilitadores, saving, onClose, onSubmit,
+  form, setForm, editing, empresas, facilitadores, plantillasGlobales, saving, onClose, onSubmit,
 }: ProgramaFormModalProps) {
-  const { t } = useTranslation(['admin', 'common', 'programa']);
+  const { t } = useTranslation(['admin', 'common', 'programa', 'formularios']);
   const [langTab, setLangTab] = useState<'es' | 'pt'>('es');
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 12px',
-    borderBottom: active ? '2px solid #2563EB' : '2px solid transparent',
-    color: active ? '#2563EB' : '#64748B',
+    borderBottom: active ? '2px solid var(--color-primary)' : '2px solid transparent',
+    color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)',
     fontWeight: 500,
     fontSize: '0.8rem',
   });
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0 }}>
-            {editing ? t('admin:programas.modal.title_edit') : t('admin:programas.modal.title_create')}
-          </h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-          }}>×</button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={editing ? t('admin:programas.modal.title_edit') : t('admin:programas.modal.title_create')}
+      maxWidth={620}
+    >
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ borderBottom: '1px solid #E2E8F0', display: 'flex', gap: 4 }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 4 }}>
             <button type="button" onClick={() => setLangTab('es')} className="btn-link" style={tabStyle(langTab === 'es')}>
               🇪🇸 {t('admin:programas.lang.es')}
             </button>
@@ -469,41 +530,29 @@ function ProgramaFormModal({
 
           {langTab === 'es' ? (
             <>
-              <div>
-                <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.fields.nombre')}
-                </label>
+              <Field label={t('admin:programas.fields.nombre')} required>
                 <input className="input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.fields.descripcion')}
-                </label>
+              </Field>
+              <Field label={t('admin:programas.fields.descripcion')}>
                 <textarea
                   className="input"
                   value={form.descripcion}
                   onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
                   rows={3}
                 />
-              </div>
+              </Field>
             </>
           ) : (
             <>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.fields.nombre')} <span style={{ color: '#94A3B8', fontWeight: 400 }}>(pt)</span>
-                </label>
+              <Field label={<>{t('admin:programas.fields.nombre')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(pt)</span></>}>
                 <input
                   className="input"
                   value={form.traduccionesPt.nombre}
                   onChange={e => setForm(f => ({ ...f, traduccionesPt: { ...f.traduccionesPt, nombre: e.target.value } }))}
                   placeholder={form.nombre}
                 />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.fields.descripcion')} <span style={{ color: '#94A3B8', fontWeight: 400 }}>(pt)</span>
-                </label>
+              </Field>
+              <Field label={<>{t('admin:programas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(pt)</span></>}>
                 <textarea
                   className="input"
                   value={form.traduccionesPt.descripcion}
@@ -511,18 +560,15 @@ function ProgramaFormModal({
                   rows={3}
                   placeholder={form.descripcion || undefined}
                 />
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: -4 }}>
+              </Field>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: -4 }}>
                 {t('admin:programas.lang.hint')}
               </div>
             </>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.empresa')}
-              </label>
+          <div className="form-grid">
+            <Field label={t('admin:programas.fields.empresa')} required>
               <select
                 className="input"
                 value={form.empresaId}
@@ -533,45 +579,51 @@ function ProgramaFormModal({
                 <option value="">—</option>
                 {empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.facilitador')}
-              </label>
-              <select
-                className="input"
-                value={form.facilitadorId}
-                onChange={e => setForm(f => ({ ...f, facilitadorId: e.target.value }))}
-                required
-              >
-                <option value="">—</option>
-                {facilitadores.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-              </select>
-            </div>
+            </Field>
+            <Field label={t('admin:programas.fields.facilitadores')}>
+              {/* C-01: N:M — selección múltiple de facilitadores. */}
+              <div style={{
+                maxHeight: 140, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 6,
+                padding: '6px 10px',
+              }}>
+                {facilitadores.length === 0 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>{t('admin:programas.fields.sin_facilitadores')}</div>
+                )}
+                {facilitadores.map(f => {
+                  const checked = form.facilitadorIds.includes(f.id);
+                  return (
+                    <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: '0.85rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => setForm(fm => ({
+                          ...fm,
+                          facilitadorIds: e.target.checked
+                            ? [...fm.facilitadorIds, f.id]
+                            : fm.facilitadorIds.filter(id => id !== f.id),
+                        }))}
+                      />
+                      {f.nombre}
+                    </label>
+                  );
+                })}
+              </div>
+            </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.estado')}
-              </label>
+          <div className="form-grid form-grid-3">
+            <Field label={t('admin:programas.fields.estado')}>
               <select className="input" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value as EstadoPrograma }))}>
                 <option value="borrador">{t('programa:estado.borrador')}</option>
                 <option value="activo">{t('programa:estado.activo')}</option>
                 <option value="finalizado">{t('programa:estado.finalizado')}</option>
                 <option value="cancelado">{t('programa:estado.cancelado')}</option>
               </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.timezone')}
-              </label>
+            </Field>
+            <Field label={t('admin:programas.fields.timezone')}>
               <input className="input" value={form.timezone} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.dias_gracia')}
-              </label>
+            </Field>
+            <Field label={t('admin:programas.fields.dias_gracia')}>
               <input
                 type="number"
                 className="input"
@@ -580,23 +632,50 @@ function ProgramaFormModal({
                 max={90}
                 onChange={e => setForm(f => ({ ...f, diasGracia: Number(e.target.value) }))}
               />
-            </div>
+            </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.fecha_inicio')}
-              </label>
+          <div className="form-grid">
+            <Field label={t('admin:programas.fields.fecha_inicio')}>
               <input type="date" className="input" value={form.fechaInicio} onChange={e => setForm(f => ({ ...f, fechaInicio: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.fields.fecha_fin')}
-              </label>
+            </Field>
+            <Field label={t('admin:programas.fields.fecha_fin')}>
               <input type="date" className="input" value={form.fechaFin} onChange={e => setForm(f => ({ ...f, fechaFin: e.target.value }))} />
-            </div>
+            </Field>
           </div>
+
+          {/* RF-46: selección de plantillas del snapshot — solo al crear (después el
+              snapshot es inmutable). Una por tipo, opcional, default última versión. */}
+          {!editing && (
+            <Field label={t('admin:programas.plantillas.title')}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
+                {t('admin:programas.plantillas.hint')}
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {TIPOS_SNAPSHOT.map(tipo => {
+                  const opciones = plantillasGlobales.filter(g => g.tipoFormulario === tipo);
+                  if (opciones.length === 0) return null;
+                  return (
+                    <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ minWidth: 150, fontSize: '0.85rem' }}>{t(`formularios:tipos.${tipo}`)}</span>
+                      <select
+                        className="input"
+                        value={form.plantillaSeleccion[tipo] ?? ''}
+                        onChange={e => setForm(f => ({ ...f, plantillaSeleccion: { ...f.plantillaSeleccion, [tipo]: e.target.value } }))}
+                      >
+                        <option value="">{t('admin:programas.plantillas.ninguna')}</option>
+                        {opciones.map(o => (
+                          <option key={o.id} value={o.id}>
+                            {o.nombre} · v{o.version}{o.activa ? '' : ` (${t('admin:programas.plantillas.inactiva')})`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
@@ -607,8 +686,7 @@ function ProgramaFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -623,6 +701,7 @@ interface Sesion {
   descripcion: string | null;
   fechaProgramada: string;
   materialArchivoKey: string | null;
+  urlPresentacion: string | null;
   urlGrabacion: string | null;
   materialDesbloqueoEn: string | null;
   estado: 'pendiente' | 'completada';
@@ -773,19 +852,49 @@ function ProgramaDetailDrawer({
     }
   };
 
+  // O-01: habilitar/deshabilitar la bitácora para los grupos del programa.
+  const toggleBitacora = async () => {
+    if (!programa) return;
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/programas/${programa.id}/bitacora/habilitar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ habilitar: !programa.bitacoraHabilitadaEn }),
+      });
+      load();
+    } catch (err) {
+      onError(translateError(err));
+    }
+  };
+
   // RN-04: un estudiante en un solo grupo por programa → participantes aún sin grupo.
   const usuariosAsignados = new Set(grupos.flatMap(g => g.miembros.map(m => m.usuarioId)));
   const participantesSinGrupo = (programa?.participantes ?? [])
     .filter(p => p.activo && !usuariosAsignados.has(p.usuarioId));
 
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '8px 12px',
+    borderBottom: active ? '2px solid var(--color-primary)' : '2px solid transparent',
+    color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+    fontWeight: 500,
+  });
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 920, width: '95%' }}>
+      <div
+        className="modal-box"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="programa-detail-title"
+        style={{ maxWidth: 920, width: '95%' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <h2 style={{ margin: 0 }}>{programa?.nombre ?? '…'}</h2>
-            <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '0.85rem' }}>
-              {programa?.empresa?.nombre} · {programa?.facilitador?.nombre}
+            <h2 id="programa-detail-title" style={{ margin: 0 }}>{programa?.nombre ?? '…'}</h2>
+            <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+              {programa?.empresa?.nombre}
+              {programa && programa.facilitadores.length > 0 && ` · ${programa.facilitadores.map(f => f.nombre).join(', ')}`}
             </p>
           </div>
           <button onClick={onClose} style={{
@@ -794,46 +903,19 @@ function ProgramaDetailDrawer({
           }}>×</button>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #E2E8F0', marginBottom: 16 }}>
-          <button
-            onClick={() => setTab('sesiones')}
-            className="btn-link"
-            style={{
-              padding: '8px 12px',
-              borderBottom: tab === 'sesiones' ? '2px solid #2563EB' : '2px solid transparent',
-              color: tab === 'sesiones' ? '#2563EB' : '#64748B',
-              fontWeight: 500,
-            }}
-          >
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--color-border)', marginBottom: 16 }}>
+          <button onClick={() => setTab('sesiones')} className="btn-link" style={tabStyle(tab === 'sesiones')}>
             {t('admin:programas.tabs.sesiones')} ({programa?.sesiones.length ?? 0})
           </button>
-          <button
-            onClick={() => setTab('participantes')}
-            className="btn-link"
-            style={{
-              padding: '8px 12px',
-              borderBottom: tab === 'participantes' ? '2px solid #2563EB' : '2px solid transparent',
-              color: tab === 'participantes' ? '#2563EB' : '#64748B',
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={() => setTab('participantes')} className="btn-link" style={tabStyle(tab === 'participantes')}>
             {t('admin:programas.tabs.participantes')} ({programa?.participantes.length ?? 0})
           </button>
-          <button
-            onClick={() => setTab('grupos')}
-            className="btn-link"
-            style={{
-              padding: '8px 12px',
-              borderBottom: tab === 'grupos' ? '2px solid #2563EB' : '2px solid transparent',
-              color: tab === 'grupos' ? '#2563EB' : '#64748B',
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={() => setTab('grupos')} className="btn-link" style={tabStyle(tab === 'grupos')}>
             {t('admin:programas.tabs.grupos')} ({grupos.length})
           </button>
         </div>
 
-        {loading && <div style={{ padding: 24, textAlign: 'center', color: '#94A3B8' }}>{t('common:loading')}</div>}
+        {loading && <Loading label={t('common:loading')} />}
 
         {!loading && programa && tab === 'sesiones' && (
           <>
@@ -842,49 +924,47 @@ function ProgramaDetailDrawer({
                 + {t('admin:programas.sesiones.actions.new')}
               </button>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#F1F5F9', fontSize: '0.72rem', textTransform: 'uppercase', color: '#475569' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>#</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>{t('admin:programas.sesiones.columns.titulo')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>{t('admin:programas.sesiones.columns.fecha')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('admin:programas.sesiones.columns.estado')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>{t('admin:programas.sesiones.columns.acciones')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {programa.sesiones.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: '#94A3B8' }}>{t('admin:programas.sesiones.empty')}</td></tr>
-                )}
-                {programa.sesiones.map(s => (
-                  <tr key={s.id} style={{ borderTop: '1px solid #E2E8F0' }}>
-                    <td style={{ padding: '8px 12px' }}>{s.numeroSesion}</td>
-                    <td style={{ padding: '8px 12px', fontWeight: 500 }}>{s.titulo}</td>
-                    <td style={{ padding: '8px 12px', fontSize: '0.85rem' }}>
-                      {new Date(s.fechaProgramada).toLocaleString(i18n.language)}
-                    </td>
-                    <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '0.72rem' }}>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 999,
-                        background: s.estado === 'completada' ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)',
-                        color: s.estado === 'completada' ? '#15803D' : '#475569',
-                      }}>
-                        {t(`programa:sesion_estado.${s.estado}`)}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>
-                      <button className="btn-link" onClick={() => { setEditingSesion(s); setSesionModalOpen(true); }}>
-                        {t('admin:programas.sesiones.actions.edit')}
-                      </button>
-                      {' · '}
-                      <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => deleteSesion(s.id)}>
-                        {t('admin:programas.sesiones.actions.delete')}
-                      </button>
-                    </td>
+            <div className="table-container">
+              <table className="table-compact">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>{t('admin:programas.sesiones.columns.titulo')}</th>
+                    <th>{t('admin:programas.sesiones.columns.fecha')}</th>
+                    <th style={{ textAlign: 'center' }}>{t('admin:programas.sesiones.columns.estado')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('admin:programas.sesiones.columns.acciones')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {programa.sesiones.length === 0 && (
+                    <tr><td colSpan={5}><EmptyState title={t('admin:programas.sesiones.empty')} /></td></tr>
+                  )}
+                  {programa.sesiones.map(s => (
+                    <tr key={s.id}>
+                      <td>{s.numeroSesion}</td>
+                      <td style={{ fontWeight: 500 }}>{s.titulo}</td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {new Date(s.fechaProgramada).toLocaleString(i18n.language)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <StatusBadge variant={s.estado === 'completada' ? 'success' : 'neutral'}>
+                          {t(`programa:sesion_estado.${s.estado}`)}
+                        </StatusBadge>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="btn-link" onClick={() => { setEditingSesion(s); setSesionModalOpen(true); }}>
+                          {t('admin:programas.sesiones.actions.edit')}
+                        </button>
+                        {' · '}
+                        <button className="btn-link btn-link-danger" onClick={() => deleteSesion(s.id)}>
+                          {t('admin:programas.sesiones.actions.delete')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
 
@@ -895,50 +975,66 @@ function ProgramaDetailDrawer({
                 + {t('admin:programas.participantes.actions.new')}
               </button>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#F1F5F9', fontSize: '0.72rem', textTransform: 'uppercase', color: '#475569' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>{t('admin:programas.participantes.columns.nombre')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>{t('admin:programas.participantes.columns.email')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>{t('admin:programas.participantes.columns.cargo')}</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>{t('admin:programas.participantes.columns.acciones')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {programa.participantes.length === 0 && (
-                  <tr><td colSpan={4} style={{ padding: 20, textAlign: 'center', color: '#94A3B8' }}>{t('admin:programas.participantes.empty')}</td></tr>
-                )}
-                {programa.participantes.map(p => (
-                  <tr key={p.id} style={{ borderTop: '1px solid #E2E8F0' }}>
-                    <td style={{ padding: '8px 12px', fontWeight: 500 }}>{p.usuario.nombre}</td>
-                    <td style={{ padding: '8px 12px', fontSize: '0.85rem', color: '#475569' }}>{p.usuario.email ?? '—'}</td>
-                    <td style={{ padding: '8px 12px', fontSize: '0.85rem', color: '#475569' }}>
-                      {p.usuario.cargo ?? <span style={{ color: '#CBD5E1' }}>—</span>}
-                    </td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>
-                      {p.usuario.puedeIniciarSesion && (
-                        <>
-                          <button className="btn-link" onClick={() => reenviarInvitacion(p.usuario.id)}>
-                            {t('admin:programas.participantes.actions.resend_invite')}
-                          </button>
-                          {' · '}
-                        </>
-                      )}
-                      <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => desmatricular(p.id)}>
-                        {t('admin:programas.participantes.actions.remove')}
-                      </button>
-                    </td>
+            <div className="table-container">
+              <table className="table-compact">
+                <thead>
+                  <tr>
+                    <th>{t('admin:programas.participantes.columns.nombre')}</th>
+                    <th>{t('admin:programas.participantes.columns.email')}</th>
+                    <th>{t('admin:programas.participantes.columns.cargo')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('admin:programas.participantes.columns.acciones')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {programa.participantes.length === 0 && (
+                    <tr><td colSpan={4}><EmptyState title={t('admin:programas.participantes.empty')} /></td></tr>
+                  )}
+                  {programa.participantes.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 500 }}>{p.usuario.nombre}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{p.usuario.email ?? '—'}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                        {p.usuario.cargo ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {p.usuario.puedeIniciarSesion && (
+                          <>
+                            <button className="btn-link" onClick={() => reenviarInvitacion(p.usuario.id)}>
+                              {t('admin:programas.participantes.actions.resend_invite')}
+                            </button>
+                            {' · '}
+                          </>
+                        )}
+                        <button className="btn-link btn-link-danger" onClick={() => desmatricular(p.id)}>
+                          {t('admin:programas.participantes.actions.remove')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
 
         {!loading && programa && tab === 'grupos' && (
           <>
+            {/* O-01: habilitación de la bitácora para los grupos. */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, padding: '8px 12px', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 8 }}>
+              <span style={{ fontSize: '0.82rem' }}>
+                {programa.bitacoraHabilitadaEn ? '🟢 ' : '🔒 '}
+                {programa.bitacoraHabilitadaEn
+                  ? t('admin:programas.bitacora.habilitada')
+                  : t('admin:programas.bitacora.no_habilitada')}
+              </span>
+              <button className="btn-link" onClick={toggleBitacora}>
+                {programa.bitacoraHabilitadaEn
+                  ? t('admin:programas.bitacora.deshabilitar')
+                  : t('admin:programas.bitacora.habilitar')}
+              </button>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                 {participantesSinGrupo.length > 0
                   ? `${participantesSinGrupo.length} ${t('admin:programas.tabs.participantes').toLowerCase()} ${t('admin:programas.grupos.no_members').toLowerCase()}`
                   : t('admin:programas.grupos.all_assigned')}
@@ -949,25 +1045,19 @@ function ProgramaDetailDrawer({
             </div>
 
             {grupos.length === 0 && (
-              <div style={{ padding: 24, textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: 8 }}>
-                {t('admin:programas.grupos.empty')}
-              </div>
+              <EmptyState title={t('admin:programas.grupos.empty')} />
             )}
 
             <div style={{ display: 'grid', gap: 12 }}>
               {grupos.map(g => (
-                <div key={g.id} style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: 14 }}>
+                <div key={g.id} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <strong style={{ fontSize: '0.95rem' }}>{g.nombre}</strong>
                       {g.miembros.length < 2 && (
-                        <span
-                          title={t('admin:programas.grupos.min_hint')}
-                          style={{
-                            fontSize: '0.7rem', color: '#B45309', background: 'rgba(245,158,11,0.14)',
-                            border: '1px solid rgba(245,158,11,0.35)', borderRadius: 999, padding: '2px 8px',
-                          }}
-                        >⚠ {t('admin:programas.grupos.incomplete')}</span>
+                        <span title={t('admin:programas.grupos.min_hint')}>
+                          <StatusBadge variant="warning">⚠ {t('admin:programas.grupos.incomplete')}</StatusBadge>
+                        </span>
                       )}
                     </span>
                     <div>
@@ -975,17 +1065,17 @@ function ProgramaDetailDrawer({
                         {t('admin:programas.grupos.actions.rename')}
                       </button>
                       {' · '}
-                      <button className="btn-link" style={{ color: '#B91C1C' }} onClick={() => setDeleteGrupoModal(g)}>
+                      <button className="btn-link btn-link-danger" onClick={() => setDeleteGrupoModal(g)}>
                         {t('admin:programas.grupos.actions.delete')}
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 6 }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
                     {t('admin:programas.grupos.members')} ({g.miembros.length})
                   </div>
                   {g.miembros.length === 0 && (
-                    <div style={{ fontSize: '0.85rem', color: '#CBD5E1', marginBottom: 8 }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-border-strong)', marginBottom: 8 }}>
                       {t('admin:programas.grupos.no_members')}
                     </div>
                   )}
@@ -993,13 +1083,13 @@ function ProgramaDetailDrawer({
                     {g.miembros.map(m => (
                       <span key={m.id} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
-                        background: '#F1F5F9', borderRadius: 999, padding: '3px 6px 3px 10px', fontSize: '0.82rem',
+                        background: 'var(--color-bg-subtle)', borderRadius: 999, padding: '3px 6px 3px 10px', fontSize: '0.82rem',
                       }}>
                         {m.usuario.nombre}
                         <button
-                          className="btn-link"
+                          className="btn-link btn-link-danger"
                           title={t('admin:programas.grupos.remove_member')}
-                          style={{ color: '#B91C1C', fontSize: '0.9rem', lineHeight: 1 }}
+                          style={{ fontSize: '0.9rem', lineHeight: 1 }}
                           onClick={() => quitarMiembro(g.id, m.usuarioId)}
                         >×</button>
                       </span>
@@ -1035,6 +1125,8 @@ function ProgramaDetailDrawer({
             programaId={programa.id}
             editing={editingSesion}
             defaultNumero={programa.sesiones.length + 1}
+            fechaInicio={programa.fechaInicio}
+            fechaFin={programa.fechaFin}
             onClose={() => setSesionModalOpen(false)}
             onSaved={() => { setSesionModalOpen(false); load(); }}
             onError={onError}
@@ -1062,8 +1154,9 @@ function ProgramaDetailDrawer({
         {matriculaOpen && programa && (
           <MatriculaModal
             programaId={programa.id}
+            empresaId={programa.empresaId}
             onClose={() => setMatriculaOpen(false)}
-            onSaved={() => { setMatriculaOpen(false); load(); }}
+            onSaved={() => { load(); }}
             onError={onError}
           />
         )}
@@ -1076,11 +1169,13 @@ function ProgramaDetailDrawer({
 // Modal para crear/editar sesión
 // ─────────────────────────────────────────────────────────────
 function SesionFormModal({
-  programaId, editing, defaultNumero, onClose, onSaved, onError,
+  programaId, editing, defaultNumero, fechaInicio, fechaFin, onClose, onSaved, onError,
 }: {
   programaId: string;
   editing: Sesion | null;
   defaultNumero: number;
+  fechaInicio: string | null;
+  fechaFin: string | null;
   onClose: () => void;
   onSaved: () => void;
   onError: (msg: string) => void;
@@ -1093,6 +1188,7 @@ function SesionFormModal({
     titulo: editing?.titulo ?? '',
     descripcion: editing?.descripcion ?? '',
     fechaProgramada: editing?.fechaProgramada ? editing.fechaProgramada.slice(0, 16) : '',
+    urlPresentacion: editing?.urlPresentacion ?? '',
     urlGrabacion: editing?.urlGrabacion ?? '',
     estado: editing?.estado ?? 'pendiente' as const,
     tituloPt: '',
@@ -1121,8 +1217,8 @@ function SesionFormModal({
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 12px',
-    borderBottom: active ? '2px solid #2563EB' : '2px solid transparent',
-    color: active ? '#2563EB' : '#64748B',
+    borderBottom: active ? '2px solid var(--color-primary)' : '2px solid transparent',
+    color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)',
     fontWeight: 500,
     fontSize: '0.8rem',
   });
@@ -1136,6 +1232,7 @@ function SesionFormModal({
         titulo: form.titulo,
         descripcion: form.descripcion || null,
         fechaProgramada: form.fechaProgramada ? new Date(form.fechaProgramada).toISOString() : null,
+        urlPresentacion: form.urlPresentacion || null,
         urlGrabacion: form.urlGrabacion || null,
         estado: form.estado,
       };
@@ -1179,19 +1276,14 @@ function SesionFormModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0 }}>
-            {editing ? t('admin:programas.sesiones.modal.title_edit') : t('admin:programas.sesiones.modal.title_create')}
-          </h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-          }}>×</button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={editing ? t('admin:programas.sesiones.modal.title_edit') : t('admin:programas.sesiones.modal.title_create')}
+      maxWidth={520}
+    >
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ borderBottom: '1px solid #E2E8F0', display: 'flex', gap: 4 }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 4 }}>
             <button type="button" onClick={() => setLangTab('es')} className="btn-link" style={tabStyle(langTab === 'es')}>
               🇪🇸 {t('admin:programas.lang.es')}
             </button>
@@ -1203,10 +1295,7 @@ function SesionFormModal({
           {langTab === 'es' ? (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
-                <div>
-                  <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                    {t('admin:programas.sesiones.fields.numero')}
-                  </label>
+                <Field label={t('admin:programas.sesiones.fields.numero')} required>
                   <input
                     type="number"
                     className="input"
@@ -1215,43 +1304,31 @@ function SesionFormModal({
                     onChange={e => setForm(f => ({ ...f, numeroSesion: Number(e.target.value) }))}
                     required
                   />
-                </div>
-                <div>
-                  <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                    {t('admin:programas.sesiones.fields.titulo')}
-                  </label>
+                </Field>
+                <Field label={t('admin:programas.sesiones.fields.titulo')} required>
                   <input className="input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} required />
-                </div>
+                </Field>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.sesiones.fields.descripcion')}
-                </label>
+              <Field label={t('admin:programas.sesiones.fields.descripcion')}>
                 <textarea
                   className="input"
                   value={form.descripcion}
                   onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
                   rows={2}
                 />
-              </div>
+              </Field>
             </>
           ) : (
             <>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.sesiones.fields.titulo')} <span style={{ color: '#94A3B8', fontWeight: 400 }}>(pt)</span>
-                </label>
+              <Field label={<>{t('admin:programas.sesiones.fields.titulo')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(pt)</span></>}>
                 <input
                   className="input"
                   value={form.tituloPt}
                   onChange={e => setForm(f => ({ ...f, tituloPt: e.target.value }))}
                   placeholder={form.titulo}
                 />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                  {t('admin:programas.sesiones.fields.descripcion')} <span style={{ color: '#94A3B8', fontWeight: 400 }}>(pt)</span>
-                </label>
+              </Field>
+              <Field label={<>{t('admin:programas.sesiones.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(pt)</span></>}>
                 <textarea
                   className="input"
                   value={form.descripcionPt}
@@ -1259,28 +1336,33 @@ function SesionFormModal({
                   rows={2}
                   placeholder={form.descripcion || undefined}
                 />
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: -4 }}>
+              </Field>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: -4 }}>
                 {t('admin:programas.lang.hint')}
               </div>
             </>
           )}
-          <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-              {t('admin:programas.sesiones.fields.fecha')}
-            </label>
+          <Field label={t('admin:programas.sesiones.fields.fecha')} required>
             <input
               type="datetime-local"
               className="input"
               value={form.fechaProgramada}
               onChange={e => setForm(f => ({ ...f, fechaProgramada: e.target.value }))}
+              min={fechaInicio ? `${fechaInicio.slice(0, 10)}T00:00` : undefined}
+              max={fechaFin ? `${fechaFin.slice(0, 10)}T23:59` : undefined}
               required
             />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-              {t('admin:programas.sesiones.fields.url_grabacion')}
-            </label>
+          </Field>
+          <Field label={t('admin:programas.sesiones.fields.url_presentacion')}>
+            <input
+              className="input"
+              type="url"
+              value={form.urlPresentacion}
+              onChange={e => setForm(f => ({ ...f, urlPresentacion: e.target.value }))}
+              placeholder="https://…"
+            />
+          </Field>
+          <Field label={t('admin:programas.sesiones.fields.url_grabacion')}>
             <input
               className="input"
               type="url"
@@ -1288,7 +1370,7 @@ function SesionFormModal({
               onChange={e => setForm(f => ({ ...f, urlGrabacion: e.target.value }))}
               placeholder="https://…"
             />
-          </div>
+          </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -1296,33 +1378,83 @@ function SesionFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
 // Modal de matrícula
 // ─────────────────────────────────────────────────────────────
+interface EstudianteEmpresa {
+  id: string;
+  nombre: string;
+  email: string | null;
+  participaciones: { activo: boolean; programa: { id: string; nombre: string; estado: string; empresaId: string } }[];
+}
+
 function MatriculaModal({
-  programaId, onClose, onSaved, onError,
+  programaId, empresaId, onClose, onSaved, onError,
 }: {
   programaId: string;
+  empresaId: string;
   onClose: () => void;
   onSaved: () => void;
   onError: (msg: string) => void;
 }) {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const [estudiantes, setEstudiantes] = useState<EstudianteEmpresa[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    email: '',
-    nombre: '',
-    cargo: '',
-    area: '',
-    enviarInvitacion: true,
-  });
+  const [mostrarNuevo, setMostrarNuevo] = useState(false);
+  const [form, setForm] = useState({ email: '', nombre: '', cargo: '', area: '', enviarInvitacion: true });
 
-  const submit = async (e: React.FormEvent) => {
+  const cargarEstudiantes = React.useCallback(async () => {
+    setLoadingList(true);
+    try {
+      const res = await fetchWithErrorMapping(
+        `${API_URL}/admin/usuarios?role=estudiante&empresaId=${empresaId}&estado=activo&conProgramas=1`,
+      );
+      setEstudiantes(await res.json());
+    } catch (err) {
+      onError(translateError(err));
+    } finally {
+      setLoadingList(false);
+    }
+  }, [empresaId, onError]);
+
+  useEffect(() => { cargarEstudiantes(); }, [cargarEstudiantes]);
+
+  // Programas de ESTA empresa donde el estudiante ya participa (activo).
+  const programasEmpresa = (est: EstudianteEmpresa) =>
+    est.participaciones.filter(p => p.activo && p.programa.empresaId === empresaId);
+  const yaEnEste = (est: EstudianteEmpresa) =>
+    programasEmpresa(est).some(p => p.programa.id === programaId);
+
+  const term = busqueda.trim().toLowerCase();
+  const filtrados = term
+    ? estudiantes.filter(e => e.nombre.toLowerCase().includes(term) || (e.email ?? '').toLowerCase().includes(term))
+    : estudiantes;
+
+  const anadir = async (usuarioId: string) => {
+    setAddingId(usuarioId);
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/participantes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId, enviarInvitacion: false }),
+      });
+      await cargarEstudiantes(); // refresca badges "ya matriculado"
+      onSaved();
+    } catch (err) {
+      onError(translateError(err));
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const crearNuevo = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -1338,6 +1470,9 @@ function MatriculaModal({
           locale: i18n.language,
         }),
       });
+      setForm({ email: '', nombre: '', cargo: '', area: '', enviarInvitacion: true });
+      setMostrarNuevo(false);
+      await cargarEstudiantes();
       onSaved();
     } catch (err) {
       onError(translateError(err));
@@ -1347,62 +1482,102 @@ function MatriculaModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0 }}>{t('admin:programas.participantes.modal.title')}</h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-          }}>×</button>
-        </div>
-        <p style={{ marginTop: 0, color: '#64748B', fontSize: '0.85rem' }}>
-          {t('admin:programas.participantes.modal.hint')}
-        </p>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-              {t('admin:programas.participantes.fields.email')}
-            </label>
-            <input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-          </div>
-          <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-              {t('admin:programas.participantes.fields.nombre')}
-            </label>
-            <input className="input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.participantes.fields.cargo')}
-              </label>
-              <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-                {t('admin:programas.participantes.fields.area')}
-              </label>
-              <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
-            </div>
-          </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={form.enviarInvitacion}
-              onChange={e => setForm(f => ({ ...f, enviarInvitacion: e.target.checked }))}
-            />
-            {t('admin:programas.participantes.fields.enviar_invitacion')}
-          </label>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? t('common:saving') : t('common:save')}
-            </button>
-          </div>
-        </form>
+    <Modal isOpen onClose={onClose} title={t('admin:programas.participantes.modal.title')} maxWidth={560}>
+      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
+        {t('admin:programas.participantes.picker.registrados')}
       </div>
-    </div>
+      <input
+        className="input"
+        placeholder={t('admin:programas.participantes.picker.buscar')}
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
+        style={{ marginBottom: 10 }}
+      />
+
+      {loadingList ? (
+        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+          {t('admin:programas.participantes.picker.loading')}
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', padding: '8px 0' }}>
+          {t('admin:programas.participantes.picker.empty')}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+          {filtrados.map(est => {
+            const otros = programasEmpresa(est).filter(p => p.programa.id !== programaId);
+            const enEste = yaEnEste(est);
+            return (
+              <div key={est.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{est.nombre}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{est.email}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                    {otros.length === 0
+                      ? t('admin:programas.participantes.picker.sin_otros')
+                      : <>{t('admin:programas.participantes.picker.otros_programas')} {otros.map(p => p.programa.nombre).join(', ')}</>}
+                  </div>
+                </div>
+                {enEste ? (
+                  <StatusBadge variant="success">{t('admin:programas.participantes.picker.ya_matriculado')}</StatusBadge>
+                ) : (
+                  <button className="btn" disabled={addingId === est.id} onClick={() => anadir(est.id)}>
+                    {addingId === est.id ? t('common:actions.saving') : `+ ${t('admin:programas.participantes.picker.anadir')}`}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 14, paddingTop: 12 }}>
+        {!mostrarNuevo ? (
+          <button className="btn-link" onClick={() => setMostrarNuevo(true)}>
+            {t('admin:programas.participantes.picker.nuevo_toggle')}
+          </button>
+        ) : (
+          <>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
+              {t('admin:programas.participantes.picker.nuevo_title')}
+            </div>
+            <p style={{ marginTop: 0, color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>
+              {t('admin:programas.participantes.modal.hint')}
+            </p>
+            <form onSubmit={crearNuevo} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Field label={t('admin:programas.participantes.fields.email')} required>
+                <input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+              </Field>
+              <Field label={t('admin:programas.participantes.fields.nombre')} required>
+                <input className="input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
+              </Field>
+              <div className="form-grid">
+                <Field label={t('admin:programas.participantes.fields.cargo')}>
+                  <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
+                </Field>
+                <Field label={t('admin:programas.participantes.fields.area')}>
+                  <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
+                </Field>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.enviarInvitacion} onChange={e => setForm(f => ({ ...f, enviarInvitacion: e.target.checked }))} />
+                {t('admin:programas.participantes.fields.enviar_invitacion')}
+              </label>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setMostrarNuevo(false)} disabled={saving}>{t('common:buttons.cancel')}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? t('common:actions.saving') : t('common:buttons.save')}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:buttons.close')}</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -1450,24 +1625,16 @@ function GrupoFormModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0 }}>
-            {editing ? t('admin:programas.grupos.modal.title_edit') : t('admin:programas.grupos.modal.title_create')}
-          </h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1, padding: 4,
-          }}>×</button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={editing ? t('admin:programas.grupos.modal.title_edit') : t('admin:programas.grupos.modal.title_create')}
+      maxWidth={440}
+    >
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label className="required-label" style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: '0.85rem' }}>
-              {t('admin:programas.grupos.fields.nombre')}
-            </label>
+          <Field label={t('admin:programas.grupos.fields.nombre')} required>
             <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} required autoFocus />
-          </div>
+          </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving || !nombre.trim()}>
@@ -1475,7 +1642,6 @@ function GrupoFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

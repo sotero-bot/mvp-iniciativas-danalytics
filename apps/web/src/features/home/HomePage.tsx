@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { EmptyState } from '../../components/ui';
 
 export interface HomeUser {
   nombre: string;
@@ -30,21 +31,21 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
   facilitador: [
     { key: 'fac_programas', icon: '🎓', color: '#38BDF8', to: '/facilitador/programas' },
     { key: 'fac_observaciones', icon: '📝', color: '#F59E0B' },
-    { key: 'fac_bitacoras', icon: '📓', color: '#A78BFA' },
+    { key: 'fac_bitacoras', icon: '📓', color: '#A78BFA', to: '/facilitador/programas' },
   ],
   estudiante: [
     { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },
     { key: 'est_formularios', icon: '🧾', color: '#F59E0B', to: '/estudiante/formularios' },
-    { key: 'est_grupo', icon: '🤝', color: '#A78BFA' },
+    { key: 'est_grupo', icon: '🤝', color: '#A78BFA', to: '/estudiante/grupo' },
   ],
   cliente_admin: [
-    { key: 'cli_programas', icon: '🎓', color: '#38BDF8' },
-    { key: 'cli_resultados', icon: '📈', color: '#22C55E' },
-    { key: 'cli_usuarios', icon: '👥', color: '#F59E0B' },
+    { key: 'cli_programas', icon: '🎓', color: '#38BDF8', to: '/portal/programas' },
+    { key: 'cli_resultados', icon: '📈', color: '#22C55E', to: '/portal/programas' },
+    { key: 'cli_usuarios', icon: '👥', color: '#F59E0B', to: '/portal/usuarios' },
   ],
   usuario_cliente: [
-    { key: 'cli_programas', icon: '🎓', color: '#38BDF8' },
-    { key: 'cli_resultados', icon: '📈', color: '#22C55E' },
+    { key: 'cli_programas', icon: '🎓', color: '#38BDF8', to: '/portal/programas' },
+    { key: 'cli_resultados', icon: '📈', color: '#22C55E', to: '/portal/programas' },
   ],
 };
 
@@ -56,16 +57,13 @@ export function HomePage({ user }: { user: HomeUser | null }) {
   const displayName = user?.nombre || user?.username || user?.email || '';
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="page">
       <h1 style={{ fontSize: '1.6rem', margin: '0 0 0.4rem', color: 'var(--color-text-main)' }}>
         {displayName ? t('greeting', { name: displayName }) : t('greeting_no_name')}
       </h1>
       <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 1.75rem' }}>{t('subtitle')}</p>
 
-      <div style={{
-        display: 'grid', gap: '1rem',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-      }}>
+      <div className="card-grid">
         {cards.map(card => {
           const inner = (
             <>
@@ -102,7 +100,7 @@ export function HomePage({ user }: { user: HomeUser | null }) {
       </div>
 
       {cards.length === 0 && (
-        <p style={{ color: 'var(--color-text-tertiary)' }}>{t('no_sections')}</p>
+        <EmptyState title={t('no_sections')} />
       )}
     </div>
   );

@@ -6,11 +6,37 @@ import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWit
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
-  const { t } = useTranslation(['auth']);
+  const { t, i18n } = useTranslation(['auth']);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // C-06: solicitud de magic link por correo (para usuarios sin contraseña / no-Google).
+  const [magicEmail, setMagicEmail] = useState('');
+  const [magicMsg, setMagicMsg] = useState('');
+  const [magicError, setMagicError] = useState('');
+  const [magicSending, setMagicSending] = useState(false);
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!magicEmail.trim()) return;
+    setMagicSending(true);
+    setMagicMsg('');
+    setMagicError('');
+    try {
+      await fetchWithErrorMapping(`${API_URL}/auth/magic-link/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicEmail.trim(), locale: i18n.language?.startsWith('pt') ? 'pt' : 'es' }),
+      });
+      // C-06: si el usuario existe se envía; si no, el backend responde USUARIO_NO_REGISTRADO.
+      setMagicMsg(t('auth:login_page.magic_sent'));
+    } catch (err) {
+      setMagicError(translateError(err));
+    } finally {
+      setMagicSending(false);
+    }
+  };
 
   const handleGoogle = () => {
     // Redirección de página completa al backend (vía proxy /api → :3001).
@@ -38,22 +64,10 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
-      position: 'relative',
-    }}>
+    <div className="auth-layout">
       <LanguageSwitcher variant="floating" />
       {/* Left panel */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '3rem 4rem',
-        maxWidth: 480,
-      }}>
+      <div className="auth-panel">
         <div style={{ marginBottom: '3rem' }}>
           <img src="/logo-horizontal.png" alt="Danalytics Logo" style={{
             height: 48,
@@ -61,36 +75,36 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             objectFit: 'contain'
           }} />
           <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>{t('auth:login_page.welcome')}</h1>
-          <p style={{ color: '#64748B', marginTop: 8 }}>{t('auth:login_page.subtitle')}</p>
+          <p style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>{t('auth:login_page.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: '#94A3B8' }}>
+            <label htmlFor="login-username" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
               {t('auth:login_page.username_label')}
             </label>
             <input
-              className="input"
+              id="login-username"
+              className="input input-on-dark"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={t('auth:login_page.username_placeholder')}
               autoComplete="username"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9375rem' }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: '#94A3B8' }}>
+            <label htmlFor="login-password" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
               {t('auth:login_page.password_label')}
             </label>
             <input
-              className="input"
+              id="login-password"
+              className="input input-on-dark"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={t('auth:login_page.password_placeholder')}
               autoComplete="current-password"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9375rem' }}
             />
           </div>
 
@@ -99,10 +113,10 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
               padding: '0.75rem 1rem',
               background: 'rgba(239,68,68,0.1)',
               border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 6,
+              borderRadius: 'var(--radius-sm)',
               color: '#FCA5A5',
               fontSize: '0.875rem',
-            }}>
+            }} role="alert">
               {error}
             </div>
           )}
@@ -119,7 +133,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
           {/* Divisor */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
             <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
-            <span style={{ color: '#64748B', fontSize: '0.8rem' }}>{t('auth:login_page.divider')}</span>
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{t('auth:login_page.divider')}</span>
             <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
           </div>
 
@@ -143,18 +157,42 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
             {t('auth:login_page.google')}
           </button>
         </form>
+
+        {/* C-06: enlace de acceso por correo (magic link) */}
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <label htmlFor="login-magic-email" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
+            {t('auth:login_page.magic_label')}
+          </label>
+          <form onSubmit={handleMagicLink} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              id="login-magic-email"
+              className="input input-on-dark"
+              type="email"
+              value={magicEmail}
+              onChange={e => setMagicEmail(e.target.value)}
+              placeholder={t('auth:login_page.magic_placeholder')}
+              autoComplete="email"
+              style={{ flex: '1 1 200px' }}
+            />
+            <button type="submit" className="btn" disabled={magicSending} style={{ padding: '0.6rem 1rem', fontSize: '0.875rem' }}>
+              {magicSending ? t('auth:login_page.submitting') : t('auth:login_page.magic_submit')}
+            </button>
+          </form>
+          {magicMsg && (
+            <div style={{ marginTop: 10, padding: '0.6rem 0.9rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 'var(--radius-sm)', color: '#86EFAC', fontSize: '0.85rem' }} role="status">
+              {magicMsg}
+            </div>
+          )}
+          {magicError && (
+            <div style={{ marginTop: 10, padding: '0.6rem 0.9rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', color: '#FCA5A5', fontSize: '0.85rem' }} role="alert">
+              {magicError}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Right decorative panel */}
-      <div style={{
-        flex: 1,
-        background: 'linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(99,102,241,0.1) 100%)',
-        borderLeft: '1px solid rgba(255,255,255,0.04)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '3rem',
-      }}>
+      <div className="auth-decorative">
         <div style={{ textAlign: 'center', maxWidth: 360 }}>
           <div style={{
             fontSize: '4rem',
@@ -164,7 +202,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
           <h2 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '1rem', opacity: 0.9 }}>
             {t('auth:login_page.brand_name')}
           </h2>
-          <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
             {t('auth:login_page.brand_tagline')}
           </p>
         </div>

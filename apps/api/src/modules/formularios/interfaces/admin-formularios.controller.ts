@@ -272,6 +272,22 @@ export class AdminFormulariosController {
     if (body.dimension !== undefined) data.dimension = body.dimension ?? null;
     if (body.esObligatorio !== undefined) data.esObligatorio = body.esObligatorio;
     if (body.orden !== undefined) data.orden = body.orden;
+    // Grupo padre: conectar (hijo de un grupo_repetible) o desconectar (campo de
+    // primer nivel). Antes se ignoraba, por eso "Sin grupo padre" no surtía efecto.
+    if (body.campoPadreId !== undefined) {
+      if (body.campoPadreId) {
+        const padre = await this.prisma.campoFormulario.findUnique({ where: { id: body.campoPadreId } });
+        if (!padre || padre.plantillaId !== existing.plantillaId) throw new AppError('CAMPO_NOT_FOUND');
+        if (padre.tipoCampo !== 'grupo_repetible') {
+          throw new AppError('CAMPO_CONFIG_INVALIDA', {
+            message: 'campoPadreId debe apuntar a un grupo_repetible',
+          });
+        }
+        data.campoPadre = { connect: { id: body.campoPadreId } };
+      } else {
+        data.campoPadre = { disconnect: true };
+      }
+    }
     if (body.configJson !== undefined || body.tipoCampo !== undefined) {
       const config = validarConfigCampo(tipoCampo, body.configJson ?? existing.configJson);
       data.configJson = config as Prisma.InputJsonValue;
@@ -318,6 +334,18 @@ export class AdminFormulariosController {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
     const creados = await this.snapshots.regenerarSnapshot(programaId, actor.sub);
+    return { creados };
+  }
+
+  // RF-46: rellena los tipos de formulario que faltan en el snapshot (ej. bitácora /
+  // plantilla de proyecto creadas como global DESPUÉS de activar el programa). Aditivo:
+  // no toca ni duplica los snapshots existentes (preserva el versionado inmutable) y es
+  // seguro con respuestas ya registradas.
+  @Post('programas/:id/sincronizar-plantillas')
+  async sincronizarPlantillas(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
+    if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+    const creados = await this.snapshots.sincronizarPlantillasFaltantes(programaId, actor.sub);
     return { creados };
   }
 

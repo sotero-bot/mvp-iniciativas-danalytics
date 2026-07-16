@@ -21,9 +21,9 @@ describe('ActorScopeService.programaScope', () => {
     expect(svc.programaScope(actor({ role: 'danalytics_admin' }))).toEqual({});
   });
 
-  it('facilitador: filtra por facilitadorId = sub', () => {
+  it('facilitador: filtra por asignación N:M (C-01)', () => {
     expect(svc.programaScope(actor({ role: 'facilitador', sub: 'f1' }))).toEqual({
-      facilitadorId: 'f1',
+      facilitadores: { some: { usuarioId: 'f1' } },
     });
   });
 
@@ -37,6 +37,12 @@ describe('ActorScopeService.programaScope', () => {
     expect(
       svc.programaScope(actor({ role: 'cliente_admin', empresaId: 'e1' })),
     ).toEqual({ empresaId: 'e1' });
+  });
+
+  it('usuario_cliente: empresaId + solo programas asignados (C-07)', () => {
+    expect(
+      svc.programaScope(actor({ role: 'usuario_cliente', sub: 'uc1', empresaId: 'e1' })),
+    ).toEqual({ empresaId: 'e1', asignacionesCliente: { some: { usuarioId: 'uc1' } } });
   });
 
   it('cliente_admin sin empresaId → FORBIDDEN', () => {

@@ -1,0 +1,59 @@
+{
+  "programas": {
+    "title": "Programas de tu organización",
+    "subtitle": "Vista de solo lectura de todos los programas contratados (Decisión IA e IA en Acción).",
+    "ia_en_accion": "IA en Acción",
+    "decision_ia": "Decisión IA",
+    "empty": "No hay programas para mostrar.",
+    "estado": {
+      "borrador": "Borrador",
+      "activo": "Activo",
+      "finalizado": "Finalizado",
+      "cancelado": "Cancelado"
+    },
+    "facilitador": "Facilitador",
+    "participantes": "participantes",
+    "sesiones": "sesiones",
+    "actividades": "actividades",
+    "instancias_finalizadas": "ejecuciones finalizadas"
+  },
+  "detalle": {
+    "back": "← Volver a programas",
+    "sesiones_completadas": "Sesiones completadas",
+    "participantes_activos": "Participantes activos",
+    "asistencia_promedio": "Asistencia promedio",
+    "asistencia": "Asistencia por sesión",
+    "participante": "Participante",
+    "diagnostico": "Diagnóstico (agregado)",
+    "inicial": "Inicial",
+    "final": "Final",
+    "sin_datos": "Aún no hay datos.",
+    "proyecto": "Proyecto por grupo",
+    "integrantes": "integrantes",
+    "presentacion_entregada": "Presentación entregada",
+    "presentacion_pendiente": "Presentación pendiente",
+    "feedback": "Feedback del programa",
+    "feedback_hint": "Respuestas anónimas y agregadas de los participantes.",
+    "promedio": "Promedio"
+  },
+  "usuarios": {
+    "title": "Usuarios de tu empresa",
+    "subtitle": "Invita usuarios de solo lectura al portal o revoca su acceso.",
+    "nombre": "Nombre",
+    "email": "Email",
+    "invitar": "Invitar",
+    "empty": "Aún no has invitado a nadie.",
+    "estado": "Estado",
+    "invitado": "Invitado",
+    "activo": "Activo",
+    "revocado": "Revocado",
+    "revocar": "Revocar acceso",
+    "confirmar_revocar": "¿Revocar el acceso de {{nombre}} al portal?",
+    "invitado_ok": "Invitación enviada correctamente.",
+    "invitacion_no_enviada": "El usuario quedó creado, pero el email de invitación no se pudo enviar. Intenta reenviarla más tarde.",
+    "revocado_ok": "Acceso revocado.",
+    "programas": "Programas",
+    "programas_asignados": "Programas de IA en Acción visibles para este usuario",
+    "sin_programas": "No hay programas de IA en Acción en la empresa."
+  }
+}

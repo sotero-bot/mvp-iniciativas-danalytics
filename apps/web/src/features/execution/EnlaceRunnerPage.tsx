@@ -40,7 +40,7 @@ export function EnlaceRunnerPage() {
             <div className="runner-layout">
                 <div className="card runner-card" style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>🔗</div>
-                    <h2 style={{ color: '#ef4444', marginBottom: 12 }}>{t('execution:enlace_runner.error_title', { defaultValue: 'Enlace no disponible' })}</h2>
+                    <h2 style={{ color: 'var(--color-danger)', marginBottom: 12 }}>{t('execution:enlace_runner.error_title', { defaultValue: 'Enlace no disponible' })}</h2>
                     <p style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
                 </div>
             </div>

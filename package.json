@@ -29,6 +29,7 @@
     "seed:admin": "npx tsx scripts/seed-admin.ts",
     "seed:demo-programa": "npx tsx scripts/seed-demo-programa.ts",
     "seed:diagnostico-inicial": "npx tsx scripts/seed-diagnostico-inicial.ts",
+    "seed:formularios-reto": "npx tsx scripts/seed-formularios-reto.ts",
     "seed:rbac-scopes": "npx tsx scripts/seed-rbac-scopes.ts",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "reset-data": "npx tsx scripts/reset-data.ts",

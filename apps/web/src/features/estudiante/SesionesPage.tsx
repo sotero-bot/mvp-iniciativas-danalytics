@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { RestrictedPdfViewer } from '../../components/RestrictedPdfViewer';
+import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { formatFechaHora } from '../../shared/formatDate';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -11,18 +12,19 @@ interface Sesion {
   numeroSesion: number;
   titulo: string;
   fechaProgramada: string;
+  urlPresentacion: string | null;
   urlGrabacion: string | null;
+  facilitadores: { id: string; nombre: string }[];
+  timezone: string;
   bloqueada: boolean;
 }
 
 export function EstudianteSesionesPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['estudiante', 'common']);
+  const { t, i18n } = useTranslation(['estudiante', 'common']);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [materialAbierto, setMaterialAbierto] = useState<string | null>(null);
-  const [materialUrl, setMaterialUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -33,28 +35,15 @@ export function EstudianteSesionesPage() {
       .finally(() => setLoading(false));
   }, [programaId]);
 
-  const verMaterial = async (sesionId: string) => {
-    if (materialAbierto === sesionId) {
-      setMaterialAbierto(null);
-      return;
-    }
-    try {
-      const res = await fetchWithErrorMapping(`${API_URL}/sesiones/${sesionId}/material`);
-      const data = await res.json();
-      setMaterialUrl(data.url);
-      setMaterialAbierto(sesionId);
-    } catch (err) {
-      setToast(translateError(err));
-    }
-  };
-
   return (
-    <div style={{ padding: '2rem' }}>
-      <Link to="/estudiante/programas" style={{ fontSize: '0.85rem' }}>{t('estudiante:sesiones.back')}</Link>
-      <h1 style={{ fontSize: '1.4rem', margin: '0.75rem 0 1.25rem' }}>{t('estudiante:sesiones.title')}</h1>
+    <div className="page">
+      <PageHeader
+        back={{ to: '/estudiante/programas', label: t('estudiante:sesiones.back') }}
+        title={t('estudiante:sesiones.title')}
+      />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && sesiones.length === 0 && <p>{t('estudiante:sesiones.empty')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && sesiones.length === 0 && <EmptyState title={t('estudiante:sesiones.empty')} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {sesiones.map((s) => (
@@ -65,29 +54,39 @@ export function EstudianteSesionesPage() {
                   {t('estudiante:sesiones.numero', { numero: s.numeroSesion })} — {s.titulo}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                  {new Date(s.fechaProgramada).toLocaleDateString()}
+                  {formatFechaHora(s.fechaProgramada, s.timezone, i18n.language)}
                 </div>
+                {s.facilitadores.length > 0 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                    {t('estudiante:sesiones.facilitador')}: {s.facilitadores.map((f) => f.nombre).join(', ')}
+                  </div>
+                )}
               </div>
               {s.bloqueada ? (
-                <span style={{ fontSize: '0.8rem' }}>🔒 {t('estudiante:sesiones.locked')}</span>
-              ) : (
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                  🔒 {t('estudiante:sesiones.se_desbloquea', {
+                    fecha: formatFechaHora(s.fechaProgramada, s.timezone, i18n.language),
+                  })}
+                </span>
+              ) : s.urlPresentacion || s.urlGrabacion ? (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button className="btn" onClick={() => verMaterial(s.id)}>
-                    📄 {t('estudiante:sesiones.material')}
-                  </button>
+                  {s.urlPresentacion && (
+                    <a className="btn" href={s.urlPresentacion} target="_blank" rel="noreferrer">
+                      🖥️ {t('estudiante:sesiones.presentacion')}
+                    </a>
+                  )}
                   {s.urlGrabacion && (
                     <a className="btn" href={s.urlGrabacion} target="_blank" rel="noreferrer">
                       🎥 {t('estudiante:sesiones.grabacion')}
                     </a>
                   )}
                 </div>
+              ) : (
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                  {t('estudiante:sesiones.sin_recursos')}
+                </span>
               )}
             </div>
-            {materialAbierto === s.id && materialUrl && (
-              <div style={{ marginTop: 12 }}>
-                <RestrictedPdfViewer url={materialUrl} />
-              </div>
-            )}
           </div>
         ))}
       </div>

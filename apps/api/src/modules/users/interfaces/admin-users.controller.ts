@@ -19,10 +19,13 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { AppError } from '../../../shared/errors/AppError';
 import { MagicLinkService } from '../../auth/application/magic-link.service';
-import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
+import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
+import type { AuthUser } from '../../auth/guards';
+import { UsuarioClienteService } from '../../portal/application/usuario-cliente.service';
 
 const ADMIN_SLUG = 'danalytics_admin';
 const EMPRESA_SLUGS = new Set(['estudiante', 'cliente_admin', 'usuario_cliente']);
+const CLIENTE_SLUGS = new Set(['cliente_admin', 'usuario_cliente']);
 
 interface CreateUsuarioDto {
   nombre: string;
@@ -76,16 +79,19 @@ const SELECT_PUBLIC = {
 // Asignación facilitador ↔ programa: se resuelve desde el módulo de programas
 // (admin-programas.controller). Este controller solo expone el listado filtrado.
 //
-// TODO(fase-4): al crear/editar cliente_admin o usuario_cliente, mantener sincronizada
-//   la tabla puente `UsuarioCliente(empresaId, usuarioId, invitadoPorId, activo)`.
-//   Hoy la relación se infiere solo por `Usuario.empresaId` + role.
-//
-// TODO(fase-2): scoping por rol distinto de danalytics_admin.
-//   - facilitador → solo estudiantes de sus programas (JOIN via ParticipantePrograma).
-//   - cliente_admin → usuarios de su empresa (lectura + invitar/revocar usuario_cliente).
-//   - usuario_cliente → misma vista de cliente_admin en lectura.
-//   Requiere: middleware que extraiga el actor del JWT y aplique WHERE por scope.
-//   Actualmente todos los endpoints asumen actor = danalytics_admin (frontend controla el gating).
+// Cierre Fase 4 (Plan 2 §4.2 / Plan 1 §9):
+// - La tabla puente `UsuarioCliente` se sincroniza en create/update/delete vía
+//   `UsuarioClienteService.sincronizarDesdeAdmin`.
+// - `CLIENTE_ADMIN_UNICO` (RN-04/RF-44): lo garantiza el índice parcial
+//   `usuario_cliente_admin_unico_por_empresa` (seed-admin.ts); aquí se captura
+//   la violación P2002 y se mapea al código semántico.
+// - El "scoping por rol" del antiguo TODO(fase-2) quedó resuelto por diseño:
+//   los roles cliente usan sus propios endpoints escopeados
+//   (`/portal/usuarios-cliente`) y el facilitador ve a sus estudiantes vía
+//   grupos/asistencia — este controller permanece EXCLUSIVO de danalytics_admin
+//   (regla dura §0.1: registro/matrícula solo admin).
+// - El log de auditoría (RNF-13) lo escribe el RegistroAccesoInterceptor global
+//   (registra las mutaciones del admin, incluidas las de este controller).
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('danalytics_admin')
 @Controller('admin')
@@ -93,6 +99,7 @@ export class AdminUsersController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly magicLink: MagicLinkService,
+    private readonly usuariosCliente?: UsuarioClienteService,
   ) {}
 
   @Get('roles')
@@ -104,6 +111,39 @@ export class AdminUsersController {
     });
   }
 
+  // C-07: danalytics_admin también puede asignar programas de IA en Acción a un
+  // usuario_cliente (además del cliente_admin, que lo hace desde el portal).
+  @Get('usuarios/:id/programas-cliente')
+  async listProgramasCliente(@Param('id') id: string) {
+    return this.requireUsuariosCliente().programasAsignables(id);
+  }
+
+  @Post('usuarios/:id/programas-cliente')
+  async asignarProgramaCliente(
+    @Param('id') id: string,
+    @Body() body: { programaId: string },
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.requireUsuariosCliente().asignarPrograma({
+      usuarioId: id,
+      programaId: body?.programaId,
+      asignadoPorId: actor.sub,
+    });
+  }
+
+  @Delete('usuarios/:id/programas-cliente/:programaId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async desasignarProgramaCliente(@Param('id') id: string, @Param('programaId') programaId: string) {
+    await this.requireUsuariosCliente().desasignarPrograma({ usuarioId: id, programaId });
+  }
+
+  private requireUsuariosCliente(): UsuarioClienteService {
+    if (!this.usuariosCliente) {
+      throw new AppError('VALIDATION_ERROR', { message: 'UsuarioClienteService no disponible' });
+    }
+    return this.usuariosCliente;
+  }
+
   @Get('usuarios')
   async findAll(
     @Query('role') role?: string,
@@ -111,6 +151,9 @@ export class AdminUsersController {
     @Query('estado') estado?: 'activo' | 'inactivo' | 'todos',
     @Query('search') search?: string,
     @Query('programaId') programaId?: string,
+    // Si viene, incluye las participaciones (programas) de cada usuario — usado por
+    // la matrícula para mostrar en qué otros programas de la empresa ya está.
+    @Query('conProgramas') conProgramas?: string,
   ) {
     const where: Prisma.UsuarioWhereInput = {};
 
@@ -138,9 +181,21 @@ export class AdminUsersController {
       ];
     }
 
+    const select = conProgramas
+      ? {
+          ...SELECT_PUBLIC,
+          participaciones: {
+            select: {
+              activo: true,
+              programa: { select: { id: true, nombre: true, estado: true, empresaId: true } },
+            },
+          },
+        }
+      : SELECT_PUBLIC;
+
     return this.prisma.usuario.findMany({
       where,
-      select: SELECT_PUBLIC,
+      select,
       orderBy: [{ activo: 'desc' }, { nombre: 'asc' }],
     });
   }
@@ -171,7 +226,7 @@ export class AdminUsersController {
   }
 
   @Post('usuarios')
-  async create(@Body() body: CreateUsuarioDto) {
+  async create(@Body() body: CreateUsuarioDto, @CurrentUser() actor?: AuthUser) {
     const roleId = await this.resolveRoleId(body.role);
     const roleSlug = body.role;
 
@@ -203,7 +258,7 @@ export class AdminUsersController {
     const passwordHash = body.password ? await bcrypt.hash(body.password, 10) : null;
 
     try {
-      return await this.prisma.usuario.create({
+      const created = await this.prisma.usuario.create({
         data: {
           id: randomUUID(),
           nombre: body.nombre,
@@ -218,8 +273,19 @@ export class AdminUsersController {
         },
         select: SELECT_PUBLIC,
       });
+      // Fase 4 (§4.2): tabla puente UsuarioCliente sincronizada al crear roles cliente.
+      if (CLIENTE_SLUGS.has(roleSlug)) {
+        await this.usuariosCliente?.sincronizarDesdeAdmin(created, actor?.sub ?? null);
+      }
+      return created;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        // RF-44/Plan 2 §4.4: el índice parcial de la BD garantiza un solo
+        // cliente_admin ACTIVO por empresa; su violación se distingue de un
+        // email/username duplicado para dar un mensaje accionable.
+        if (UsuarioClienteService.esViolacionClienteAdminUnico(e)) {
+          throw new AppError('CLIENTE_ADMIN_UNICO');
+        }
         throw new AppError('USUARIO_DUPLICATE');
       }
       throw e;
@@ -227,7 +293,7 @@ export class AdminUsersController {
   }
 
   @Patch('usuarios/:id')
-  async update(@Param('id') id: string, @Body() body: UpdateUsuarioDto) {
+  async update(@Param('id') id: string, @Body() body: UpdateUsuarioDto, @CurrentUser() actor?: AuthUser) {
     const existing = await this.prisma.usuario.findUnique({ where: { id }, include: { role: true } });
     if (!existing) throw new AppError('USUARIO_NOT_FOUND');
 
@@ -274,13 +340,26 @@ export class AdminUsersController {
     }
 
     try {
-      return await this.prisma.usuario.update({
+      const updated = await this.prisma.usuario.update({
         where: { id },
         data,
         select: SELECT_PUBLIC,
       });
+      // Fase 4 (§4.2): re-sincroniza la tabla puente si el usuario es (o dejaba
+      // de ser) un rol cliente — cubre cambios de rol, empresa y activo.
+      const eraCliente = !!existing.role && CLIENTE_SLUGS.has(existing.role.slug);
+      const esCliente = !!updated?.role && CLIENTE_SLUGS.has(updated.role.slug);
+      if (updated && (eraCliente || esCliente)) {
+        await this.usuariosCliente?.sincronizarDesdeAdmin(updated, actor?.sub ?? null);
+      }
+      return updated;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        // Ver create(): reactivar/reasignar un cliente_admin con otro ya activo
+        // en la empresa dispara el índice parcial (Plan 2 §4.4).
+        if (UsuarioClienteService.esViolacionClienteAdminUnico(e)) {
+          throw new AppError('CLIENTE_ADMIN_UNICO');
+        }
         throw new AppError('USUARIO_DUPLICATE');
       }
       throw e;
@@ -319,6 +398,11 @@ export class AdminUsersController {
       where: { id },
       data: { activo: false, puedeIniciarSesion: false },
     });
+    // Fase 4 (§4.2): desactivado el usuario, sus membresías de portal caen también.
+    await this.usuariosCliente?.sincronizarDesdeAdmin(
+      { id, empresaId: existing.empresaId, activo: false, role: null },
+      null,
+    );
   }
 
   private async resolveRoleId(slug: string): Promise<string> {

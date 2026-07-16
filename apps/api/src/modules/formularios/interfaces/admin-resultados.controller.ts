@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma.service';
 import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
 import { ResultadosService } from '../application/resultados.service';
+import { formatValorLegible } from '../application/agregados';
 
 // Autorización (Plan 2 §0.1, RF-34/RN-07): SOLO danalytics_admin ve individuales,
 // comparativo inicial vs. final y exporta. Ningún otro rol recibe archivos.
@@ -60,6 +61,73 @@ export class AdminResultadosController {
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename="diagnostico.xlsx"',
+    });
+    return new StreamableFile(Buffer.from(buffer));
+  }
+
+  // Diagnóstico de inicio GLOBAL (RF-28): respuestas de la plantilla global
+  // (programaId=null), no atadas a ningún programa. Con ?export=xlsx → Excel con
+  // 3 hojas: dimensiones (scoring), por pregunta (conteo/promedio/textos) y la
+  // matriz individual completa (cada persona × cada pregunta, legible).
+  @Get('diagnostico-inicial-global')
+  async diagnosticoInicialGlobal(
+    @Query('export') exportar: string | undefined,
+    @Query('empresaId') empresaId: string | undefined,
+    @Query('programaId') programaId: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const detalle = await this.resultados.diagnosticoInicialGlobal({ empresaId, programaId });
+    if (exportar !== 'xlsx') return detalle;
+
+    const workbook = new ExcelJS.Workbook();
+
+    // Hoja 1 — Dimensiones (scoring agregado)
+    const dims = detalle.dimensiones.map(d => d.dimension);
+    const hDim = workbook.addWorksheet('Dimensiones');
+    hDim.addRow(['Dimensión', 'Promedio', 'Respuestas']);
+    for (const d of detalle.dimensiones) hDim.addRow([d.dimension, d.promedio, d.n]);
+
+    // Hoja 2 — Por pregunta (opción múltiple → conteo; likert/número → promedio;
+    // texto → cada respuesta en su fila).
+    const hPreg = workbook.addWorksheet('Por pregunta');
+    hPreg.addRow(['Pregunta', 'Tipo', 'Detalle', 'Valor', 'N']);
+    for (const c of detalle.porCampo) {
+      if ('opciones' in c) {
+        for (const op of c.opciones) hPreg.addRow([c.etiqueta, c.tipoCampo, op.etiqueta, op.conteo, c.n]);
+      } else if ('promedio' in c) {
+        hPreg.addRow([c.etiqueta, c.tipoCampo, 'Promedio', c.promedio, c.n]);
+      } else {
+        if (c.textos.length === 0) hPreg.addRow([c.etiqueta, c.tipoCampo, '', '', c.n]);
+        for (const texto of c.textos) hPreg.addRow([c.etiqueta, c.tipoCampo, 'Respuesta', texto, c.n]);
+      }
+    }
+
+    // Hoja 3 — Respuestas individuales completas (una fila por persona, una
+    // columna por pregunta de primer nivel, valores legibles).
+    const camposTop = detalle.campos.filter(c => !c.campoPadreId).sort((a, b) => a.orden - b.orden);
+    const hijosPorPadre = new Map<string, typeof detalle.campos>();
+    for (const c of detalle.campos) {
+      if (c.campoPadreId) {
+        const arr = hijosPorPadre.get(c.campoPadreId) ?? [];
+        arr.push(c);
+        hijosPorPadre.set(c.campoPadreId, arr);
+      }
+    }
+    const hInd = workbook.addWorksheet('Respuestas');
+    hInd.addRow(['Participante', 'Email', 'Enviado', ...camposTop.map(c => c.etiqueta)]);
+    for (const ind of detalle.individuales) {
+      hInd.addRow([
+        ind.usuario.nombre,
+        ind.usuario.email,
+        ind.enviadoEn ? new Date(ind.enviadoEn).toISOString() : '',
+        ...camposTop.map(c => formatValorLegible(c, ind.datos[c.id], hijosPorPadre)),
+      ]);
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="diagnostico-inicial-global.xlsx"',
     });
     return new StreamableFile(Buffer.from(buffer));
   }

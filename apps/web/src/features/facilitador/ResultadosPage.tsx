@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Loading, ProgressBar } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -59,11 +60,13 @@ export function FacilitadorResultadosPage() {
   }, [programaId]);
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 860 }}>
-      <Link to="/facilitador/programas" style={{ fontSize: '0.85rem' }}>{t('formularios:resultados.back')}</Link>
-      <h1 style={{ fontSize: '1.4rem', margin: '0.75rem 0 1.25rem' }}>{t('formularios:resultados.title')}</h1>
+    <div className="page page-narrow">
+      <PageHeader
+        back={{ to: '/facilitador/programas', label: t('formularios:resultados.back') }}
+        title={t('formularios:resultados.title')}
+      />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
 
       {diagnostico && (
         <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
@@ -103,8 +106,8 @@ export function FacilitadorResultadosPage() {
                   {campo.opciones.map(op => (
                     <div key={op.valor} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
                       <span style={{ minWidth: 160 }}>{op.etiqueta}</span>
-                      <div style={{ flex: 1, background: '#E2E8F0', borderRadius: 4, height: 10 }}>
-                        <div style={{ width: `${campo.n ? (op.conteo / campo.n) * 100 : 0}%`, background: '#14B8A6', height: 10, borderRadius: 4 }} />
+                      <div style={{ flex: 1 }}>
+                        <ProgressBar value={campo.n ? (op.conteo / campo.n) * 100 : 0} color="#14B8A6" label={op.etiqueta} />
                       </div>
                       <span style={{ minWidth: 24, textAlign: 'right' }}>{op.conteo}</span>
                     </div>
@@ -133,8 +136,8 @@ export function BarrasDimensiones({ dimensiones }: { dimensiones: DimensionAgreg
       {dimensiones.map(d => (
         <div key={d.dimension} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
           <span style={{ minWidth: 140, textTransform: 'capitalize' }}>{d.dimension}</span>
-          <div style={{ flex: 1, background: '#E2E8F0', borderRadius: 4, height: 10 }}>
-            <div style={{ width: `${(d.promedio / max) * 100}%`, background: '#38BDF8', height: 10, borderRadius: 4 }} />
+          <div style={{ flex: 1 }}>
+            <ProgressBar value={(d.promedio / max) * 100} color="#38BDF8" label={d.dimension} />
           </div>
           <span style={{ minWidth: 44, textAlign: 'right', fontWeight: 600 }}>{d.promedio.toFixed(2)}</span>
         </div>

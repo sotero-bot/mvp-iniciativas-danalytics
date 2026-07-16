@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Loading, EmptyState } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -26,12 +27,12 @@ export function EstudianteProgramasPage() {
   }, []);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.4rem', marginBottom: '1.25rem' }}>{t('estudiante:programas.title')}</h1>
+    <div className="page">
+      <PageHeader title={t('estudiante:programas.title')} />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && programas.length === 0 && <p>{t('estudiante:programas.empty')}</p>}
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && programas.length === 0 && <EmptyState title={t('estudiante:programas.empty')} />}
+      <div className="card-grid">
         {programas.map((p) => (
           <Link
             key={p.id}

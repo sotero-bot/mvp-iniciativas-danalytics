@@ -76,6 +76,75 @@ export class SnapshotFormulariosService {
     }));
   }
 
+  /**
+   * RF-46: rellena SOLO los tipos de formulario que el programa aún NO tiene en su
+   * snapshot, copiando el global activo vigente de ese tipo. NO toca ni duplica los
+   * snapshots existentes: preserva el versionado inmutable (RF-48) — la versión que
+   * quedó congelada al activar el programa se mantiene aunque el global se versione
+   * después. Seguro con respuestas ya registradas (no borra nada).
+   */
+  async sincronizarPlantillasFaltantes(programaId: string, creadoPorId?: string | null): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const existentes = await tx.plantillaFormulario.findMany({
+        where: { programaId },
+        select: { tipoFormulario: true },
+      });
+      const tiposExistentes = new Set(existentes.map(e => e.tipoFormulario));
+
+      const globales = await tx.plantillaFormulario.findMany({
+        where: { programaId: null, activa: true },
+        include: { campos: { orderBy: { orden: 'asc' } } },
+      });
+
+      let creados = 0;
+      const tiposCreados = new Set<Prisma.PlantillaFormularioCreateManyInput['tipoFormulario']>();
+      for (const global of globales) {
+        // Solo tipos faltantes; y un solo global por tipo por corrida (por si hubiera
+        // más de un global activo del mismo tipo).
+        if (tiposExistentes.has(global.tipoFormulario) || tiposCreados.has(global.tipoFormulario)) continue;
+        tiposCreados.add(global.tipoFormulario);
+        await this.copiarPlantilla(tx, global, programaId, creadoPorId ?? null);
+        creados++;
+      }
+      return creados;
+    });
+  }
+
+  /**
+   * RF-46: crea el snapshot a partir de una SELECCIÓN explícita de plantillas globales
+   * (una por tipo, elegidas al crear el programa). Congela exactamente esas versiones.
+   * Ignora ids que no sean globales y evita duplicar un tipo ya presente en el programa.
+   */
+  async snapshotDesdeSeleccion(
+    programaId: string,
+    plantillaGlobalIds: string[],
+    creadoPorId?: string | null,
+  ): Promise<number> {
+    const ids = [...new Set(plantillaGlobalIds)].filter(Boolean);
+    if (ids.length === 0) return 0;
+    return this.prisma.$transaction(async (tx) => {
+      const globales = await tx.plantillaFormulario.findMany({
+        where: { id: { in: ids }, programaId: null },
+        include: { campos: { orderBy: { orden: 'asc' } } },
+      });
+      const existentes = await tx.plantillaFormulario.findMany({
+        where: { programaId },
+        select: { tipoFormulario: true },
+      });
+      const tipos = new Set(existentes.map(e => e.tipoFormulario));
+
+      let creados = 0;
+      for (const global of globales) {
+        // Una plantilla por tipo: no duplicar un tipo ya presente o ya creado ahora.
+        if (tipos.has(global.tipoFormulario)) continue;
+        tipos.add(global.tipoFormulario);
+        await this.copiarPlantilla(tx, global, programaId, creadoPorId ?? null);
+        creados++;
+      }
+      return creados;
+    });
+  }
+
   private async copiarGlobales(tx: Tx, programaId: string, creadoPorId: string | null): Promise<number> {
     const globales = await tx.plantillaFormulario.findMany({
       where: { programaId: null, activa: true },
@@ -92,42 +161,51 @@ export class SnapshotFormulariosService {
     let creados = 0;
     for (const global of globales) {
       if (yaCopiados.has(global.id)) continue;
-
-      const snapshot = await tx.plantillaFormulario.create({
-        data: {
-          id: randomUUID(),
-          programaId,
-          tipoFormulario: global.tipoFormulario,
-          nombre: global.nombre,
-          descripcion: global.descripcion,
-          version: global.version,
-          activa: true,
-          snapshotDeId: global.id,
-          creadoPorId,
-        },
-      });
-
-      // Copia de campos preservando la jerarquía campoPadreId (grupo_repetible).
-      const idMap = new Map<string, string>();
-      for (const campo of global.campos) idMap.set(campo.id, randomUUID());
-      for (const campo of global.campos) {
-        await tx.campoFormulario.create({
-          data: {
-            id: idMap.get(campo.id)!,
-            plantillaId: snapshot.id,
-            campoPadreId: campo.campoPadreId ? idMap.get(campo.campoPadreId) ?? null : null,
-            tipoCampo: campo.tipoCampo,
-            etiqueta: campo.etiqueta,
-            descripcion: campo.descripcion,
-            dimension: campo.dimension,
-            esObligatorio: campo.esObligatorio,
-            orden: campo.orden,
-            configJson: campo.configJson as Prisma.InputJsonValue,
-          },
-        });
-      }
+      await this.copiarPlantilla(tx, global, programaId, creadoPorId);
       creados++;
     }
     return creados;
+  }
+
+  /** Copia un global (plantilla + campos con jerarquía campoPadreId) al programa. */
+  private async copiarPlantilla(
+    tx: Tx,
+    global: Prisma.PlantillaFormularioGetPayload<{ include: { campos: true } }>,
+    programaId: string,
+    creadoPorId: string | null,
+  ): Promise<void> {
+    const snapshot = await tx.plantillaFormulario.create({
+      data: {
+        id: randomUUID(),
+        programaId,
+        tipoFormulario: global.tipoFormulario,
+        nombre: global.nombre,
+        descripcion: global.descripcion,
+        version: global.version,
+        activa: true,
+        snapshotDeId: global.id,
+        creadoPorId,
+      },
+    });
+
+    // Copia de campos preservando la jerarquía campoPadreId (grupo_repetible).
+    const idMap = new Map<string, string>();
+    for (const campo of global.campos) idMap.set(campo.id, randomUUID());
+    for (const campo of global.campos) {
+      await tx.campoFormulario.create({
+        data: {
+          id: idMap.get(campo.id)!,
+          plantillaId: snapshot.id,
+          campoPadreId: campo.campoPadreId ? idMap.get(campo.campoPadreId) ?? null : null,
+          tipoCampo: campo.tipoCampo,
+          etiqueta: campo.etiqueta,
+          descripcion: campo.descripcion,
+          dimension: campo.dimension,
+          esObligatorio: campo.esObligatorio,
+          orden: campo.orden,
+          configJson: campo.configJson as Prisma.InputJsonValue,
+        },
+      });
+    }
   }
 }

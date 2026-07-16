@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaService } from './prisma.service';
 import { S3Service } from './modules/storage/S3Service';
 
@@ -30,6 +31,13 @@ import { EstudianteFormulariosController } from './modules/formularios/interface
 import { FacilitadorResultadosController } from './modules/formularios/interfaces/facilitador-resultados.controller';
 import { ClienteResultadosController } from './modules/formularios/interfaces/cliente-resultados.controller';
 import { AdminResultadosController } from './modules/formularios/interfaces/admin-resultados.controller';
+import { GrupoRecursosController } from './modules/reto/interfaces/grupo-recursos.controller';
+import { FacilitadorRetoController } from './modules/reto/interfaces/facilitador-reto.controller';
+import { PortalProgramasController } from './modules/portal/interfaces/portal-programas.controller';
+import { PortalUsuariosClienteController } from './modules/portal/interfaces/portal-usuarios-cliente.controller';
+import { AdminRegistroAccesoController } from './modules/auditoria/interfaces/admin-registro-acceso.controller';
+import { RegistroAccesoInterceptor } from './modules/auditoria/registro-acceso.interceptor';
+import { UsuarioClienteService } from './modules/portal/application/usuario-cliente.service';
 import { SnapshotFormulariosService } from './modules/formularios/application/snapshot-formularios.service';
 import { ResultadosService } from './modules/formularios/application/resultados.service';
 
@@ -93,6 +101,11 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     FacilitadorResultadosController,
     ClienteResultadosController,
     AdminResultadosController,
+    GrupoRecursosController,
+    FacilitadorRetoController,
+    PortalProgramasController,
+    PortalUsuariosClienteController,
+    AdminRegistroAccesoController,
   ],
   providers: [
     PrismaService,
@@ -197,6 +210,9 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     TranslationService,
     SnapshotFormulariosService,
     ResultadosService,
+    UsuarioClienteService,
+    // RNF-13: bitácora de auditoría append-only, global (Plan 2 §4.1).
+    { provide: APP_INTERCEPTOR, useClass: RegistroAccesoInterceptor },
   ],
 })
 export class AppModule { }

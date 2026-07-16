@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Loading, EmptyState } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -31,12 +32,12 @@ export function FacilitadorProgramasPage() {
   }, []);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.4rem', marginBottom: '1.25rem' }}>{t('facilitador:programas.title')}</h1>
+    <div className="page">
+      <PageHeader title={t('facilitador:programas.title')} />
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && programas.length === 0 && <p>{t('facilitador:programas.empty')}</p>}
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && programas.length === 0 && <EmptyState title={t('facilitador:programas.empty')} />}
+      <div className="card-grid">
         {programas.map((p) => (
           <div key={p.id} className="card" style={{ padding: '1rem' }}>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>{p.nombre}</div>
@@ -48,6 +49,7 @@ export function FacilitadorProgramasPage() {
               <Link to={`/facilitador/programas/${p.id}/grupos`}>{t('facilitador:grupos.title')}</Link>
               <Link to={`/facilitador/programas/${p.id}/observaciones`}>{t('facilitador:observaciones.title')}</Link>
               <Link to={`/facilitador/programas/${p.id}/resultados`}>{t('formularios:resultados.title')}</Link>
+              <Link to={`/facilitador/programas/${p.id}/reto`}>{t('formularios:reto.title')}</Link>
             </div>
           </div>
         ))}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { PageHeader, StatusBadge } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -188,14 +189,10 @@ export function InstanciasPage() {
         onConfirm={handleDeleteEnlace} onCancel={() => setDeleteEnlaceModal(null)} />
 
       {/* Page header */}
-      <div className="page-header" style={{ marginBottom: '1rem' }}>
-        <div>
-          <h1>{t('execution:instancias.page_title')}</h1>
-          <p className="page-description">
-            {t('execution:instancias.page_description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('execution:instancias.page_title')}
+        description={t('execution:instancias.page_description')}
+      />
 
       {/* Prerequisite warning */}
       {loaded && actividades.length === 0 && (
@@ -219,9 +216,9 @@ export function InstanciasPage() {
         <h2 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{t('execution:instancias.summary_title')}</h2>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
           {[
-            { label: t('execution:instancias.stats.finalizadas'), value: finalizadas, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
-            { label: t('execution:instancias.stats.en_progreso'), value: enProgreso, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-            { label: t('execution:instancias.stats.pendientes'),  value: pendientes,  color: '#64748B', bg: '#F8FAFC', border: '#E2E8F0' },
+            { label: t('execution:instancias.stats.finalizadas'), value: finalizadas, color: 'var(--color-success)', bg: 'var(--color-success-bg)', border: 'var(--color-success-border)' },
+            { label: t('execution:instancias.stats.en_progreso'), value: enProgreso, color: 'var(--color-warning)', bg: 'var(--color-warning-bg)', border: 'var(--color-warning-border)' },
+            { label: t('execution:instancias.stats.pendientes'),  value: pendientes,  color: 'var(--color-text-secondary)', bg: 'var(--color-bg-page)', border: 'var(--color-border)' },
           ].map(s => (
             <div key={s.label} style={{
               background: s.bg, border: `1px solid ${s.border}`,
@@ -284,8 +281,8 @@ export function InstanciasPage() {
             noValidate
           >
             <div>
-              <label className="required-label" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>{t('execution:instancias.generar_enlace.actividad_label')}</label>
-              <select className="input" style={{ fontSize: '0.82rem' }} required value={formEnlace.actividadId}
+              <label htmlFor="enlace-actividad" className="required-label" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>{t('execution:instancias.generar_enlace.actividad_label')}</label>
+              <select id="enlace-actividad" className="input" style={{ fontSize: '0.82rem' }} required value={formEnlace.actividadId}
                 onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
                 <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
                 {actividades.map(a => (
@@ -298,10 +295,10 @@ export function InstanciasPage() {
               <div className="invalid-feedback">{t('execution:instancias.generar_enlace.actividad_required')}</div>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>
+              <label htmlFor="enlace-etiqueta" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>
                 {t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span>
               </label>
-              <input className="input" style={{ fontSize: '0.82rem' }} placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
+              <input id="enlace-etiqueta" className="input" style={{ fontSize: '0.82rem' }} placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
                 value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
             </div>
             <button type="submit" className="btn btn-primary" style={{ fontSize: '0.82rem' }} disabled={generandoEnlace}>
@@ -312,12 +309,12 @@ export function InstanciasPage() {
           {enlaceGenerado && (
             <div style={{
               marginTop: '0.75rem', padding: '0.625rem 1rem', borderRadius: 6,
-              background: '#F0FDF4', border: '1px solid #86EFAC',
+              background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)',
               display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap',
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: '#166534', fontSize: '0.78rem', marginBottom: 2 }}>{t('execution:instancias.generar_enlace.success_title')}</div>
-                <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: '#166534' }}>{enlaceGenerado}</code>
+                <div style={{ fontWeight: 600, color: 'var(--color-success-strong)', fontSize: '0.78rem', marginBottom: 2 }}>{t('execution:instancias.generar_enlace.success_title')}</div>
+                <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: 'var(--color-success-strong)' }}>{enlaceGenerado}</code>
               </div>
               <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem', flexShrink: 0 }}
                 onClick={() => navigator.clipboard.writeText(enlaceGenerado)}>{t('execution:instancias.generar_enlace.copy')}</button>
@@ -373,9 +370,9 @@ export function InstanciasPage() {
                           )}
                         </td>
                         <td>
-                          <span className={`status-badge ${e.activo ? 'status-success' : 'status-neutral'}`}>
+                          <StatusBadge variant={e.activo ? 'success' : 'neutral'}>
                             {e.activo ? t('execution:instancias.enlaces_activos.table.activo') : t('execution:instancias.enlaces_activos.table.inactivo')}
-                          </span>
+                          </StatusBadge>
                         </td>
                         <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
                           {new Date(e.createdAt).toLocaleDateString()}
@@ -469,12 +466,12 @@ export function InstanciasPage() {
                 {paginated.map((ins: any) => (
                   <tr key={ins.id}>
                     <td>
-                      <span className={`status-badge ${
-                        ins.estado === 'finalizado' ? 'status-success' :
-                        ins.estado === 'iniciado' ? 'status-warning' : 'status-neutral'
-                      }`}>
+                      <StatusBadge variant={
+                        ins.estado === 'finalizado' ? 'success' :
+                        ins.estado === 'iniciado' ? 'warning' : 'neutral'
+                      }>
                         {ESTADO_LABELS[ins.estado] ?? ins.estado}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td>
                       <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{ins.actividad?.nombre || t('execution:instancias.individuales.table.desconocida')}</div>
@@ -538,9 +535,9 @@ export function InstanciasPage() {
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
                                   padding: '3px 8px', fontSize: '0.72rem',
-                                  background: '#F0FDF4', color: '#166534',
+                                  background: 'var(--color-success-bg)', color: 'var(--color-success-strong)',
                                   borderRadius: 5, fontWeight: 600,
-                                  border: '1px solid #86EFAC', whiteSpace: 'nowrap',
+                                  border: '1px solid var(--color-success-border)', whiteSpace: 'nowrap',
                                   cursor: 'pointer',
                                 }}
                                 title={r.archivoNombre}
@@ -555,9 +552,9 @@ export function InstanciasPage() {
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
                                   padding: '3px 8px', fontSize: '0.72rem',
-                                  background: '#EFF6FF', color: '#1D4ED8',
+                                  background: 'var(--color-primary-light)', color: 'var(--color-primary-hover)',
                                   borderRadius: 5, fontWeight: 600, textDecoration: 'none',
-                                  border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
+                                  border: '1px solid var(--color-info-border)', whiteSpace: 'nowrap',
                                 }}
                                 title={t('execution:instancias.individuales.actions.interaccion_title')}
                               >
@@ -660,7 +657,7 @@ export function InstanciasPage() {
                       className="btn"
                       style={{
                         padding: '4px 10px', fontSize: '0.8rem',
-                        background: page === n ? 'var(--color-primary)' : 'white',
+                        background: page === n ? 'var(--color-primary)' : 'var(--color-bg-card)',
                         color: page === n ? 'white' : 'var(--color-text-main)',
                         border: `1px solid ${page === n ? 'var(--color-primary)' : 'var(--color-border)'}`,
                       }}

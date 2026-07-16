@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
+import { StatusBadge, Modal } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -109,13 +110,17 @@ export function RunnerResultsPage() {
 
     if (loading) return (
         <div className="runner-center">
-            <div style={{ width: 20, height: 20, border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <span className="spinner" aria-hidden="true" />
             {t('execution:results.loading')}
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
-    if (error) return <div className="runner-center" style={{ color: '#EF4444' }}>⚠ {error}</div>;
+    if (error) return <div className="runner-center" style={{ color: 'var(--color-danger)' }}>⚠ {error}</div>;
     if (!data) return null;
+
+    const markdownBoxStyle: CSSProperties = {
+        padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)',
+        borderRadius: 8, fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.7, overflowX: 'auto',
+    };
 
     const respuestasPorPregunta = new Map((data.respuestas ?? []).map(r => [r.preguntaId, r]));
 
@@ -189,52 +194,33 @@ export function RunnerResultsPage() {
 
     return (
         <>
-        {showRegenerarModal && (
-            <div style={{
-                position: 'fixed', inset: 0, zIndex: 1000,
-                background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-            }}>
-                <div style={{
-                    background: 'white', borderRadius: 14, padding: '2rem',
-                    maxWidth: 420, width: '100%',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
-                }}>
-                    <div style={{ fontSize: '1.25rem', marginBottom: 4 }}>↺</div>
-                    <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', color: '#0F172A' }}>
-                        {t('execution:results.regenerate_modal.title')}
-                    </h2>
-                    <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#475569', lineHeight: 1.6 }}>
-                        {t('execution:results.regenerate_modal.body')}
-                    </p>
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button
-                            onClick={() => setShowRegenerarModal(false)}
-                            style={{
-                                padding: '7px 18px', borderRadius: 8, border: '1px solid #E2E8F0',
-                                background: 'white', color: '#475569',
-                                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                            }}
-                        >
-                            {t('common:cancel')}
-                        </button>
-                        <button
-                            onClick={() => { setShowRegenerarModal(false); handleGenerarCanvas(true); }}
-                            style={{
-                                padding: '7px 18px', borderRadius: 8, border: 'none',
-                                background: '#7C3AED', color: 'white',
-                                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                            }}
-                        >
-                            {t('execution:results.regenerate_modal.confirm')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
+        <Modal
+            isOpen={showRegenerarModal}
+            onClose={() => setShowRegenerarModal(false)}
+            title={t('execution:results.regenerate_modal.title')}
+            maxWidth={420}
+            footer={
+                <>
+                    <button className="btn btn-secondary" onClick={() => setShowRegenerarModal(false)}>
+                        {t('common:cancel')}
+                    </button>
+                    <button
+                        className="btn btn-primary"
+                        style={{ background: '#7C3AED', border: 'none' }}
+                        onClick={() => { setShowRegenerarModal(false); handleGenerarCanvas(true); }}
+                    >
+                        {t('execution:results.regenerate_modal.confirm')}
+                    </button>
+                </>
+            }
+        >
+            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                {t('execution:results.regenerate_modal.body')}
+            </p>
+        </Modal>
         <div style={{
             minHeight: '100vh',
-            background: 'linear-gradient(160deg, #F0F4FF 0%, #F8FAFC 50%, #FDF8FF 100%)',
+            background: 'linear-gradient(160deg, #F0F4FF 0%, var(--color-bg-page) 50%, #FDF8FF 100%)',
             padding: '0 1rem 4rem',
         }}>
 
@@ -251,7 +237,7 @@ export function RunnerResultsPage() {
                     alt="Danalytics"
                     style={{ height: 36, objectFit: 'contain', justifySelf: 'start' }}
                 />
-                <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.02em' }}>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-main)', letterSpacing: '-0.02em' }}>
                     {t('common:app_name')}
                 </span>
                 <div style={{ justifySelf: 'end', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -263,7 +249,7 @@ export function RunnerResultsPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 padding: '6px 14px', borderRadius: 8,
-                                background: canvasLoading ? '#94A3B8' : '#2563EB', color: 'white',
+                                background: canvasLoading ? 'var(--color-text-tertiary)' : 'var(--color-primary)', color: 'white',
                                 border: 'none', cursor: canvasLoading ? 'not-allowed' : 'pointer',
                                 fontSize: '0.8rem', fontWeight: 600,
                             }}
@@ -276,7 +262,7 @@ export function RunnerResultsPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 padding: '6px 14px', borderRadius: 8,
-                                background: '#2563EB', color: 'white',
+                                background: 'var(--color-primary)', color: 'white',
                                 border: 'none', cursor: 'pointer',
                                 fontSize: '0.8rem', fontWeight: 600,
                             }}
@@ -291,22 +277,14 @@ export function RunnerResultsPage() {
 
                 {/* Header */}
                 <div style={{
-                    background: 'white', borderRadius: 12, border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-card)', borderRadius: 12, border: '1px solid var(--color-border)',
                     padding: '2rem', marginBottom: '1.5rem',
                     boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                         <div>
-                            <div style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                background: '#ECFDF5', color: '#059669',
-                                border: '1px solid #A7F3D0',
-                                padding: '3px 12px', borderRadius: 9999,
-                                fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
-                                marginBottom: 12,
-                            }}>
-                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
-                                {t('execution:results.completed_badge')}
+                            <div style={{ marginBottom: 12 }}>
+                                <StatusBadge variant="success">{t('execution:results.completed_badge')}</StatusBadge>
                             </div>
                             <h1 style={{ fontSize: '1.5rem', marginBottom: 6 }}>{data.nombreActividad}</h1>
                             {data.descripcionActividad && (
@@ -337,7 +315,7 @@ export function RunnerResultsPage() {
                 {/* Canvas Grid — solo si es Analytics Canvas */}
                 {data.esCanvas && (
                     <div style={{
-                        background: 'white', borderRadius: 12, border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-card)', borderRadius: 12, border: '1px solid var(--color-border)',
                         padding: '2rem', marginBottom: '1.5rem',
                         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
                     }}>
@@ -351,7 +329,7 @@ export function RunnerResultsPage() {
                                     {t('execution:results.canvas_not_generated')}
                                 </p>
                                 <button
-                                    onClick={handleGenerarCanvas}
+                                    onClick={() => handleGenerarCanvas()}
                                     style={{
                                         padding: '8px 20px', borderRadius: 8, border: 'none',
                                         background: '#7C3AED', color: 'white',
@@ -395,7 +373,7 @@ export function RunnerResultsPage() {
                         const respondido = pasoRespondido(paso);
                         return (
                             <div key={paso.id} style={{
-                                background: 'white', borderRadius: 10,
+                                background: 'var(--color-bg-card)', borderRadius: 10,
                                 border: '1px solid var(--color-border)',
                                 overflow: 'hidden',
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
@@ -440,10 +418,10 @@ export function RunnerResultsPage() {
                                                 return (
                                                     <div key={q.id} style={{
                                                         paddingBottom: qIdx < preguntas.length - 1 ? 16 : 0,
-                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid #F1F5F9' : 'none',
+                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid var(--color-bg-subtle)' : 'none',
                                                     }}>
                                                         {preguntas.length > 1 && (
-                                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                                 {t('execution:results.pregunta_label', { num: qIdx + 1 })}
                                                             </div>
                                                         )}
@@ -451,18 +429,18 @@ export function RunnerResultsPage() {
                                                             {q.enunciado}
                                                         </div>
                                                         {r?.archivoNombre && (
-                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#F0FDF4', color: '#166534', border: '1px solid #86EFAC', padding: '3px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 500, marginBottom: 8 }}>
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-success-bg)', color: 'var(--color-success-strong)', border: '1px solid var(--color-success-border)', padding: '3px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 500, marginBottom: 8 }}>
                                                                 📎 {r.archivoNombre}
                                                             </div>
                                                         )}
                                                         {texto ? (
-                                                            <div style={{ padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.7, overflowX: 'auto' }}>
+                                                            <div style={markdownBoxStyle}>
                                                                 <ReactMarkdown
                                                                     remarkPlugins={[remarkGfm]}
                                                                     components={{
                                                                         table: ({ node, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0.75rem 0', fontSize: '0.875rem' }} {...props} />,
-                                                                        th: ({ node, ...props }) => <th style={{ border: '1px solid #CBD5E1', padding: '8px 12px', background: '#F1F5F9', textAlign: 'left', fontWeight: 600 }} {...props} />,
-                                                                        td: ({ node, ...props }) => <td style={{ border: '1px solid #CBD5E1', padding: '8px 12px' }} {...props} />,
+                                                                        th: ({ node, ...props }) => <th style={{ border: '1px solid var(--color-border-strong)', padding: '8px 12px', background: 'var(--color-bg-subtle)', textAlign: 'left', fontWeight: 600 }} {...props} />,
+                                                                        td: ({ node, ...props }) => <td style={{ border: '1px solid var(--color-border-strong)', padding: '8px 12px' }} {...props} />,
                                                                         p: ({ node, ...props }) => <p style={{ margin: '0 0 0.75rem', lineHeight: 1.7, textAlign: 'justify' }} {...props} />,
                                                                     }}
                                                                 >
@@ -483,7 +461,7 @@ export function RunnerResultsPage() {
                                         (() => {
                                             const interaccion = data.interacciones.find(i => i.pasoId === paso.id);
                                             return interaccion ? (
-                                                <div style={{ padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: '0.9rem', color: '#1E293B', lineHeight: 1.7, overflowX: 'auto' }}>
+                                                <div style={markdownBoxStyle}>
                                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                         {interaccion.contenidoArchivo || interaccion.contenido}
                                                     </ReactMarkdown>

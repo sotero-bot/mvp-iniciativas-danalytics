@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { PageHeader, Alert, Loading, EmptyState } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -65,43 +66,50 @@ export function FacilitadorAsistenciaPage() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.4rem', marginBottom: '1.25rem' }}>{t('facilitador:asistencia.title')}</h1>
+    <div className="page">
+      <PageHeader title={t('facilitador:asistencia.title')} />
       {toast && <div className="toast">{toast}</div>}
-      {errorCode === 'SESION_FUTURA' && <p>{t('facilitador:asistencia.future_banner')}</p>}
-      {errorCode === 'ASISTENCIA_FUERA_DE_PLAZO' && <p>{t('facilitador:asistencia.locked_banner')}</p>}
-      {loading && <p>{t('common:loading')}</p>}
-      {!loading && !errorCode && registros.length === 0 && <p>{t('facilitador:asistencia.empty')}</p>}
+      {errorCode === 'SESION_FUTURA' && <Alert variant="warning">{t('facilitador:asistencia.future_banner')}</Alert>}
+      {errorCode === 'ASISTENCIA_FUERA_DE_PLAZO' && <Alert variant="warning">{t('facilitador:asistencia.locked_banner')}</Alert>}
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && !errorCode && registros.length === 0 && <EmptyState title={t('facilitador:asistencia.empty')} />}
 
       {!loading && !errorCode && registros.length > 0 && (
         <>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '0.5rem' }}>Participante</th>
-                <th style={{ textAlign: 'center', padding: '0.5rem' }}>{t('facilitador:asistencia.presente')}</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem' }}>{t('facilitador:asistencia.nota')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registros.map((r) => (
-                <tr key={r.usuarioId}>
-                  <td style={{ padding: '0.5rem' }}>{r.nombre}</td>
-                  <td style={{ textAlign: 'center', padding: '0.5rem' }}>
-                    <input type="checkbox" checked={r.presente} onChange={() => togglePresente(r.usuarioId)} />
-                  </td>
-                  <td style={{ padding: '0.5rem' }}>
-                    <input
-                      className="input"
-                      value={r.nota ?? ''}
-                      onChange={(e) => setNota(r.usuarioId, e.target.value)}
-                      style={{ width: '100%' }}
-                    />
-                  </td>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t('facilitador:asistencia.participante')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('facilitador:asistencia.presente')}</th>
+                  <th>{t('facilitador:asistencia.nota')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {registros.map((r) => (
+                  <tr key={r.usuarioId}>
+                    <td>{r.nombre}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={r.presente}
+                        onChange={() => togglePresente(r.usuarioId)}
+                        aria-label={`${t('facilitador:asistencia.presente')} — ${r.nombre}`}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={r.nota ?? ''}
+                        onChange={(e) => setNota(r.usuarioId, e.target.value)}
+                        aria-label={`${t('facilitador:asistencia.nota')} — ${r.nombre}`}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <button className="btn btn-primary" style={{ marginTop: 16 }} disabled={saving} onClick={guardar}>
             {t('facilitador:asistencia.save')}
           </button>

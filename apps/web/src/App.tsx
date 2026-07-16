@@ -29,9 +29,21 @@ import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
 import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
 import { EstudianteFormulariosPage } from './features/estudiante/FormulariosPage';
 import { FormularioResponderPage } from './features/estudiante/FormularioResponderPage';
+import { EstudianteGrupoPage } from './features/estudiante/GrupoPage';
+import { GrupoRecursoPage } from './features/estudiante/GrupoRecursoPage';
+import { GrupoPresentacionPage } from './features/estudiante/GrupoPresentacionPage';
 import { FacilitadorResultadosPage } from './features/facilitador/ResultadosPage';
+import { FacilitadorRetoPage } from './features/facilitador/RetoPage';
 import { FormBuilderPage } from './features/admin/FormBuilderPage';
 import { AdminDiagnosticoPage } from './features/admin/AdminDiagnosticoPage';
+import { AdminDiagnosticoGlobalPage } from './features/admin/AdminDiagnosticoGlobalPage';
+import { AdminAsistenciaPage } from './features/admin/AdminAsistenciaPage';
+import { AdminObservacionesPage } from './features/admin/AdminObservacionesPage';
+import { AdminNotificacionesPage } from './features/admin/AdminNotificacionesPage';
+import { RegistroAccesoPage } from './features/admin/RegistroAccesoPage';
+import { PortalProgramasPage } from './features/cliente/PortalProgramasPage';
+import { PortalProgramaDetallePage } from './features/cliente/PortalProgramaDetallePage';
+import { PortalUsuariosPage } from './features/cliente/PortalUsuariosPage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -109,6 +121,16 @@ function useCurrentUser(): CurrentUser | null {
 const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) => {
   const { t } = useTranslation(['common', 'admin', 'auth']);
   const currentUser = useCurrentUser();
+  // Drawer móvil: la sidebar es fija en escritorio y se abre como cajón en <768px.
+  // Solo estado de UI; no afecta navegación ni gating (el Layout se remonta por ruta,
+  // así que al navegar el cajón se cierra solo).
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
   const session = decodeSession(localStorage.getItem('admin_token'));
   const role = session?.role ?? null;
   const isAdmin = role === ADMIN_SLUG;
@@ -126,7 +148,37 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
   return (
     <div className="layout-container">
-      <aside className="sidebar">
+      {/* Barra superior solo-móvil con botón hamburguesa */}
+      <header className="mobile-topbar">
+        <button
+          type="button"
+          className="hamburger"
+          aria-label={t('common:a11y.open_menu')}
+          aria-controls="app-sidebar"
+          aria-expanded={drawerOpen}
+          onClick={() => setDrawerOpen(true)}
+        >
+          ☰
+        </button>
+        <img src="/logo-simbolo.png" alt="" className="mobile-topbar-logo" />
+        <span className="mobile-topbar-title">{t('common:app_name')}</span>
+      </header>
+
+      {/* Fondo oscuro del cajón (solo visible en móvil cuando está abierto) */}
+      {drawerOpen && (
+        <div className="sidebar-overlay" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+      )}
+
+      <aside
+        id="app-sidebar"
+        className={`sidebar${drawerOpen ? ' sidebar-open' : ''}`}
+        aria-label={t('common:a11y.main_navigation')}
+        onClick={e => {
+          // Cierra el cajón al pulsar un enlace de navegación, pero no al
+          // interactuar con el selector de idioma u otros botones internos.
+          if (drawerOpen && (e.target as HTMLElement).closest('a')) setDrawerOpen(false);
+        }}
+      >
         <div className="sidebar-title">
           <img src="/logo-simbolo.png" alt="Danalytics Logo" className="sidebar-logo" />
           <span>{t('common:app_name')}</span>
@@ -146,20 +198,30 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
         </nav>
 
-        {/* — Secciones por rol NO-admin: visibles pero aún no navegables — */}
+        {/* — Secciones por rol NO-admin: navegables si su ruta ya existe — */}
         {!isAdmin && roleCards.length > 0 && (
           <nav style={{ marginTop: '1.25rem' }}>
-            {roleCards.map(item => (
-              <div key={item.key} className="nav-item" style={{ cursor: 'default', opacity: 0.55 }} title={t('common:home.coming_soon')}>
+            {roleCards.map(item => {
+              const icono = (
                 <span style={{
                   width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
                   background: `${item.color}2e`, border: `1px solid ${item.color}55`,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '0.7rem',
                 }}>{item.icon}</span>
-                {t(`common:home.cards.${item.key}.title`)}
-              </div>
-            ))}
+              );
+              return item.to ? (
+                <NavLink key={item.key} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                  {icono}
+                  {t(`common:home.cards.${item.key}.title`)}
+                </NavLink>
+              ) : (
+                <div key={item.key} className="nav-item" style={{ cursor: 'default', opacity: 0.55 }} title={t('common:home.coming_soon')}>
+                  {icono}
+                  {t(`common:home.cards.${item.key}.title`)}
+                </div>
+              );
+            })}
           </nav>
         )}
 
@@ -230,6 +292,16 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             }}>🧾</span>
             {t('admin:sidebar.formularios')}
           </NavLink>
+          <NavLink to="/admin/observaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(239,68,68,0.18)',
+              border: '1px solid #EF444440',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>📝</span>
+            {t('admin:sidebar.observaciones')}
+          </NavLink>
         </nav>
 
         {/* — Gestión (transversal) — */}
@@ -244,6 +316,26 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               fontSize: '0.75rem',
             }}>👥</span>
             {t('admin:sidebar.usuarios')}
+          </NavLink>
+          <NavLink to="/admin/registro-acceso" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(167,139,250,0.18)',
+              border: '1px solid #A78BFA40',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>🛡</span>
+            {t('admin:sidebar.registro_acceso')}
+          </NavLink>
+          <NavLink to="/admin/notificaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(245,158,11,0.18)',
+              border: '1px solid #F59E0B40',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>📧</span>
+            {t('admin:sidebar.notificaciones')}
           </NavLink>
         </nav>
         </>)}
@@ -365,12 +457,13 @@ function App() {
     return <>{children}</>;
   };
 
-  // Ruta para un rol de portal específico (facilitador/estudiante). Igual criterio
+  // Ruta para roles de portal (facilitador/estudiante/cliente). Igual criterio
   // que AdminRoute: sin token → login; con token pero otro rol → a su propio inicio.
   // RNF-01: gating de UI únicamente, la autorización real la imponen los guards del backend.
-  const PortalRoute = ({ allow, children }: { allow: string; children: React.ReactNode }) => {
+  const PortalRoute = ({ allow, children }: { allow: string | string[]; children: React.ReactNode }) => {
+    const allowed = Array.isArray(allow) ? allow : [allow];
     if (!isAuthenticated) return <LoginPage onLogin={handleLogin} />;
-    if (role !== allow) return <Navigate to={homePath} replace />;
+    if (!role || !allowed.includes(role)) return <Navigate to={homePath} replace />;
     return <Layout onLogout={handleLogout}>{children}</Layout>;
   };
 
@@ -398,7 +491,12 @@ function App() {
         <Route path="/admin/usuarios" element={<AdminRoute><Layout onLogout={handleLogout}><UsuariosPage /></Layout></AdminRoute>} />
         <Route path="/admin/programas" element={<AdminRoute><Layout onLogout={handleLogout}><ProgramasPage /></Layout></AdminRoute>} />
         <Route path="/admin/programas/:id/diagnostico" element={<AdminRoute><Layout onLogout={handleLogout}><AdminDiagnosticoPage /></Layout></AdminRoute>} />
+        <Route path="/admin/diagnostico-inicial-global" element={<AdminRoute><Layout onLogout={handleLogout}><AdminDiagnosticoGlobalPage /></Layout></AdminRoute>} />
+        <Route path="/admin/programas/:id/asistencia" element={<AdminRoute><Layout onLogout={handleLogout}><AdminAsistenciaPage /></Layout></AdminRoute>} />
+        <Route path="/admin/observaciones" element={<AdminRoute><Layout onLogout={handleLogout}><AdminObservacionesPage /></Layout></AdminRoute>} />
+        <Route path="/admin/notificaciones" element={<AdminRoute><Layout onLogout={handleLogout}><AdminNotificacionesPage /></Layout></AdminRoute>} />
         <Route path="/admin/formularios" element={<AdminRoute><Layout onLogout={handleLogout}><FormBuilderPage /></Layout></AdminRoute>} />
+        <Route path="/admin/registro-acceso" element={<AdminRoute><Layout onLogout={handleLogout}><RegistroAccesoPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciasPage /></Layout></AdminRoute>} />
         <Route path="/admin/instancias/:id" element={<AdminRoute><Layout onLogout={handleLogout}><InstanciaDetallePage /></Layout></AdminRoute>} />
 
@@ -417,12 +515,22 @@ function App() {
         <Route path="/facilitador/programas/:id/observaciones" element={<PortalRoute allow="facilitador"><FacilitadorObservacionesPage /></PortalRoute>} />
         <Route path="/facilitador/sesiones/:id/asistencia" element={<PortalRoute allow="facilitador"><FacilitadorAsistenciaPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/resultados" element={<PortalRoute allow="facilitador"><FacilitadorResultadosPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/reto" element={<PortalRoute allow="facilitador"><FacilitadorRetoPage /></PortalRoute>} />
 
         {/* Portal Estudiante */}
         <Route path="/estudiante/programas" element={<PortalRoute allow="estudiante"><EstudianteProgramasPage /></PortalRoute>} />
         <Route path="/estudiante/programas/:id/sesiones" element={<PortalRoute allow="estudiante"><EstudianteSesionesPage /></PortalRoute>} />
         <Route path="/estudiante/formularios" element={<PortalRoute allow="estudiante"><EstudianteFormulariosPage /></PortalRoute>} />
         <Route path="/estudiante/formularios/:plantillaId" element={<PortalRoute allow="estudiante"><FormularioResponderPage /></PortalRoute>} />
+        <Route path="/estudiante/grupo" element={<PortalRoute allow="estudiante"><EstudianteGrupoPage /></PortalRoute>} />
+        <Route path="/estudiante/grupos/:grupoId/bitacora" element={<PortalRoute allow="estudiante"><GrupoRecursoPage recurso="bitacora" /></PortalRoute>} />
+        <Route path="/estudiante/grupos/:grupoId/plantilla-proyecto" element={<PortalRoute allow="estudiante"><GrupoRecursoPage recurso="plantilla-proyecto" /></PortalRoute>} />
+        <Route path="/estudiante/grupos/:grupoId/presentacion" element={<PortalRoute allow="estudiante"><GrupoPresentacionPage /></PortalRoute>} />
+
+        {/* Portal Cliente (Fase 4, RF-42..45 — solo lectura salvo gestión de usuario_cliente) */}
+        <Route path="/portal/programas" element={<PortalRoute allow={['cliente_admin', 'usuario_cliente']}><PortalProgramasPage /></PortalRoute>} />
+        <Route path="/portal/programas/:id" element={<PortalRoute allow={['cliente_admin', 'usuario_cliente']}><PortalProgramaDetallePage /></PortalRoute>} />
+        <Route path="/portal/usuarios" element={<PortalRoute allow="cliente_admin"><PortalUsuariosPage /></PortalRoute>} />
 
         {/* Public MagicLink consume */}
         <Route path="/auth/link/:token" element={<MagicLinkConsumePage onLogin={handleLogin} />} />

@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { Loading } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-interface ConfigPublica {
+export interface ConfigPublica {
   opciones?: { valor: string; etiqueta: string }[];
   multiple?: boolean;
   min?: number;
@@ -16,7 +17,7 @@ interface ConfigPublica {
   seccion?: string;
 }
 
-interface Campo {
+export interface Campo {
   id: string;
   campoPadreId: string | null;
   tipoCampo: string;
@@ -159,7 +160,7 @@ export function FormularioResponderPage() {
         {t('formularios:estudiante.back')}
       </Link>
       {toast && <div className="toast">{toast}</div>}
-      {loading && <p>{t('common:loading')}</p>}
+      {loading && <Loading label={t('common:loading')} />}
 
       {formulario && (
         <>
@@ -208,7 +209,9 @@ export function FormularioResponderPage() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Render por tipo de campo (RF-24; checkboxes = opcion_multiple + multiple)
+// Render por tipo de campo (RF-24; checkboxes = opcion_multiple + multiple).
+// Exportado para reutilizarlo en los recursos de grupo de Fase 3
+// (bitácora / plantilla del proyecto).
 // ─────────────────────────────────────────────────────────────
 
 interface CampoRendererProps {
@@ -219,7 +222,7 @@ interface CampoRendererProps {
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
-function CampoRenderer({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
+export function CampoRenderer({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
   return (
     <div className="gform-card">
       <div className="gform-question">
@@ -356,8 +359,7 @@ function CampoInput({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
                   ))}
                   <td>
                     <button
-                      className="btn-link"
-                      style={{ color: '#B91C1C' }}
+                      className="btn-link btn-link-danger"
                       onClick={() => onChange(filas.filter((_, j) => j !== i))}
                     >
                       ✕
@@ -388,8 +390,7 @@ function CampoInput({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                 <span>#{i + 1}</span>
                 <button
-                  className="btn-link"
-                  style={{ color: '#B91C1C' }}
+                  className="btn-link btn-link-danger"
                   onClick={() => onChange(iteraciones.filter((_, j) => j !== i))}
                 >
                   {t('formularios:estudiante.quitar')}

@@ -23,6 +23,13 @@ const TIPOS_INDIVIDUALES: TipoFormulario[] = [
   'feedback',
 ];
 
+// Plantillas GLOBALES (programaId=null) que cualquier estudiante puede ver y
+// responder SIEMPRE, sin depender de matrícula en un programa. El diagnóstico de
+// inicio es un baseline que todo estudiante responde una sola vez (unicidad por
+// plantilla+usuario vía índice resp_form_usuario). Su respuesta queda sin programa
+// (programaId=null) y por eso no contamina los agregados por-programa (RF-34/36).
+const TIPOS_GLOBALES_DIRECTOS: TipoFormulario[] = ['diagnostico_inicial'];
+
 interface DraftDto {
   datos: Record<string, unknown>;
 }
@@ -57,11 +64,18 @@ export class EstudianteFormulariosController {
       where: {
         activa: true,
         tipoFormulario: { in: TIPOS_INDIVIDUALES },
-        programa: {
-          is: {
-            AND: [{ estado: 'activo' }, this.scope.programaScope(actor)],
+        OR: [
+          // Globales de inicio: visibles para TODO estudiante, siempre.
+          { programaId: null, tipoFormulario: { in: TIPOS_GLOBALES_DIRECTOS } },
+          // Snapshots de un programa activo donde el estudiante está matriculado.
+          {
+            programa: {
+              is: {
+                AND: [{ estado: 'activo' }, this.scope.programaScope(actor)],
+              },
+            },
           },
-        },
+        ],
       },
       select: {
         id: true,
@@ -179,7 +193,7 @@ export class EstudianteFormulariosController {
         data: {
           id: randomUUID(),
           plantillaId,
-          programaId: plantilla.programaId!,
+          programaId: plantilla.programaId, // null en plantillas globales de inicio
           usuarioRespondienteId: actor.sub,
           datosRespuestaJson: datos,
           estado: 'draft',
@@ -253,7 +267,7 @@ export class EstudianteFormulariosController {
           data: {
             id: randomUUID(),
             plantillaId,
-            programaId: plantilla.programaId!,
+            programaId: plantilla.programaId, // null en plantillas globales de inicio
             usuarioRespondienteId: actor.sub,
             ...data,
           },
@@ -277,13 +291,19 @@ export class EstudianteFormulariosController {
       where: { id: plantillaId },
       select: { id: true, programaId: true, tipoFormulario: true, nombre: true, descripcion: true, activa: true },
     });
-    if (!plantilla || !plantilla.activa || !plantilla.programaId) {
+    if (!plantilla || !plantilla.activa) {
       throw new AppError('PLANTILLA_NOT_FOUND');
     }
     if (!TIPOS_INDIVIDUALES.includes(plantilla.tipoFormulario)) {
       throw new AppError('FORBIDDEN');
     }
-    await this.scope.assertProgramaAccessible(this.prisma, actor, plantilla.programaId);
+    if (plantilla.programaId) {
+      // Snapshot de programa: exige acceso por matrícula/scoping (§0.1).
+      await this.scope.assertProgramaAccessible(this.prisma, actor, plantilla.programaId);
+    } else if (!TIPOS_GLOBALES_DIRECTOS.includes(plantilla.tipoFormulario)) {
+      // Plantilla global que NO es de inicio: no es respondible directamente.
+      throw new AppError('PLANTILLA_NOT_FOUND');
+    }
     return plantilla;
   }
 }

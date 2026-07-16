@@ -114,7 +114,10 @@ export class MagicLinkService {
       },
     });
     if (!link) throw new AppError('MAGIC_LINK_INVALID');
-    if (link.usadoEn) throw new AppError('MAGIC_LINK_USADO');
+    // C-05 (aclaración 2026-07-14): el magic link es MULTIUSO durante su ventana de
+    // 24 h — se puede entrar varias veces con el mismo link; solo caduca por `expiraEn`.
+    // (Deroga RN-08/RNF-05 "un solo uso" por decisión del cliente.) Registramos el
+    // último uso para auditoría, pero NO invalidamos.
     if (link.expiraEn.getTime() < Date.now()) throw new AppError('MAGIC_LINK_EXPIRADO');
 
     const usuario = link.usuario;
@@ -122,6 +125,7 @@ export class MagicLinkService {
       throw new AppError('AUTH_INVALID_CREDENTIALS');
     }
 
+    // Último uso (auditoría). No invalida el link (C-05: multiuso hasta expirar).
     await this.prisma.magicLink.update({
       where: { id: link.id },
       data: { usadoEn: new Date(), ipUso: ip ?? null },
@@ -164,8 +168,13 @@ export class MagicLinkService {
         where: { email: normalized },
       });
     }
-    // No filtramos por si existe: mismo comportamiento OK/silencioso para evitar user enumeration.
-    if (!usuario || !usuario.activo || !usuario.puedeIniciarSesion) return;
+    // C-06 (aclaración 2026-07-14): si el correo NO está registrado, se informa
+    // explícitamente al usuario (deroga la anti-enumeración silenciosa). El
+    // rate-limit (3/h) sigue acotando el sondeo. Regla dura: nunca se crea un
+    // Usuario desde aquí — solo se informa.
+    if (!usuario) throw new AppError('USUARIO_NO_REGISTRADO');
+    // Existe pero está inactivo o sin login: no revelamos ese detalle ni enviamos.
+    if (!usuario.activo || !usuario.puedeIniciarSesion) return;
 
     await this.createAndSend({
       usuarioId: usuario.id,

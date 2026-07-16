@@ -260,7 +260,7 @@ model Usuario {
   instancias             InstanciaActividad[]
   empresa                Empresa?                 @relation(fields: [empresaId], references: [id])
   role                   Role?                    @relation(fields: [roleId], references: [id])
-  programasFacilita      Programa[]               @relation("ProgramaFacilitador")
+  facilitadorDe          ProgramaFacilitador[]    @relation("ProgramaFacilitadorUsuario") // C-01: N:M facilitador↔programa
   participaciones        ParticipantePrograma[]
   miembroGrupos          MiembroGrupo[]
   asistencias            Asistencia[]             @relation("AsistenciaParticipante")
@@ -275,6 +275,8 @@ model Usuario {
   presentacionesEntregadas PresentacionFinal[]    @relation("PresentacionEntregadaPor")
   membresiasCliente        UsuarioCliente[]         @relation("UsuarioClienteMiembro")
   invitacionesClienteEnviadas UsuarioCliente[]      @relation("UsuarioClienteInvitadoPor")
+  programasClienteAsignados   UsuarioClientePrograma[] @relation("UsuarioClienteProgramaMiembro") // C-07
+  asignacionesClienteHechas   UsuarioClientePrograma[] @relation("UsuarioClienteProgramaAsignadoPor") // C-07
 
   @@unique([empresaId, email], name: "empresa_email_unico")
   @@index([roleId])
@@ -310,20 +312,21 @@ model Programa {
   nombre        String
   descripcion   String?                  @db.Text
   empresaId     String
-  facilitadorId String
+  facilitadorId String?                  // C-01 DEPRECADO: migrado a ProgramaFacilitador (N:M). Se elimina en release futura tras backfill.
   estado        EstadoPrograma           @default(borrador)
   timezone      String                   @default("America/Bogota")
   diasGracia    Int                      @default(3) // RF-03/RN-03: 3 días HÁBILES (solo sáb/dom excluidos)
   totalSesionesEsperadas Int?            // RF-01/RF-04: nº de sesiones esperadas (dashboard "completadas/totales")
   marcarSesionAutomatica Boolean         @default(false) // RF-10: marcar sesión completada al guardar asistencia
   presentacionDesdeSesion Int?           // RF-32: presentación final habilitada a partir de esta sesión
+  bitacoraHabilitadaEn DateTime?         // O-01: gate de visibilidad de la bitácora; null = aún no habilitada por admin/facilitador
   fechaInicio   DateTime?
   fechaFin      DateTime?
   activo        Boolean                  @default(true)
   createdAt     DateTime                 @default(now())
   updatedAt     DateTime                 @updatedAt
   empresa       Empresa                  @relation(fields: [empresaId], references: [id])
-  facilitador   Usuario                  @relation("ProgramaFacilitador", fields: [facilitadorId], references: [id])
+  facilitadores        ProgramaFacilitador[]    // C-01: N:M facilitador↔programa
   sesiones             Sesion[]
   participantes        ParticipantePrograma[]
   grupos               Grupo[]
@@ -332,9 +335,41 @@ model Programa {
   plantillasFormulario PlantillaFormulario[]
   respuestasFormulario RespuestaFormulario[]
   presentacionesFinales PresentacionFinal[]
+  asignacionesCliente   UsuarioClientePrograma[] // C-07: usuario_cliente ve solo programas asignados
 
   @@index([empresaId, estado])
-  @@index([facilitadorId])
+}
+
+// C-01: un programa puede tener varios facilitadores (aclaración 2026-07-14).
+// Reemplaza el FK único Programa.facilitadorId. Mirror de ParticipantePrograma.
+model ProgramaFacilitador {
+  id         String   @id @default(uuid())
+  programaId String
+  usuarioId  String
+  asignadoEn DateTime @default(now())
+  programa   Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  usuario    Usuario  @relation("ProgramaFacilitadorUsuario", fields: [usuarioId], references: [id])
+
+  @@unique([programaId, usuarioId])
+  @@index([usuarioId])
+}
+
+// C-07: asignación de programas de IA en Acción a un usuario_cliente (aclaración 2026-07-14).
+// El usuario_cliente ve SOLO los programas asignados; el cliente_admin sigue viendo todos los
+// de su empresa. Asignan tanto cliente_admin como danalytics_admin. Solo cubre Programa (IA en
+// Acción), no Decisión IA (O-02 resuelto 2026-07-14).
+model UsuarioClientePrograma {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  programaId    String
+  asignadoPorId String?
+  asignadoEn    DateTime @default(now())
+  usuario       Usuario  @relation("UsuarioClienteProgramaMiembro", fields: [usuarioId], references: [id])
+  programa      Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  asignadoPor   Usuario? @relation("UsuarioClienteProgramaAsignadoPor", fields: [asignadoPorId], references: [id])
+
+  @@unique([usuarioId, programaId])
+  @@index([programaId])
 }
 
 model Sesion {
@@ -345,6 +380,7 @@ model Sesion {
   descripcion          String?                  @db.Text
   fechaProgramada      DateTime
   materialArchivoKey   String?
+  urlPresentacion      String?
   urlGrabacion         String?
   materialDesbloqueoEn DateTime?
   estado               EstadoSesion             @default(pendiente)
@@ -597,7 +633,7 @@ model CampoFormulario {
 model RespuestaFormulario {
   id                     String              @id @default(uuid())
   plantillaId            String
-  programaId             String
+  programaId             String? // null → respuesta a una plantilla GLOBAL (ej. diagnóstico de inicio abierto a todo estudiante, RF-28); X → respuesta a un snapshot de programa
   usuarioRespondienteId  String?
   grupoRespondienteId    String?
   datosRespuestaJson     Json                @default("{}")
@@ -609,7 +645,7 @@ model RespuestaFormulario {
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
   plantilla              PlantillaFormulario @relation(fields: [plantillaId], references: [id])
-  programa               Programa            @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  programa               Programa?           @relation(fields: [programaId], references: [id], onDelete: Cascade)
   usuarioRespondiente    Usuario?            @relation("RespuestaRespondiente", fields: [usuarioRespondienteId], references: [id])
   grupoRespondiente      Grupo?              @relation("RespuestaGrupo", fields: [grupoRespondienteId], references: [id])
   ultimoEditor           Usuario?            @relation("RespuestaUltimoEditor", fields: [ultimoEditorId], references: [id])

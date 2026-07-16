@@ -109,6 +109,12 @@
     "label": "Idioma",
     "select": "Seleccionar idioma"
   },
+  "a11y": {
+    "open_menu": "Abrir menú",
+    "close_menu": "Cerrar menú",
+    "main_navigation": "Navegación principal",
+    "close_dialog": "Cerrar diálogo"
+  },
   "editor": {
     "placeholder_default": "Escribe aquí…",
     "toolbar": {

@@ -1,0 +1,59 @@
+{
+  "programas": {
+    "title": "Programas da sua organização",
+    "subtitle": "Visão somente leitura de todos os programas contratados (Decisão IA e IA em Ação).",
+    "ia_en_accion": "IA em Ação",
+    "decision_ia": "Decisão IA",
+    "empty": "Não há programas para mostrar.",
+    "estado": {
+      "borrador": "Rascunho",
+      "activo": "Ativo",
+      "finalizado": "Finalizado",
+      "cancelado": "Cancelado"
+    },
+    "facilitador": "Facilitador",
+    "participantes": "participantes",
+    "sesiones": "sessões",
+    "actividades": "atividades",
+    "instancias_finalizadas": "execuções finalizadas"
+  },
+  "detalle": {
+    "back": "← Voltar aos programas",
+    "sesiones_completadas": "Sessões concluídas",
+    "participantes_activos": "Participantes ativos",
+    "asistencia_promedio": "Presença média",
+    "asistencia": "Presença por sessão",
+    "participante": "Participante",
+    "diagnostico": "Diagnóstico (agregado)",
+    "inicial": "Inicial",
+    "final": "Final",
+    "sin_datos": "Ainda não há dados.",
+    "proyecto": "Projeto por grupo",
+    "integrantes": "integrantes",
+    "presentacion_entregada": "Apresentação entregue",
+    "presentacion_pendiente": "Apresentação pendente",
+    "feedback": "Feedback do programa",
+    "feedback_hint": "Respostas anônimas e agregadas dos participantes.",
+    "promedio": "Média"
+  },
+  "usuarios": {
+    "title": "Usuários da sua empresa",
+    "subtitle": "Convide usuários somente leitura para o portal ou revogue o acesso deles.",
+    "nombre": "Nome",
+    "email": "Email",
+    "invitar": "Convidar",
+    "empty": "Você ainda não convidou ninguém.",
+    "estado": "Status",
+    "invitado": "Convidado",
+    "activo": "Ativo",
+    "revocado": "Revogado",
+    "revocar": "Revogar acesso",
+    "confirmar_revocar": "Revogar o acesso de {{nombre}} ao portal?",
+    "invitado_ok": "Convite enviado com sucesso.",
+    "invitacion_no_enviada": "O usuário foi criado, mas o email de convite não pôde ser enviado. Tente reenviá-lo mais tarde.",
+    "revocado_ok": "Acesso revogado.",
+    "programas": "Programas",
+    "programas_asignados": "Programas de IA em Ação visíveis para este usuário",
+    "sin_programas": "Não há programas de IA em Ação na empresa."
+  }
+}

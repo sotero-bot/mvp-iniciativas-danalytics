@@ -27,14 +27,14 @@ interface SlotStyle {
 
 const SLOT_STYLES: Record<SlotKey, SlotStyle> = {
     datos:        { area: 'datos',         bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
-    oportunidad:  { area: 'oportunidad',   bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    oportunidad:  { area: 'oportunidad',   bg: 'var(--color-primary-light)', border: 'var(--color-info-border)', labelColor: 'var(--color-primary-hover)', stickyBg: 'var(--color-primary-muted)' },
     problema:     { area: 'problema',      bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
     usuarios:     { area: 'usuarios',      bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
-    actores:      { area: 'actores',       bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
+    actores:      { area: 'actores',       bg: 'var(--color-primary-light)', border: 'var(--color-info-border)', labelColor: 'var(--color-primary-hover)', stickyBg: 'var(--color-primary-muted)' },
     indicadores:  { area: 'indicadores',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
     entregables:  { area: 'entregables',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
     restricciones:{ area: 'restricciones', bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
-    recursos:     { area: 'recursos',      bg: '#F8FAFC', border: '#E2E8F0', labelColor: '#475569', stickyBg: '#F1F5F9' },
+    recursos:     { area: 'recursos',      bg: 'var(--color-bg-page)', border: 'var(--color-border)', labelColor: 'var(--color-text-secondary)', stickyBg: 'var(--color-bg-subtle)' },
     valor:        { area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
 };
 
@@ -57,7 +57,7 @@ function StickyNote({ text, bg }: { text: string; bg: string }) {
             borderRadius: 6,
             padding: '0.45rem 0.6rem',
             fontSize: '0.78rem',
-            color: '#1E293B',
+            color: 'var(--color-text-main)',
             lineHeight: 1.45,
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         }}>
@@ -165,7 +165,7 @@ export function CanvasGrid({ bloques, pasos }: CanvasGridProps) {
             <h2 style={{
                 fontSize: '1.05rem',
                 fontWeight: 700,
-                color: '#0F172A',
+                color: 'var(--color-text-main)',
                 marginBottom: '0.875rem',
                 letterSpacing: '-0.02em',
             }}>
