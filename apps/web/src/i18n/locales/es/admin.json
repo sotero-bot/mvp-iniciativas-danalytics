@@ -34,6 +34,12 @@
     "page_title": "Usuarios",
     "page_subtitle": "Gestiona los usuarios del sistema por rol.",
     "empty": "No hay usuarios que coincidan con los filtros.",
+    "table": {
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}",
+      "per_page": "Por página",
+      "prev": "Anterior",
+      "next": "Siguiente"
+    },
     "login_enabled": "Puede iniciar sesión",
     "login_disabled": "Login deshabilitado",
     "roles": {

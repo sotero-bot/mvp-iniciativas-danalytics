@@ -2,6 +2,16 @@
   "programas": {
     "title": "Mis programas",
     "empty": "No tienes programas asignados.",
+    "sin_resultados": "Ningún programa coincide con los filtros.",
+    "empresa": "Empresa",
+    "filtros": {
+      "buscar": "Buscar",
+      "buscar_placeholder": "Buscar por nombre…",
+      "empresa": "Empresa",
+      "estado": "Estado",
+      "todas": "Todas las empresas",
+      "todos": "Todos los estados"
+    },
     "estado": {
       "borrador": "Borrador",
       "activo": "Activo",
@@ -27,11 +37,20 @@
     "participante": "Participante",
     "presente": "Presente",
     "nota": "Nota (opcional)",
-    "save": "Guardar asistencia",
-    "saved": "Asistencia guardada",
+    "save": "Guardar asistencia y observación",
+    "saved": "Cambios guardados",
     "locked_banner": "Ya pasaron 24 h desde el primer registro. Pide a un administrador que la edite.",
     "future_banner": "Esta sesión todavía no ha ocurrido.",
-    "empty": "No hay participantes activos en este programa."
+    "empty": "No hay participantes activos en este programa.",
+    "obs_general_title": "Observaciones generales",
+    "obs_general_placeholder": "Escribe aquí cualquier observación sobre la sesión…",
+    "obs_general_send": "Enviar por correo",
+    "obs_general_sending": "Enviando…",
+    "obs_general_sent": "Observación enviada por correo",
+    "obs_general_empty": "Escribe una observación antes de enviar.",
+    "obs_general_modal_title": "Enviar observación por correo",
+    "obs_general_modal_message": "Se enviará el texto de la observación por correo al equipo de Danalytics. No guarda la asistencia; para eso usa «Guardar asistencia y observación».",
+    "obs_general_modal_confirm": "Enviar correo"
   },
   "grupos": {
     "title": "Grupos",
@@ -41,6 +60,7 @@
     "crear": "Crear grupo",
     "creado": "Grupo creado",
     "asignar": "Agregar integrante…",
+    "asignar_label": "Agregar integrante al grupo",
     "integrante_agregado": "Integrante agregado",
     "todos_asignados": "Todos los participantes ya tienen grupo"
   },

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { EstadoSesion } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../../../prisma.service';
 import { ActorScopeService } from '../../auth/scoping/actor-scope.service';
+import { EmailService } from '../../email/email.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
@@ -18,6 +19,11 @@ interface RegistroAsistenciaDto {
 
 interface PutAsistenciaDto {
   registros: RegistroAsistenciaDto[];
+  observacionGeneral?: string | null;
+}
+
+interface ObservacionGeneralDto {
+  texto: string;
 }
 
 // RF-17/RF-18/RF-19/RF-10: el facilitador toma asistencia de sus sesiones.
@@ -28,6 +34,7 @@ export class FacilitadorAsistenciaController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
+    private readonly email: EmailService,
   ) {}
 
   @Get('sesiones/:id/asistencia')
@@ -43,7 +50,7 @@ export class FacilitadorAsistenciaController {
       this.prisma.asistencia.findMany({ where: { sesionId } }),
     ]);
     const porUsuario = new Map(asistencias.map(a => [a.usuarioId, a]));
-    return participantes.map(p => ({
+    const registros = participantes.map(p => ({
       usuarioId: p.usuarioId,
       nombre: p.usuario.nombre,
       email: p.usuario.email,
@@ -51,6 +58,7 @@ export class FacilitadorAsistenciaController {
       nota: porUsuario.get(p.usuarioId)?.nota ?? null,
       registrado: porUsuario.has(p.usuarioId),
     }));
+    return { registros, observacionGeneral: sesion.observacionGeneral ?? null, programaId: sesion.programaId };
   }
 
   @Put('sesiones/:id/asistencia')
@@ -99,6 +107,16 @@ export class FacilitadorAsistenciaController {
       }
     }
 
+    // La observación general es opcional y se guarda junto con la asistencia.
+    // `undefined` = no se tocó; string vacío se normaliza a null.
+    if (body.observacionGeneral !== undefined) {
+      const texto = (body.observacionGeneral ?? '').trim();
+      await this.prisma.sesion.update({
+        where: { id: sesionId },
+        data: { observacionGeneral: texto === '' ? null : texto },
+      });
+    }
+
     // RF-10: modo automático marca la sesión completada al guardar asistencia.
     const programa = await this.prisma.programa.findUnique({
       where: { id: sesion.programaId },
@@ -112,6 +130,42 @@ export class FacilitadorAsistenciaController {
     }
 
     return this.listAsistencia(sesionId, actor);
+  }
+
+  // Observación general de la sesión: se envía por correo al buzón operativo
+  // del equipo Danalytics (no persiste como asistencia).
+  @Post('sesiones/:id/observacion-general')
+  async enviarObservacionGeneral(
+    @Param('id') sesionId: string,
+    @Body() body: ObservacionGeneralDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const sesion = await this.getSesionOrThrow(sesionId);
+    await this.scope.assertProgramaAccessible(this.prisma, actor, sesion.programaId);
+
+    const texto = (body?.texto ?? '').trim();
+    if (!texto) {
+      throw new AppError('VALIDATION_ERROR', { message: 'La observación no puede estar vacía' });
+    }
+
+    const [programa, autor] = await Promise.all([
+      this.prisma.programa.findUnique({ where: { id: sesion.programaId }, select: { nombre: true } }),
+      this.prisma.usuario.findUnique({ where: { id: actor.sub }, select: { nombre: true, email: true } }),
+    ]);
+
+    await this.email.sendObservacionGeneralSesion(
+      {
+        programa: programa?.nombre ?? '',
+        sesionNumero: sesion.numeroSesion,
+        sesionTitulo: sesion.titulo,
+        autorNombre: autor?.nombre ?? '',
+        autorEmail: autor?.email ?? '',
+        texto,
+      },
+      { programaId: sesion.programaId },
+    );
+
+    return { ok: true };
   }
 
   private async getSesionOrThrow(sesionId: string) {

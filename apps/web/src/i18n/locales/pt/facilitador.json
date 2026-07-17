@@ -2,6 +2,16 @@
   "programas": {
     "title": "Meus programas",
     "empty": "Você não tem programas atribuídos.",
+    "sin_resultados": "Nenhum programa corresponde aos filtros.",
+    "empresa": "Empresa",
+    "filtros": {
+      "buscar": "Buscar",
+      "buscar_placeholder": "Buscar por nome…",
+      "empresa": "Empresa",
+      "estado": "Estado",
+      "todas": "Todas as empresas",
+      "todos": "Todos os estados"
+    },
     "estado": {
       "borrador": "Rascunho",
       "activo": "Ativo",
@@ -27,11 +37,20 @@
     "participante": "Participante",
     "presente": "Presente",
     "nota": "Nota (opcional)",
-    "save": "Salvar presença",
-    "saved": "Presença salva",
+    "save": "Salvar presença e observação",
+    "saved": "Alterações salvas",
     "locked_banner": "Já passaram 24h desde o primeiro registro. Peça a um administrador para editá-la.",
     "future_banner": "Esta sessão ainda não aconteceu.",
-    "empty": "Não há participantes ativos neste programa."
+    "empty": "Não há participantes ativos neste programa.",
+    "obs_general_title": "Observações gerais",
+    "obs_general_placeholder": "Escreva aqui qualquer observação sobre a sessão…",
+    "obs_general_send": "Enviar por e-mail",
+    "obs_general_sending": "Enviando…",
+    "obs_general_sent": "Observação enviada por e-mail",
+    "obs_general_empty": "Escreva uma observação antes de enviar.",
+    "obs_general_modal_title": "Enviar observação por e-mail",
+    "obs_general_modal_message": "O texto da observação será enviado por e-mail à equipe da Danalytics. Não salva a presença; para isso use «Salvar presença e observação».",
+    "obs_general_modal_confirm": "Enviar e-mail"
   },
   "grupos": {
     "title": "Grupos",
@@ -41,6 +60,7 @@
     "crear": "Criar grupo",
     "creado": "Grupo criado",
     "asignar": "Adicionar integrante…",
+    "asignar_label": "Adicionar integrante ao grupo",
     "integrante_agregado": "Integrante adicionado",
     "todos_asignados": "Todos os participantes já têm grupo"
   },

@@ -102,33 +102,39 @@ export function FacilitadorGruposPage() {
 
       {loading && <Loading label={t('common:loading')} />}
       {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
-      <div className="card-grid">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+        gap: '1.25rem',
+      }}>
         {grupos.map((g) => (
-          <div key={g.id} className="card" style={{ padding: '1rem' }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>{g.nombre}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 4 }}>
+          <div key={g.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-text-main)' }}>{g.nombre}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
               {t('facilitador:grupos.miembros')} ({g.miembros.length})
             </div>
-            <ul style={{ margin: '0 0 10px', paddingLeft: '1.1rem', fontSize: '0.85rem' }}>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {g.miembros.map((m) => (
                 <li key={m.id}>{m.usuario.nombre}</li>
               ))}
             </ul>
-            {/* C-02: asignar integrante (no se puede quitar — eso es del admin). */}
-            <select
-              className="input"
-              value=""
-              onChange={(e) => asignar(g.id, e.target.value)}
-              aria-label={t('facilitador:grupos.asignar')}
-              disabled={sinGrupo.length === 0}
-            >
-              <option value="">
-                {sinGrupo.length === 0 ? t('facilitador:grupos.todos_asignados') : t('facilitador:grupos.asignar')}
-              </option>
-              {sinGrupo.map((p) => (
-                <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
-              ))}
-            </select>
+            {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
+                Se oculta cuando ya no queda ningún participante sin grupo. */}
+            {sinGrupo.length > 0 && (
+              <label style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                {t('facilitador:grupos.asignar_label')}
+                <select
+                  className="input"
+                  value=""
+                  onChange={(e) => asignar(g.id, e.target.value)}
+                >
+                  <option value="">{t('facilitador:grupos.asignar')}</option>
+                  {sinGrupo.map((p) => (
+                    <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         ))}
       </div>

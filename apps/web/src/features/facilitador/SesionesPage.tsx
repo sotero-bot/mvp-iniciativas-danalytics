@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { RestrictedPdfViewer } from '../../components/RestrictedPdfViewer';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 
@@ -25,8 +24,6 @@ export function FacilitadorSesionesPage() {
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [materialAbierto, setMaterialAbierto] = useState<string | null>(null);
-  const [materialUrl, setMaterialUrl] = useState<string | null>(null);
   // C-04: borrador del enlace de grabación por sesión.
   const [grabacionDraft, setGrabacionDraft] = useState<Record<string, string>>({});
   const [guardandoGrab, setGuardandoGrab] = useState<string | null>(null);
@@ -60,21 +57,6 @@ export function FacilitadorSesionesPage() {
     }
   };
 
-  const verMaterial = async (sesionId: string) => {
-    if (materialAbierto === sesionId) {
-      setMaterialAbierto(null);
-      return;
-    }
-    try {
-      const res = await fetchWithErrorMapping(`${API_URL}/sesiones/${sesionId}/material`);
-      const data = await res.json();
-      setMaterialUrl(data.url);
-      setMaterialAbierto(sesionId);
-    } catch (err) {
-      setToast(translateError(err));
-    }
-  };
-
   return (
     <div className="page">
       <PageHeader
@@ -101,20 +83,17 @@ export function FacilitadorSesionesPage() {
                 <span style={{ fontSize: '0.8rem' }}>🔒 {t('facilitador:sesiones.locked')}</span>
               ) : (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button className="btn" onClick={() => verMaterial(s.id)}>
-                    📄 {t('facilitador:sesiones.material')}
-                  </button>
                   {s.urlPresentacion && (
-                    <a className="btn" href={s.urlPresentacion} target="_blank" rel="noreferrer">
+                    <a className="btn btn-secondary" href={s.urlPresentacion} target="_blank" rel="noreferrer">
                       🖥️ {t('facilitador:sesiones.presentacion')}
                     </a>
                   )}
                   {s.urlGrabacion && (
-                    <a className="btn" href={s.urlGrabacion} target="_blank" rel="noreferrer">
+                    <a className="btn btn-secondary" href={s.urlGrabacion} target="_blank" rel="noreferrer">
                       🎥 {t('facilitador:sesiones.grabacion')}
                     </a>
                   )}
-                  <Link className="btn" to={`/facilitador/sesiones/${s.id}/asistencia`}>
+                  <Link className="btn btn-secondary" to={`/facilitador/sesiones/${s.id}/asistencia`}>
                     ✅ {t('facilitador:asistencia.title')}
                   </Link>
                 </div>
@@ -130,14 +109,9 @@ export function FacilitadorSesionesPage() {
                   value={grabacionDraft[s.id] ?? s.urlGrabacion ?? ''}
                   onChange={(e) => setGrabacionDraft((d) => ({ ...d, [s.id]: e.target.value }))}
                 />
-                <button className="btn" disabled={guardandoGrab === s.id} onClick={() => guardarGrabacion(s.id)}>
+                <button className="btn btn-primary" disabled={guardandoGrab === s.id} onClick={() => guardarGrabacion(s.id)}>
                   {guardandoGrab === s.id ? t('common:loading') : t('facilitador:sesiones.grabacion_guardar')}
                 </button>
-              </div>
-            )}
-            {materialAbierto === s.id && materialUrl && (
-              <div style={{ marginTop: 12 }}>
-                <RestrictedPdfViewer url={materialUrl} />
               </div>
             )}
           </div>

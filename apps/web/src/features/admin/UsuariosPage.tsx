@@ -100,6 +100,13 @@ export function UsuariosPage() {
   const [filterPrograma, setFilterPrograma] = useState<string>('');
   const [search, setSearch] = useState('');
 
+  // Datatable: ordenamiento y paginación en cliente.
+  type SortKey = 'nombre' | 'identificacion' | 'role' | 'empresa' | 'login' | 'estado';
+  const [sortKey, setSortKey] = useState<SortKey>('nombre');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -128,6 +135,7 @@ export function UsuariosPage() {
 
       const res = await fetchWithErrorMapping(`${API_URL}/admin/usuarios?${params.toString()}`);
       setUsuarios(await res.json());
+      setPage(1);
     } catch (err) {
       showToast(translateError(err));
     } finally {
@@ -334,6 +342,52 @@ export function UsuariosPage() {
 
   const empresaOptions = useMemo(() => empresas.map(e => ({ id: e.id, nombre: e.nombre })), [empresas]);
 
+  const sortValue = (u: Usuario, key: SortKey): string | number => {
+    switch (key) {
+      case 'nombre': return (u.nombre ?? '').toLowerCase();
+      case 'identificacion': return (u.username || u.email || '').toLowerCase();
+      case 'role': return (u.role?.nombre ?? '').toLowerCase();
+      case 'empresa': return (u.empresa?.nombre ?? '').toLowerCase();
+      case 'login': return u.puedeIniciarSesion ? 1 : 0;
+      case 'estado': return u.activo ? 1 : 0;
+    }
+  };
+
+  const sortedUsuarios = useMemo(() => {
+    const arr = [...usuarios];
+    arr.sort((a, b) => {
+      const va = sortValue(a, sortKey);
+      const vb = sortValue(b, sortKey);
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [usuarios, sortKey, sortDir]);
+
+  const total = sortedUsuarios.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => sortedUsuarios.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [sortedUsuarios, currentPage, pageSize],
+  );
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+    setPage(1);
+  };
+
+  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+  const thSortStyle = (align: 'left' | 'center'): React.CSSProperties => ({
+    textAlign: align, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+  });
+
   return (
     <div>
       {toast && <div className="toast">{toast}</div>}
@@ -409,12 +463,12 @@ export function UsuariosPage() {
         <table>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.nombre')}</th>
-              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.identificacion')}</th>
-              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.role')}</th>
-              <th style={{ textAlign: 'left' }}>{t('admin:usuarios.columns.empresa')}</th>
-              <th style={{ textAlign: 'center' }}>{t('admin:usuarios.columns.login')}</th>
-              <th style={{ textAlign: 'center' }}>{t('admin:usuarios.columns.estado')}</th>
+              <th style={thSortStyle('left')} onClick={() => toggleSort('nombre')}>{t('admin:usuarios.columns.nombre')}{sortArrow('nombre')}</th>
+              <th style={thSortStyle('left')} onClick={() => toggleSort('identificacion')}>{t('admin:usuarios.columns.identificacion')}{sortArrow('identificacion')}</th>
+              <th style={thSortStyle('left')} onClick={() => toggleSort('role')}>{t('admin:usuarios.columns.role')}{sortArrow('role')}</th>
+              <th style={thSortStyle('left')} onClick={() => toggleSort('empresa')}>{t('admin:usuarios.columns.empresa')}{sortArrow('empresa')}</th>
+              <th style={thSortStyle('center')} onClick={() => toggleSort('login')}>{t('admin:usuarios.columns.login')}{sortArrow('login')}</th>
+              <th style={thSortStyle('center')} onClick={() => toggleSort('estado')}>{t('admin:usuarios.columns.estado')}{sortArrow('estado')}</th>
               <th style={{ textAlign: 'right' }}>{t('admin:usuarios.columns.acciones')}</th>
             </tr>
           </thead>
@@ -425,7 +479,7 @@ export function UsuariosPage() {
             {!loading && usuarios.length === 0 && (
               <tr><td colSpan={7}><EmptyState title={t('admin:usuarios.empty')} /></td></tr>
             )}
-            {usuarios.map(u => {
+            {pageRows.map(u => {
               const slug = u.role?.slug ?? 'participante_legacy';
               const c = ROLE_COLORS[slug] ?? DEFAULT_ROLE_COLOR;
               return (
@@ -460,43 +514,34 @@ export function UsuariosPage() {
                       {u.activo ? t('admin:usuarios.status.active') : t('admin:usuarios.status.inactive')}
                     </StatusBadge>
                   </td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button className="btn-link" onClick={() => openEdit(u)}>{t('admin:usuarios.actions.edit')}</button>
-                    {' · '}
-                    <button className="btn-link" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
-                      {t('admin:usuarios.actions.reset_password')}
-                    </button>
-                    {u.role?.slug === 'usuario_cliente' && (
-                      <>
-                        {' · '}
-                        <button className="btn-link" onClick={() => abrirProgramasCliente(u)}>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(u)}>
+                        {t('admin:usuarios.actions.edit')}
+                      </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
+                        {t('admin:usuarios.actions.reset_password')}
+                      </button>
+                      {u.role?.slug === 'usuario_cliente' && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => abrirProgramasCliente(u)}>
                           {t('admin:usuarios.actions.programas_cliente')}
                         </button>
-                      </>
-                    )}
-                    {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
-                      <>
-                        {' · '}
-                        <button className="btn-link" onClick={() => reenviarInvitacion(u)}>
+                      )}
+                      {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => reenviarInvitacion(u)}>
                           {t('admin:usuarios.actions.resend_invite')}
                         </button>
-                      </>
-                    )}
-                    {u.activo ? (
-                      <>
-                        {' · '}
-                        <button className="btn-link btn-link-danger" onClick={() => setDeleteModal(u)}>
+                      )}
+                      {u.activo ? (
+                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteModal(u)}>
                           {t('admin:usuarios.actions.deactivate')}
                         </button>
-                      </>
-                    ) : (
-                      <>
-                        {' · '}
-                        <button className="btn-link btn-link-success" onClick={() => handleReactivate(u)}>
+                      ) : (
+                        <button className="btn btn-success btn-sm" onClick={() => handleReactivate(u)}>
                           {t('admin:usuarios.actions.reactivate')}
                         </button>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -504,6 +549,52 @@ export function UsuariosPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Datatable: paginación */}
+      {!loading && total > 0 && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          gap: 12, marginTop: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+            {t('admin:usuarios.table.showing', {
+              from: (currentPage - 1) * pageSize + 1,
+              to: Math.min(currentPage * pageSize, total),
+              total,
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+              {t('admin:usuarios.table.per_page')}
+              <select
+                className="input"
+                style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </label>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              {t('admin:usuarios.table.prev')}
+            </button>
+            <span style={{ fontSize: '0.82rem', minWidth: 48, textAlign: 'center' }}>{currentPage} / {totalPages}</span>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              {t('admin:usuarios.table.next')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal crear/editar */}
       <Modal

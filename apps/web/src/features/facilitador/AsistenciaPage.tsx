@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Alert, Loading, EmptyState } from '../../components/ui';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -17,19 +18,29 @@ interface Registro {
 
 export function FacilitadorAsistenciaPage() {
   const { id: sesionId = '' } = useParams();
+  const navigate = useNavigate();
   const { t } = useTranslation(['facilitador', 'common']);
   const [registros, setRegistros] = useState<Registro[]>([]);
+  const [programaId, setProgramaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [observacion, setObservacion] = useState('');
+  const [enviandoObs, setEnviandoObs] = useState(false);
+  const [confirmarCorreo, setConfirmarCorreo] = useState(false);
 
   const load = () => {
     setLoading(true);
     setErrorCode(null);
     fetchWithErrorMapping(`${API_URL}/facilitador/sesiones/${sesionId}/asistencia`)
       .then((res) => res.json())
-      .then(setRegistros)
+      .then((data) => {
+        // Tolerante al formato: array antiguo o { registros, observacionGeneral }.
+        setRegistros(Array.isArray(data) ? data : data?.registros ?? []);
+        setObservacion(Array.isArray(data) ? '' : data?.observacionGeneral ?? '');
+        setProgramaId(Array.isArray(data) ? null : data?.programaId ?? null);
+      })
       .catch((err) => setErrorCode(err?.code ?? null))
       .finally(() => setLoading(false));
   };
@@ -54,14 +65,42 @@ export function FacilitadorAsistenciaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           registros: registros.map((r) => ({ usuarioId: r.usuarioId, presente: r.presente, nota: r.nota })),
+          observacionGeneral: observacion,
         }),
       });
       setToast(t('facilitador:asistencia.saved'));
-      load();
+      // Al guardar, regresar al listado de sesiones del programa.
+      if (programaId) {
+        navigate(`/facilitador/programas/${programaId}/sesiones`);
+      } else {
+        navigate(-1);
+      }
     } catch (err) {
       setToast(translateError(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const enviarObservacion = async () => {
+    const texto = observacion.trim();
+    if (!texto) {
+      setToast(t('facilitador:asistencia.obs_general_empty'));
+      return;
+    }
+    setEnviandoObs(true);
+    try {
+      await fetchWithErrorMapping(`${API_URL}/facilitador/sesiones/${sesionId}/observacion-general`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto }),
+      });
+      setToast(t('facilitador:asistencia.obs_general_sent'));
+      setObservacion('');
+    } catch (err) {
+      setToast(translateError(err));
+    } finally {
+      setEnviandoObs(false);
     }
   };
 
@@ -110,11 +149,52 @@ export function FacilitadorAsistenciaPage() {
               </tbody>
             </table>
           </div>
-          <button className="btn btn-primary" style={{ marginTop: 16 }} disabled={saving} onClick={guardar}>
-            {t('facilitador:asistencia.save')}
-          </button>
         </>
       )}
+
+      {!loading && !errorCode && (
+        <div className="card" style={{ padding: '1rem', marginTop: 24 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            {t('facilitador:asistencia.obs_general_title')}
+          </div>
+          <textarea
+            className="textarea"
+            rows={4}
+            value={observacion}
+            placeholder={t('facilitador:asistencia.obs_general_placeholder')}
+            onChange={(e) => setObservacion(e.target.value)}
+            aria-label={t('facilitador:asistencia.obs_general_title')}
+          />
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
+            <button className="btn btn-primary" disabled={saving} onClick={guardar}>
+              {saving ? t('common:loading') : t('facilitador:asistencia.save')}
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ marginLeft: 'auto' }}
+              disabled={enviandoObs || observacion.trim().length === 0}
+              onClick={() => setConfirmarCorreo(true)}
+            >
+              {enviandoObs
+                ? t('facilitador:asistencia.obs_general_sending')
+                : t('facilitador:asistencia.obs_general_send')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={confirmarCorreo}
+        danger={false}
+        title={t('facilitador:asistencia.obs_general_modal_title')}
+        message={t('facilitador:asistencia.obs_general_modal_message')}
+        confirmLabel={t('facilitador:asistencia.obs_general_modal_confirm')}
+        onCancel={() => setConfirmarCorreo(false)}
+        onConfirm={() => {
+          setConfirmarCorreo(false);
+          enviarObservacion();
+        }}
+      />
     </div>
   );
 }

@@ -80,21 +80,22 @@ describe('ActorSesionesController.getMaterial', () => {
     expect(s3Stub.getPresignedGetUrl).toHaveBeenCalledWith('k1', 3600);
   });
 
-  it('SESION_BLOQUEADA para estudiante si materialDesbloqueoEn no ha llegado', async () => {
-    const { controller } = buildController({ materialDesbloqueoEn: new Date(Date.now() + 86_400_000) });
+  it('RF-09: SESION_BLOQUEADA para estudiante si no han pasado 24 h desde la sesión', async () => {
+    const { controller } = buildController({ fechaProgramada: new Date(Date.now() - 3_600_000) }); // hace 1 h
     await expect(controller.getMaterial('s1', ESTUDIANTE)).rejects.toMatchObject({
       code: 'SESION_BLOQUEADA',
     });
   });
 
-  it('SESION_BLOQUEADA para estudiante si materialDesbloqueoEn es null', async () => {
-    const { controller } = buildController({ materialDesbloqueoEn: null });
+  it('RF-09: SESION_BLOQUEADA para estudiante si la sesión aún no ocurre', async () => {
+    const { controller } = buildController({ fechaProgramada: new Date(Date.now() + 86_400_000) });
     await expect(controller.getMaterial('s1', ESTUDIANTE)).rejects.toMatchObject({
       code: 'SESION_BLOQUEADA',
     });
   });
 
-  it('estudiante accede al material una vez pasado materialDesbloqueoEn', async () => {
+  it('RF-09: estudiante accede al material 24 h después de la sesión', async () => {
+    // fechaProgramada default (2020) → hace mucho más de 24 h → desbloqueada.
     const { controller } = buildController();
     const result = await controller.getMaterial('s1', ESTUDIANTE);
     expect(result.url).toBe('https://signed-url');

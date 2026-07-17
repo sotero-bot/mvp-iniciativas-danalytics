@@ -34,6 +34,12 @@
     "page_title": "Usuários",
     "page_subtitle": "Gerencie os usuários do sistema por papel.",
     "empty": "Não há usuários que correspondam aos filtros.",
+    "table": {
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}",
+      "per_page": "Por página",
+      "prev": "Anterior",
+      "next": "Próximo"
+    },
     "login_enabled": "Pode iniciar sessão",
     "login_disabled": "Login desabilitado",
     "roles": {

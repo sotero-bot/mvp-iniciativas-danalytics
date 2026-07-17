@@ -17,6 +17,7 @@ interface Sesion {
   facilitadores: { id: string; nombre: string }[];
   timezone: string;
   bloqueada: boolean;
+  desbloqueaEn: string;
 }
 
 export function EstudianteSesionesPage() {
@@ -65,7 +66,7 @@ export function EstudianteSesionesPage() {
               {s.bloqueada ? (
                 <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                   🔒 {t('estudiante:sesiones.se_desbloquea', {
-                    fecha: formatFechaHora(s.fechaProgramada, s.timezone, i18n.language),
+                    fecha: formatFechaHora(s.desbloqueaEn, s.timezone, i18n.language),
                   })}
                 </span>
               ) : s.urlPresentacion || s.urlGrabacion ? (

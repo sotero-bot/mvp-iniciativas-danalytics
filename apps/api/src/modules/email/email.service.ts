@@ -76,6 +76,15 @@ interface MaterialDisponibleVars {
   numeroSesion: number;
 }
 
+interface ObservacionGeneralSesionVars {
+  programa: string;
+  sesionNumero: number;
+  sesionTitulo: string;
+  autorNombre: string;
+  autorEmail: string;
+  texto: string;
+}
+
 /** Templates internos de operación (RF-40) — solo español: destinatarios son el equipo Danalytics. */
 function renderObservacionEmail(urgente: boolean, v: ObservacionEmailVars): { subject: string; html: string } {
   const prefix = urgente ? '⚠ URGENTE ' : '';
@@ -145,6 +154,37 @@ export class EmailService {
     await Promise.all(
       destinatarios.map((to) => this.send({ tipo, to, subject, html, ...refs })),
     );
+  }
+
+  /**
+   * Observación general que el facilitador escribe al tomar asistencia de una
+   * sesión. Se envía al buzón operativo del equipo (configurable vía
+   * OBSERVACION_GENERAL_EMAIL, por defecto sotero@danalyticspro.co) y queda
+   * registrada en la bitácora `NotificacionEmail`.
+   */
+  async sendObservacionGeneralSesion(
+    vars: ObservacionGeneralSesionVars,
+    refs: { programaId: string },
+  ): Promise<void> {
+    const to = process.env.OBSERVACION_GENERAL_EMAIL || 'sotero@danalyticspro.co';
+    const subject = `[IA en Acción] Observación de sesión ${vars.sesionNumero} — ${vars.programa}`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">
+        <h2 style="margin:0 0 16px">Observación de sesión</h2>
+        <p><strong>Programa:</strong> ${escapeHtml(vars.programa)}</p>
+        <p><strong>Sesión:</strong> ${vars.sesionNumero} — ${escapeHtml(vars.sesionTitulo)}</p>
+        <p><strong>Facilitador:</strong> ${escapeHtml(vars.autorNombre)} (${escapeHtml(vars.autorEmail)})</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0" />
+        <p style="white-space:pre-wrap">${escapeHtml(vars.texto)}</p>
+      </div>
+    `;
+    await this.send({
+      tipo: TipoNotificacion.observacion_normal,
+      to,
+      subject,
+      html,
+      programaId: refs.programaId,
+    });
   }
 
   async sendMaterialDisponible(

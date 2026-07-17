@@ -32,8 +32,9 @@ function buildController(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
   const scopeStub = { assertProgramaAccessible: vi.fn().mockResolvedValue(undefined) };
-  const controller = new FacilitadorAsistenciaController(prismaMock as any, scopeStub as any);
-  return { controller, prismaMock, scopeStub };
+  const emailStub = { sendObservacionGeneralSesion: vi.fn().mockResolvedValue(undefined) };
+  const controller = new FacilitadorAsistenciaController(prismaMock as any, scopeStub as any, emailStub as any);
+  return { controller, prismaMock, scopeStub, emailStub };
 }
 
 describe('FacilitadorAsistenciaController.putAsistencia', () => {

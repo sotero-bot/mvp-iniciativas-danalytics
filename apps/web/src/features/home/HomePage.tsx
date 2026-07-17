@@ -28,10 +28,13 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
     { key: 'adm_usuarios', icon: '👥', color: '#22C55E', to: '/admin/usuarios' },
     { key: 'adm_actividades', icon: '🧩', color: '#F59E0B', to: '/admin/actividades' },
   ],
+  // El facilitador trabaja siempre dentro de un programa: sesiones, grupos,
+  // observaciones, resultados y reto se alcanzan desde la tarjeta del programa.
+  // Por eso el sidebar/inicio solo expone "Mis programas" (evita ítems muertos
+  // como observaciones sin destino global y duplicados de ruta que confunden el
+  // estado activo del sidebar).
   facilitador: [
     { key: 'fac_programas', icon: '🎓', color: '#38BDF8', to: '/facilitador/programas' },
-    { key: 'fac_observaciones', icon: '📝', color: '#F59E0B' },
-    { key: 'fac_bitacoras', icon: '📓', color: '#A78BFA', to: '/facilitador/programas' },
   ],
   estudiante: [
     { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },

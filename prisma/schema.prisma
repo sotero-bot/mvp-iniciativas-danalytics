@@ -383,6 +383,7 @@ model Sesion {
   urlPresentacion      String?
   urlGrabacion         String?
   materialDesbloqueoEn DateTime?
+  observacionGeneral   String?                  @db.Text
   estado               EstadoSesion             @default(pendiente)
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt

@@ -9,6 +9,8 @@ import { AppError } from '../../../shared/errors/AppError';
 
 // C-03: el facilitador ve la presentación desde 7 días calendario antes de la sesión.
 const FACILITADOR_ANTELACION_MS = 7 * 24 * 60 * 60 * 1000;
+// RF-09 (aclaración 2026-07-17): el estudiante ve los recursos 24 h DESPUÉS de la sesión.
+const ESTUDIANTE_ESPERA_MS = 24 * 60 * 60 * 1000;
 
 const SESION_SELECT = {
   id: true,
@@ -43,7 +45,14 @@ export class ActorSesionesController {
   async listMisProgramas(@CurrentUser() actor: AuthUser) {
     return this.prisma.programa.findMany({
       where: this.scope.programaScope(actor),
-      select: { id: true, nombre: true, estado: true, fechaInicio: true, fechaFin: true },
+      select: {
+        id: true,
+        nombre: true,
+        estado: true,
+        fechaInicio: true,
+        fechaFin: true,
+        empresa: { select: { id: true, nombre: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -82,6 +91,7 @@ export class ActorSesionesController {
         urlPresentacion: bloqueada ? null : s.urlPresentacion,
         urlGrabacion: bloqueada ? null : s.urlGrabacion,
         bloqueada,
+        desbloqueaEn: this.desbloqueoEn(s, actor.role).toISOString(),
       };
     });
   }
@@ -131,13 +141,21 @@ export class ActorSesionesController {
     role: AuthUser['role'],
     now: number,
   ): boolean {
+    return this.desbloqueoEn(sesion, role).getTime() > now;
+  }
+
+  // Momento en que los recursos de la sesión quedan disponibles para el rol.
+  private desbloqueoEn(
+    sesion: { fechaProgramada: Date },
+    role: AuthUser['role'],
+  ): Date {
     if (role === 'facilitador') {
       // C-03 (aclaración 2026-07-14): el facilitador ve la presentación desde 7 días
-      // calendario antes de la fecha de la sesión (antes: solo actual y anteriores).
-      return sesion.fechaProgramada.getTime() - FACILITADOR_ANTELACION_MS > now;
+      // calendario antes de la fecha de la sesión.
+      return new Date(sesion.fechaProgramada.getTime() - FACILITADOR_ANTELACION_MS);
     }
-    // RF-09 (aclaración 2026-07-16): el estudiante ve los recursos (presentación /
-    // grabación) SOLO una vez que la sesión ya ocurrió; antes, bloqueada.
-    return sesion.fechaProgramada.getTime() > now;
+    // RF-09 (aclaración 2026-07-17): el estudiante ve los recursos (presentación /
+    // grabación) 24 h DESPUÉS de que la sesión ocurrió; antes, bloqueada.
+    return new Date(sesion.fechaProgramada.getTime() + ESTUDIANTE_ESPERA_MS);
   }
 }
