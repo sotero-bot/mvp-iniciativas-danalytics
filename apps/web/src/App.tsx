@@ -19,6 +19,7 @@ import { ActividadPasosPage } from './features/methodology/ActividadPasosPage';
 import { PlantillasPage } from './features/methodology/PlantillasPage';
 import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { ToastHost } from './components/toast-store';
 import { HomePage, ROLE_CARDS } from './features/home/HomePage';
 import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
 import { FacilitadorSesionesPage } from './features/facilitador/SesionesPage';
@@ -317,16 +318,6 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             }}>👥</span>
             {t('admin:sidebar.usuarios')}
           </NavLink>
-          <NavLink to="/admin/registro-acceso" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(167,139,250,0.18)',
-              border: '1px solid #A78BFA40',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>🛡</span>
-            {t('admin:sidebar.registro_acceso')}
-          </NavLink>
           <NavLink to="/admin/notificaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
@@ -336,6 +327,21 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               fontSize: '0.75rem',
             }}>📧</span>
             {t('admin:sidebar.notificaciones')}
+          </NavLink>
+        </nav>
+
+        {/* — Auditoría — */}
+        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.auditoria_label')}</div>
+        <nav>
+          <NavLink to="/admin/registro-acceso" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(167,139,250,0.18)',
+              border: '1px solid #A78BFA40',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem',
+            }}>🛡</span>
+            {t('admin:sidebar.registro_acceso')}
           </NavLink>
         </nav>
         </>)}
@@ -478,6 +484,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ToastHost />
       <AiDisclaimerFooter />
       <Routes>
         {/* Admin Routes (Protected) */}

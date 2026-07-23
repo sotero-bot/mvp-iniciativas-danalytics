@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Loading } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -50,7 +51,6 @@ export function FormularioResponderPage() {
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [datos, setDatos] = useState<Datos>({});
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [autosaveInfo, setAutosaveInfo] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function FormularioResponderPage() {
           setEnviado(data.respuesta.estado === 'submitted');
         }
       })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [plantillaId, i18n.language]);
@@ -100,7 +100,7 @@ export function FormularioResponderPage() {
       setAutosaveInfo(t('formularios:estudiante.autosave_saved'));
       setTimeout(() => setAutosaveInfo(null), 3000);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       savingRef.current = false;
     }
@@ -131,7 +131,7 @@ export function FormularioResponderPage() {
 
   const enviar = async () => {
     if (camposFaltantes().length > 0) {
-      setToast(t('formularios:estudiante.missing_required'));
+      toast.error(t('formularios:estudiante.missing_required'));
       return;
     }
     setEnviando(true);
@@ -143,9 +143,10 @@ export function FormularioResponderPage() {
       });
       dirtyRef.current = false;
       setEnviado(true);
+      toast.success(t('formularios:estudiante.success'));
       window.scrollTo({ top: 0 });
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setEnviando(false);
     }
@@ -159,7 +160,6 @@ export function FormularioResponderPage() {
       <Link to="/estudiante/formularios" style={{ fontSize: '0.85rem' }}>
         {t('formularios:estudiante.back')}
       </Link>
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {formulario && (
@@ -195,7 +195,7 @@ export function FormularioResponderPage() {
                 <button className="gform-submit" disabled={enviando} onClick={enviar}>
                   {enviando ? t('formularios:estudiante.submitting') : t('formularios:estudiante.submit')}
                 </button>
-                <button className="btn-link" onClick={guardarDraft}>
+                <button className="btn btn-secondary" onClick={guardarDraft}>
                   {t('formularios:estudiante.draft_save')}
                 </button>
                 {autosaveInfo && <span className="gform-autosave">✓ {autosaveInfo}</span>}

@@ -61,7 +61,18 @@
       "cancel": "Cancelar",
       "delete": "Eliminar",
       "up": "Subir",
-      "down": "Bajar"
+      "down": "Bajar",
+      "confirm_delete_title": "Eliminar campo",
+      "confirm_delete_message": "¿Seguro que quieres eliminar el campo «{{etiqueta}}»? Esta acción no se puede deshacer."
+    },
+    "toast": {
+      "created": "Plantilla creada",
+      "duplicated": "Plantilla duplicada",
+      "activated": "Plantilla activada",
+      "deactivated": "Plantilla desactivada",
+      "campo_saved": "Campo guardado",
+      "campo_deleted": "Campo eliminado",
+      "reordered": "Orden actualizado"
     }
   },
   "estudiante": {
@@ -133,7 +144,8 @@
     "bitacora_habilitada": "La bitácora está habilitada para los grupos.",
     "bitacora_no_habilitada": "La bitácora aún NO está habilitada: los grupos no pueden llenarla.",
     "bitacora_habilitar": "Habilitar bitácora",
-    "bitacora_deshabilitar": "Deshabilitar"
+    "bitacora_deshabilitar": "Deshabilitar",
+    "bitacora_actualizada": "Estado de la bitácora actualizado."
   },
   "resultados": {
     "title": "Resultados",

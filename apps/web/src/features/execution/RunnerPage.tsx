@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { WysiwygEditor, WysiwygEditorHandle } from '../../components/WysiwygEditor';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Toast } from '../../components/Toast';
+import { toast } from '../../components/toast-store';
 import { buildResumenHtml } from './buildResumenHtml';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
@@ -317,7 +317,6 @@ export function RunnerPage() {
   const [canvasGenerando, setCanvasGenerando] = useState(false);
   const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'info' } | null>(null);
   const [plantillaAnteriorExpanded, setPlantillaAnteriorExpanded] = useState(false);
 
   // Refs por preguntaId
@@ -506,7 +505,7 @@ export function RunnerPage() {
       }
       await loadData();
     } catch (err: any) {
-      alert(t('execution:runner.identification.start_failed_generic'));
+      toast.error(t('execution:runner.identification.start_failed_generic'));
     } finally {
       setLoading(false);
     }
@@ -552,12 +551,12 @@ export function RunnerPage() {
       }
       await loadData();
       if (result.reutilizado) {
-        setToast({ message: t('execution:runner.identification.welcome_back', { nombre: result.nombre }), variant: 'info' });
+        toast.success(t('execution:runner.identification.welcome_back', { nombre: result.nombre }));
       } else {
-        setToast({ message: t('execution:runner.identification.register_success'), variant: 'success' });
+        toast.success(t('execution:runner.identification.register_success'));
       }
     } catch (err: any) {
-      alert(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -580,7 +579,7 @@ export function RunnerPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert((err as any)?.message || t('execution:runner.errors.download_template_failed'));
+        toast.error((err as any)?.message || t('execution:runner.errors.download_template_failed'));
         return;
       }
       const blob = await res.blob();
@@ -591,7 +590,7 @@ export function RunnerPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert(t('execution:runner.errors.download_template_retry'));
+      toast.error(t('execution:runner.errors.download_template_retry'));
     } finally {
       setDescargandoExcel(false);
     }
@@ -606,12 +605,12 @@ export function RunnerPage() {
       const tieneArchivo = !!archivosRespuesta[q.id];
       if (!tieneTexto && !tieneArchivo) {
         if (q.usarIa && !respuestasIa[q.id]?.trim()) {
-          return alert(t('execution:runner.errors.consult_ia_first', { enunciado: q.enunciado.slice(0, 60) }));
+          return toast.error(t('execution:runner.errors.consult_ia_first', { enunciado: q.enunciado.slice(0, 60) }));
         }
         if (q.soloArchivo || q.permitirArchivo) {
-          return alert(t('execution:runner.errors.attach_file_required'));
+          return toast.error(t('execution:runner.errors.attach_file_required'));
         }
-        return alert(t('execution:runner.errors.answer_all'));
+        return toast.error(t('execution:runner.errors.answer_all'));
       }
     }
 
@@ -645,7 +644,7 @@ export function RunnerPage() {
       }
       if (!responderRes.ok) {
         setLoading(false);
-        return alert(t('execution:runner.errors.save_failed'));
+        return toast.error(t('execution:runner.errors.save_failed'));
       }
       const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
       const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
@@ -687,7 +686,7 @@ export function RunnerPage() {
   // el backend lea usarIa/promptIa de PreguntaActividad en lugar de PasoActividad.
   const handleEnviarIA = async (paso: Paso, pregunta: Pregunta) => {
     if (!pregunta.iaAutomatica && !respuestas[pregunta.id]?.trim()) {
-      return alert(t('execution:runner.errors.ia_write_first'));
+      return toast.error(t('execution:runner.errors.ia_write_first'));
     }
     setEnviandoIa(prev => ({ ...prev, [pregunta.id]: true }));
     setRespuestasIa(prev => ({ ...prev, [pregunta.id]: '' }));
@@ -708,7 +707,7 @@ export function RunnerPage() {
       setRespuestasIa(prev => ({ ...prev, [pregunta.id]: json.respuestaIa }));
       iaEditorRefs.current[pregunta.id]?.replaceContent(json.respuestaIa);
     } catch {
-      alert(t('execution:runner.errors.ia_connect_failed'));
+      toast.error(t('execution:runner.errors.ia_connect_failed'));
     } finally {
       setEnviandoIa(prev => ({ ...prev, [pregunta.id]: false }));
     }
@@ -1076,7 +1075,7 @@ export function RunnerPage() {
                         const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
                         const json = await res.json();
                         if (json.url) window.open(json.url, '_blank');
-                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
+                      } catch { toast.error(t('execution:runner.errors.download_example_failed')); }
                     }}
                   >
                     {t('execution:runner.example_file.download')}
@@ -1278,7 +1277,7 @@ export function RunnerPage() {
                                         const res = await fetch(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
                                         const json = await res.json();
                                         if (json.url) window.open(json.url, '_blank');
-                                      } catch { alert(t('execution:runner.errors.download_example_failed')); }
+                                      } catch { toast.error(t('execution:runner.errors.download_example_failed')); }
                                     }}
                                   >
                                     {t('execution:runner.upload_file.download')}
@@ -1402,8 +1401,6 @@ export function RunnerPage() {
 
         </div>
       </div>
-
-      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

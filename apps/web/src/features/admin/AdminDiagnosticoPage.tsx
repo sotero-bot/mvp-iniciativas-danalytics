@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
 import { PageHeader, StatusBadge, Loading } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -49,7 +50,6 @@ export function AdminDiagnosticoPage() {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [snapshots, setSnapshots] = useState<SnapshotEstado[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,7 +61,7 @@ export function AdminDiagnosticoPage() {
       setDetalle(det);
       setSnapshots(snap);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -82,17 +82,17 @@ export function AdminDiagnosticoPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   const regenerar = async () => {
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/regenerar-snapshot`, { method: 'POST' });
-      setToast(t('formularios:resultados.snapshot.regenerado'));
+      toast.success(t('formularios:resultados.snapshot.regenerado'));
       await load();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -104,10 +104,10 @@ export function AdminDiagnosticoPage() {
         `${API_URL}/admin/programas/${programaId}/sincronizar-plantillas`,
         { method: 'POST' },
       ).then(r => r.json());
-      setToast(t('formularios:resultados.snapshot.sincronizado', { count: creados }));
+      toast.success(t('formularios:resultados.snapshot.sincronizado', { count: creados }));
       await load();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -122,7 +122,6 @@ export function AdminDiagnosticoPage() {
         title={t('formularios:resultados.diagnostico')}
         actions={<button className="btn" onClick={exportar}>⬇ {t('formularios:resultados.export')}</button>}
       />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {/* RF-49: snapshot por tipo */}

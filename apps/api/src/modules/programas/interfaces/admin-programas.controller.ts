@@ -9,12 +9,22 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { EstadoPrograma, EstadoSesion, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { diskStorage } from 'multer';
+import type { Response } from 'express';
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
 
 import { PrismaService } from '../../../prisma.service';
+import { S3Service } from '../../storage/S3Service';
 import { MagicLinkService } from '../../auth/application/magic-link.service';
 import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
@@ -30,6 +40,9 @@ import { SnapshotFormulariosService } from '../../formularios/application/snapsh
 const FACILITADOR_SLUG = 'facilitador';
 const ESTUDIANTE_SLUG = 'estudiante';
 const LEGACY_SLUG = 'participante_legacy';
+
+// La presentación de una sesión puede ser un enlace o un archivo (PDF/PPT/PPTX).
+const PRESENTACION_EXT_RE = /\.(pdf|ppt|pptx)$/i;
 
 interface CreateProgramaDto {
   nombre: string;
@@ -66,6 +79,7 @@ interface CreateSesionDto {
   fechaProgramada: string;
   materialArchivoKey?: string | null;
   urlPresentacion?: string | null;
+  presentacionArchivoKey?: string | null;
   urlGrabacion?: string | null;
   materialDesbloqueoEn?: string | null;
 }
@@ -82,6 +96,33 @@ interface MatricularDto {
   area?: string | null;
   enviarInvitacion?: boolean;
   locale?: 'es' | 'pt';
+}
+
+// --------- Carga masiva de participantes (Excel) ---------
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Alias aceptados por columna en la plantilla (match case-insensitive + trim, es/pt).
+const COLUMNAS_IMPORT = {
+  email: ['email', 'correo', 'e-mail', 'e mail', 'correo electronico', 'correo electrónico'],
+  nombre: ['nombre', 'nome', 'nombre completo', 'nome completo'],
+  cargo: ['cargo', 'puesto', 'funcao', 'função'],
+  area: ['area', 'área', 'departamento', 'area/departamento', 'área/departamento'],
+} as const;
+
+type EstadoFila = 'ok' | 'error' | 'aviso';
+
+interface FilaImport {
+  fila: number; // número de fila real en el Excel (1 = encabezado)
+  email: string;
+  nombre: string;
+  cargo: string | null;
+  area: string | null;
+}
+
+interface FilaReporte extends FilaImport {
+  estado: EstadoFila;
+  errores: string[]; // códigos FILA_* traducidos en el frontend
 }
 
 const PROGRAMA_SELECT = {
@@ -124,6 +165,7 @@ const SESION_SELECT = {
   fechaProgramada: true,
   materialArchivoKey: true,
   urlPresentacion: true,
+  presentacionArchivoKey: true,
   urlGrabacion: true,
   materialDesbloqueoEn: true,
   estado: true,
@@ -136,6 +178,7 @@ const PARTICIPANTE_SELECT = {
   programaId: true,
   usuarioId: true,
   activo: true,
+  confirmadoEn: true,
   createdAt: true,
   usuario: {
     select: {
@@ -174,6 +217,7 @@ export class AdminProgramasController {
     private readonly magicLink: MagicLinkService,
     private readonly translations: TranslationService,
     private readonly snapshots: SnapshotFormulariosService,
+    private readonly s3: S3Service,
   ) {}
 
   private applyProgramaOverlay<T extends { id: string; nombre: string; descripcion: string | null }>(
@@ -493,6 +537,7 @@ export class AdminProgramasController {
           fechaProgramada,
           materialArchivoKey: body.materialArchivoKey ?? null,
           urlPresentacion: body.urlPresentacion ?? null,
+          presentacionArchivoKey: body.presentacionArchivoKey ?? null,
           urlGrabacion: body.urlGrabacion ?? null,
           // RF-09/RN-05: si no se envía explícito, se calcula automáticamente
           // (00:01 del día siguiente a fechaProgramada, en la timezone del programa).
@@ -533,6 +578,7 @@ export class AdminProgramasController {
     }
     if (body.materialArchivoKey !== undefined) data.materialArchivoKey = body.materialArchivoKey ?? null;
     if (body.urlPresentacion !== undefined) data.urlPresentacion = body.urlPresentacion ?? null;
+    if (body.presentacionArchivoKey !== undefined) data.presentacionArchivoKey = body.presentacionArchivoKey ?? null;
     if (body.urlGrabacion !== undefined) data.urlGrabacion = body.urlGrabacion ?? null;
     if (body.materialDesbloqueoEn !== undefined) {
       data.materialDesbloqueoEn = body.materialDesbloqueoEn ? new Date(body.materialDesbloqueoEn) : null;
@@ -560,6 +606,56 @@ export class AdminProgramasController {
     await this.prisma.sesion.delete({ where: { id } });
   }
 
+  /**
+   * Presigned PUT URL para subir el archivo de presentación de la sesión (PDF/PPT/PPTX).
+   * Key (skill s3-key-naming): <empresa>/<programa_slug>_<programaId>/sesion_<numeroSesion>/presentacion/<archivo>.
+   * El id del programa en el segmento desambigua programas homónimos de una misma empresa
+   * y mantiene la ruta estable; el slug del nombre la conserva legible en la consola de S3.
+   */
+  @Post('sesiones/:id/presign-presentacion')
+  @HttpCode(HttpStatus.OK)
+  async presignPresentacion(
+    @Param('id') sesionId: string,
+    @Body() body: { filename: string; contentType: string },
+  ): Promise<{ uploadUrl: string; key: string }> {
+    if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
+    if (!body?.filename || !PRESENTACION_EXT_RE.test(body.filename)) {
+      throw new AppError('PRESENTACION_FORMATO_INVALIDO');
+    }
+    const sesion = await this.prisma.sesion.findUnique({
+      where: { id: sesionId },
+      select: { numeroSesion: true, programa: { select: { id: true, nombre: true, empresa: { select: { nombre: true } } } } },
+    });
+    if (!sesion) throw new AppError('SESION_NOT_FOUND');
+
+    const empresa = S3Service.slugifyPathSegment(sesion.programa.empresa.nombre) || 'empresa';
+    const programaSlug = S3Service.slugifyPathSegment(sesion.programa.nombre) || 'programa';
+    const prefix = `${empresa}/${programaSlug}_${sesion.programa.id}/sesion_${sesion.numeroSesion}/presentacion`;
+
+    const key = this.s3.generateKey(prefix, body.filename);
+    const uploadUrl = await this.s3.getPresignedPutUrl(key, body.contentType);
+    return { uploadUrl, key };
+  }
+
+  /** Elimina el archivo de presentación de la sesión (S3 + BD). */
+  @Delete('sesiones/:id/presentacion-archivo')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async eliminarPresentacionArchivo(@Param('id') sesionId: string) {
+    const sesion = await this.prisma.sesion.findUnique({
+      where: { id: sesionId },
+      select: { presentacionArchivoKey: true },
+    });
+    if (!sesion) throw new AppError('SESION_NOT_FOUND');
+    if (!sesion.presentacionArchivoKey) return;
+    const key = sesion.presentacionArchivoKey;
+    await this.prisma.sesion.update({ where: { id: sesionId }, data: { presentacionArchivoKey: null } });
+    try {
+      await this.s3.deleteObject(key);
+    } catch (err) {
+      console.error(`[AdminProgramasController] Error eliminando objeto S3 ${key}:`, err);
+    }
+  }
+
   // --------- Participante ---------
 
   @Get('programas/:id/participantes')
@@ -571,6 +667,145 @@ export class AdminProgramasController {
     });
   }
 
+  // Plantilla Excel para la carga masiva. Ruta sin `:id` (es genérica); se declara
+  // antes de las rutas con `:id` por claridad, aunque no colisiona (3 segmentos distintos).
+  @Get('programas/participantes/plantilla')
+  async descargarPlantillaParticipantes(@Res() res: Response) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ExcelJS = require('exceljs');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Participantes');
+      ws.columns = [
+        { header: 'email', key: 'email', width: 34 },
+        { header: 'nombre', key: 'nombre', width: 28 },
+        { header: 'cargo', key: 'cargo', width: 22 },
+        { header: 'area', key: 'area', width: 22 },
+      ];
+      ws.getRow(1).font = { bold: true };
+      ws.addRow({
+        email: 'juan.perez@empresa.com',
+        nombre: 'Juan Pérez',
+        cargo: 'Analista',
+        area: 'Operaciones',
+      });
+      const buffer = await wb.xlsx.writeBuffer();
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader('Content-Disposition', 'attachment; filename="plantilla_matricula.xlsx"');
+      res.end(Buffer.from(buffer));
+    } catch (e) {
+      throw new AppError('EXCEL_GENERATION_FAILED', { cause: e });
+    }
+  }
+
+  // Carga masiva: `validarSolo=1` hace un dry-run (devuelve el reporte sin escribir);
+  // sin ese flag registra en modo "todo o nada" dentro de una transacción.
+  @Post('programas/:id/participantes/importar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('archivo', {
+      storage: diskStorage({
+        destination: os.tmpdir(),
+        filename: (_req, file, cb) => cb(null, randomUUID() + path.extname(file.originalname)),
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async importarParticipantes(
+    @Param('id') programaId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { validarSolo?: string; enviarInvitacion?: string; locale?: 'es' | 'pt' },
+  ) {
+    const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
+    if (!programa) {
+      if (file) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch {
+          /* ignore */
+        }
+      }
+      throw new AppError('PROGRAMA_NOT_FOUND');
+    }
+    if (!file) throw new AppError('ARCHIVO_REQUIRED');
+
+    try {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (ext !== '.xlsx' && ext !== '.xls') {
+        throw new AppError('ARCHIVO_INVALID', {
+          message: 'Solo se admiten archivos Excel (.xlsx, .xls)',
+        });
+      }
+
+      const { filas, columnasFaltantes } = this.parsearArchivoParticipantes(file.path);
+      if (columnasFaltantes.length > 0) {
+        throw new AppError('IMPORT_COLUMNAS_FALTANTES', {
+          message: `Faltan columnas obligatorias: ${columnasFaltantes.join(', ')}`,
+          details: { columnasFaltantes },
+        });
+      }
+
+      const reporte = await this.validarFilasMatricula(programa, filas);
+      const resumen = {
+        total: reporte.length,
+        ok: reporte.filter((f) => f.estado === 'ok').length,
+        error: reporte.filter((f) => f.estado !== 'ok').length,
+      };
+
+      const validarSolo = body.validarSolo === '1' || body.validarSolo === 'true';
+      // No registrar si es dry-run, si hay filas problemáticas, o si no hay nada válido.
+      if (validarSolo || resumen.error > 0 || resumen.ok === 0) {
+        return { registrado: false, resumen, filas: reporte };
+      }
+
+      // Todo-o-nada: crea usuarios faltantes + participaciones en una sola transacción.
+      const usuarioIds = await this.prisma.$transaction(async (tx) => {
+        const ids: string[] = [];
+        for (const f of reporte) {
+          const usuarioId = await this.resolverUsuarioPorEmail(tx, programa, {
+            email: f.email,
+            nombre: f.nombre,
+            cargo: f.cargo,
+            area: f.area,
+          });
+          await tx.participantePrograma.create({
+            data: { id: randomUUID(), programaId, usuarioId },
+          });
+          ids.push(usuarioId);
+        }
+        return ids;
+      });
+
+      // Invitaciones fuera de la transacción: un fallo de email no revierte la matrícula.
+      const enviarInvitacion =
+        body.enviarInvitacion !== '0' && body.enviarInvitacion !== 'false';
+      if (enviarInvitacion) {
+        for (const usuarioId of usuarioIds) {
+          try {
+            await this.magicLink.createAndSend({
+              usuarioId,
+              locale: body.locale ?? 'es',
+              propositoRedirect: `/programa/${programaId}`,
+            });
+          } catch (mailErr) {
+            console.error('[importarParticipantes] fallo al enviar invitación:', mailErr);
+          }
+        }
+      }
+
+      return { registrado: true, resumen, filas: reporte, matriculados: usuarioIds.length };
+    } finally {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   @Post('programas/:id/participantes')
   async matricular(@Param('id') programaId: string, @Body() body: MatricularDto) {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
@@ -579,54 +814,12 @@ export class AdminProgramasController {
     let usuarioId = body.usuarioId ?? null;
 
     if (!usuarioId) {
-      const email = body.email?.toLowerCase().trim();
-      if (!email) {
-        throw new AppError('VALIDATION_ERROR', {
-          message: 'Debes enviar usuarioId o email',
-        });
-      }
-      // Unicidad del estudiante por email: el email es único por empresa
-      // (@@unique([empresaId, email])), así que se busca en TODAS las empresas.
-      // Si ya existe en la MISMA empresa se reutiliza; si existe en OTRA empresa
-      // se bloquea (un estudiante no puede pertenecer a dos empresas).
-      const conMismoEmail = await this.prisma.usuario.findMany({
-        where: { email },
-        include: { role: true },
+      usuarioId = await this.resolverUsuarioPorEmail(this.prisma, programa, {
+        email: body.email,
+        nombre: body.nombre,
+        cargo: body.cargo,
+        area: body.area,
       });
-      const existente = conMismoEmail.find((u) => u.empresaId === programa.empresaId);
-      const enOtraEmpresa = conMismoEmail.find(
-        (u) => u.empresaId && u.empresaId !== programa.empresaId,
-      );
-      if (existente) {
-        usuarioId = existente.id;
-        await this.promoverAEstudianteSiLegacy(existente.id, existente.role?.slug);
-      } else if (enOtraEmpresa) {
-        throw new AppError('USUARIO_OTRA_EMPRESA', {
-          message: 'Ya existe un usuario con ese email en otra empresa',
-        });
-      } else {
-        if (!body.nombre) {
-          throw new AppError('VALIDATION_ERROR', {
-            message: 'Debes enviar nombre para crear un nuevo estudiante',
-          });
-        }
-        const estudianteRole = await this.prisma.role.findUniqueOrThrow({
-          where: { slug: ESTUDIANTE_SLUG },
-        });
-        const nuevo = await this.prisma.usuario.create({
-          data: {
-            id: randomUUID(),
-            nombre: body.nombre,
-            email,
-            empresaId: programa.empresaId,
-            cargo: body.cargo ?? null,
-            area: body.area ?? null,
-            roleId: estudianteRole.id,
-            puedeIniciarSesion: true,
-          },
-        });
-        usuarioId = nuevo.id;
-      }
     } else {
       const existente = await this.prisma.usuario.findUnique({
         where: { id: usuarioId },
@@ -885,14 +1078,187 @@ export class AdminProgramasController {
     }
   }
 
-  private async promoverAEstudianteSiLegacy(usuarioId: string, slug: string | undefined) {
+  private async promoverAEstudianteSiLegacy(
+    usuarioId: string,
+    slug: string | undefined,
+    db?: Prisma.TransactionClient,
+  ) {
     if (slug !== LEGACY_SLUG) return;
-    const estudianteRole = await this.prisma.role.findUniqueOrThrow({
+    const client = db ?? this.prisma;
+    const estudianteRole = await client.role.findUniqueOrThrow({
       where: { slug: ESTUDIANTE_SLUG },
     });
-    await this.prisma.usuario.update({
+    await client.usuario.update({
       where: { id: usuarioId },
       data: { roleId: estudianteRole.id, puedeIniciarSesion: true },
+    });
+  }
+
+  /**
+   * Resuelve el `usuarioId` para matricular por email dentro de la empresa del programa:
+   * reutiliza el estudiante existente (promoviéndolo si es `participante_legacy`) o crea uno
+   * nuevo. Lanza `AppError` en conflictos (email/nombre faltante, email en otra empresa).
+   * Acepta un cliente Prisma (base o de transacción) para reusarse en la carga masiva.
+   */
+  private async resolverUsuarioPorEmail(
+    db: Prisma.TransactionClient,
+    programa: { empresaId: string | null },
+    datos: { email?: string; nombre?: string; cargo?: string | null; area?: string | null },
+  ): Promise<string> {
+    const email = datos.email?.toLowerCase().trim();
+    if (!email) {
+      throw new AppError('VALIDATION_ERROR', { message: 'Debes enviar usuarioId o email' });
+    }
+    // Unicidad del estudiante por email: el email es único por empresa
+    // (@@unique([empresaId, email])), así que se busca en TODAS las empresas.
+    // Si ya existe en la MISMA empresa se reutiliza; si existe en OTRA empresa se bloquea.
+    const conMismoEmail = await db.usuario.findMany({
+      where: { email },
+      include: { role: true },
+    });
+    const existente = conMismoEmail.find((u) => u.empresaId === programa.empresaId);
+    const enOtraEmpresa = conMismoEmail.find(
+      (u) => u.empresaId && u.empresaId !== programa.empresaId,
+    );
+    if (existente) {
+      await this.promoverAEstudianteSiLegacy(existente.id, existente.role?.slug, db);
+      return existente.id;
+    }
+    if (enOtraEmpresa) {
+      throw new AppError('USUARIO_OTRA_EMPRESA', {
+        message: 'Ya existe un usuario con ese email en otra empresa',
+      });
+    }
+    if (!datos.nombre) {
+      throw new AppError('VALIDATION_ERROR', {
+        message: 'Debes enviar nombre para crear un nuevo estudiante',
+      });
+    }
+    const estudianteRole = await db.role.findUniqueOrThrow({ where: { slug: ESTUDIANTE_SLUG } });
+    const nuevo = await db.usuario.create({
+      data: {
+        id: randomUUID(),
+        nombre: datos.nombre,
+        email,
+        empresaId: programa.empresaId,
+        cargo: datos.cargo ?? null,
+        area: datos.area ?? null,
+        roleId: estudianteRole.id,
+        puedeIniciarSesion: true,
+      },
+    });
+    return nuevo.id;
+  }
+
+  // --------- Carga masiva de participantes (Excel) ---------
+
+  /** Lee la primera hoja del Excel y mapea columnas (case-insensitive, con alias es/pt). */
+  private parsearArchivoParticipantes(filePath: string): {
+    filas: FilaImport[];
+    columnasFaltantes: string[];
+  } {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) return { filas: [], columnasFaltantes: ['email', 'nombre'] };
+
+    const rows: unknown[][] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      header: 1,
+      defval: '',
+    });
+    const nonEmpty = rows.filter((r) => r.some((c) => String(c ?? '').trim() !== ''));
+    if (nonEmpty.length === 0) return { filas: [], columnasFaltantes: ['email', 'nombre'] };
+
+    const header = nonEmpty[0].map((c) => String(c ?? '').trim().toLowerCase());
+    const idx: Record<keyof typeof COLUMNAS_IMPORT, number> = {
+      email: header.findIndex((h) => (COLUMNAS_IMPORT.email as readonly string[]).includes(h)),
+      nombre: header.findIndex((h) => (COLUMNAS_IMPORT.nombre as readonly string[]).includes(h)),
+      cargo: header.findIndex((h) => (COLUMNAS_IMPORT.cargo as readonly string[]).includes(h)),
+      area: header.findIndex((h) => (COLUMNAS_IMPORT.area as readonly string[]).includes(h)),
+    };
+
+    const columnasFaltantes: string[] = [];
+    if (idx.email < 0) columnasFaltantes.push('email');
+    if (idx.nombre < 0) columnasFaltantes.push('nombre');
+    if (columnasFaltantes.length > 0) return { filas: [], columnasFaltantes };
+
+    const cell = (row: unknown[], c: number) => (c >= 0 ? String(row[c] ?? '').trim() : '');
+    const filas = nonEmpty.slice(1).map((row, i) => ({
+      fila: i + 2, // +1 por índice base-0, +1 por el encabezado
+      email: cell(row, idx.email),
+      nombre: cell(row, idx.nombre),
+      cargo: cell(row, idx.cargo) || null,
+      area: cell(row, idx.area) || null,
+    }));
+    return { filas, columnasFaltantes: [] };
+  }
+
+  /**
+   * Valida las filas contra la BD sin escribir nada. Clasifica cada fila en:
+   * `error` (bloquea el registro), `aviso` (ya matriculado, también bloquea el "todo o nada")
+   * u `ok`. Prefetch en 2 queries para evitar N+1.
+   */
+  private async validarFilasMatricula(
+    programa: { id: string; empresaId: string | null },
+    filas: FilaImport[],
+  ): Promise<FilaReporte[]> {
+    const normalizados = filas.map((f) => f.email.toLowerCase().trim());
+    const conteo = new Map<string, number>();
+    for (const e of normalizados) if (e) conteo.set(e, (conteo.get(e) ?? 0) + 1);
+
+    const emailsUnicos = [...conteo.keys()];
+    const usuarios = emailsUnicos.length
+      ? await this.prisma.usuario.findMany({
+          where: { email: { in: emailsUnicos } },
+          select: { id: true, email: true, empresaId: true },
+        })
+      : [];
+    const porEmail = new Map<string, { id: string; empresaId: string | null }[]>();
+    for (const u of usuarios) {
+      const key = (u.email ?? '').toLowerCase().trim();
+      if (!porEmail.has(key)) porEmail.set(key, []);
+      porEmail.get(key)!.push({ id: u.id, empresaId: u.empresaId });
+    }
+
+    const idsEnEmpresa = usuarios.filter((u) => u.empresaId === programa.empresaId).map((u) => u.id);
+    const yaMatriculados = idsEnEmpresa.length
+      ? await this.prisma.participantePrograma.findMany({
+          where: { programaId: programa.id, usuarioId: { in: idsEnEmpresa } },
+          select: { usuarioId: true },
+        })
+      : [];
+    const setMatriculados = new Set(yaMatriculados.map((p) => p.usuarioId));
+
+    return filas.map((f, i) => {
+      const errores: string[] = [];
+      const email = normalizados[i];
+      const emailValido = !!email && EMAIL_REGEX.test(email);
+
+      if (!email) errores.push('FILA_EMAIL_REQUERIDO');
+      else if (!emailValido) errores.push('FILA_EMAIL_INVALIDO');
+      if (!f.nombre) errores.push('FILA_NOMBRE_REQUERIDO');
+      if (email && (conteo.get(email) ?? 0) > 1) errores.push('FILA_EMAIL_DUPLICADO_ARCHIVO');
+
+      if (emailValido) {
+        const matches = porEmail.get(email) ?? [];
+        const enEmpresa = matches.find((u) => u.empresaId === programa.empresaId);
+        const otraEmpresa = matches.find((u) => u.empresaId && u.empresaId !== programa.empresaId);
+        if (enEmpresa && setMatriculados.has(enEmpresa.id)) errores.push('FILA_YA_MATRICULADO');
+        else if (!enEmpresa && otraEmpresa) errores.push('FILA_OTRA_EMPRESA');
+      }
+
+      const soloAviso = errores.length > 0 && errores.every((e) => e === 'FILA_YA_MATRICULADO');
+      const estado: EstadoFila = errores.length === 0 ? 'ok' : soloAviso ? 'aviso' : 'error';
+      return {
+        fila: f.fila,
+        email: f.email.trim(),
+        nombre: f.nombre,
+        cargo: f.cargo,
+        area: f.area,
+        estado,
+        errores,
+      };
     });
   }
 }

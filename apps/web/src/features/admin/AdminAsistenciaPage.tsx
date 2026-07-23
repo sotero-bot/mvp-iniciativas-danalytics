@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -31,7 +32,6 @@ export function AdminAsistenciaPage() {
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,7 +39,7 @@ export function AdminAsistenciaPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/asistencia/resumen`);
       setResumen(await res.json());
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export function AdminAsistenciaPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setExporting(false);
     }
@@ -80,7 +80,6 @@ export function AdminAsistenciaPage() {
           </button>
         }
       />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {!loading && resumen && resumen.filas.length === 0 && (

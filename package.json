@@ -33,7 +33,7 @@
     "seed:rbac-scopes": "npx tsx scripts/seed-rbac-scopes.ts",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "reset-data": "npx tsx scripts/reset-data.ts",
-    "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:admin"
+    "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:admin && npm run seed:diagnostico-inicial && npm run seed:formularios-reto"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",

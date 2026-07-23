@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -25,7 +26,6 @@ export function FacilitadorGruposPage() {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [creando, setCreando] = useState(false);
 
@@ -36,7 +36,7 @@ export function FacilitadorGruposPage() {
       fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/participantes`).then((r) => r.json()),
     ])
       .then(([g, p]) => { setGrupos(g); setParticipantes(p); })
-      .catch((err) => setToast(translateError(err)))
+      .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   };
 
@@ -53,10 +53,10 @@ export function FacilitadorGruposPage() {
         body: JSON.stringify({ nombre: nuevoNombre.trim() }),
       });
       setNuevoNombre('');
-      setToast(t('facilitador:grupos.creado'));
+      toast.success(t('facilitador:grupos.creado'));
       cargar();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setCreando(false);
     }
@@ -70,10 +70,10 @@ export function FacilitadorGruposPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId }),
       });
-      setToast(t('facilitador:grupos.integrante_agregado'));
+      toast.success(t('facilitador:grupos.integrante_agregado'));
       cargar();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -87,7 +87,6 @@ export function FacilitadorGruposPage() {
         back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
         title={t('facilitador:grupos.title')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       {/* C-02: crear grupo */}
       <form onSubmit={crearGrupo} className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', maxWidth: 480 }}>

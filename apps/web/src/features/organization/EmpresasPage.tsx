@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Modal, Field, StatusBadge, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 
@@ -133,7 +134,6 @@ export function EmpresasPage() {
   const [createPdfFile, setCreatePdfFile] = useState<File | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const [editModal, setEditModal] = useState<Empresa | null>(null);
   const [editNombre, setEditNombre] = useState('');
@@ -146,17 +146,12 @@ export function EmpresasPage() {
   const [saving, setSaving] = useState(false);
 
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
   const load = async () => {
     try {
       const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`);
       setEmpresas(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -185,9 +180,9 @@ export function EmpresasPage() {
       setCreatePdfFile(null);
       setWasValidated(false);
       load();
-      showToast(t('organization:empresas.toast.created'));
+      toast.success(t('organization:empresas.toast.created'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -197,9 +192,9 @@ export function EmpresasPage() {
       await fetchWithErrorMapping(`${API_URL}/organization/empresas/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       load();
-      showToast(t('organization:empresas.toast.deleted'));
+      toast.success(t('organization:empresas.toast.deleted'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -238,9 +233,9 @@ export function EmpresasPage() {
       }
       setEditModal(null);
       load();
-      showToast(t('organization:empresas.toast.updated'));
+      toast.success(t('organization:empresas.toast.updated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -248,8 +243,6 @@ export function EmpresasPage() {
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('organization:empresas.delete_modal.title')}

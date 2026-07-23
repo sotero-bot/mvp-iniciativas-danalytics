@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Modal, Field, Alert, EmptyState, PageHeader } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -20,7 +21,6 @@ export function PlantillasPage() {
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -70,17 +70,12 @@ export function PlantillasPage() {
     }
   };
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
   const load = async () => {
     try {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas`);
       setList(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -102,9 +97,9 @@ export function PlantillasPage() {
       load();
       setForm({ nombre: '', descripcion: '', orden: '' });
       setWasValidated(false);
-      showToast(t('methodology:plantillas.toast.created'));
+      toast.success(t('methodology:plantillas.toast.created'));
     } catch (err) {
-      showToast(translateError(err) || t('methodology:plantillas.toast.create_error'));
+      toast.error(translateError(err) || t('methodology:plantillas.toast.create_error'));
     }
   };
 
@@ -132,9 +127,9 @@ export function PlantillasPage() {
       });
       load();
       setEditModal(null);
-      showToast(t('methodology:plantillas.toast.updated'));
+      toast.success(t('methodology:plantillas.toast.updated'));
     } catch (err) {
-      showToast(translateError(err) || t('methodology:plantillas.toast.update_error'));
+      toast.error(translateError(err) || t('methodology:plantillas.toast.update_error'));
     } finally {
       setSaving(false);
     }
@@ -146,16 +141,14 @@ export function PlantillasPage() {
       await fetchWithErrorMapping(`${API_URL}/admin/plantillas/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       load();
-      showToast(t('methodology:plantillas.toast.deleted'));
+      toast.success(t('methodology:plantillas.toast.deleted'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('methodology:plantillas.delete_modal.title')}

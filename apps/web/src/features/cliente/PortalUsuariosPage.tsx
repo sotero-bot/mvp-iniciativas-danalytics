@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -37,7 +38,6 @@ export function PortalUsuariosPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const enviandoRef = useRef(false); // guard StrictMode/doble click (patrón del proyecto)
   // C-07: gestión de programas asignados por usuario_cliente (panel expandible).
   const [programasOpen, setProgramasOpen] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export function PortalUsuariosPage() {
     fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente`)
       .then(res => res.json())
       .then(data => setMiembros(data))
-      .catch(err => setToast(translateError(err)))
+      .catch(err => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   };
 
@@ -61,7 +61,6 @@ export function PortalUsuariosPage() {
     if (enviandoRef.current) return;
     enviandoRef.current = true;
     setEnviando(true);
-    setToast(null);
     try {
       const res = await fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente`, {
         method: 'POST',
@@ -71,10 +70,11 @@ export function PortalUsuariosPage() {
       const creado = (await res.json()) as MiembroPortal;
       setNombre('');
       setEmail('');
-      setToast(creado.invitacionEnviada === false ? t('portal:usuarios.invitacion_no_enviada') : t('portal:usuarios.invitado_ok'));
+      if (creado.invitacionEnviada === false) toast.error(t('portal:usuarios.invitacion_no_enviada'));
+      else toast.success(t('portal:usuarios.invitado_ok'));
       cargar();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
@@ -94,7 +94,7 @@ export function PortalUsuariosPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente/${usuarioId}/programas`);
       setProgramasData(await res.json());
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -114,7 +114,7 @@ export function PortalUsuariosPage() {
         setProgramasData(d => (d ? { ...d, asignados: d.asignados.filter(id => id !== programaId) } : d));
       }
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -122,20 +122,18 @@ export function PortalUsuariosPage() {
     const m = revocarTarget;
     if (!m) return;
     setRevocarTarget(null);
-    setToast(null);
     try {
       await fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente/${m.id}`, { method: 'DELETE' });
-      setToast(t('portal:usuarios.revocado_ok'));
+      toast.success(t('portal:usuarios.revocado_ok'));
       cargar();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   return (
     <div className="page page-narrow">
       <PageHeader title={t('portal:usuarios.title')} description={t('portal:usuarios.subtitle')} />
-      {toast && <div className="toast">{toast}</div>}
 
       <form onSubmit={invitar} className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', flex: '1 1 200px' }}>

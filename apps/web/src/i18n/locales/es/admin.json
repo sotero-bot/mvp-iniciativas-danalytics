@@ -3,6 +3,7 @@
     "home": "Inicio",
     "decision_ia_label": "Decisión IA",
     "ia_en_accion_label": "IA en Acción",
+    "auditoria_label": "Auditoría",
     "gestion_label": "Gestión",
     "empresas": "Empresas",
     "iniciativas": "Iniciativas",
@@ -12,7 +13,7 @@
     "programas": "Programas",
     "ejecuciones": "Ejecuciones",
     "formularios": "Formularios",
-    "observaciones": "Observaciones",
+    "observaciones": "Situaciones reportadas",
     "notificaciones": "Notificaciones",
     "registro_acceso": "Registro de acceso"
   },
@@ -23,6 +24,9 @@
     "tipo_recurso": "Tipo de recurso",
     "usuario_id": "ID de usuario",
     "todos": "Todos",
+    "desde": "Desde",
+    "hasta": "Hasta",
+    "rango_hint": "Por defecto se muestran las últimas 24 horas.",
     "fecha": "Fecha",
     "usuario": "Usuario",
     "accion": "Acción",
@@ -191,6 +195,8 @@
       "cancelled": "Programa cancelado",
       "invitation_sent": "Invitación enviada",
       "session_removed": "Sesión eliminada",
+      "session_created": "Sesión creada",
+      "session_updated": "Sesión actualizada",
       "participant_removed": "Participante desmatriculado",
       "group_created": "Grupo creado",
       "group_updated": "Grupo actualizado",
@@ -223,14 +229,29 @@
         "edit": "Editar",
         "delete": "Eliminar"
       },
+      "confirm_delete": {
+        "title": "Eliminar sesión",
+        "message": "¿Seguro que quieres eliminar la sesión «{{titulo}}»? Esta acción no se puede deshacer."
+      },
       "fields": {
         "numero": "Nº",
         "titulo": "Título",
         "descripcion": "Descripción",
         "fecha": "Fecha y hora",
         "url_grabacion": "URL de grabación",
-        "url_presentacion": "URL de la presentación"
+        "url_presentacion": "URL de la presentación",
+        "archivo_presentacion": "Archivo de la presentación"
       },
+      "presentacion": {
+        "legend": "Presentación",
+        "hint": "Agrega un enlace o sube un archivo. Con uno de los dos es suficiente.",
+        "requerida": "Agrega un enlace o un archivo de presentación."
+      },
+      "presentacion_archivo_hint": "PDF, PPT o PPTX. Alternativa o complemento al enlace.",
+      "presentacion_archivo_seleccionar": "Seleccionar archivo",
+      "presentacion_archivo_cambiar": "Cambiar",
+      "presentacion_archivo_quitar": "Quitar archivo",
+      "presentacion_archivo_quitado": "Archivo de presentación eliminado.",
       "modal": {
         "title_create": "Nueva sesión",
         "title_edit": "Editar sesión"
@@ -242,12 +263,22 @@
         "nombre": "Nombre",
         "email": "Email",
         "cargo": "Cargo",
+        "confirmacion": "Confirmación",
         "acciones": "Acciones"
+      },
+      "registro": {
+        "confirmado": "Confirmado",
+        "pendiente": "Pendiente"
       },
       "actions": {
         "new": "Matricular estudiante",
+        "new_masiva": "Carga masiva",
         "resend_invite": "Reenviar invitación",
         "remove": "Desmatricular"
+      },
+      "confirm_delete": {
+        "title": "Desmatricular participante",
+        "message": "¿Seguro que quieres desmatricular a «{{nombre}}» del programa? Podrás volver a matricularlo más adelante."
       },
       "fields": {
         "email": "Email",
@@ -258,6 +289,7 @@
       },
       "modal": {
         "title": "Matricular estudiante",
+        "title_masiva": "Carga masiva de estudiantes",
         "hint": "Si el email ya existe en la empresa, se reutilizará el usuario. Si no, se creará como estudiante."
       },
       "picker": {
@@ -271,6 +303,33 @@
         "sin_otros": "Sin otros programas",
         "nuevo_toggle": "¿No está en la lista? Registrar un estudiante nuevo",
         "nuevo_title": "Registrar estudiante nuevo"
+      },
+      "import": {
+        "tab_individual": "Individual",
+        "tab_masiva": "Carga masiva",
+        "hint": "Descarga la plantilla, llénala con los estudiantes y súbela. Se validará antes de registrar; solo podrás registrar si no hay errores.",
+        "descargar_plantilla": "Descargar plantilla",
+        "subir_archivo": "Subir Excel",
+        "validando": "Validando…",
+        "resumen": "{{total}} filas · {{ok}} válidas · {{error}} con problemas",
+        "sin_filas": "El archivo no contiene filas de datos.",
+        "col_fila": "Fila",
+        "col_email": "Email",
+        "col_nombre": "Nombre",
+        "col_estado": "Estado",
+        "estado_ok": "OK",
+        "estado_error": "Error",
+        "estado_aviso": "Aviso",
+        "registrar": "Registrar {{n}} estudiantes",
+        "columnas_faltantes": "Faltan columnas obligatorias en el archivo: {{cols}}",
+        "errores": {
+          "FILA_EMAIL_REQUERIDO": "Email vacío",
+          "FILA_EMAIL_INVALIDO": "Email con formato inválido",
+          "FILA_NOMBRE_REQUERIDO": "Nombre vacío",
+          "FILA_EMAIL_DUPLICADO_ARCHIVO": "Email repetido en el archivo",
+          "FILA_YA_MATRICULADO": "Ya está matriculado en este programa",
+          "FILA_OTRA_EMPRESA": "El email pertenece a otra empresa"
+        }
       }
     },
     "grupos": {

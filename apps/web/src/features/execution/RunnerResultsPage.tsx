@@ -202,7 +202,7 @@ export function RunnerResultsPage() {
             footer={
                 <>
                     <button className="btn btn-secondary" onClick={() => setShowRegenerarModal(false)}>
-                        {t('common:cancel')}
+                        {t('common:buttons.cancel')}
                     </button>
                     <button
                         className="btn btn-primary"

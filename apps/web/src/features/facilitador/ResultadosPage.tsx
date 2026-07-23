@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, ProgressBar } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -40,7 +41,6 @@ export function FacilitadorResultadosPage() {
   const [diagnostico, setDiagnostico] = useState<Diagnostico | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +54,7 @@ export function FacilitadorResultadosPage() {
         setDiagnostico(diag);
         setFeedback(fb);
       })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [programaId]);
@@ -65,7 +65,6 @@ export function FacilitadorResultadosPage() {
         back={{ to: '/facilitador/programas', label: t('formularios:resultados.back') }}
         title={t('formularios:resultados.title')}
       />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {diagnostico && (

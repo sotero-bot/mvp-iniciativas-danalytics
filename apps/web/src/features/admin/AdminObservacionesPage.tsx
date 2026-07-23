@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Field, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -36,7 +37,6 @@ export function AdminObservacionesPage() {
   const [urgencia, setUrgencia] = useState('');
   const [tipo, setTipo] = useState('');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWithErrorMapping(`${API_URL}/admin/programas`)
@@ -56,7 +56,7 @@ export function AdminObservacionesPage() {
     fetchWithErrorMapping(`${API_URL}/admin/observaciones${qs ? `?${qs}` : ''}`)
       .then(res => res.json())
       .then((data: Observacion[]) => { if (!cancelled) setObservaciones(data); })
-      .catch(err => { if (!cancelled) setToast(translateError(err)); })
+      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [programaId, urgencia, tipo]);
@@ -72,7 +72,6 @@ export function AdminObservacionesPage() {
         title={t('admin:observaciones.title')}
         description={t('admin:observaciones.subtitle')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       <div className="toolbar">
         <Field label={t('admin:observaciones.programa')}>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Modal, Field } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -25,7 +26,6 @@ export function IniciativasPage() {
   const { t } = useTranslation(['organization', 'common']);
   const [iniciativas, setIniciativas] = useState<Iniciativa[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const [nombre, setNombre] = useState('');
@@ -42,11 +42,6 @@ export function IniciativasPage() {
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
   useEffect(() => {
     Promise.all([
       fetchWithErrorMapping(`${API_URL}/organization/iniciativas`).then(r => r.json()).catch(() => []),
@@ -62,7 +57,7 @@ export function IniciativasPage() {
     fetchWithErrorMapping(`${API_URL}/organization/iniciativas`)
       .then(res => res.json())
       .then(setIniciativas)
-      .catch(err => showToast(translateError(err)));
+      .catch(err => toast.error(translateError(err)));
   };
 
   const handleDelete = async () => {
@@ -71,9 +66,9 @@ export function IniciativasPage() {
       await fetchWithErrorMapping(`${API_URL}/organization/iniciativas/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       fetchIniciativas();
-      showToast(t('organization:iniciativas.toast.deleted'));
+      toast.success(t('organization:iniciativas.toast.deleted'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -90,9 +85,9 @@ export function IniciativasPage() {
       setEmpresaId('');
       setWasValidated(false);
       fetchIniciativas();
-      showToast(t('organization:iniciativas.toast.created'));
+      toast.success(t('organization:iniciativas.toast.created'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -119,9 +114,9 @@ export function IniciativasPage() {
       });
       setEditModal(null);
       fetchIniciativas();
-      showToast(t('organization:iniciativas.toast.updated'));
+      toast.success(t('organization:iniciativas.toast.updated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -129,8 +124,6 @@ export function IniciativasPage() {
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('organization:iniciativas.delete_modal.title')}

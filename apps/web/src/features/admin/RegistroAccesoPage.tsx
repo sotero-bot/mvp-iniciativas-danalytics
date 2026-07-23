@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Field, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const PAGE_SIZE = 50;
@@ -21,6 +22,16 @@ interface Fila {
 
 const ROLES = ['facilitador', 'estudiante', 'cliente_admin', 'usuario_cliente', 'danalytics_admin'];
 
+// Formatea un Date a string apto para <input type="datetime-local"> en hora local.
+function toLocalInput(d: Date): string {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+// Por defecto el visor arranca acotado a las últimas 24 horas para no cargar
+// todo el log append-only de golpe.
+const DEFAULT_DESDE = () => toLocalInput(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
 // RNF-13: visor SOLO lectura del log de auditoría append-only (solo admin).
 export function RegistroAccesoPage() {
   const { t } = useTranslation(['admin', 'common']);
@@ -30,8 +41,9 @@ export function RegistroAccesoPage() {
   const [rol, setRol] = useState('');
   const [tipoRecurso, setTipoRecurso] = useState('');
   const [usuarioId, setUsuarioId] = useState('');
+  const [desde, setDesde] = useState<string>(DEFAULT_DESDE);
+  const [hasta, setHasta] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +52,8 @@ export function RegistroAccesoPage() {
     if (rol) params.set('role', rol);
     if (tipoRecurso.trim()) params.set('tipoRecurso', tipoRecurso.trim());
     if (usuarioId.trim()) params.set('usuarioId', usuarioId.trim());
+    if (desde) params.set('desde', new Date(desde).toISOString());
+    if (hasta) params.set('hasta', new Date(hasta).toISOString());
     fetchWithErrorMapping(`${API_URL}/admin/registro-acceso?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
@@ -47,10 +61,10 @@ export function RegistroAccesoPage() {
         setFilas(data.filas ?? []);
         setTotal(data.total ?? 0);
       })
-      .catch(err => { if (!cancelled) setToast(translateError(err)); })
+      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [pagina, rol, tipoRecurso, usuarioId]);
+  }, [pagina, rol, tipoRecurso, usuarioId, desde, hasta]);
 
   const totalPaginas = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
@@ -60,7 +74,6 @@ export function RegistroAccesoPage() {
         title={t('admin:registro_acceso.title')}
         description={t('admin:registro_acceso.subtitle')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       <div className="toolbar">
         <Field label={t('admin:registro_acceso.rol')}>
@@ -75,7 +88,16 @@ export function RegistroAccesoPage() {
         <Field label={t('admin:registro_acceso.usuario_id')}>
           <input className="input" value={usuarioId} onChange={e => { setUsuarioId(e.target.value); setPagina(0); }} style={{ minWidth: 280 }} />
         </Field>
+        <Field label={t('admin:registro_acceso.desde')}>
+          <input type="datetime-local" className="input" value={desde} onChange={e => { setDesde(e.target.value); setPagina(0); }} />
+        </Field>
+        <Field label={t('admin:registro_acceso.hasta')}>
+          <input type="datetime-local" className="input" value={hasta} onChange={e => { setHasta(e.target.value); setPagina(0); }} />
+        </Field>
       </div>
+      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem' }}>
+        {t('admin:registro_acceso.rango_hint')}
+      </p>
 
       {loading && <Loading label={t('common:loading')} />}
       {!loading && filas.length === 0 && (

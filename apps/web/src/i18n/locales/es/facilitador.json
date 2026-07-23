@@ -30,7 +30,8 @@
     "grabacion_guardar": "Guardar grabación",
     "grabacion_guardada": "Enlace de grabación guardado",
     "empty": "Este programa todavía no tiene sesiones.",
-    "presentacion": "Ver presentación"
+    "presentacion": "Ver presentación",
+    "presentacion_archivo": "Descargar presentación"
   },
   "asistencia": {
     "title": "Tomar asistencia",

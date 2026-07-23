@@ -42,7 +42,11 @@ export class ActorScopeService {
         // C-01: N:M — el facilitador ve los programas donde está asignado.
         return { facilitadores: { some: { usuarioId: actor.sub } } };
       case 'estudiante':
-        return { participantes: { some: { usuarioId: actor.sub, activo: true } } };
+        // El estudiante solo ve programas cuya matrícula ya confirmó en la plataforma
+        // (confirmadoEn != null). Sin confirmar no ve sesiones, material ni nada del programa.
+        return {
+          participantes: { some: { usuarioId: actor.sub, activo: true, confirmadoEn: { not: null } } },
+        };
       case 'cliente_admin':
         return { empresaId: this.requireEmpresa(actor) };
       case 'usuario_cliente':

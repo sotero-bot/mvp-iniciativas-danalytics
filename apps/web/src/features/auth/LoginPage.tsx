@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -55,6 +56,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
+      toast.success(t('auth:login_page.login_success'));
       onLogin(data.access_token);
     } catch (err) {
       setError(translateError(err));

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, Field, Alert, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -88,6 +89,7 @@ export function ImportPage() {
       setResult(data);
       setPreview(null);
       setFileName('');
+      toast.success(t('admin:import.result_success', { empresa: data.empresa }));
     } catch (err) {
       setApiError(translateError(err));
     } finally {

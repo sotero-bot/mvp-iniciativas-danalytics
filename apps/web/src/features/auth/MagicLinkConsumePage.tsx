@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -34,6 +35,7 @@ export function MagicLinkConsumePage({ onLogin }: { onLogin: (token: string) => 
         const data = await res.json();
         onLogin(data.accessToken);
         setStatus('success');
+        toast.success(t('auth:login_page.login_success'));
         const redirect = data.propositoRedirect || '/admin/inicio';
         setTimeout(() => navigate(redirect, { replace: true }), 800);
       } catch (err) {

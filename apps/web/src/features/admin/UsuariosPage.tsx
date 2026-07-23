@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PageHeader, Field, Modal, StatusBadge, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -92,7 +93,6 @@ export function UsuariosPage() {
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [programas, setProgramas] = useState<ProgramaLite[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('');
@@ -118,11 +118,6 @@ export function UsuariosPage() {
   const [programasModal, setProgramasModal] = useState<Usuario | null>(null);
   const [programasCliente, setProgramasCliente] = useState<{ programas: ProgramaLite[]; asignados: string[] } | null>(null);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
   const load = async () => {
     setLoading(true);
     try {
@@ -137,7 +132,7 @@ export function UsuariosPage() {
       setUsuarios(await res.json());
       setPage(1);
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -161,7 +156,7 @@ export function UsuariosPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${u.id}/programas-cliente`);
       setProgramasCliente(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -181,7 +176,7 @@ export function UsuariosPage() {
         setProgramasCliente(d => (d ? { ...d, asignados: d.asignados.filter(id => id !== programaId) } : d));
       }
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -192,9 +187,9 @@ export function UsuariosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: i18n.language }),
       });
-      showToast(t('admin:usuarios.toast.invitation_sent'));
+      toast.success(t('admin:usuarios.toast.invitation_sent'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -203,7 +198,7 @@ export function UsuariosPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`);
       setEmpresas(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -212,7 +207,7 @@ export function UsuariosPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/roles`);
       setRoles(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -277,19 +272,19 @@ export function UsuariosPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        showToast(t('admin:usuarios.toast.updated'));
+        toast.success(t('admin:usuarios.toast.updated'));
       } else {
         await fetchWithErrorMapping(`${API_URL}/admin/usuarios`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        showToast(t('admin:usuarios.toast.created'));
+        toast.success(t('admin:usuarios.toast.created'));
       }
       setModalOpen(false);
       load();
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -305,9 +300,9 @@ export function UsuariosPage() {
       });
       setResetPasswordModal(null);
       setNewPassword('');
-      showToast(t('admin:usuarios.toast.password_reset'));
+      toast.success(t('admin:usuarios.toast.password_reset'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -317,9 +312,9 @@ export function UsuariosPage() {
       await fetchWithErrorMapping(`${API_URL}/admin/usuarios/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       load();
-      showToast(t('admin:usuarios.toast.deactivated'));
+      toast.success(t('admin:usuarios.toast.deactivated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -331,9 +326,9 @@ export function UsuariosPage() {
         body: JSON.stringify({ activo: true }),
       });
       load();
-      showToast(t('admin:usuarios.toast.reactivated'));
+      toast.success(t('admin:usuarios.toast.reactivated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -390,8 +385,6 @@ export function UsuariosPage() {
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('admin:usuarios.deactivate_modal.title')}
@@ -678,10 +671,10 @@ export function UsuariosPage() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>
-              {t('common:cancel')}
+              {t('common:buttons.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? t('common:saving') : t('common:save')}
+              {saving ? t('common:actions.saving') : t('common:buttons.save')}
             </button>
           </div>
         </form>
@@ -695,9 +688,9 @@ export function UsuariosPage() {
         maxWidth={420}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setResetPasswordModal(null)}>{t('common:cancel')}</button>
+            <button className="btn btn-secondary" onClick={() => setResetPasswordModal(null)}>{t('common:buttons.cancel')}</button>
             <button className="btn btn-primary" onClick={submitResetPassword} disabled={!newPassword}>
-              {t('common:save')}
+              {t('common:buttons.save')}
             </button>
           </>
         }

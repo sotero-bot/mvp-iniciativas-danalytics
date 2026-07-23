@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo } from '../estudiante/FormularioResponderPage';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -40,7 +41,6 @@ export function FacilitadorRetoPage() {
   const [pestana, setPestana] = useState<Pestana>('bitacoras');
   const [data, setData] = useState<Record<Pestana, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   // O-01: estado de habilitación de la bitácora.
   const [bitacoraHabilitada, setBitacoraHabilitada] = useState<boolean | null>(null);
 
@@ -62,8 +62,9 @@ export function FacilitadorRetoPage() {
       });
       const d = await res.json();
       setBitacoraHabilitada(!!d.bitacoraHabilitadaEn);
+      toast.success(t('formularios:reto.bitacora_actualizada'));
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -75,7 +76,7 @@ export function FacilitadorRetoPage() {
       .then((recurso: RecursoPrograma) => {
         if (!cancelled) setData(prev => ({ ...prev, [pestana]: recurso }));
       })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [programaId, pestana, i18n.language]);
@@ -94,7 +95,6 @@ export function FacilitadorRetoPage() {
         title={t('formularios:reto.title')}
         description={t('formularios:reto.solo_lectura')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: '1.25rem' }}>
         <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>

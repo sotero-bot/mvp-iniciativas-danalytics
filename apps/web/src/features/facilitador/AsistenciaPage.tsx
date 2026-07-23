@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Alert, Loading, EmptyState } from '../../components/ui';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -24,7 +25,6 @@ export function FacilitadorAsistenciaPage() {
   const [programaId, setProgramaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [observacion, setObservacion] = useState('');
   const [enviandoObs, setEnviandoObs] = useState(false);
@@ -68,7 +68,7 @@ export function FacilitadorAsistenciaPage() {
           observacionGeneral: observacion,
         }),
       });
-      setToast(t('facilitador:asistencia.saved'));
+      toast.success(t('facilitador:asistencia.saved'));
       // Al guardar, regresar al listado de sesiones del programa.
       if (programaId) {
         navigate(`/facilitador/programas/${programaId}/sesiones`);
@@ -76,7 +76,7 @@ export function FacilitadorAsistenciaPage() {
         navigate(-1);
       }
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -85,7 +85,7 @@ export function FacilitadorAsistenciaPage() {
   const enviarObservacion = async () => {
     const texto = observacion.trim();
     if (!texto) {
-      setToast(t('facilitador:asistencia.obs_general_empty'));
+      toast.error(t('facilitador:asistencia.obs_general_empty'));
       return;
     }
     setEnviandoObs(true);
@@ -95,10 +95,10 @@ export function FacilitadorAsistenciaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto }),
       });
-      setToast(t('facilitador:asistencia.obs_general_sent'));
+      toast.success(t('facilitador:asistencia.obs_general_sent'));
       setObservacion('');
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setEnviandoObs(false);
     }
@@ -107,7 +107,6 @@ export function FacilitadorAsistenciaPage() {
   return (
     <div className="page">
       <PageHeader title={t('facilitador:asistencia.title')} />
-      {toast && <div className="toast">{toast}</div>}
       {errorCode === 'SESION_FUTURA' && <Alert variant="warning">{t('facilitador:asistencia.future_banner')}</Alert>}
       {errorCode === 'ASISTENCIA_FUERA_DE_PLAZO' && <Alert variant="warning">{t('facilitador:asistencia.locked_banner')}</Alert>}
       {loading && <Loading label={t('common:loading')} />}

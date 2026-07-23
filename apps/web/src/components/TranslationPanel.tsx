@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../shared/api/fetchWithErrorMapping';
+import { toast } from './toast-store';
 
 const SUPPORTED_LOCALES = [
   { code: 'pt', label: '🇧🇷 PT' },
@@ -19,6 +21,7 @@ interface TranslationPanelProps {
 }
 
 export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelProps) {
+  const { t } = useTranslation(['common']);
   const [locale, setLocale] = useState('pt');
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -48,6 +51,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
         body: JSON.stringify(values),
       });
       setSaved(true);
+      toast.success(t('common:translation_panel.toast_saved'));
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(translateError(err));
@@ -66,7 +70,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
     }}>
       {/* Locale selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
-        <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600, marginRight: 4 }}>Idioma:</span>
+        <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600, marginRight: 4 }}>{t('common:language.label')}:</span>
         {SUPPORTED_LOCALES.map(l => (
           <button
             key={l.code}
@@ -86,7 +90,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
       </div>
 
       {loading ? (
-        <div style={{ fontSize: '0.8rem', color: '#64748b', padding: '6px 0' }}>Cargando…</div>
+        <div style={{ fontSize: '0.8rem', color: '#64748b', padding: '6px 0' }}>{t('common:actions.loading')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {fields.map(f => (
@@ -100,7 +104,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
                   rows={2}
                   value={values[f.key] ?? ''}
                   onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
-                  placeholder={`Traducción ${locale.toUpperCase()}…`}
+                  placeholder={t('common:translation_panel.placeholder', { locale: locale.toUpperCase() })}
                   style={{ fontSize: '0.85rem' }}
                 />
               ) : (
@@ -108,7 +112,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
                   className="input"
                   value={values[f.key] ?? ''}
                   onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
-                  placeholder={`Traducción ${locale.toUpperCase()}…`}
+                  placeholder={t('common:translation_panel.placeholder', { locale: locale.toUpperCase() })}
                   style={{ fontSize: '0.85rem' }}
                 />
               )}
@@ -129,7 +133,7 @@ export function TranslationPanel({ getUrl, putUrl, fields }: TranslationPanelPro
           onClick={handleSave}
           disabled={saving || loading}
         >
-          {saving ? 'Guardando…' : saved ? '✅ Guardado' : 'Guardar'}
+          {saving ? t('common:actions.saving') : saved ? t('common:translation_panel.saved_short') : t('common:buttons.save')}
         </button>
       </div>
     </div>

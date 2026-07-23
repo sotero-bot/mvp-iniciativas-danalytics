@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
 import { PageHeader, Loading } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -40,7 +41,6 @@ export function AdminDiagnosticoGlobalPage() {
   const { t } = useTranslation(['formularios', 'common']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [programas, setProgramas] = useState<Programa[]>([]);
@@ -63,7 +63,7 @@ export function AdminDiagnosticoGlobalPage() {
     fetchWithErrorMapping(`${API_URL}/organization/empresas`)
       .then(r => r.json())
       .then((data: Empresa[]) => setEmpresas(data))
-      .catch(err => setToast(translateError(err)));
+      .catch(err => toast.error(translateError(err)));
   }, []);
 
   // Programas de la empresa elegida (cascada). Sin empresa → sin programas.
@@ -75,7 +75,7 @@ export function AdminDiagnosticoGlobalPage() {
     fetchWithErrorMapping(`${API_URL}/admin/programas?empresaId=${empresaId}`)
       .then(r => r.json())
       .then((data: Programa[]) => setProgramas(data))
-      .catch(err => setToast(translateError(err)));
+      .catch(err => toast.error(translateError(err)));
   }, [empresaId]);
 
   const load = useCallback(async () => {
@@ -86,7 +86,7 @@ export function AdminDiagnosticoGlobalPage() {
       ).then(r => r.json());
       setDetalle(det);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export function AdminDiagnosticoGlobalPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -150,7 +150,6 @@ export function AdminDiagnosticoGlobalPage() {
         </select>
       </div>
 
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {detalle && (

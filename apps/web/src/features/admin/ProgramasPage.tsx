@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { ProgramasDashboardPanel } from './ProgramasDashboardPanel';
 import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import type { StatusVariant } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -106,7 +107,6 @@ export function ProgramasPage() {
   const [facilitadores, setFacilitadores] = useState<FacilitadorLite[]>([]);
   const [plantillasGlobales, setPlantillasGlobales] = useState<PlantillaGlobalLite[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterEstado, setFilterEstado] = useState<'' | EstadoPrograma>('');
@@ -119,12 +119,7 @@ export function ProgramasPage() {
   const [deleteModal, setDeleteModal] = useState<Programa | null>(null);
   const [detailOpen, setDetailOpen] = useState<Programa | null>(null);
   // Matrícula rápida desde la lista, sin abrir el panel del programa.
-  const [matriculaFor, setMatriculaFor] = useState<Programa | null>(null);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const [matriculaFor, setMatriculaFor] = useState<{ programa: Programa; modo: 'individual' | 'masiva' } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -137,7 +132,7 @@ export function ProgramasPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/programas?${params.toString()}`);
       setProgramas(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -148,7 +143,7 @@ export function ProgramasPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`);
       setEmpresas(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -158,7 +153,7 @@ export function ProgramasPage() {
       const data = await res.json();
       setFacilitadores(data.map((u: any) => ({ id: u.id, nombre: u.nombre, email: u.email })));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -167,7 +162,7 @@ export function ProgramasPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas-formulario`);
       setPlantillasGlobales(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -238,7 +233,7 @@ export function ProgramasPage() {
           body: JSON.stringify(updateBody),
         });
         programaId = editing.id;
-        showToast(t('admin:programas.toast.updated'));
+        toast.success(t('admin:programas.toast.updated'));
       } else {
         const res = await fetchWithErrorMapping(`${API_URL}/admin/programas`, {
           method: 'POST',
@@ -247,7 +242,7 @@ export function ProgramasPage() {
         });
         const created = await res.json();
         programaId = created.id;
-        showToast(t('admin:programas.toast.created'));
+        toast.success(t('admin:programas.toast.created'));
       }
 
       const ptNombre = form.traduccionesPt.nombre.trim();
@@ -267,7 +262,7 @@ export function ProgramasPage() {
       setModalOpen(false);
       load();
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -279,9 +274,9 @@ export function ProgramasPage() {
       await fetchWithErrorMapping(`${API_URL}/admin/programas/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       load();
-      showToast(t('admin:programas.toast.cancelled'));
+      toast.success(t('admin:programas.toast.cancelled'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -289,8 +284,6 @@ export function ProgramasPage() {
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('admin:programas.cancel_modal.title')}
@@ -404,38 +397,36 @@ export function ProgramasPage() {
                   <td style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                     {p._count.participantes}
                   </td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button className="btn-link" onClick={() => setDetailOpen(p)}>
-                      {t('admin:programas.actions.details')}
-                    </button>
-                    {' · '}
-                    <button className="btn-link" onClick={() => openEdit(p)}>
-                      {t('admin:programas.actions.edit')}
-                    </button>
-                    {' · '}
-                    <Link className="btn-link" to={`/admin/programas/${p.id}/diagnostico`}>
-                      {t('admin:programas.actions.diagnostico')}
-                    </Link>
-                    {' · '}
-                    <Link className="btn-link" to={`/admin/programas/${p.id}/asistencia`}>
-                      {t('admin:programas.actions.asistencia')}
-                    </Link>
-                    {p.activo && (
-                      <>
-                        {' · '}
-                        <button className="btn-link" onClick={() => setMatriculaFor(p)}>
+                  <td>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setDetailOpen(p)}>
+                        {t('admin:programas.actions.details')}
+                      </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>
+                        {t('admin:programas.actions.edit')}
+                      </button>
+                      <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/diagnostico`}>
+                        {t('admin:programas.actions.diagnostico')}
+                      </Link>
+                      <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/asistencia`}>
+                        {t('admin:programas.actions.asistencia')}
+                      </Link>
+                      {p.activo && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setMatriculaFor({ programa: p, modo: 'individual' })}>
                           {t('admin:programas.actions.matricular')}
                         </button>
-                      </>
-                    )}
-                    {p.activo && p.estado !== 'cancelado' && (
-                      <>
-                        {' · '}
-                        <button className="btn-link btn-link-danger" onClick={() => setDeleteModal(p)}>
+                      )}
+                      {p.activo && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setMatriculaFor({ programa: p, modo: 'masiva' })}>
+                          {t('admin:programas.participantes.actions.new_masiva')}
+                        </button>
+                      )}
+                      {p.activo && p.estado !== 'cancelado' && (
+                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteModal(p)}>
                           {t('admin:programas.actions.cancel')}
                         </button>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -462,20 +453,19 @@ export function ProgramasPage() {
         <ProgramaDetailDrawer
           programaId={detailOpen.id}
           onClose={() => setDetailOpen(null)}
-          onError={showToast}
         />
       )}
 
       {matriculaFor && (
         <MatriculaModal
-          programaId={matriculaFor.id}
-          empresaId={matriculaFor.empresaId}
+          modo={matriculaFor.modo}
+          programaId={matriculaFor.programa.id}
+          empresaId={matriculaFor.programa.empresaId}
           onClose={() => setMatriculaFor(null)}
           onSaved={() => {
-            showToast(t('admin:programas.toast.participant_added'));
+            toast.success(t('admin:programas.toast.participant_added'));
             load();
           }}
-          onError={showToast}
         />
       )}
     </div>
@@ -679,10 +669,10 @@ function ProgramaFormModal({
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
-              {t('common:cancel')}
+              {t('common:buttons.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? t('common:saving') : t('common:save')}
+              {saving ? t('common:actions.saving') : t('common:buttons.save')}
             </button>
           </div>
         </form>
@@ -702,6 +692,7 @@ interface Sesion {
   fechaProgramada: string;
   materialArchivoKey: string | null;
   urlPresentacion: string | null;
+  presentacionArchivoKey: string | null;
   urlGrabacion: string | null;
   materialDesbloqueoEn: string | null;
   estado: 'pendiente' | 'completada';
@@ -712,6 +703,7 @@ interface Participante {
   programaId: string;
   usuarioId: string;
   activo: boolean;
+  confirmadoEn: string | null;
   usuario: {
     id: string;
     nombre: string;
@@ -743,18 +735,20 @@ interface ProgramaDetail extends Programa {
 }
 
 function ProgramaDetailDrawer({
-  programaId, onClose, onError,
-}: { programaId: string; onClose: () => void; onError: (msg: string) => void }) {
+  programaId, onClose,
+}: { programaId: string; onClose: () => void }) {
   const { t, i18n } = useTranslation(['admin', 'common', 'programa']);
   const [programa, setPrograma] = useState<ProgramaDetail | null>(null);
   const [tab, setTab] = useState<'sesiones' | 'participantes' | 'grupos'>('sesiones');
   const [loading, setLoading] = useState(false);
   const [sesionModalOpen, setSesionModalOpen] = useState(false);
   const [editingSesion, setEditingSesion] = useState<Sesion | null>(null);
-  const [matriculaOpen, setMatriculaOpen] = useState(false);
+  const [matriculaModo, setMatriculaModo] = useState<'individual' | 'masiva' | null>(null);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [grupoModal, setGrupoModal] = useState<{ editing: Grupo | null } | null>(null);
   const [deleteGrupoModal, setDeleteGrupoModal] = useState<Grupo | null>(null);
+  const [deleteSesionModal, setDeleteSesionModal] = useState<Sesion | null>(null);
+  const [desmatricularModal, setDesmatricularModal] = useState<Participante | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -762,7 +756,7 @@ function ProgramaDetailDrawer({
       const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}?locale=${i18n.language}`);
       setPrograma(await res.json());
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -773,7 +767,7 @@ function ProgramaDetailDrawer({
       const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/grupos`);
       setGrupos(await res.json());
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -789,9 +783,9 @@ function ProgramaDetailDrawer({
           propositoRedirect: `/programa/${programaId}`,
         }),
       });
-      onError(t('admin:programas.toast.invitation_sent'));
+      toast.success(t('admin:programas.toast.invitation_sent'));
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -800,30 +794,30 @@ function ProgramaDetailDrawer({
       await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/participantes/${participanteId}`, {
         method: 'DELETE',
       });
-      onError(t('admin:programas.toast.participant_removed'));
+      toast.success(t('admin:programas.toast.participant_removed'));
       load();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   const deleteSesion = async (sesionId: string) => {
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${sesionId}`, { method: 'DELETE' });
-      onError(t('admin:programas.toast.session_removed'));
+      toast.success(t('admin:programas.toast.session_removed'));
       load();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   const eliminarGrupo = async (grupoId: string) => {
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}`, { method: 'DELETE' });
-      onError(t('admin:programas.toast.group_removed'));
+      toast.success(t('admin:programas.toast.group_removed'));
       loadGrupos();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -835,20 +829,20 @@ function ProgramaDetailDrawer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId }),
       });
-      onError(t('admin:programas.toast.member_added'));
+      toast.success(t('admin:programas.toast.member_added'));
       loadGrupos();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
   const quitarMiembro = async (grupoId: string, usuarioId: string) => {
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}/miembros/${usuarioId}`, { method: 'DELETE' });
-      onError(t('admin:programas.toast.member_removed'));
+      toast.success(t('admin:programas.toast.member_removed'));
       loadGrupos();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -863,7 +857,7 @@ function ProgramaDetailDrawer({
       });
       load();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -951,14 +945,15 @@ function ProgramaDetailDrawer({
                           {t(`programa:sesion_estado.${s.estado}`)}
                         </StatusBadge>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button className="btn-link" onClick={() => { setEditingSesion(s); setSesionModalOpen(true); }}>
-                          {t('admin:programas.sesiones.actions.edit')}
-                        </button>
-                        {' · '}
-                        <button className="btn-link btn-link-danger" onClick={() => deleteSesion(s.id)}>
-                          {t('admin:programas.sesiones.actions.delete')}
-                        </button>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => { setEditingSesion(s); setSesionModalOpen(true); }}>
+                            {t('admin:programas.sesiones.actions.edit')}
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setDeleteSesionModal(s)}>
+                            {t('admin:programas.sesiones.actions.delete')}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -970,8 +965,11 @@ function ProgramaDetailDrawer({
 
         {!loading && programa && tab === 'participantes' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button className="btn btn-primary" onClick={() => setMatriculaOpen(true)}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setMatriculaModo('masiva')}>
+                {t('admin:programas.participantes.actions.new_masiva')}
+              </button>
+              <button className="btn btn-primary" onClick={() => setMatriculaModo('individual')}>
                 + {t('admin:programas.participantes.actions.new')}
               </button>
             </div>
@@ -982,12 +980,13 @@ function ProgramaDetailDrawer({
                     <th>{t('admin:programas.participantes.columns.nombre')}</th>
                     <th>{t('admin:programas.participantes.columns.email')}</th>
                     <th>{t('admin:programas.participantes.columns.cargo')}</th>
+                    <th style={{ textAlign: 'center' }}>{t('admin:programas.participantes.columns.confirmacion')}</th>
                     <th style={{ textAlign: 'right' }}>{t('admin:programas.participantes.columns.acciones')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {programa.participantes.length === 0 && (
-                    <tr><td colSpan={4}><EmptyState title={t('admin:programas.participantes.empty')} /></td></tr>
+                    <tr><td colSpan={5}><EmptyState title={t('admin:programas.participantes.empty')} /></td></tr>
                   )}
                   {programa.participantes.map(p => (
                     <tr key={p.id}>
@@ -996,18 +995,24 @@ function ProgramaDetailDrawer({
                       <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                         {p.usuario.cargo ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {p.usuario.puedeIniciarSesion && (
-                          <>
-                            <button className="btn-link" onClick={() => reenviarInvitacion(p.usuario.id)}>
+                      <td style={{ textAlign: 'center' }}>
+                        <StatusBadge variant={p.confirmadoEn ? 'success' : 'warning'}>
+                          {p.confirmadoEn
+                            ? t('admin:programas.participantes.registro.confirmado')
+                            : t('admin:programas.participantes.registro.pendiente')}
+                        </StatusBadge>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                          {p.usuario.puedeIniciarSesion && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => reenviarInvitacion(p.usuario.id)}>
                               {t('admin:programas.participantes.actions.resend_invite')}
                             </button>
-                            {' · '}
-                          </>
-                        )}
-                        <button className="btn-link btn-link-danger" onClick={() => desmatricular(p.id)}>
-                          {t('admin:programas.participantes.actions.remove')}
-                        </button>
+                          )}
+                          <button className="btn btn-danger btn-sm" onClick={() => setDesmatricularModal(p)}>
+                            {t('admin:programas.participantes.actions.remove')}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1027,7 +1032,10 @@ function ProgramaDetailDrawer({
                   ? t('admin:programas.bitacora.habilitada')
                   : t('admin:programas.bitacora.no_habilitada')}
               </span>
-              <button className="btn-link" onClick={toggleBitacora}>
+              <button
+                className={`btn btn-sm ${programa.bitacoraHabilitadaEn ? 'btn-danger' : 'btn-success'}`}
+                onClick={toggleBitacora}
+              >
                 {programa.bitacoraHabilitadaEn
                   ? t('admin:programas.bitacora.deshabilitar')
                   : t('admin:programas.bitacora.habilitar')}
@@ -1129,7 +1137,6 @@ function ProgramaDetailDrawer({
             fechaFin={programa.fechaFin}
             onClose={() => setSesionModalOpen(false)}
             onSaved={() => { setSesionModalOpen(false); load(); }}
-            onError={onError}
           />
         )}
 
@@ -1139,7 +1146,6 @@ function ProgramaDetailDrawer({
             editing={grupoModal.editing}
             onClose={() => setGrupoModal(null)}
             onSaved={() => { setGrupoModal(null); loadGrupos(); }}
-            onError={onError}
           />
         )}
 
@@ -1151,13 +1157,30 @@ function ProgramaDetailDrawer({
           onCancel={() => setDeleteGrupoModal(null)}
         />
 
-        {matriculaOpen && programa && (
+        <ConfirmModal
+          isOpen={!!deleteSesionModal}
+          title={t('admin:programas.sesiones.confirm_delete.title')}
+          message={t('admin:programas.sesiones.confirm_delete.message', { titulo: deleteSesionModal?.titulo ?? '' })}
+          onConfirm={() => { if (deleteSesionModal) { deleteSesion(deleteSesionModal.id); setDeleteSesionModal(null); } }}
+          onCancel={() => setDeleteSesionModal(null)}
+        />
+
+        <ConfirmModal
+          isOpen={!!desmatricularModal}
+          title={t('admin:programas.participantes.confirm_delete.title')}
+          message={t('admin:programas.participantes.confirm_delete.message', { nombre: desmatricularModal?.usuario.nombre ?? '' })}
+          confirmLabel={t('admin:programas.participantes.actions.remove')}
+          onConfirm={() => { if (desmatricularModal) { desmatricular(desmatricularModal.id); setDesmatricularModal(null); } }}
+          onCancel={() => setDesmatricularModal(null)}
+        />
+
+        {matriculaModo && programa && (
           <MatriculaModal
+            modo={matriculaModo}
             programaId={programa.id}
             empresaId={programa.empresaId}
-            onClose={() => setMatriculaOpen(false)}
+            onClose={() => setMatriculaModo(null)}
             onSaved={() => { load(); }}
-            onError={onError}
           />
         )}
       </div>
@@ -1169,7 +1192,7 @@ function ProgramaDetailDrawer({
 // Modal para crear/editar sesión
 // ─────────────────────────────────────────────────────────────
 function SesionFormModal({
-  programaId, editing, defaultNumero, fechaInicio, fechaFin, onClose, onSaved, onError,
+  programaId, editing, defaultNumero, fechaInicio, fechaFin, onClose, onSaved,
 }: {
   programaId: string;
   editing: Sesion | null;
@@ -1178,7 +1201,6 @@ function SesionFormModal({
   fechaFin: string | null;
   onClose: () => void;
   onSaved: () => void;
-  onError: (msg: string) => void;
 }) {
   const { t } = useTranslation(['admin', 'common']);
   const [saving, setSaving] = useState(false);
@@ -1194,6 +1216,34 @@ function SesionFormModal({
     tituloPt: '',
     descripcionPt: '',
   });
+  // La presentación puede ser un enlace (urlPresentacion) o un archivo (PDF/PPT/PPTX)
+  // subido a S3. Guardamos la key persistida y el archivo pendiente de subir por separado.
+  const [presentacionArchivoKey, setPresentacionArchivoKey] = useState<string | null>(
+    editing?.presentacionArchivoKey ?? null,
+  );
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const archivoRef = useRef<HTMLInputElement>(null);
+
+  const nombreArchivoActual = presentacionArchivoKey ? presentacionArchivoKey.split('/').pop() : null;
+
+  // Quita el archivo ya persistido (S3 + BD) en modo edición.
+  const quitarArchivo = async () => {
+    if (!editing || !presentacionArchivoKey) {
+      setPresentacionArchivoKey(null);
+      setArchivo(null);
+      if (archivoRef.current) archivoRef.current.value = '';
+      return;
+    }
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${editing.id}/presentacion-archivo`, { method: 'DELETE' });
+      setPresentacionArchivoKey(null);
+      setArchivo(null);
+      if (archivoRef.current) archivoRef.current.value = '';
+      toast.success(t('admin:programas.sesiones.presentacion_archivo_quitado'));
+    } catch (err) {
+      toast.error(translateError(err));
+    }
+  };
 
   useEffect(() => {
     if (!editing) return;
@@ -1225,6 +1275,12 @@ function SesionFormModal({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // La presentación es obligatoria pero satisfacible con enlace O archivo (uno basta):
+    // hay enlace, un archivo pendiente de subir, o una key ya persistida.
+    if (!form.urlPresentacion.trim() && !archivo && !presentacionArchivoKey) {
+      toast.error(t('admin:programas.sesiones.presentacion.requerida'));
+      return;
+    }
     setSaving(true);
     try {
       const body = {
@@ -1233,9 +1289,13 @@ function SesionFormModal({
         descripcion: form.descripcion || null,
         fechaProgramada: form.fechaProgramada ? new Date(form.fechaProgramada).toISOString() : null,
         urlPresentacion: form.urlPresentacion || null,
+        presentacionArchivoKey,
         urlGrabacion: form.urlGrabacion || null,
         estado: form.estado,
       };
+      // Se guarda primero la sesión (POST/PATCH) para tener su id; la presign de la
+      // presentación (skill s3-key-naming) lo necesita para construir la key.
+      let sesionId = editing?.id ?? '';
       if (editing) {
         await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${editing.id}`, {
           method: 'PATCH',
@@ -1243,10 +1303,32 @@ function SesionFormModal({
           body: JSON.stringify(body),
         });
       } else {
-        await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/sesiones`, {
+        const creada = await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/sesiones`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
+        }).then((r) => r.json());
+        sesionId = creada.id;
+      }
+
+      // Si hay un archivo pendiente: presign (valida formato server-side) → PUT directo a
+      // S3 → PATCH la sesión con la key resultante.
+      if (archivo && sesionId) {
+        const presign = await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${sesionId}/presign-presentacion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: archivo.name, contentType: archivo.type || 'application/octet-stream' }),
+        }).then((r) => r.json());
+        const putRes = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': archivo.type || 'application/octet-stream' },
+          body: archivo,
+        });
+        if (!putRes.ok) throw new Error('upload_failed');
+        await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${sesionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ presentacionArchivoKey: presign.key }),
         });
       }
 
@@ -1267,9 +1349,10 @@ function SesionFormModal({
         });
       }
 
+      toast.success(t(editing ? 'admin:programas.toast.session_updated' : 'admin:programas.toast.session_created'));
       onSaved();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -1353,15 +1436,92 @@ function SesionFormModal({
               required
             />
           </Field>
-          <Field label={t('admin:programas.sesiones.fields.url_presentacion')}>
+          <fieldset
+            style={{
+              border: '1px solid var(--color-border)',
+              borderRadius: 10,
+              padding: '12px 14px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              margin: 0,
+              minWidth: 0,
+            }}
+          >
+            <legend style={{ padding: '0 6px', fontSize: '0.85rem', fontWeight: 600 }}>
+              {t('admin:programas.sesiones.presentacion.legend')}{' '}
+              <span style={{ color: 'var(--color-danger)' }}>*</span>
+            </legend>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: -4 }}>
+              {t('admin:programas.sesiones.presentacion.hint')}
+            </div>
+            <Field label={t('admin:programas.sesiones.fields.url_presentacion')}>
+              <input
+                className="input"
+                type="url"
+                value={form.urlPresentacion}
+                onChange={e => setForm(f => ({ ...f, urlPresentacion: e.target.value }))}
+                placeholder="https://…"
+              />
+            </Field>
+            <Field label={t('admin:programas.sesiones.fields.archivo_presentacion')}>
+            {nombreArchivoActual || archivo ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  padding: '8px 12px',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  background: 'var(--color-surface-2, var(--color-bg))',
+                  minWidth: 0,
+                  maxWidth: '100%',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', flex: 1, minWidth: 0 }}>
+                  <span style={{ flexShrink: 0 }}>📎</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                    {archivo ? archivo.name : nombreArchivoActual}
+                  </span>
+                </span>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => archivoRef.current?.click()}>
+                    {t('admin:programas.sesiones.presentacion_archivo_cambiar')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-link"
+                    style={{ color: 'var(--color-danger)', fontSize: '0.8rem' }}
+                    onClick={quitarArchivo}
+                  >
+                    {t('admin:programas.sesiones.presentacion_archivo_quitar')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => archivoRef.current?.click()}
+              >
+                ⬆️ {t('admin:programas.sesiones.presentacion_archivo_seleccionar')}
+              </button>
+            )}
             <input
-              className="input"
-              type="url"
-              value={form.urlPresentacion}
-              onChange={e => setForm(f => ({ ...f, urlPresentacion: e.target.value }))}
-              placeholder="https://…"
+              ref={archivoRef}
+              type="file"
+              accept=".pdf,.ppt,.pptx"
+              style={{ display: 'none' }}
+              onChange={e => setArchivo(e.target.files?.[0] ?? null)}
             />
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+              {t('admin:programas.sesiones.presentacion_archivo_hint')}
+            </div>
           </Field>
+          </fieldset>
           <Field label={t('admin:programas.sesiones.fields.url_grabacion')}>
             <input
               className="input"
@@ -1372,9 +1532,9 @@ function SesionFormModal({
             />
           </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:buttons.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? t('common:saving') : t('common:save')}
+              {saving ? t('common:actions.saving') : t('common:buttons.save')}
             </button>
           </div>
         </form>
@@ -1392,14 +1552,31 @@ interface EstudianteEmpresa {
   participaciones: { activo: boolean; programa: { id: string; nombre: string; estado: string; empresaId: string } }[];
 }
 
+interface ImportFilaReporte {
+  fila: number;
+  email: string;
+  nombre: string;
+  cargo: string | null;
+  area: string | null;
+  estado: 'ok' | 'error' | 'aviso';
+  errores: string[];
+}
+
+interface ImportReporte {
+  registrado: boolean;
+  resumen: { total: number; ok: number; error: number };
+  filas: ImportFilaReporte[];
+  matriculados?: number;
+}
+
 function MatriculaModal({
-  programaId, empresaId, onClose, onSaved, onError,
+  modo, programaId, empresaId, onClose, onSaved,
 }: {
+  modo: 'individual' | 'masiva';
   programaId: string;
   empresaId: string;
   onClose: () => void;
   onSaved: () => void;
-  onError: (msg: string) => void;
 }) {
   const { t, i18n } = useTranslation(['admin', 'common']);
   const [estudiantes, setEstudiantes] = useState<EstudianteEmpresa[]>([]);
@@ -1410,6 +1587,14 @@ function MatriculaModal({
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [form, setForm] = useState({ email: '', nombre: '', cargo: '', area: '', enviarInvitacion: true });
 
+  // --- Carga masiva vía Excel ---
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [validando, setValidando] = useState(false);
+  const [registrando, setRegistrando] = useState(false);
+  const [enviarInvitacionBulk, setEnviarInvitacionBulk] = useState(true);
+  const [reporte, setReporte] = useState<ImportReporte | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
   const cargarEstudiantes = React.useCallback(async () => {
     setLoadingList(true);
     try {
@@ -1418,11 +1603,11 @@ function MatriculaModal({
       );
       setEstudiantes(await res.json());
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoadingList(false);
     }
-  }, [empresaId, onError]);
+  }, [empresaId]);
 
   useEffect(() => { cargarEstudiantes(); }, [cargarEstudiantes]);
 
@@ -1433,9 +1618,15 @@ function MatriculaModal({
     programasEmpresa(est).some(p => p.programa.id === programaId);
 
   const term = busqueda.trim().toLowerCase();
+  // No mostrar estudiantes que ya están matriculados en ESTE programa: el picker
+  // sirve para añadir nuevos, no para volver a listar a los que ya participan.
+  const disponibles = estudiantes.filter(e => !yaEnEste(e));
   const filtrados = term
-    ? estudiantes.filter(e => e.nombre.toLowerCase().includes(term) || (e.email ?? '').toLowerCase().includes(term))
-    : estudiantes;
+    ? disponibles.filter(e => e.nombre.toLowerCase().includes(term) || (e.email ?? '').toLowerCase().includes(term))
+    : disponibles;
+  // Si no queda ningún estudiante de la empresa por matricular en este programa,
+  // no tiene sentido el buscador: se muestra directamente el formulario de registro.
+  const sinDisponibles = !loadingList && disponibles.length === 0;
 
   const anadir = async (usuarioId: string) => {
     setAddingId(usuarioId);
@@ -1448,7 +1639,7 @@ function MatriculaModal({
       await cargarEstudiantes(); // refresca badges "ya matriculado"
       onSaved();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setAddingId(null);
     }
@@ -1475,14 +1666,98 @@ function MatriculaModal({
       await cargarEstudiantes();
       onSaved();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
   };
 
+  const descargarPlantilla = async () => {
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/participantes/plantilla`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plantilla_matricula.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(translateError(err));
+    }
+  };
+
+  // Sube el archivo al endpoint de importación. `validarSolo` → dry-run (preview);
+  // en falso → registro transaccional "todo o nada".
+  const subirArchivo = async (file: File, validarSolo: boolean): Promise<ImportReporte> => {
+    const fd = new FormData();
+    fd.append('archivo', file);
+    fd.append('validarSolo', validarSolo ? '1' : '0');
+    fd.append('enviarInvitacion', enviarInvitacionBulk ? '1' : '0');
+    fd.append('locale', i18n.language);
+    const res = await fetchWithErrorMapping(
+      `${API_URL}/admin/programas/${programaId}/participantes/importar`,
+      { method: 'POST', body: fd }, // sin Content-Type: el navegador pone el boundary
+    );
+    return res.json();
+  };
+
+  const onSeleccionArchivo = async (file: File | null) => {
+    setReporte(null);
+    setArchivo(file);
+    if (!file) return;
+    setValidando(true);
+    try {
+      setReporte(await subirArchivo(file, true));
+    } catch (err) {
+      setArchivo(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      const anyErr = err as { code?: string; details?: { columnasFaltantes?: string[] } };
+      if (anyErr?.code === 'IMPORT_COLUMNAS_FALTANTES' && anyErr.details?.columnasFaltantes) {
+        toast.error(
+          t('admin:programas.participantes.import.columnas_faltantes', {
+            cols: anyErr.details.columnasFaltantes.join(', '),
+          }),
+        );
+      } else {
+        toast.error(translateError(err));
+      }
+    } finally {
+      setValidando(false);
+    }
+  };
+
+  const registrarLote = async () => {
+    if (!archivo) return;
+    setRegistrando(true);
+    try {
+      const res = await subirArchivo(archivo, false);
+      if (res.registrado) {
+        await cargarEstudiantes();
+        onSaved();
+        onClose();
+      } else {
+        // El backend re-validó y encontró filas problemáticas: re-mostrar el preview.
+        setReporte(res);
+      }
+    } catch (err) {
+      toast.error(translateError(err));
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
   return (
-    <Modal isOpen onClose={onClose} title={t('admin:programas.participantes.modal.title')} maxWidth={560}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t(modo === 'masiva' ? 'admin:programas.participantes.modal.title_masiva' : 'admin:programas.participantes.modal.title')}
+      maxWidth={560}
+    >
+      {modo === 'individual' && (<>
+      {!sinDisponibles && (<>
       <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
         {t('admin:programas.participantes.picker.registrados')}
       </div>
@@ -1506,7 +1781,6 @@ function MatriculaModal({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
           {filtrados.map(est => {
             const otros = programasEmpresa(est).filter(p => p.programa.id !== programaId);
-            const enEste = yaEnEste(est);
             return (
               <div key={est.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1518,21 +1792,18 @@ function MatriculaModal({
                       : <>{t('admin:programas.participantes.picker.otros_programas')} {otros.map(p => p.programa.nombre).join(', ')}</>}
                   </div>
                 </div>
-                {enEste ? (
-                  <StatusBadge variant="success">{t('admin:programas.participantes.picker.ya_matriculado')}</StatusBadge>
-                ) : (
-                  <button className="btn" disabled={addingId === est.id} onClick={() => anadir(est.id)}>
-                    {addingId === est.id ? t('common:actions.saving') : `+ ${t('admin:programas.participantes.picker.anadir')}`}
-                  </button>
-                )}
+                <button className="btn" disabled={addingId === est.id} onClick={() => anadir(est.id)}>
+                  {addingId === est.id ? t('common:actions.saving') : `+ ${t('admin:programas.participantes.picker.anadir')}`}
+                </button>
               </div>
             );
           })}
         </div>
       )}
+      </>)}
 
-      <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 14, paddingTop: 12 }}>
-        {!mostrarNuevo ? (
+      <div style={sinDisponibles ? undefined : { borderTop: '1px solid var(--color-border)', marginTop: 14, paddingTop: 12 }}>
+        {!mostrarNuevo && !sinDisponibles ? (
           <button className="btn-link" onClick={() => setMostrarNuevo(true)}>
             {t('admin:programas.participantes.picker.nuevo_toggle')}
           </button>
@@ -1573,6 +1844,121 @@ function MatriculaModal({
           </>
         )}
       </div>
+      </>)}
+
+      {modo === 'masiva' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ marginTop: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+            {t('admin:programas.participantes.import.hint')}
+          </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="btn btn-secondary" onClick={descargarPlantilla}>
+              {t('admin:programas.participantes.import.descargar_plantilla')}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={validando || registrando}
+            >
+              {validando
+                ? t('admin:programas.participantes.import.validando')
+                : t('admin:programas.participantes.import.subir_archivo')}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={e => onSeleccionArchivo(e.target.files?.[0] ?? null)}
+            />
+            {archivo && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{archivo.name}</span>
+            )}
+          </div>
+
+          {reporte && (
+            <>
+              <div style={{ fontSize: '0.85rem' }}>
+                {t('admin:programas.participantes.import.resumen', {
+                  total: reporte.resumen.total,
+                  ok: reporte.resumen.ok,
+                  error: reporte.resumen.error,
+                })}
+              </div>
+
+              {reporte.filas.length === 0 ? (
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                  {t('admin:programas.participantes.import.sin_filas')}
+                </div>
+              ) : (
+                <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 8 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: 'var(--color-text-secondary)' }}>
+                        <th style={{ padding: '6px 8px' }}>{t('admin:programas.participantes.import.col_fila')}</th>
+                        <th style={{ padding: '6px 8px' }}>{t('admin:programas.participantes.import.col_email')}</th>
+                        <th style={{ padding: '6px 8px' }}>{t('admin:programas.participantes.import.col_nombre')}</th>
+                        <th style={{ padding: '6px 8px' }}>{t('admin:programas.participantes.import.col_estado')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reporte.filas.map(f => {
+                        const color =
+                          f.estado === 'ok' ? 'var(--color-success, #16a34a)'
+                          : f.estado === 'aviso' ? 'var(--color-warning, #d97706)'
+                          : 'var(--color-danger, #dc2626)';
+                        return (
+                          <tr key={f.fila} style={{ borderTop: '1px solid var(--color-border)' }}>
+                            <td style={{ padding: '6px 8px' }}>{f.fila}</td>
+                            <td style={{ padding: '6px 8px', wordBreak: 'break-all' }}>{f.email || '—'}</td>
+                            <td style={{ padding: '6px 8px' }}>{f.nombre || '—'}</td>
+                            <td style={{ padding: '6px 8px' }}>
+                              <div style={{ fontWeight: 600, color }}>
+                                {t(`admin:programas.participantes.import.estado_${f.estado}`)}
+                              </div>
+                              {f.errores.length > 0 && (
+                                <div style={{ color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                                  {f.errores
+                                    .map(code => t(`admin:programas.participantes.import.errores.${code}`))
+                                    .join(' · ')}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={enviarInvitacionBulk}
+                  onChange={e => setEnviarInvitacionBulk(e.target.checked)}
+                />
+                {t('admin:programas.participantes.fields.enviar_invitacion')}
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={registrando || validando || reporte.resumen.error > 0 || reporte.resumen.ok === 0}
+                  onClick={registrarLote}
+                >
+                  {registrando
+                    ? t('common:actions.saving')
+                    : t('admin:programas.participantes.import.registrar', { n: reporte.resumen.ok })}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
         <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:buttons.close')}</button>
@@ -1585,13 +1971,12 @@ function MatriculaModal({
 // Modal para crear / renombrar grupo (RF-14, solo danalytics_admin)
 // ─────────────────────────────────────────────────────────────
 function GrupoFormModal({
-  programaId, editing, onClose, onSaved, onError,
+  programaId, editing, onClose, onSaved,
 }: {
   programaId: string;
   editing: Grupo | null;
   onClose: () => void;
   onSaved: () => void;
-  onError: (msg: string) => void;
 }) {
   const { t } = useTranslation(['admin', 'common']);
   const [saving, setSaving] = useState(false);
@@ -1607,18 +1992,18 @@ function GrupoFormModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre }),
         });
-        onError(t('admin:programas.toast.group_updated'));
+        toast.success(t('admin:programas.toast.group_updated'));
       } else {
         await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/grupos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre }),
         });
-        onError(t('admin:programas.toast.group_created'));
+        toast.success(t('admin:programas.toast.group_created'));
       }
       onSaved();
     } catch (err) {
-      onError(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -1636,9 +2021,9 @@ function GrupoFormModal({
             <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} required autoFocus />
           </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:cancel')}</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>{t('common:buttons.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving || !nombre.trim()}>
-              {saving ? t('common:saving') : t('common:save')}
+              {saving ? t('common:actions.saving') : t('common:buttons.save')}
             </button>
           </div>
         </form>

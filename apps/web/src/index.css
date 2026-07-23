@@ -165,6 +165,7 @@ select.input:focus-visible {
   white-space: nowrap;
   font-family: var(--font-family);
   letter-spacing: -0.01em;
+  text-decoration: none;
 }
 
 .btn:disabled {
@@ -590,25 +591,13 @@ tr:hover td {
 }
 
 /* ─── Toast ─── */
-.toast {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  background: var(--color-text-main);
-  color: white;
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
-  box-shadow: var(--shadow-md);
-  z-index: 9999;
-  animation: slideUp 0.2s ease;
-}
-
-@keyframes slideUp {
+/* El sistema de toasts es global: ver components/toast-store.tsx. Se monta una
+   única pila fija arriba a la derecha; cada aviso se autodescarta a los 5s.
+   Verde = éxito, rojo = error. */
+@keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-8px);
   }
 
   to {

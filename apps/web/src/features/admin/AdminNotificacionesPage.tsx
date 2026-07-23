@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Field, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -46,7 +47,6 @@ export function AdminNotificacionesPage() {
   const [reenviando, setReenviando] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingClave, setSavingClave] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const loadNotificaciones = useCallback(() => {
     setLoading(true);
@@ -54,7 +54,7 @@ export function AdminNotificacionesPage() {
     fetchWithErrorMapping(`${API_URL}/admin/notificaciones${qs}`)
       .then(res => res.json())
       .then((data: Notificacion[]) => setNotificaciones(data))
-      .catch(err => setToast(translateError(err)))
+      .catch(err => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   }, [estado]);
 
@@ -65,7 +65,7 @@ export function AdminNotificacionesPage() {
         setConfigs(data);
         setDrafts(Object.fromEntries(data.map(c => [c.clave, c.emails.join('\n')])));
       })
-      .catch(err => setToast(translateError(err)));
+      .catch(err => toast.error(translateError(err)));
   }, []);
 
   useEffect(() => { loadNotificaciones(); }, [loadNotificaciones]);
@@ -75,10 +75,10 @@ export function AdminNotificacionesPage() {
     setReenviando(id);
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/notificaciones/${id}/reenviar`, { method: 'POST' });
-      setToast(t('admin:notificaciones.reenviado'));
+      toast.success(t('admin:notificaciones.reenviado'));
       loadNotificaciones();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setReenviando(null);
     }
@@ -96,10 +96,10 @@ export function AdminNotificacionesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emails }),
       });
-      setToast(t('admin:notificaciones.config_guardada'));
+      toast.success(t('admin:notificaciones.config_guardada'));
       loadConfigs();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSavingClave(null);
     }
@@ -111,7 +111,6 @@ export function AdminNotificacionesPage() {
         title={t('admin:notificaciones.title')}
         description={t('admin:notificaciones.subtitle')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       {/* Editor de listas de destinatarios (RF-40) */}
       <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.75rem' }}>{t('admin:notificaciones.config_title')}</h2>
@@ -198,7 +197,7 @@ export function AdminNotificacionesPage() {
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {REENVIABLES.has(n.tipo) && (
-                        <button className="btn-link" disabled={reenviando === n.id} onClick={() => reenviar(n.id)}>
+                        <button className="btn btn-secondary btn-sm" disabled={reenviando === n.id} onClick={() => reenviar(n.id)}>
                           ↻ {t('admin:notificaciones.reenviar')}
                         </button>
                       )}

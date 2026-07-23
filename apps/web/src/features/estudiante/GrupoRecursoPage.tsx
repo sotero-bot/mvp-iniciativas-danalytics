@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo, CampoRenderer } from './FormularioResponderPage';
 import { Loading } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -37,7 +38,6 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
   const [formulario, setFormulario] = useState<RecursoGrupo | null>(null);
   const [datos, setDatos] = useState<Datos>({});
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [autosaveInfo, setAutosaveInfo] = useState<string | null>(null);
   const [ultimaEdicion, setUltimaEdicion] = useState<{ nombre: string; fecha: string } | null>(null);
   // Bloqueado (solo lectura) cuando el grupo ya entregó la presentación final.
@@ -72,7 +72,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
           }
         }
       })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [grupoId, recurso, i18n.language]);
@@ -90,7 +90,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
       setAutosaveInfo(t('formularios:estudiante.autosave_saved'));
       setTimeout(() => setAutosaveInfo(null), 3000);
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       savingRef.current = false;
     }
@@ -118,7 +118,6 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
       <Link to="/estudiante/grupo" style={{ fontSize: '0.85rem' }}>
         {t('formularios:grupo.back')}
       </Link>
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {formulario && (

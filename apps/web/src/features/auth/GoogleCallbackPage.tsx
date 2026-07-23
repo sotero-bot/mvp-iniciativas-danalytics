@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { toast } from '../../components/toast-store';
 
 type Status = 'loading' | 'success' | 'error';
 
@@ -27,6 +28,7 @@ export function GoogleCallbackPage({ onLogin }: { onLogin: (token: string) => vo
     }
     onLogin(token);
     setStatus('success');
+    toast.success(t('auth:login_page.login_success'));
     setTimeout(() => navigate('/', { replace: true }), 600);
   }, [params]);
 

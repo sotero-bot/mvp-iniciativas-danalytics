@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState, StatusBadge, Field } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -38,7 +39,6 @@ export function FacilitadorProgramasPage() {
   const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
@@ -49,7 +49,7 @@ export function FacilitadorProgramasPage() {
     fetchWithErrorMapping(`${API_URL}/programas`)
       .then((res) => res.json())
       .then((data) => { if (!cancelled) setProgramas(data); })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -74,7 +74,6 @@ export function FacilitadorProgramasPage() {
   return (
     <div className="page">
       <PageHeader title={t('facilitador:programas.title')} />
-      {toast && <div className="toast">{toast}</div>}
 
       {/* Filtros: búsqueda por nombre, empresa y estado */}
       {!loading && programas.length > 0 && (

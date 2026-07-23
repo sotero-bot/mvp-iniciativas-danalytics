@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -31,7 +32,6 @@ export function EstudianteGrupoPage() {
   const { t } = useTranslation(['formularios', 'common']);
   const [grupos, setGrupos] = useState<MiGrupo[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +39,7 @@ export function EstudianteGrupoPage() {
     fetchWithErrorMapping(`${API_URL}/grupos/mios`)
       .then((res) => res.json())
       .then((data) => { if (!cancelled) setGrupos(data); })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -61,7 +61,6 @@ export function EstudianteGrupoPage() {
   return (
     <div className="page">
       <PageHeader title={t('formularios:grupo.title')} />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
       {!loading && grupos.length === 0 && <EmptyState title={t('formularios:grupo.empty')} />}
 

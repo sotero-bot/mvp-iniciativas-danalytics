@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, Field, Modal, Alert, Loading, EmptyState } from '../../components/ui';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -73,18 +75,13 @@ export function FormBuilderPage() {
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
   const [selected, setSelected] = useState<Plantilla | null>(null);
   const [campos, setCampos] = useState<Campo[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [nueva, setNueva] = useState({ tipoFormulario: 'diagnostico_inicial', nombre: '', descripcion: '' });
   const [campoForm, setCampoForm] = useState<CampoForm | null>(null);
+  const [campoAEliminar, setCampoAEliminar] = useState<Campo | null>(null);
   const [saving, setSaving] = useState(false);
   const [historialAbierto, setHistorialAbierto] = useState<Record<string, boolean>>({});
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const loadPlantillas = useCallback(async () => {
     setLoading(true);
@@ -92,7 +89,7 @@ export function FormBuilderPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas-formulario`);
       setPlantillas(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -103,7 +100,7 @@ export function FormBuilderPage() {
       const res = await fetchWithErrorMapping(`${API_URL}/admin/plantillas-formulario/${plantillaId}/campos`);
       setCampos(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   }, []);
 
@@ -134,8 +131,9 @@ export function FormBuilderPage() {
       setModalOpen(false);
       setNueva({ tipoFormulario: 'diagnostico_inicial', nombre: '', descripcion: '' });
       await loadPlantillas();
+      toast.success(t('formularios:builder.toast.created'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -146,8 +144,9 @@ export function FormBuilderPage() {
       await fetchWithErrorMapping(`${API_URL}/admin/plantillas-formulario/${p.id}/duplicar`, { method: 'POST' });
       setSelected(null);
       await loadPlantillas();
+      toast.success(t('formularios:builder.toast.duplicated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -159,8 +158,9 @@ export function FormBuilderPage() {
         body: JSON.stringify({ activa: !p.activa }),
       });
       await loadPlantillas();
+      toast.success(t(p.activa ? 'formularios:builder.toast.deactivated' : 'formularios:builder.toast.activated'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -170,7 +170,7 @@ export function FormBuilderPage() {
     try {
       config = campoForm.configText.trim() ? JSON.parse(campoForm.configText) : {};
     } catch {
-      showToast(t('formularios:builder.campos.config_invalid_json'));
+      toast.error(t('formularios:builder.campos.config_invalid_json'));
       return;
     }
     const body = {
@@ -199,8 +199,9 @@ export function FormBuilderPage() {
       }
       setCampoForm(null);
       await loadCampos(selected.id);
+      toast.success(t('formularios:builder.toast.campo_saved'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSaving(false);
     }
@@ -211,8 +212,9 @@ export function FormBuilderPage() {
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/campos/${campo.id}`, { method: 'DELETE' });
       await loadCampos(selected.id);
+      toast.success(t('formularios:builder.toast.campo_deleted'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -229,8 +231,9 @@ export function FormBuilderPage() {
         body: JSON.stringify({ orden: reordenado.map((c, i) => ({ id: c.id, orden: i + 1 })) }),
       });
       await loadCampos(selected.id);
+      toast.success(t('formularios:builder.toast.reordered'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -276,7 +279,6 @@ export function FormBuilderPage() {
         description={t('formularios:builder.subtitle')}
         actions={<button className="btn" onClick={() => setModalOpen(true)}>+ {t('formularios:builder.new')}</button>}
       />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
       {!loading && plantillas.length === 0 && <EmptyState title={t('formularios:builder.empty')} />}
 
@@ -303,13 +305,16 @@ export function FormBuilderPage() {
                 {actual._count.campos} {t('formularios:builder.campos.title').toLowerCase()} · {t('formularios:builder.respuestas', { count: actual._count.respuestas })} ·{' '}
                 {actual.activa ? t('formularios:builder.active') : t('formularios:builder.inactive')}
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: '0.8rem' }} onClick={e => e.stopPropagation()}>
-                <button className="btn-link" onClick={() => duplicar(actual)}>{t('formularios:builder.duplicate')}</button>
-                <button className="btn-link" onClick={() => toggleActiva(actual)}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                <button className="btn btn-secondary btn-sm" onClick={() => duplicar(actual)}>{t('formularios:builder.duplicate')}</button>
+                <button
+                  className={`btn btn-sm ${actual.activa ? 'btn-danger' : 'btn-success'}`}
+                  onClick={() => toggleActiva(actual)}
+                >
                   {actual.activa ? t('formularios:builder.deactivate') : t('formularios:builder.activate')}
                 </button>
                 {actual.tipoFormulario === 'diagnostico_inicial' && (
-                  <Link className="btn-link" to="/admin/diagnostico-inicial-global">
+                  <Link className="btn btn-secondary btn-sm" to="/admin/diagnostico-inicial-global">
                     {t('formularios:builder.ver_respuestas')}
                   </Link>
                 )}
@@ -341,11 +346,14 @@ export function FormBuilderPage() {
                             {t('formularios:builder.version', { version: v.version })} · {t('formularios:builder.respuestas', { count: v._count.respuestas })}
                             {v.activa ? ` · ${t('formularios:builder.active')}` : ''}
                           </span>
-                          <span style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
-                            <button className="btn-link" onClick={() => toggleActiva(v)}>
+                          <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} onClick={e => e.stopPropagation()}>
+                            <button
+                              className={`btn btn-sm ${v.activa ? 'btn-danger' : 'btn-success'}`}
+                              onClick={() => toggleActiva(v)}
+                            >
                               {v.activa ? t('formularios:builder.deactivate') : t('formularios:builder.activate')}
                             </button>
-                            <button className="btn-link" onClick={() => duplicar(v)}>{t('formularios:builder.duplicate')}</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => duplicar(v)}>{t('formularios:builder.duplicate')}</button>
                           </span>
                         </div>
                       ))}
@@ -391,11 +399,25 @@ export function FormBuilderPage() {
                   )}
                 </span>
                 {!inmutable && (
-                  <span style={{ display: 'flex', gap: 6, fontSize: '0.8rem' }}>
-                    <button className="btn-link" title={t('formularios:builder.campos.up')} onClick={() => mover(i, -1)}>↑</button>
-                    <button className="btn-link" title={t('formularios:builder.campos.down')} onClick={() => mover(i, 1)}>↓</button>
+                  <span style={{ display: 'flex', gap: 6 }}>
                     <button
-                      className="btn-link"
+                      className="btn btn-secondary btn-sm"
+                      title={t('formularios:builder.campos.up')}
+                      disabled={i === 0}
+                      onClick={() => mover(i, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      title={t('formularios:builder.campos.down')}
+                      disabled={i === campos.length - 1}
+                      onClick={() => mover(i, 1)}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
                       onClick={() =>
                         setCampoForm({
                           id: c.id,
@@ -411,7 +433,7 @@ export function FormBuilderPage() {
                     >
                       {t('formularios:builder.campos.edit')}
                     </button>
-                    <button className="btn-link btn-link-danger" onClick={() => borrarCampo(c)}>
+                    <button className="btn btn-danger btn-sm" onClick={() => setCampoAEliminar(c)}>
                       {t('formularios:builder.campos.delete')}
                     </button>
                   </span>
@@ -540,6 +562,18 @@ export function FormBuilderPage() {
           />
         </Field>
       </Modal>
+
+      <ConfirmModal
+        isOpen={!!campoAEliminar}
+        title={t('formularios:builder.campos.confirm_delete_title')}
+        message={t('formularios:builder.campos.confirm_delete_message', { etiqueta: campoAEliminar?.etiqueta ?? '' })}
+        confirmLabel={t('formularios:builder.campos.delete')}
+        onConfirm={() => {
+          if (campoAEliminar) borrarCampo(campoAEliminar);
+          setCampoAEliminar(null);
+        }}
+        onCancel={() => setCampoAEliminar(null)}
+      />
     </div>
   );
 }

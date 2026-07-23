@@ -6,6 +6,7 @@ import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
 import { Loading, Alert } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
 const PASO_TRANS_FIELDS: TranslationField[] = [
@@ -55,10 +56,11 @@ export function ActividadPasosPage() {
       const res = await fetch(`${API_URL}/admin/actividades/${id}/pasos/${deleteEjemploModal.pasoId}/ejemplo`, withAuth({
         method: 'DELETE',
       }));
-      if (!res.ok && res.status !== 204) { alert(t('methodology:pasos.ejemplo.errors.delete_failed')); return; }
+      if (!res.ok && res.status !== 204) { toast.error(t('methodology:pasos.ejemplo.errors.delete_failed')); return; }
+      toast.success(t('methodology:pasos.ejemplo.deleted'));
       setDeleteEjemploModal(null);
       loadPasos();
-    } catch { alert(t('methodology:pasos.ejemplo.errors.delete_connection')); }
+    } catch { toast.error(t('methodology:pasos.ejemplo.errors.delete_connection')); }
   };
 
   const handleUploadEjemplo = async (paso: any, file: File) => {
@@ -71,14 +73,15 @@ export function ActividadPasosPage() {
       });
       const { uploadUrl, key } = await presignRes.json();
       const uploadRes = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream' } });
-      if (!uploadRes.ok) { alert(t('errors:S3_UPLOAD_FAILED')); return; }
+      if (!uploadRes.ok) { toast.error(t('errors:S3_UPLOAD_FAILED')); return; }
       await fetchWithErrorMapping(`${API_URL}/admin/actividades/${id}/pasos/${paso.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo: paso.titulo, objetivo: paso.objetivo, instrucciones: paso.instrucciones, orden: paso.orden, ejemploKey: key }),
       });
+      toast.success(t('methodology:pasos.ejemplo.upload_success'));
       loadPasos();
-    } catch (err) { alert(translateError(err)); }
+    } catch (err) { toast.error(translateError(err)); }
     finally { setUploadingEjemploId(null); }
   };
 
@@ -120,13 +123,14 @@ export function ActividadPasosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      toast.success(editingId ? t('methodology:pasos.toast.updated') : t('methodology:pasos.toast.created'));
       const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
       setForm({ titulo: '', objetivo: '', instrucciones: '', orden: maxOrden + (editingId ? 1 : 2), translations: emptyTranslations() });
       setShowForm(false);
       setEditingId(null);
       setWasValidated(false);
       loadPasos();
-    } catch (err) { alert(translateError(err)); }
+    } catch (err) { toast.error(translateError(err)); }
   };
 
   const handleEdit = (p: any) => {
@@ -147,6 +151,7 @@ export function ActividadPasosPage() {
   const handleDelete = async () => {
     if (!modal) return;
     await fetch(`${API_URL}/admin/actividades/${id}/pasos/${modal.id}`, withAuth({ method: 'DELETE' }));
+    toast.success(t('methodology:pasos.toast.deleted'));
     setModal(null);
     loadPasos();
   };
@@ -199,9 +204,10 @@ export function ActividadPasosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preguntaForm),
       });
+      toast.success(editingPreguntaId ? t('methodology:preguntas.toast.updated') : t('methodology:preguntas.toast.created'));
       cancelPregunta();
       loadPasos();
-    } catch (err) { alert(translateError(err)); }
+    } catch (err) { toast.error(translateError(err)); }
   };
 
   const handleDeletePregunta = async () => {
@@ -212,10 +218,11 @@ export function ActividadPasosPage() {
         { method: 'DELETE' },
       );
     } catch (err) {
-      alert(translateError(err));
+      toast.error(translateError(err));
       setPreguntaModal(null);
       return;
     }
+    toast.success(t('methodology:preguntas.toast.deleted'));
     setPreguntaModal(null);
     loadPasos();
   };
@@ -383,7 +390,7 @@ export function ActividadPasosPage() {
                             const res = await fetchWithErrorMapping(`${API_URL}/admin/actividades/${id}/pasos/${p.id}/ejemplo-url`);
                             const json = await res.json();
                             if (json.url) window.open(json.url, '_blank');
-                          } catch (err) { alert(translateError(err)); }
+                          } catch (err) { toast.error(translateError(err)); }
                         }}
                       >{t('methodology:pasos.ejemplo.download_button')}</button>
                     </>

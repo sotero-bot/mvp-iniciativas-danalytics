@@ -1,7 +1,12 @@
 {
   "programas": {
     "title": "Mis programas",
-    "empty": "No estás matriculado en ningún programa."
+    "empty": "No estás matriculado en ningún programa.",
+    "pendientes_title": "Confirma tu registro",
+    "pendiente_desc": "Fuiste añadido a este programa. Confirma tu registro para acceder a las sesiones y grupos.",
+    "confirmar_check": "Confirmo que acepto mi registro en este programa",
+    "confirmar_boton": "Confirmar registro",
+    "confirmado_toast": "Registro confirmado. Ya tienes acceso al programa."
   },
   "sesiones": {
     "title": "Sesiones",
@@ -14,6 +19,7 @@
     "grabacion": "Ver grabación",
     "empty": "Este programa todavía no tiene sesiones.",
     "presentacion": "Ver presentación",
+    "presentacion_archivo": "Descargar presentación",
     "facilitador": "Facilitador"
   }
 }

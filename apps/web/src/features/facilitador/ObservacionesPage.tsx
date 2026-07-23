@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Field, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -22,7 +23,6 @@ export function FacilitadorObservacionesPage() {
   const { t } = useTranslation(['facilitador', 'common']);
   const [observaciones, setObservaciones] = useState<Observacion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [tipo, setTipo] = useState<string>(TIPOS[0]);
   const [urgencia, setUrgencia] = useState<string>(URGENCIAS[0]);
@@ -33,7 +33,7 @@ export function FacilitadorObservacionesPage() {
     fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/observaciones`)
       .then((res) => res.json())
       .then(setObservaciones)
-      .catch((err) => setToast(translateError(err)))
+      .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   };
 
@@ -50,10 +50,10 @@ export function FacilitadorObservacionesPage() {
         body: JSON.stringify({ tipo, urgencia, texto }),
       });
       setTexto('');
-      setToast(t('facilitador:observaciones.sent'));
+      toast.success(t('facilitador:observaciones.sent'));
       load();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setSending(false);
     }
@@ -65,7 +65,6 @@ export function FacilitadorObservacionesPage() {
         back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
         title={t('facilitador:observaciones.title')}
       />
-      {toast && <div className="toast">{toast}</div>}
 
       <form onSubmit={enviar} className="card" style={{ marginBottom: '1.5rem', maxWidth: 480 }}>
         <div style={{ fontWeight: 600, marginBottom: 10 }}>{t('facilitador:observaciones.new')}</div>

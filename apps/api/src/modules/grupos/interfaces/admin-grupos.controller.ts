@@ -109,8 +109,11 @@ export class AdminGruposController {
     // RN-04: el usuario debe ser participante activo del mismo programa.
     const participante = await this.prisma.participantePrograma.findFirst({
       where: { programaId: grupo.programaId, usuarioId: body.usuarioId, activo: true },
+      select: { id: true, confirmadoEn: true },
     });
     if (!participante) throw new AppError('MIEMBRO_NO_PARTICIPA');
+    // El estudiante debe haber confirmado su registro al programa antes de entrar a un grupo.
+    if (!participante.confirmadoEn) throw new AppError('MIEMBRO_NO_CONFIRMADO');
 
     // RN-04: un estudiante en un solo grupo por programa (chequeo explícito +
     // el índice único @@unique([programaId, usuarioId]) como red de seguridad).

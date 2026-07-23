@@ -6,6 +6,7 @@ import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
 import { Modal, Field, Alert, Loading, EmptyState, PageHeader } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -131,6 +132,7 @@ export function PlantillaPasosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      toast.success(editingId ? t('methodology:pasos.toast.updated') : t('methodology:pasos.toast.created'));
       const maxOrden = pasos.length > 0 ? Math.max(...pasos.map((p: any) => p.orden)) : 0;
       setForm({ ...PASO_FORM_BLANK, orden: maxOrden + (editingId ? 1 : 2) });
       setShowForm(false);
@@ -139,9 +141,9 @@ export function PlantillaPasosPage() {
       loadPasos();
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 404) {
-        alert(t('methodology:pasos.errors.paso_not_found_plantilla'));
+        toast.error(t('methodology:pasos.errors.paso_not_found_plantilla'));
       } else {
-        alert(translateError(err) || t('methodology:pasos.errors.connection_error'));
+        toast.error(translateError(err) || t('methodology:pasos.errors.connection_error'));
       }
     }
   };
@@ -171,10 +173,11 @@ export function PlantillaPasosPage() {
     if (!modal) return;
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/plantillas/${id}/pasos/${modal.id}`, { method: 'DELETE' });
+      toast.success(t('methodology:pasos.toast.deleted'));
       setModal(null);
       loadPasos();
     } catch (err) {
-      alert(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -228,10 +231,11 @@ export function PlantillaPasosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preguntaForm),
       });
+      toast.success(editingPreguntaId ? t('methodology:preguntas.toast.updated') : t('methodology:preguntas.toast.created'));
       cancelPregunta();
       loadPasos();
     } catch (err) {
-      alert(translateError(err) || t('methodology:preguntas.errors.connection_error'));
+      toast.error(translateError(err) || t('methodology:preguntas.errors.connection_error'));
     }
   };
 
@@ -242,10 +246,11 @@ export function PlantillaPasosPage() {
         `${API_URL}/admin/plantillas/${id}/pasos/${preguntaModal.pasoId}/preguntas/${preguntaModal.id}`,
         { method: 'DELETE' },
       );
+      toast.success(t('methodology:preguntas.toast.deleted'));
       setPreguntaModal(null);
       loadPasos();
     } catch (err) {
-      alert(translateError(err) || t('methodology:preguntas.errors.delete_failed'));
+      toast.error(translateError(err) || t('methodology:preguntas.errors.delete_failed'));
       setPreguntaModal(null);
     }
   };

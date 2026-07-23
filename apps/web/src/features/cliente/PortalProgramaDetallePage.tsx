@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
 import { PageHeader, Loading, StatCard, ProgressBar } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -48,7 +49,6 @@ export function PortalProgramaDetallePage() {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +65,7 @@ export function PortalProgramaDetallePage() {
         setDetalle(det);
         setAsistencia(res);
       })
-      .catch(err => { if (!cancelled) setToast(translateError(err)); })
+      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [programaId]);
@@ -74,7 +74,6 @@ export function PortalProgramaDetallePage() {
 
   return (
     <div className="page">
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
       {detalle && (
         <>

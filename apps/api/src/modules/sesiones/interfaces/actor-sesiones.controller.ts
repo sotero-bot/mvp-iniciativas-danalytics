@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { PrismaService } from '../../../prisma.service';
 import { S3Service } from '../../storage/S3Service';
@@ -21,6 +21,7 @@ const SESION_SELECT = {
   fechaProgramada: true,
   materialArchivoKey: true,
   urlPresentacion: true,
+  presentacionArchivoKey: true,
   urlGrabacion: true,
   materialDesbloqueoEn: true,
   estado: true,
@@ -57,6 +58,48 @@ export class ActorSesionesController {
     });
   }
 
+  // Confirmación de matrícula (RN nueva): el estudiante debe aceptar en la plataforma su
+  // registro al programa. Mientras no confirme, el programa no aparece en `programaScope`
+  // (ver actor-scope.service), así que este endpoint consulta la matrícula directamente
+  // para que la UI pueda mostrarle los programas pendientes de confirmar.
+  @Get('programas/pendientes')
+  @Roles('estudiante')
+  async listProgramasPendientes(@CurrentUser() actor: AuthUser) {
+    const pendientes = await this.prisma.participantePrograma.findMany({
+      where: { usuarioId: actor.sub, activo: true, confirmadoEn: null },
+      select: {
+        programa: {
+          select: {
+            id: true,
+            nombre: true,
+            empresa: { select: { id: true, nombre: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return pendientes.map((p) => p.programa);
+  }
+
+  // El estudiante confirma su registro al programa. Idempotente: si ya estaba confirmado
+  // no cambia la fecha original (solo marca las que aún no tienen confirmadoEn).
+  @Post('programas/:id/confirmar')
+  @Roles('estudiante')
+  async confirmarPrograma(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    const existe = await this.prisma.participantePrograma.findFirst({
+      where: { programaId, usuarioId: actor.sub, activo: true },
+      select: { id: true, confirmadoEn: true },
+    });
+    if (!existe) throw new AppError('PARTICIPANTE_NOT_FOUND');
+    if (!existe.confirmadoEn) {
+      await this.prisma.participantePrograma.update({
+        where: { id: existe.id },
+        data: { confirmadoEn: new Date() },
+      });
+    }
+    return { programaId, confirmado: true };
+  }
+
   @Get('programas/:id/sesiones')
   async listSesiones(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
     await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
@@ -80,20 +123,29 @@ export class ActorSesionesController {
     const facilitadores = (programa?.facilitadores ?? []).map((f) => f.usuario);
     const timezone = programa?.timezone ?? 'UTC';
     const now = Date.now();
-    return sesiones.map((s) => {
-      const bloqueada = this.estaBloqueada(s, actor.role, now);
-      // No filtrar los enlaces (presentación/grabación) mientras la sesión siga
-      // bloqueada para el rol: el gating es servidor, no solo cosmético en la UI.
-      return {
-        ...s,
-        facilitadores,
-        timezone,
-        urlPresentacion: bloqueada ? null : s.urlPresentacion,
-        urlGrabacion: bloqueada ? null : s.urlGrabacion,
-        bloqueada,
-        desbloqueaEn: this.desbloqueoEn(s, actor.role).toISOString(),
-      };
-    });
+    return Promise.all(
+      sesiones.map(async (s) => {
+        const bloqueada = this.estaBloqueada(s, actor.role, now);
+        // No filtrar los recursos (presentación/grabación) mientras la sesión siga
+        // bloqueada para el rol: el gating es servidor, no solo cosmético en la UI.
+        // La presentación puede ser un enlace (urlPresentacion) o un archivo subido a
+        // S3 (presentacionArchivoKey), servido con una URL firmada de corta duración.
+        const presentacionArchivoUrl =
+          bloqueada || !s.presentacionArchivoKey
+            ? null
+            : await this.s3.getPresignedGetUrl(s.presentacionArchivoKey, 3600);
+        return {
+          ...s,
+          facilitadores,
+          timezone,
+          urlPresentacion: bloqueada ? null : s.urlPresentacion,
+          presentacionArchivoUrl,
+          urlGrabacion: bloqueada ? null : s.urlGrabacion,
+          bloqueada,
+          desbloqueaEn: this.desbloqueoEn(s, actor.role).toISOString(),
+        };
+      }),
+    );
   }
 
   @Get('sesiones/:id/material')
@@ -110,8 +162,17 @@ export class ActorSesionesController {
     // downloadFilename para que quede "inline" y el visor de PDF.js pueda
     // renderizarla en <canvas> en vez de forzar descarga.
     const url = sesion.materialArchivoKey ? await this.s3.getPresignedGetUrl(sesion.materialArchivoKey, 3600) : null;
-    // La URL de la presentación se entrega junto al material (mismo gating de arriba).
-    return { url, urlPresentacion: sesion.urlPresentacion, urlGrabacion: sesion.urlGrabacion };
+    // La presentación se entrega junto al material (mismo gating de arriba): puede ser un
+    // enlace (urlPresentacion) o un archivo subido a S3, servido con URL firmada.
+    const presentacionArchivoUrl = sesion.presentacionArchivoKey
+      ? await this.s3.getPresignedGetUrl(sesion.presentacionArchivoKey, 3600)
+      : null;
+    return {
+      url,
+      urlPresentacion: sesion.urlPresentacion,
+      presentacionArchivoUrl,
+      urlGrabacion: sesion.urlGrabacion,
+    };
   }
 
   // C-04 (aclaración 2026-07-14): el facilitador sube el enlace de grabación de una

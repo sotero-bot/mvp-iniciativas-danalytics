@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Modal, Field, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -17,7 +18,6 @@ export function ActividadesPage() {
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
   const [form, setForm] = useState({ nombre: '', descripcion: '', iniciativaId: '', plantillaId: '' });
-  const [toast, setToast] = useState<string | null>(null);
   const [empresaFiltro, setEmpresaFiltro] = useState('');
 
   const [editModal, setEditModal] = useState<any | null>(null);
@@ -46,17 +46,12 @@ export function ActividadesPage() {
     ? list.filter(a => a.iniciativa?.empresa?.id === empresaFiltro)
     : list;
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
   const load = async () => {
     try {
       const res = await fetchWithErrorMapping(`${API_URL}/methodology/actividades`);
       setList(await res.json());
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -95,12 +90,12 @@ export function ActividadesPage() {
       setWasValidated(false);
       if (form.plantillaId) {
         const p = plantillas.find(p => p.id === form.plantillaId);
-        showToast(t('methodology:actividades.toast.created_with_pasos', { count: p?._count.pasos ?? 0, nombre: p?.nombre ?? '' }));
+        toast.success(t('methodology:actividades.toast.created_with_pasos', { count: p?._count.pasos ?? 0, nombre: p?.nombre ?? '' }));
       } else {
-        showToast(t('methodology:actividades.toast.created'));
+        toast.success(t('methodology:actividades.toast.created'));
       }
     } catch (err) {
-      showToast(translateError(err) || t('methodology:actividades.toast.create_error'));
+      toast.error(translateError(err) || t('methodology:actividades.toast.create_error'));
     }
   };
 
@@ -124,9 +119,9 @@ export function ActividadesPage() {
       });
       load();
       setEditModal(null);
-      showToast(t('methodology:actividades.toast.updated'));
+      toast.success(t('methodology:actividades.toast.updated'));
     } catch (err) {
-      showToast(translateError(err) || t('methodology:actividades.toast.update_error'));
+      toast.error(translateError(err) || t('methodology:actividades.toast.update_error'));
     } finally {
       setSaving(false);
     }
@@ -138,9 +133,9 @@ export function ActividadesPage() {
       await fetchWithErrorMapping(`${API_URL}/methodology/actividades/${deleteModal.id}`, { method: 'DELETE' });
       setDeleteModal(null);
       load();
-      showToast(t('methodology:actividades.toast.deleted'));
+      toast.success(t('methodology:actividades.toast.deleted'));
     } catch (err) {
-      showToast(translateError(err));
+      toast.error(translateError(err));
     }
   };
 
@@ -148,8 +143,6 @@ export function ActividadesPage() {
 
   return (
     <div>
-      {toast && <div className="toast">{toast}</div>}
-
       <ConfirmModal
         isOpen={!!deleteModal}
         title={t('methodology:actividades.delete_modal.title')}

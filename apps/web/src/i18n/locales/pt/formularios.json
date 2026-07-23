@@ -61,7 +61,18 @@
       "cancel": "Cancelar",
       "delete": "Excluir",
       "up": "Subir",
-      "down": "Descer"
+      "down": "Descer",
+      "confirm_delete_title": "Excluir campo",
+      "confirm_delete_message": "Tem certeza de que deseja excluir o campo «{{etiqueta}}»? Esta ação não pode ser desfeita."
+    },
+    "toast": {
+      "created": "Modelo criado",
+      "duplicated": "Modelo duplicado",
+      "activated": "Modelo ativado",
+      "deactivated": "Modelo desativado",
+      "campo_saved": "Campo salvo",
+      "campo_deleted": "Campo excluído",
+      "reordered": "Ordem atualizada"
     }
   },
   "estudiante": {
@@ -133,7 +144,8 @@
     "bitacora_habilitada": "O diário de bordo está habilitado para os grupos.",
     "bitacora_no_habilitada": "O diário de bordo ainda NÃO está habilitado: os grupos não podem preenchê-lo.",
     "bitacora_habilitar": "Habilitar diário",
-    "bitacora_deshabilitar": "Desabilitar"
+    "bitacora_deshabilitar": "Desabilitar",
+    "bitacora_actualizada": "Estado do diário de bordo atualizado."
   },
   "resultados": {
     "title": "Resultados",

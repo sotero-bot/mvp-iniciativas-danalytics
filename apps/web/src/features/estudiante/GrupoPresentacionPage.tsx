@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Loading } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -29,7 +30,6 @@ export function GrupoPresentacionPage() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -41,7 +41,7 @@ export function GrupoPresentacionPage() {
         setEstado(data);
         setUrl(data.entrega?.urlPresentacion ?? '');
       })
-      .catch((err) => setToast(translateError(err)))
+      .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   }, [grupoId]);
 
@@ -54,17 +54,16 @@ export function GrupoPresentacionPage() {
         setEstado(data);
         setUrl(data.entrega?.urlPresentacion ?? '');
       })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); });
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); });
     return () => { cancelled = true; };
   }, [grupoId]);
 
   const entregar = async () => {
     if (!url.trim() && !archivo) {
-      setToast(t('formularios:presentacion.falta_entrega'));
+      toast.error(t('formularios:presentacion.falta_entrega'));
       return;
     }
     setEnviando(true);
-    setToast(null);
     setOk(false);
     try {
       let archivoKey: string | undefined;
@@ -95,9 +94,10 @@ export function GrupoPresentacionPage() {
       setOk(true);
       setArchivo(null);
       if (fileRef.current) fileRef.current.value = '';
+      toast.success(t('formularios:presentacion.entregada'));
       await cargar();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setEnviando(false);
     }
@@ -110,7 +110,6 @@ export function GrupoPresentacionPage() {
       <Link to="/estudiante/grupo" style={{ fontSize: '0.85rem' }}>
         {t('formularios:grupo.back')}
       </Link>
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       {estado && (

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 import { formatFechaHora } from '../../shared/formatDate';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -13,6 +14,7 @@ interface Sesion {
   titulo: string;
   fechaProgramada: string;
   urlPresentacion: string | null;
+  presentacionArchivoUrl: string | null;
   urlGrabacion: string | null;
   timezone: string;
   bloqueada: boolean;
@@ -23,7 +25,6 @@ export function FacilitadorSesionesPage() {
   const { t, i18n } = useTranslation(['facilitador', 'common']);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   // C-04: borrador del enlace de grabación por sesión.
   const [grabacionDraft, setGrabacionDraft] = useState<Record<string, string>>({});
   const [guardandoGrab, setGuardandoGrab] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function FacilitadorSesionesPage() {
     fetchWithErrorMapping(`${API_URL}/programas/${programaId}/sesiones`)
       .then((res) => res.json())
       .then(setSesiones)
-      .catch((err) => setToast(translateError(err)))
+      .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
   };
 
@@ -48,10 +49,10 @@ export function FacilitadorSesionesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urlGrabacion: grabacionDraft[sesionId] ?? '' }),
       });
-      setToast(t('facilitador:sesiones.grabacion_guardada'));
+      toast.success(t('facilitador:sesiones.grabacion_guardada'));
       load();
     } catch (err) {
-      setToast(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setGuardandoGrab(null);
     }
@@ -63,7 +64,6 @@ export function FacilitadorSesionesPage() {
         back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
         title={t('facilitador:sesiones.title')}
       />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
       {!loading && sesiones.length === 0 && <EmptyState title={t('facilitador:sesiones.empty')} />}
 
@@ -83,11 +83,16 @@ export function FacilitadorSesionesPage() {
                 <span style={{ fontSize: '0.8rem' }}>🔒 {t('facilitador:sesiones.locked')}</span>
               ) : (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {s.urlPresentacion && (
+                  {/* Prioridad: si hay archivo subido se ofrece la descarga; si no, el enlace. */}
+                  {s.presentacionArchivoUrl ? (
+                    <a className="btn btn-secondary" href={s.presentacionArchivoUrl} target="_blank" rel="noreferrer">
+                      📎 {t('facilitador:sesiones.presentacion_archivo')}
+                    </a>
+                  ) : s.urlPresentacion ? (
                     <a className="btn btn-secondary" href={s.urlPresentacion} target="_blank" rel="noreferrer">
                       🖥️ {t('facilitador:sesiones.presentacion')}
                     </a>
-                  )}
+                  ) : null}
                   {s.urlGrabacion && (
                     <a className="btn btn-secondary" href={s.urlGrabacion} target="_blank" rel="noreferrer">
                       🎥 {t('facilitador:sesiones.grabacion')}

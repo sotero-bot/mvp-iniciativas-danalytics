@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -34,7 +35,6 @@ export function PortalProgramasPage() {
   const [iaEnAccion, setIaEnAccion] = useState<ProgramaIaEnAccion[]>([]);
   const [decisionIa, setDecisionIa] = useState<IniciativaDecisionIa[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +46,7 @@ export function PortalProgramasPage() {
         setIaEnAccion(data.iaEnAccion ?? []);
         setDecisionIa(data.decisionIa ?? []);
       })
-      .catch(err => { if (!cancelled) setToast(translateError(err)); })
+      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -56,7 +56,6 @@ export function PortalProgramasPage() {
   return (
     <div className="page">
       <PageHeader title={t('portal:programas.title')} description={t('portal:programas.subtitle')} />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
 
       <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.75rem' }}>{t('portal:programas.ia_en_accion')}</h2>

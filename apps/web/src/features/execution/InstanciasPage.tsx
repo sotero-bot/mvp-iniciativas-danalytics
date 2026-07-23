@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PageHeader, StatusBadge } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
+import { toast } from '../../components/toast-store';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -25,7 +26,6 @@ export function InstanciasPage() {
   const [generandoEnlace, setGenerandoEnlace] = useState(false);
   const generandoEnlaceRef = useRef(false);
   const [wasValidated, setWasValidated] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [deleteEnlaceModal, setDeleteEnlaceModal] = useState<string | null>(null);
@@ -37,11 +37,6 @@ export function InstanciasPage() {
   const [filterActividad, setFilterActividad] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
 
   const handleDeleteInstancia = async () => {
     if (!deleteModal) return;
@@ -103,7 +98,7 @@ export function InstanciasPage() {
       setFormEnlace({ actividadId: '', nombre: '' });
       setWasValidated(false);
     } catch (err) {
-      alert(t('execution:instancias.generar_enlace.error_prefix') + translateError(err));
+      toast.error(t('execution:instancias.generar_enlace.error_prefix') + translateError(err));
     } finally {
       generandoEnlaceRef.current = false;
       setGenerandoEnlace(false);
@@ -112,7 +107,7 @@ export function InstanciasPage() {
 
   const copyLink = (token: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/runner/${token}?lang=${i18n.language}`);
-    showToast(t('execution:instancias.link_copied_clipboard'));
+    toast.success(t('execution:instancias.link_copied_clipboard'));
   };
 
   const descargarPdf = (instanciaId: string) => {
@@ -178,8 +173,6 @@ export function InstanciasPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-      {toast && <div className="toast">{toast}</div>}
 
       <ConfirmModal isOpen={!!deleteModal} title={t('execution:instancias.delete_instancia_modal.title')}
         message={t('execution:instancias.delete_instancia_modal.message')}
@@ -380,7 +373,7 @@ export function InstanciasPage() {
                         <td>
                           <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                             <button className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                              onClick={() => { navigator.clipboard.writeText(url); showToast(t('execution:instancias.link_copied')); }}>
+                              onClick={() => { navigator.clipboard.writeText(url); toast.success(t('execution:instancias.link_copied')); }}>
                               {t('execution:instancias.enlaces_activos.copy')}
                             </button>
                             <button className="btn btn-danger" style={{ padding: '3px 6px', fontSize: '0.8rem' }}
@@ -530,7 +523,7 @@ export function InstanciasPage() {
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
-                                  } catch (err) { alert(translateError(err)); }
+                                  } catch (err) { toast.error(translateError(err)); }
                                 }}
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,

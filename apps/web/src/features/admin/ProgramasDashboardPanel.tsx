@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { ProgressBar } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -21,20 +22,19 @@ export function ProgramasDashboardPanel() {
   const [items, setItems] = useState<DashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(true);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetchWithErrorMapping(`${API_URL}/admin/programas/dashboard`)
       .then(res => res.json())
       .then((data: DashboardItem[]) => { if (!cancelled) setItems(data); })
-      .catch(err => { if (!cancelled) setToast(translateError(err)); })
+      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
   if (loading) return null;
-  if (!loading && items.length === 0 && !toast) return null;
+  if (!loading && items.length === 0) return null;
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -47,7 +47,6 @@ export function ProgramasDashboardPanel() {
           {open ? t('admin:dashboard_programas.ocultar') : t('admin:dashboard_programas.mostrar')}
         </button>
       </div>
-      {toast && <div className="toast">{toast}</div>}
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
           {items.map(it => {

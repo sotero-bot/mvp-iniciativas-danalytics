@@ -220,9 +220,16 @@
         "upload_failed": "Erro ao enviar o arquivo ao S3",
         "upload_error": "Erro ao enviar o arquivo",
         "download_url_failed": "Erro ao obter URL de download"
-      }
+      },
+      "upload_success": "Arquivo de exemplo salvo",
+      "deleted": "Arquivo de exemplo excluído"
     },
-    "confirm_delete": "Excluir o passo?"
+    "confirm_delete": "Excluir o passo?",
+    "toast": {
+      "created": "Passo criado com sucesso",
+      "updated": "Passo atualizado",
+      "deleted": "Passo excluído"
+    }
   },
   "preguntas": {
     "section_title": "Perguntas ({{count}})",
@@ -275,7 +282,12 @@
       "data_error": "Erro nos dados",
       "connection_error": "Erro de conexão com o servidor"
     },
-    "confirm_delete": "Excluir a pergunta?"
+    "confirm_delete": "Excluir a pergunta?",
+    "toast": {
+      "created": "Pergunta criada com sucesso",
+      "updated": "Pergunta atualizada",
+      "deleted": "Pergunta excluída"
+    }
   },
   "translations": {
     "section_title": "Tradução Português (PT)",
@@ -294,6 +306,10 @@
     "upload_button": "Enviar .md ao S3",
     "save_first_note": "Para enviar um prompt próprio ao S3, salve primeiro a pergunta.",
     "replace_button": "Substituir",
-    "s3_badge": "S3"
+    "s3_badge": "S3",
+    "toast": {
+      "saved": "Prompt salvo com sucesso",
+      "deleted": "Prompt excluído"
+    }
   }
 }

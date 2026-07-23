@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../shared/api/fetchWithErrorMapping';
+import { toast } from './toast-store';
 
 interface Props {
   value: string;
@@ -25,7 +26,7 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
   const s3Mode = isS3Key(value);
 
   const handleUpload = async (file: File) => {
-    if (!apiBase) { alert(t('methodology:prompt_template.save_question_first_alert')); return; }
+    if (!apiBase) { toast.error(t('methodology:prompt_template.save_question_first_alert')); return; }
     setBusy('upload');
     try {
       const presign = await fetchWithErrorMapping(`${apiBase}/presign-prompt`, {
@@ -44,8 +45,9 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
         body: JSON.stringify({ urlPromptTemplate: key }),
       });
       onChange(key);
+      toast.success(t('methodology:prompt_template.toast.saved'));
     } catch (err) {
-      alert(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setBusy(null);
     }
@@ -59,8 +61,9 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
       const res = await fetch(`${apiBase}/prompt-template`, { method: 'DELETE' });
       if (!res.ok && res.status !== 204) throw new Error('S3_UPLOAD_FAILED');
       onChange('');
+      toast.success(t('methodology:prompt_template.toast.deleted'));
     } catch (err) {
-      alert(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setBusy(null);
     }
@@ -74,7 +77,7 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
       const { url } = await res.json();
       window.open(url, '_blank', 'noopener');
     } catch (err) {
-      alert(translateError(err));
+      toast.error(translateError(err));
     } finally {
       setBusy(null);
     }

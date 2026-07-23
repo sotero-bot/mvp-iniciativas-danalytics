@@ -381,6 +381,7 @@ model Sesion {
   fechaProgramada      DateTime
   materialArchivoKey   String?
   urlPresentacion      String?
+  presentacionArchivoKey String?
   urlGrabacion         String?
   materialDesbloqueoEn DateTime?
   observacionGeneral   String?                  @db.Text
@@ -400,6 +401,9 @@ model ParticipantePrograma {
   programaId String
   usuarioId  String
   activo     Boolean  @default(true)
+  // El estudiante debe confirmar en la plataforma su registro al programa.
+  // NULL = pendiente de confirmar; sin confirmar no ve el programa ni entra a grupos.
+  confirmadoEn DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   programa   Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)

@@ -3,6 +3,7 @@
     "home": "Início",
     "decision_ia_label": "Decisão IA",
     "ia_en_accion_label": "IA em Ação",
+    "auditoria_label": "Auditoria",
     "gestion_label": "Gestão",
     "empresas": "Empresas",
     "iniciativas": "Iniciativas",
@@ -12,7 +13,7 @@
     "programas": "Programas",
     "ejecuciones": "Execuções",
     "formularios": "Formulários",
-    "observaciones": "Observações",
+    "observaciones": "Situações reportadas",
     "notificaciones": "Notificações",
     "registro_acceso": "Registro de acesso"
   },
@@ -23,6 +24,9 @@
     "tipo_recurso": "Tipo de recurso",
     "usuario_id": "ID do usuário",
     "todos": "Todos",
+    "desde": "De",
+    "hasta": "Até",
+    "rango_hint": "Por padrão são exibidas as últimas 24 horas.",
     "fecha": "Data",
     "usuario": "Usuário",
     "accion": "Ação",
@@ -191,6 +195,8 @@
       "cancelled": "Programa cancelado",
       "invitation_sent": "Convite enviado",
       "session_removed": "Sessão excluída",
+      "session_created": "Sessão criada",
+      "session_updated": "Sessão atualizada",
       "participant_removed": "Participante desmatriculado",
       "group_created": "Grupo criado",
       "group_updated": "Grupo atualizado",
@@ -223,14 +229,29 @@
         "edit": "Editar",
         "delete": "Excluir"
       },
+      "confirm_delete": {
+        "title": "Excluir sessão",
+        "message": "Tem certeza de que deseja excluir a sessão «{{titulo}}»? Esta ação não pode ser desfeita."
+      },
       "fields": {
         "numero": "Nº",
         "titulo": "Título",
         "descripcion": "Descrição",
         "fecha": "Data e hora",
         "url_grabacion": "URL da gravação",
-        "url_presentacion": "URL da apresentação"
+        "url_presentacion": "URL da apresentação",
+        "archivo_presentacion": "Arquivo da apresentação"
       },
+      "presentacion": {
+        "legend": "Apresentação",
+        "hint": "Adicione um link ou envie um arquivo. Basta um dos dois.",
+        "requerida": "Adicione um link ou um arquivo de apresentação."
+      },
+      "presentacion_archivo_hint": "PDF, PPT ou PPTX. Alternativa ou complemento ao link.",
+      "presentacion_archivo_seleccionar": "Selecionar arquivo",
+      "presentacion_archivo_cambiar": "Trocar",
+      "presentacion_archivo_quitar": "Remover arquivo",
+      "presentacion_archivo_quitado": "Arquivo de apresentação removido.",
       "modal": {
         "title_create": "Nova sessão",
         "title_edit": "Editar sessão"
@@ -242,12 +263,22 @@
         "nombre": "Nome",
         "email": "E-mail",
         "cargo": "Cargo",
+        "confirmacion": "Confirmação",
         "acciones": "Ações"
+      },
+      "registro": {
+        "confirmado": "Confirmado",
+        "pendiente": "Pendente"
       },
       "actions": {
         "new": "Matricular estudante",
+        "new_masiva": "Carga em massa",
         "resend_invite": "Reenviar convite",
         "remove": "Desmatricular"
+      },
+      "confirm_delete": {
+        "title": "Desmatricular participante",
+        "message": "Tem certeza de que deseja desmatricular «{{nombre}}» do programa? Você poderá matriculá-lo novamente mais tarde."
       },
       "fields": {
         "email": "E-mail",
@@ -258,6 +289,7 @@
       },
       "modal": {
         "title": "Matricular estudante",
+        "title_masiva": "Carga em massa de estudantes",
         "hint": "Se o e-mail já existir na empresa, o usuário será reutilizado. Se não, será criado como estudante."
       },
       "picker": {
@@ -271,6 +303,33 @@
         "sin_otros": "Sem outros programas",
         "nuevo_toggle": "Não está na lista? Registrar um estudante novo",
         "nuevo_title": "Registrar estudante novo"
+      },
+      "import": {
+        "tab_individual": "Individual",
+        "tab_masiva": "Carga em massa",
+        "hint": "Baixe o modelo, preencha com os estudantes e envie-o. Será validado antes de registrar; só será possível registrar se não houver erros.",
+        "descargar_plantilla": "Baixar modelo",
+        "subir_archivo": "Enviar Excel",
+        "validando": "Validando…",
+        "resumen": "{{total}} linhas · {{ok}} válidas · {{error}} com problemas",
+        "sin_filas": "O arquivo não contém linhas de dados.",
+        "col_fila": "Linha",
+        "col_email": "E-mail",
+        "col_nombre": "Nome",
+        "col_estado": "Status",
+        "estado_ok": "OK",
+        "estado_error": "Erro",
+        "estado_aviso": "Aviso",
+        "registrar": "Registrar {{n}} estudantes",
+        "columnas_faltantes": "Faltam colunas obrigatórias no arquivo: {{cols}}",
+        "errores": {
+          "FILA_EMAIL_REQUERIDO": "E-mail vazio",
+          "FILA_EMAIL_INVALIDO": "E-mail com formato inválido",
+          "FILA_NOMBRE_REQUERIDO": "Nome vazio",
+          "FILA_EMAIL_DUPLICADO_ARCHIVO": "E-mail repetido no arquivo",
+          "FILA_YA_MATRICULADO": "Já está matriculado neste programa",
+          "FILA_OTRA_EMPRESA": "O e-mail pertence a outra empresa"
+        }
       }
     },
     "grupos": {

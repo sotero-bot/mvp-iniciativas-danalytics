@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
+import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -29,7 +30,6 @@ export function EstudianteFormulariosPage() {
   const { t } = useTranslation(['formularios', 'common']);
   const [formularios, setFormularios] = useState<FormularioDisponible[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +37,7 @@ export function EstudianteFormulariosPage() {
     fetchWithErrorMapping(`${API_URL}/formularios/disponibles`)
       .then((res) => res.json())
       .then((data) => { if (!cancelled) setFormularios(data); })
-      .catch((err) => { if (!cancelled) setToast(translateError(err)); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -45,7 +45,6 @@ export function EstudianteFormulariosPage() {
   return (
     <div className="page">
       <PageHeader title={t('formularios:estudiante.title')} />
-      {toast && <div className="toast">{toast}</div>}
       {loading && <Loading label={t('common:loading')} />}
       {!loading && formularios.length === 0 && <EmptyState title={t('formularios:estudiante.empty')} />}
 

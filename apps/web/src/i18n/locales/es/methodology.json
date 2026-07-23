@@ -220,9 +220,16 @@
         "upload_failed": "Error al subir el archivo a S3",
         "upload_error": "Error al subir el archivo",
         "download_url_failed": "Error al obtener URL de descarga"
-      }
+      },
+      "upload_success": "Archivo de ejemplo guardado",
+      "deleted": "Archivo de ejemplo eliminado"
     },
-    "confirm_delete": "¿Eliminar el paso?"
+    "confirm_delete": "¿Eliminar el paso?",
+    "toast": {
+      "created": "Paso creado correctamente",
+      "updated": "Paso actualizado",
+      "deleted": "Paso eliminado"
+    }
   },
   "preguntas": {
     "section_title": "Preguntas ({{count}})",
@@ -275,7 +282,12 @@
       "data_error": "Error en los datos",
       "connection_error": "Error de conexión con el servidor"
     },
-    "confirm_delete": "¿Eliminar la pregunta?"
+    "confirm_delete": "¿Eliminar la pregunta?",
+    "toast": {
+      "created": "Pregunta creada correctamente",
+      "updated": "Pregunta actualizada",
+      "deleted": "Pregunta eliminada"
+    }
   },
   "translations": {
     "section_title": "Traducción Portugués (PT)",
@@ -294,6 +306,10 @@
     "upload_button": "Subir .md a S3",
     "save_first_note": "Para subir un prompt propio a S3, guarda primero la pregunta.",
     "replace_button": "Reemplazar",
-    "s3_badge": "S3"
+    "s3_badge": "S3",
+    "toast": {
+      "saved": "Prompt guardado correctamente",
+      "deleted": "Prompt eliminado"
+    }
   }
 }
