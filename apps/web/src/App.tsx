@@ -28,9 +28,7 @@ import { FacilitadorGruposPage } from './features/facilitador/GruposPage';
 import { FacilitadorObservacionesPage } from './features/facilitador/ObservacionesPage';
 import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
 import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
-import { EstudianteFormulariosPage } from './features/estudiante/FormulariosPage';
 import { FormularioResponderPage } from './features/estudiante/FormularioResponderPage';
-import { EstudianteGrupoPage } from './features/estudiante/GrupoPage';
 import { GrupoRecursoPage } from './features/estudiante/GrupoRecursoPage';
 import { GrupoPresentacionPage } from './features/estudiante/GrupoPresentacionPage';
 import { FacilitadorResultadosPage } from './features/facilitador/ResultadosPage';
@@ -527,9 +525,7 @@ function App() {
         {/* Portal Estudiante */}
         <Route path="/estudiante/programas" element={<PortalRoute allow="estudiante"><EstudianteProgramasPage /></PortalRoute>} />
         <Route path="/estudiante/programas/:id/sesiones" element={<PortalRoute allow="estudiante"><EstudianteSesionesPage /></PortalRoute>} />
-        <Route path="/estudiante/formularios" element={<PortalRoute allow="estudiante"><EstudianteFormulariosPage /></PortalRoute>} />
         <Route path="/estudiante/formularios/:plantillaId" element={<PortalRoute allow="estudiante"><FormularioResponderPage /></PortalRoute>} />
-        <Route path="/estudiante/grupo" element={<PortalRoute allow="estudiante"><EstudianteGrupoPage /></PortalRoute>} />
         <Route path="/estudiante/grupos/:grupoId/bitacora" element={<PortalRoute allow="estudiante"><GrupoRecursoPage recurso="bitacora" /></PortalRoute>} />
         <Route path="/estudiante/grupos/:grupoId/plantilla-proyecto" element={<PortalRoute allow="estudiante"><GrupoRecursoPage recurso="plantilla-proyecto" /></PortalRoute>} />
         <Route path="/estudiante/grupos/:grupoId/presentacion" element={<PortalRoute allow="estudiante"><GrupoPresentacionPage /></PortalRoute>} />

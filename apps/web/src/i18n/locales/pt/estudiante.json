@@ -1,4 +1,27 @@
 {
+  "home": {
+    "cargando": "Carregando…",
+    "pendientes_title": "Pendências",
+    "pendiente_encuesta": "Pesquisa inicial sem responder",
+    "pendiente_matricula": "{{programa}}: confirme seu registro",
+    "pendiente_formulario": "{{programa}}: {{nombre}}",
+    "pendiente_entregable": "{{programa}}: desafio de grupo sem entregar",
+    "proxima_title": "Próxima sessão",
+    "proxima_empty": "Você não tem sessões próximas agendadas.",
+    "proxima_sesion_num": "Sessão {{numero}}",
+    "proxima_recursos": "Apresentação e gravação disponíveis",
+    "proxima_bloqueada": "Os recursos ficam disponíveis em {{fecha}}",
+    "programas_title": "Meus programas",
+    "programas_empty": "Você ainda não tem programas ativos.",
+    "sesiones_progreso": "{{hechas}} de {{total}} sessões",
+    "reto": {
+      "sin_grupo": "Sem grupo",
+      "bloqueado": "Desafio não habilitado",
+      "sin_iniciar": "Desafio não iniciado",
+      "en_progreso": "Desafio em andamento",
+      "entregado": "Desafio entregue"
+    }
+  },
   "programas": {
     "title": "Meus programas",
     "empty": "Você não está matriculado em nenhum programa.",
@@ -21,5 +44,17 @@
     "presentacion": "Ver apresentação",
     "presentacion_archivo": "Baixar apresentação",
     "facilitador": "Facilitador"
+  },
+  "programa": {
+    "encuesta_inicio_title": "Pesquisa inicial: Uso de IA Generativa",
+    "encuesta_inicio_desc": "Antes de acessar o programa, complete esta breve pesquisa sobre seu uso de IA generativa.",
+    "encuesta_inicio_gate": "Complete a pesquisa inicial para desbloquear o restante do programa.",
+    "encuesta_inicio_hecha": "Pesquisa inicial concluída. Obrigado!",
+    "bloqueado_banner": "Disponível após concluir a pesquisa inicial.",
+    "grupo_title": "Meu grupo",
+    "formularios_title": "Formulários do programa",
+    "sesiones_title": "Sessões",
+    "sin_grupo": "Você ainda não pertence a um grupo neste programa.",
+    "sin_formularios": "Não há formulários do programa por enquanto."
   }
 }

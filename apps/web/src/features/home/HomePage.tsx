@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../../components/ui';
+import { EstudianteHome } from './EstudianteHome';
 
 export interface HomeUser {
   nombre: string;
@@ -36,10 +37,11 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
   facilitador: [
     { key: 'fac_programas', icon: '🎓', color: '#38BDF8', to: '/facilitador/programas' },
   ],
+  // El estudiante entra siempre por "Mis programas": la vista de cada programa
+  // engloba sesiones, grupo/reto y formularios (incl. la encuesta de inicio). Por
+  // eso no hay ítems sueltos de formularios ni de grupo en el sidebar/inicio.
   estudiante: [
     { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },
-    { key: 'est_formularios', icon: '🧾', color: '#F59E0B', to: '/estudiante/formularios' },
-    { key: 'est_grupo', icon: '🤝', color: '#A78BFA', to: '/estudiante/grupo' },
   ],
   cliente_admin: [
     { key: 'cli_programas', icon: '🎓', color: '#38BDF8', to: '/portal/programas' },
@@ -66,6 +68,9 @@ export function HomePage({ user }: { user: HomeUser | null }) {
       </h1>
       <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 1.75rem' }}>{t('subtitle')}</p>
 
+      {/* El estudiante ve un dashboard con su próxima sesión, pendientes y progreso
+          por programa; el resto de roles conservan las tarjetas de navegación. */}
+      {slug === 'estudiante' ? <EstudianteHome /> : (
       <div className="card-grid">
         {cards.map(card => {
           const inner = (
@@ -101,8 +106,9 @@ export function HomePage({ user }: { user: HomeUser | null }) {
           );
         })}
       </div>
+      )}
 
-      {cards.length === 0 && (
+      {slug !== 'estudiante' && cards.length === 0 && (
         <EmptyState title={t('no_sections')} />
       )}
     </div>

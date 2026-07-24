@@ -148,6 +148,227 @@ export class ActorSesionesController {
     );
   }
 
+  // Dashboard de inicio del estudiante: agrega en una sola llamada la próxima
+  // sesión, los pendientes de acción y un resumen por programa. Evita que el home
+  // haga N peticiones (una de sesiones por programa) y centraliza el gating de
+  // sesiones (mismos helpers que listSesiones) en el servidor.
+  @Get('estudiante/resumen')
+  @Roles('estudiante')
+  async resumenEstudiante(@CurrentUser() actor: AuthUser) {
+    const now = Date.now();
+
+    const [programas, plantillas, matriculasPendientes] = await Promise.all([
+      this.prisma.programa.findMany({
+        where: this.scope.programaScope(actor),
+        select: {
+          id: true,
+          nombre: true,
+          timezone: true,
+          totalSesionesEsperadas: true,
+          bitacoraHabilitadaEn: true,
+          empresa: { select: { id: true, nombre: true } },
+          sesiones: {
+            select: {
+              numeroSesion: true,
+              titulo: true,
+              fechaProgramada: true,
+              urlPresentacion: true,
+              presentacionArchivoKey: true,
+              urlGrabacion: true,
+            },
+            orderBy: { numeroSesion: 'asc' },
+          },
+          grupos: {
+            where: { miembros: { some: { usuarioId: actor.sub } } },
+            select: {
+              nombre: true,
+              _count: { select: { miembros: true } },
+              respuestasFormulario: {
+                where: { plantilla: { is: { tipoFormulario: { in: ['bitacora', 'plantilla_proyecto'] }, activa: true } } },
+                select: { id: true },
+              },
+              presentacionFinal: { select: { entregadoEn: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Formularios individuales del estudiante (misma lógica que /formularios/disponibles):
+      // la encuesta de inicio es la plantilla GLOBAL (programaId=null); el resto son de programa.
+      this.prisma.plantillaFormulario.findMany({
+        where: {
+          activa: true,
+          tipoFormulario: { in: ['diagnostico_inicial', 'diagnostico_final', 'feedback'] },
+          OR: [
+            { programaId: null, tipoFormulario: 'diagnostico_inicial' },
+            { programa: { is: { AND: [{ estado: 'activo' }, this.scope.programaScope(actor)] } } },
+          ],
+        },
+        select: {
+          id: true,
+          nombre: true,
+          programaId: true,
+          tipoFormulario: true,
+          programa: { select: { id: true, nombre: true } },
+          respuestas: { where: { usuarioRespondienteId: actor.sub }, select: { estado: true } },
+        },
+      }),
+      this.prisma.participantePrograma.findMany({
+        where: { usuarioId: actor.sub, activo: true, confirmadoEn: null },
+        select: { programa: { select: { id: true, nombre: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const enviado = (rs: { estado: string }[]) => rs.some((r) => r.estado === 'submitted');
+
+    // Pendientes ITEMIZADOS y atribuidos a su programa (o global, para la encuesta de
+    // inicio) para que el frontend enlace a la acción real de cada uno, no a un listado
+    // genérico. `tipo` gobierna el destino; `plantillaId`/`programaId` lo parametrizan.
+    type Pendiente = {
+      tipo: 'encuesta_inicio' | 'matricula' | 'entregable' | 'formulario';
+      plantillaId: string | null;
+      programaId: string | null;
+      programaNombre: string | null;
+      nombre: string | null;
+    };
+    const pendientes: Pendiente[] = [];
+
+    // 1) Encuesta de inicio (gate global, sin programa). Deep-link al formulario.
+    const encuesta = plantillas.find(
+      (p) => p.programaId === null && p.tipoFormulario === 'diagnostico_inicial',
+    );
+    if (encuesta && !enviado(encuesta.respuestas)) {
+      pendientes.push({
+        tipo: 'encuesta_inicio',
+        plantillaId: encuesta.id,
+        programaId: null,
+        programaNombre: null,
+        nombre: encuesta.nombre,
+      });
+    }
+
+    // 2) Matrículas por confirmar (programas fuera de scope hasta confirmar).
+    for (const m of matriculasPendientes) {
+      pendientes.push({
+        tipo: 'matricula',
+        plantillaId: null,
+        programaId: m.programa.id,
+        programaNombre: m.programa.nombre,
+        nombre: null,
+      });
+    }
+
+    // 3) Entregables del reto pendientes: se recolectan en el loop de programas.
+    const entregableItems: Pendiente[] = [];
+
+    // Resumen por programa. Un grupo con el reto habilitado (bitácora habilitada) y sin
+    // presentación final entregada aporta un entregable pendiente atribuido al programa.
+    const resumenProgramas = programas.map((p) => {
+      const sesionesRealizadas = p.sesiones.filter((s) => s.fechaProgramada.getTime() < now).length;
+      const sesionesTotal = p.totalSesionesEsperadas ?? p.sesiones.length;
+      const grupo = p.grupos[0] ?? null;
+
+      let reto: 'sin_grupo' | 'bloqueado' | 'entregado' | 'en_progreso' | 'sin_iniciar';
+      if (!grupo) reto = 'sin_grupo';
+      else if (grupo.presentacionFinal) reto = 'entregado';
+      else if (!p.bitacoraHabilitadaEn) reto = 'bloqueado';
+      else if (grupo.respuestasFormulario.length > 0) reto = 'en_progreso';
+      else reto = 'sin_iniciar';
+
+      if (grupo && p.bitacoraHabilitadaEn && !grupo.presentacionFinal) {
+        entregableItems.push({
+          tipo: 'entregable',
+          plantillaId: null,
+          programaId: p.id,
+          programaNombre: p.nombre,
+          nombre: null,
+        });
+      }
+
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        empresa: p.empresa,
+        sesionesTotal,
+        sesionesRealizadas,
+        grupo: grupo ? { nombre: grupo.nombre, miembros: grupo._count.miembros } : null,
+        reto,
+      };
+    });
+
+    pendientes.push(...entregableItems);
+
+    // 4) Formularios del programa pendientes (feedback / diagnóstico final). Deep-link
+    // al formulario, con `?from` a la vista del programa correspondiente. Se excluye
+    // el diagnóstico inicial por-programa: es un snapshot que NO se responde directo —
+    // el estudiante contesta la encuesta de inicio GLOBAL (gate), así que el snapshot
+    // nunca tendría respuesta y aparecería como pendiente para siempre (mismo criterio
+    // que la vista del programa en SesionesPage).
+    for (const pl of plantillas) {
+      if (pl.programaId !== null && pl.tipoFormulario !== 'diagnostico_inicial' && !enviado(pl.respuestas)) {
+        pendientes.push({
+          tipo: 'formulario',
+          plantillaId: pl.id,
+          programaId: pl.programaId,
+          programaNombre: pl.programa?.nombre ?? null,
+          nombre: pl.nombre,
+        });
+      }
+    }
+
+    // Próxima sesión: la más cercana en el futuro entre TODOS los programas.
+    let proxima: {
+      programaId: string;
+      programaNombre: string;
+      timezone: string;
+      numeroSesion: number;
+      titulo: string;
+      fechaProgramada: Date;
+      tieneRecursos: boolean;
+    } | null = null;
+    for (const p of programas) {
+      for (const s of p.sesiones) {
+        if (s.fechaProgramada.getTime() < now) continue;
+        if (!proxima || s.fechaProgramada.getTime() < proxima.fechaProgramada.getTime()) {
+          proxima = {
+            programaId: p.id,
+            programaNombre: p.nombre,
+            timezone: p.timezone,
+            numeroSesion: s.numeroSesion,
+            titulo: s.titulo,
+            fechaProgramada: s.fechaProgramada,
+            tieneRecursos: !!(s.urlPresentacion || s.presentacionArchivoKey || s.urlGrabacion),
+          };
+        }
+      }
+    }
+
+    const proximaSesion = proxima
+      ? {
+          programaId: proxima.programaId,
+          programaNombre: proxima.programaNombre,
+          numeroSesion: proxima.numeroSesion,
+          titulo: proxima.titulo,
+          fechaProgramada: proxima.fechaProgramada.toISOString(),
+          timezone: proxima.timezone,
+          bloqueada: this.estaBloqueada(
+            { fechaProgramada: proxima.fechaProgramada, materialDesbloqueoEn: null },
+            actor.role,
+            now,
+          ),
+          desbloqueaEn: this.desbloqueoEn({ fechaProgramada: proxima.fechaProgramada }, actor.role).toISOString(),
+          tieneRecursos: proxima.tieneRecursos,
+        }
+      : null;
+
+    return {
+      proximaSesion,
+      pendientes,
+      programas: resumenProgramas,
+    };
+  }
+
   @Get('sesiones/:id/material')
   async getMaterial(@Param('id') sesionId: string, @CurrentUser() actor: AuthUser) {
     const sesion = await this.prisma.sesion.findUnique({ where: { id: sesionId }, select: SESION_SELECT });

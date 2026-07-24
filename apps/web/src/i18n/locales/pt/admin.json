@@ -179,7 +179,12 @@
       "timezone": "Fuso horário",
       "dias_gracia": "Dias de tolerância",
       "fecha_inicio": "Data de início",
-      "fecha_fin": "Data de fim"
+      "fecha_fin": "Data de fim",
+      "total_sesiones": "Sessões esperadas",
+      "total_sesiones_hint": "Número total de sessões que o programa terá. Vazio = não definido.",
+      "presentacion_desde_sesion": "Apresentação a partir da sessão",
+      "presentacion_desde_sesion_hint": "A entrega da apresentação final é habilitada a partir desta sessão. Vazio = sem limite por sessão.",
+      "sin_definir": "Não definido"
     },
     "modal": {
       "title_create": "Criar programa",
@@ -255,7 +260,12 @@
       "modal": {
         "title_create": "Nova sessão",
         "title_edit": "Editar sessão"
-      }
+      },
+      "registradas": "sessões registradas",
+      "registradas_sin_total": "sessões registradas (sem total esperado definido)",
+      "faltan": "faltam {{n}}",
+      "presentacion_desde": "apresentação a partir da sessão {{n}}",
+      "total_alcanzado": "Você já atingiu o total de sessões esperadas do programa."
     },
     "participantes": {
       "empty": "Ainda não há participantes matriculados.",
@@ -462,13 +472,7 @@
   },
   "notificaciones": {
     "title": "Notificações",
-    "subtitle": "Trilha de e-mails transacionais e configuração das listas de destinatários.",
-    "config_title": "Listas de destinatários",
-    "config_empty": "Não há listas de destinatários configuradas.",
-    "config_guardar": "Salvar",
-    "config_guardada": "Lista atualizada",
-    "config_emails": "E-mails (um por linha)",
-    "config_placeholder": "email@empresa.com",
+    "subtitle": "Trilha de e-mails transacionais enviados pela plataforma.",
     "bitacora_title": "Trilha de envios",
     "bitacora_empty": "Não há envios com esse estado.",
     "estado": "Estado",

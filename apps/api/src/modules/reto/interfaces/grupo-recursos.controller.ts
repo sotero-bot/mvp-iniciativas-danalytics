@@ -25,12 +25,20 @@ interface DraftDto {
 }
 
 interface PresentacionDto {
-  urlPresentacion?: string;
   archivoKey?: string;
 }
 
 // RF-32: formatos de archivo aceptados para la presentación (PDF/PPT).
 const PRESENTACION_EXT_RE = /\.(pdf|ppt|pptx)$/i;
+
+// La key de S3 es `<slug>-<uuid><ext>` (S3Service.generateKey): el UUID solo
+// garantiza unicidad. Para mostrarlo al usuario le quitamos ese sufijo y dejamos
+// un nombre legible (ej. `prueba-<uuid>.pdf` → `prueba.pdf`).
+const UUID_SUFFIX_RE = /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[^.]+)?$/i;
+function nombreArchivoLegible(archivoKey: string): string {
+  const base = archivoKey.split('/').pop() ?? archivoKey;
+  return base.replace(UUID_SUFFIX_RE, '$1');
+}
 
 const GRUPO_SELECT = {
   id: true,
@@ -167,7 +175,6 @@ export class GrupoRecursosController {
     const entrega = await this.prisma.presentacionFinal.findUnique({
       where: { grupoId },
       select: {
-        urlPresentacion: true,
         archivoKey: true,
         entregadoEn: true,
         entregadoPor: { select: { id: true, nombre: true } },
@@ -177,7 +184,7 @@ export class GrupoRecursosController {
       habilitada,
       desdeSesion: grupo.programa.presentacionDesdeSesion,
       entrega: entrega
-        ? { ...entrega, archivoNombre: entrega.archivoKey ? entrega.archivoKey.split('/').pop() : null }
+        ? { ...entrega, archivoNombre: entrega.archivoKey ? nombreArchivoLegible(entrega.archivoKey) : null }
         : null,
     };
   }
@@ -207,9 +214,10 @@ export class GrupoRecursosController {
     return { uploadUrl, key };
   }
 
-  // RF-32: registra la entrega — link O archivo (al menos uno; el CHECK
-  // presentacion_final_url_o_archivo es la red de seguridad en BD). Una sola
-  // entrega por grupo (@@unique([grupoId])): reentrega = reemplazo.
+  // RF-32: registra la entrega — archivo (PDF/PPT) obligatorio. El CHECK
+  // presentacion_final_url_o_archivo (url OR archivo) sigue siendo la red de
+  // seguridad en BD y se satisface con el archivo. Una sola entrega por grupo
+  // (@@unique([grupoId])): reentrega = reemplazo.
   @Post(':id/presentacion-final')
   async entregarPresentacion(
     @Param('id') grupoId: string,
@@ -219,15 +227,11 @@ export class GrupoRecursosController {
     const grupo = await this.assertMiembro(grupoId, actor);
     await this.assertPresentacionHabilitada(grupo.programa);
 
-    const url = body?.urlPresentacion?.trim() || null;
     const archivoKey = body?.archivoKey?.trim() || null;
-    if (!url && !archivoKey) {
-      throw new AppError('VALIDATION_ERROR', { message: 'Entrega un link o un archivo (PDF/PPT).' });
+    if (!archivoKey) {
+      throw new AppError('VALIDATION_ERROR', { message: 'Sube un archivo (PDF/PPT).' });
     }
-    if (url && !/^https?:\/\/\S+$/i.test(url)) {
-      throw new AppError('PRESENTACION_FORMATO_INVALIDO');
-    }
-    if (archivoKey && !PRESENTACION_EXT_RE.test(archivoKey)) {
+    if (!PRESENTACION_EXT_RE.test(archivoKey)) {
       throw new AppError('PRESENTACION_FORMATO_INVALIDO');
     }
 
@@ -238,18 +242,18 @@ export class GrupoRecursosController {
         id: randomUUID(),
         grupoId,
         programaId: grupo.programaId,
-        urlPresentacion: url,
+        urlPresentacion: null,
         archivoKey,
         entregadoPorId: actor.sub,
         entregadoEn: ahora,
       },
       update: {
-        urlPresentacion: url,
+        urlPresentacion: null,
         archivoKey,
         entregadoPorId: actor.sub,
         entregadoEn: ahora,
       },
-      select: { id: true, urlPresentacion: true, archivoKey: true, entregadoEn: true },
+      select: { id: true, archivoKey: true, entregadoEn: true },
     });
     return entrega;
   }
@@ -269,9 +273,12 @@ export class GrupoRecursosController {
     return grupo;
   }
 
-  // O-01 (aclaración 2026-07-14): la bitácora solo es visible/editable cuando el
-  // admin o el facilitador la han habilitado (Programa.bitacoraHabilitadaEn). La
-  // plantilla del proyecto NO tiene gate (sigue disponible siempre).
+  // O-01 (aclaración 2026-07-23): la habilitación de la bitácora
+  // (Programa.bitacoraHabilitadaEn, que activa admin/facilitador) es el gate de
+  // TODA la sección del reto: bitácora, plantilla del proyecto y —combinado con el
+  // gate de sesión— presentación final. Sin habilitar, ningún recurso del grupo se
+  // puede ver ni editar. (Reemplaza la aclaración previa 2026-07-14 en la que la
+  // plantilla no tenía gate.)
   private assertBitacoraHabilitada(programa: { bitacoraHabilitadaEn: Date | null }): void {
     if (!programa.bitacoraHabilitadaEn) throw new AppError('BITACORA_NO_HABILITADA');
   }
@@ -291,7 +298,9 @@ export class GrupoRecursosController {
   // configJson) + la respuesta grupal para retomar, con último editor (RF-16).
   private async getRecurso(grupoId: string, tipo: TipoFormulario, actor: AuthUser, locale?: string) {
     const grupo = await this.assertMiembro(grupoId, actor);
-    if (tipo === 'bitacora') this.assertBitacoraHabilitada(grupo.programa);
+    // O-01: la habilitación de la bitácora gatea toda la sección (bitácora Y
+    // plantilla del proyecto).
+    this.assertBitacoraHabilitada(grupo.programa);
     const plantilla = await this.getPlantillaGrupal(grupo.programaId, tipo);
 
     const campos = await this.prisma.campoFormulario.findMany({
@@ -378,7 +387,9 @@ export class GrupoRecursosController {
   // presentación final. Registra ultimoEditorId/ultimaEdicionEn en cada guardado.
   private async saveDraft(grupoId: string, tipo: TipoFormulario, body: DraftDto, actor: AuthUser) {
     const grupo = await this.assertMiembro(grupoId, actor);
-    if (tipo === 'bitacora') this.assertBitacoraHabilitada(grupo.programa);
+    // O-01: la habilitación de la bitácora gatea toda la sección (bitácora Y
+    // plantilla del proyecto).
+    this.assertBitacoraHabilitada(grupo.programa);
     await this.assertGrupoAbierto(grupoId);
     const plantilla = await this.getPlantillaGrupal(grupo.programaId, tipo);
     const datos = (body?.datos ?? {}) as Prisma.InputJsonValue;
@@ -423,13 +434,17 @@ export class GrupoRecursosController {
     }
   }
 
-  // RF-32: la entrega se habilita "a partir de la sesión N" (configurable por
-  // programa). Sin configuración → siempre habilitada. Con N → debe existir una
-  // sesión numeroSesion ≥ N ya ocurrida (fechaProgramada <= ahora).
+  // RF-32 + O-01: la entrega se habilita con DOS gates combinados (AND):
+  //   1) la bitácora del programa debe estar habilitada (gate de sección), y
+  //   2) "a partir de la sesión N" (presentacionDesdeSesion, configurable). Sin N
+  //      → basta con el gate de bitácora; con N → debe existir una sesión
+  //      numeroSesion ≥ N ya ocurrida (fechaProgramada <= ahora).
   private async presentacionHabilitada(programa: {
     id: string;
     presentacionDesdeSesion: number | null;
+    bitacoraHabilitadaEn: Date | null;
   }): Promise<boolean> {
+    if (!programa.bitacoraHabilitadaEn) return false;
     const desde = programa.presentacionDesdeSesion;
     if (desde === null || desde === undefined) return true;
     const sesion = await this.prisma.sesion.findFirst({
@@ -442,6 +457,7 @@ export class GrupoRecursosController {
   private async assertPresentacionHabilitada(programa: {
     id: string;
     presentacionDesdeSesion: number | null;
+    bitacoraHabilitadaEn: Date | null;
   }): Promise<void> {
     if (!(await this.presentacionHabilitada(programa))) {
       throw new AppError('PRESENTACION_NO_HABILITADA');

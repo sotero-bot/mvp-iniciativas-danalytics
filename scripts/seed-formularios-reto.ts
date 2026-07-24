@@ -94,7 +94,11 @@ export const BITACORA: PlantillaSeed = {
           etiqueta: 'Ajustes para la siguiente iteración',
           descripcion: '¿Qué vas a cambiar en el próximo intento y por qué?',
         },
-        { tipoCampo: 'texto_corto', etiqueta: 'IA generativa utilizada' },
+        {
+          tipoCampo: 'texto_corto',
+          etiqueta: 'IA generativa utilizada',
+          descripcion: 'Herramienta o modelo de IA que usaste en este intento (ej. ChatGPT, Gemini, Claude).',
+        },
       ],
     },
     {
@@ -113,7 +117,7 @@ export const BITACORA: PlantillaSeed = {
       configJson: {
         columnas: [
           'Archivo',
-          'Hipervínculo',
+          'Enlace',
           '¿Has realizado cambios a los insumos respecto a la primera iteración?',
           '¿Cuáles cambios?',
         ],
@@ -121,18 +125,26 @@ export const BITACORA: PlantillaSeed = {
     },
     {
       tipoCampo: 'texto_corto',
-      etiqueta: 'Hipervínculo a la salida obtenida',
+      etiqueta: 'Enlace a la salida obtenida',
       descripcion: 'Pega aquí el enlace al archivo tal como lo devolvió la IA.',
       configJson: { seccion: 'Salida obtenida' },
     },
-    { tipoCampo: 'texto_corto', etiqueta: 'Nombre del archivo de salida' },
     {
       tipoCampo: 'texto_corto',
-      etiqueta: 'Hipervínculo a la salida real',
+      etiqueta: 'Nombre del archivo de salida',
+      descripcion: 'Nombre del archivo tal como lo devolvió la IA.',
+    },
+    {
+      tipoCampo: 'texto_corto',
+      etiqueta: 'Enlace a la salida real',
       descripcion: 'Si aplica: pega aquí el enlace al archivo real esperado.',
       configJson: { seccion: 'Salida real (si aplica)' },
     },
-    { tipoCampo: 'texto_corto', etiqueta: 'Nombre del archivo de salida real' },
+    {
+      tipoCampo: 'texto_corto',
+      etiqueta: 'Nombre del archivo de salida real',
+      descripcion: 'Nombre del archivo con el resultado real esperado.',
+    },
   ],
 };
 
@@ -148,6 +160,7 @@ export const PLANTILLA_PROYECTO: PlantillaSeed = {
     {
       tipoCampo: 'texto_corto',
       etiqueta: 'Nombre del proyecto',
+      descripcion: 'Título con el que identificarán su proyecto con IA.',
       esObligatorio: true,
       configJson: { seccion: 'Datos del proyecto' },
     },
@@ -168,12 +181,25 @@ export const PLANTILLA_PROYECTO: PlantillaSeed = {
     {
       tipoCampo: 'texto_corto',
       etiqueta: 'Link con el prompt',
+      descripcion: 'Enlace al prompt que utilizaron (por ejemplo, la conversación compartida).',
       esObligatorio: true,
       configJson: { seccion: 'Uso de la IA' },
     },
-    { tipoCampo: 'texto_largo', etiqueta: 'Ejemplo de entrada' },
-    { tipoCampo: 'texto_largo', etiqueta: 'Ejemplo de salida' },
-    { tipoCampo: 'texto_corto', etiqueta: 'Herramientas de IA utilizadas' },
+    {
+      tipoCampo: 'texto_largo',
+      etiqueta: 'Ejemplo de entrada',
+      descripcion: 'Muestra un ejemplo de la información que le entregaron a la IA.',
+    },
+    {
+      tipoCampo: 'texto_largo',
+      etiqueta: 'Ejemplo de salida',
+      descripcion: 'Muestra un ejemplo del resultado que devolvió la IA.',
+    },
+    {
+      tipoCampo: 'texto_corto',
+      etiqueta: 'Herramientas de IA utilizadas',
+      descripcion: 'Herramientas o modelos de IA que emplearon en el proyecto (ej. ChatGPT, Gemini, Copilot).',
+    },
     {
       tipoCampo: 'numero',
       etiqueta: 'Tiempo promedio que tomaba antes (horas por ejecución)',
@@ -185,12 +211,14 @@ export const PLANTILLA_PROYECTO: PlantillaSeed = {
     {
       tipoCampo: 'numero',
       etiqueta: 'Tiempo actual con IA (horas por ejecución, incluyendo validaciones)',
+      descripcion: 'Tiempo que toma ahora la misma ejecución usando IA, incluyendo el tiempo de validación.',
       esObligatorio: true,
       configJson: { min: 0 },
     },
     {
       tipoCampo: 'numero',
       etiqueta: 'Número de veces que se realiza este proceso al año',
+      descripcion: 'Cuántas veces al año ejecutan este proceso; se usa para calcular el ahorro anual.',
       esObligatorio: true,
       configJson: { min: 0 },
     },

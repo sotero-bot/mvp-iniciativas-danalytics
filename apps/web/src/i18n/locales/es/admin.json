@@ -179,7 +179,12 @@
       "timezone": "Zona horaria",
       "dias_gracia": "Días de gracia",
       "fecha_inicio": "Fecha de inicio",
-      "fecha_fin": "Fecha de fin"
+      "fecha_fin": "Fecha de fin",
+      "total_sesiones": "Sesiones esperadas",
+      "total_sesiones_hint": "Número total de sesiones que tendrá el programa. Vacío = sin definir.",
+      "presentacion_desde_sesion": "Presentación desde la sesión",
+      "presentacion_desde_sesion_hint": "La entrega de la presentación final se habilita a partir de esta sesión. Vacío = sin límite por sesión.",
+      "sin_definir": "Sin definir"
     },
     "modal": {
       "title_create": "Crear programa",
@@ -255,7 +260,12 @@
       "modal": {
         "title_create": "Nueva sesión",
         "title_edit": "Editar sesión"
-      }
+      },
+      "registradas": "sesiones registradas",
+      "registradas_sin_total": "sesiones registradas (sin total esperado definido)",
+      "faltan": "faltan {{n}}",
+      "presentacion_desde": "presentación desde la sesión {{n}}",
+      "total_alcanzado": "Ya alcanzaste el total de sesiones esperadas del programa."
     },
     "participantes": {
       "empty": "Aún no hay participantes matriculados.",
@@ -462,13 +472,7 @@
   },
   "notificaciones": {
     "title": "Notificaciones",
-    "subtitle": "Bitácora de emails transaccionales y configuración de las listas de destinatarios.",
-    "config_title": "Listas de destinatarios",
-    "config_empty": "No hay listas de destinatarios configuradas.",
-    "config_guardar": "Guardar",
-    "config_guardada": "Lista actualizada",
-    "config_emails": "Emails (uno por línea)",
-    "config_placeholder": "correo@empresa.com",
+    "subtitle": "Bitácora de emails transaccionales enviados por la plataforma.",
     "bitacora_title": "Bitácora de envíos",
     "bitacora_empty": "No hay envíos con ese estado.",
     "estado": "Estado",

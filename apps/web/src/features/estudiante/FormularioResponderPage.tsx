@@ -1,9 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Loading } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { formatFechaHora } from '../../shared/formatDate';
+
+// Clave reservada dentro de cada iteración de un grupo repetible para guardar
+// automáticamente el instante en que se creó. No colisiona con los ids (UUID) de
+// los campos hijos y nunca se renderiza como input.
+const ITERACION_FECHA_KEY = '__creadaEn';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -47,6 +53,10 @@ const AUTOSAVE_MS = 30_000; // RNF-09
 // nunca envía configJson ni scores (RNF-04); aquí solo llega configPublica.
 export function FormularioResponderPage() {
   const { plantillaId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  // Al abrirse desde la vista de programa (?from=), el enlace de "volver" regresa
+  // ahí; si no, cae a "Mis programas".
+  const backTo = searchParams.get('from') || '/estudiante/programas';
   const { t, i18n } = useTranslation(['formularios', 'common']);
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [datos, setDatos] = useState<Datos>({});
@@ -157,7 +167,7 @@ export function FormularioResponderPage() {
 
   return (
     <div className="gform-container">
-      <Link to="/estudiante/formularios" style={{ fontSize: '0.85rem' }}>
+      <Link to={backTo} className="btn-link">
         {t('formularios:estudiante.back')}
       </Link>
       {loading && <Loading label={t('common:loading')} />}
@@ -176,20 +186,7 @@ export function FormularioResponderPage() {
             <div className="gform-sent">✓ {t('formularios:estudiante.submitted_banner')}</div>
           ) : (
             <>
-              {topLevel.map(campo => (
-                <React.Fragment key={campo.id}>
-                  {campo.configPublica?.seccion && (
-                    <div className="gform-section">{campo.configPublica.seccion}</div>
-                  )}
-                  <CampoRenderer
-                    campo={campo}
-                    hijos={hijosDe(campo.id)}
-                    valor={datos[campo.id]}
-                    onChange={v => setValor(campo.id, v)}
-                    t={t}
-                  />
-                </React.Fragment>
-              ))}
+              <CamposSecciones campos={topLevel} hijosDe={hijosDe} datos={datos} onChange={setValor} t={t} />
 
               <div className="gform-footer">
                 <button className="gform-submit" disabled={enviando} onClick={enviar}>
@@ -220,20 +217,76 @@ interface CampoRendererProps {
   valor: unknown;
   onChange: (valor: unknown) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  numero?: number;
 }
 
-export function CampoRenderer({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
+// Agrupa los campos top-level en secciones. Un campo con `configPublica.seccion`
+// inicia una nueva sección cuyo encabezado (barra verde) es ese texto; los campos
+// siguientes sin `seccion` pertenecen a ella. Cada sección se renderiza como un
+// ÚNICO bloque conectado (encabezado + preguntas separadas por divisores internos),
+// para que se lea como una sola cosa y no como cajas sueltas independientes.
+interface CamposSeccionesProps {
+  campos: Campo[];
+  hijosDe: (id: string) => Campo[];
+  datos: Record<string, unknown>;
+  onChange: (campoId: string, valor: unknown) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+export function CamposSecciones({ campos, hijosDe, datos, onChange, t }: CamposSeccionesProps) {
+  const grupos: { seccion: string | null; campos: Campo[] }[] = [];
+  for (const campo of campos) {
+    const seccion = campo.configPublica?.seccion || null;
+    if (seccion || grupos.length === 0) {
+      grupos.push({ seccion, campos: [campo] });
+    } else {
+      grupos[grupos.length - 1].campos.push(campo);
+    }
+  }
+
+  // Numeración continua a lo largo de todo el formulario (1, 2, 3…), sin
+  // reiniciar por sección, para que cada pregunta tenga un índice único claro.
+  let numero = 0;
+  return (
+    <>
+      {grupos.map((grupo, i) => (
+        <div key={i} className="gform-section-group">
+          <div className="gform-section">{grupo.seccion || t('formularios:seccion_general')}</div>
+          {grupo.campos.map(campo => {
+            numero += 1;
+            return (
+              <CampoRenderer
+                key={campo.id}
+                campo={campo}
+                hijos={hijosDe(campo.id)}
+                valor={datos[campo.id]}
+                onChange={v => onChange(campo.id, v)}
+                t={t}
+                numero={numero}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function CampoRenderer({ campo, hijos, valor, onChange, t, numero }: CampoRendererProps) {
   return (
     <div className="gform-card">
-      <div className="gform-question">
-        {campo.etiqueta}
-        {campo.esObligatorio && (
-          <span className="gform-req" title={t('formularios:estudiante.obligatorio')}>*</span>
-        )}
-      </div>
-      {campo.descripcion && <div className="gform-help">{campo.descripcion}</div>}
-      <div className="gform-answer">
-        <CampoInput campo={campo} hijos={hijos} valor={valor} onChange={onChange} t={t} />
+      {numero !== undefined && <div className="gform-num">{numero}</div>}
+      <div className="gform-card-body">
+        <div className="gform-question">
+          {campo.etiqueta}
+          {campo.esObligatorio && (
+            <span className="gform-req" title={t('formularios:estudiante.obligatorio')}>*</span>
+          )}
+        </div>
+        {campo.descripcion && <div className="gform-help">{campo.descripcion}</div>}
+        <div className="gform-answer">
+          <CampoInput campo={campo} hijos={hijos} valor={valor} onChange={onChange} t={t} />
+        </div>
       </div>
     </div>
   );
@@ -385,34 +438,51 @@ function CampoInput({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
       };
       return (
         <div>
-          {iteraciones.map((iteracion, i) => (
-            <div key={i} className="gform-iteracion">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                <span>#{i + 1}</span>
-                <button
-                  className="btn-link btn-link-danger"
-                  onClick={() => onChange(iteraciones.filter((_, j) => j !== i))}
-                >
-                  {t('formularios:estudiante.quitar')}
-                </button>
-              </div>
-              {hijos.map(hijo => (
-                <div key={hijo.id} style={{ marginBottom: 12 }}>
-                  <div className="gform-question" style={{ fontSize: '0.875rem', marginBottom: 6 }}>
-                    {hijo.etiqueta}
+          {iteraciones.map((iteracion, i) => {
+            const fechaIso = typeof iteracion[ITERACION_FECHA_KEY] === 'string'
+              ? (iteracion[ITERACION_FECHA_KEY] as string)
+              : null;
+            return (
+              <div key={i} className="gform-iteracion">
+                <div className="gform-iteracion-head">
+                  <div>
+                    <div className="gform-iteracion-titulo">
+                      {t('formularios:estudiante.iteracion_semana', { n: i + 1 })}
+                    </div>
+                    {fechaIso && (
+                      <div className="gform-iteracion-fecha">
+                        {t('formularios:estudiante.iteracion_fecha', { fecha: formatFechaHora(fechaIso) })}
+                      </div>
+                    )}
                   </div>
-                  <CampoInput
-                    campo={hijo}
-                    hijos={[]}
-                    valor={iteracion[hijo.id]}
-                    onChange={v => setIteracion(i, hijo.id, v)}
-                    t={t}
-                  />
+                  <button
+                    className="btn-link btn-link-danger"
+                    onClick={() => onChange(iteraciones.filter((_, j) => j !== i))}
+                  >
+                    {t('formularios:estudiante.quitar')}
+                  </button>
                 </div>
-              ))}
-            </div>
-          ))}
-          <button className="gform-add" onClick={() => onChange([...iteraciones, {}])}>
+                {hijos.map(hijo => (
+                  <div key={hijo.id} style={{ marginBottom: 12 }}>
+                    <div className="gform-question" style={{ fontSize: '0.875rem', marginBottom: 6 }}>
+                      {hijo.etiqueta}
+                    </div>
+                    <CampoInput
+                      campo={hijo}
+                      hijos={[]}
+                      valor={iteracion[hijo.id]}
+                      onChange={v => setIteracion(i, hijo.id, v)}
+                      t={t}
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          <button
+            className="gform-add"
+            onClick={() => onChange([...iteraciones, { [ITERACION_FECHA_KEY]: new Date().toISOString() }])}
+          >
             + {t('formularios:estudiante.add_iteracion')}
           </button>
         </div>

@@ -30,6 +30,8 @@ interface Programa {
   estado: EstadoPrograma;
   timezone: string;
   diasGracia: number;
+  totalSesionesEsperadas: number | null; // RF-01
+  presentacionDesdeSesion: number | null; // RF-32
   fechaInicio: string | null;
   fechaFin: string | null;
   activo: boolean;
@@ -78,6 +80,8 @@ interface FormState {
   estado: EstadoPrograma;
   timezone: string;
   diasGracia: number;
+  totalSesionesEsperadas: string; // RF-01 ('' = sin definir)
+  presentacionDesdeSesion: string; // RF-32 ('' = sin gate de sesión)
   fechaInicio: string;
   fechaFin: string;
   traduccionesPt: TraduccionCampos;
@@ -93,6 +97,8 @@ const emptyForm: FormState = {
   estado: 'borrador',
   timezone: 'America/Bogota',
   diasGracia: 3,
+  totalSesionesEsperadas: '',
+  presentacionDesdeSesion: '',
   fechaInicio: '',
   fechaFin: '',
   traduccionesPt: { nombre: '', descripcion: '' },
@@ -185,6 +191,8 @@ export function ProgramasPage() {
       estado: p.estado,
       timezone: p.timezone,
       diasGracia: p.diasGracia,
+      totalSesionesEsperadas: p.totalSesionesEsperadas != null ? String(p.totalSesionesEsperadas) : '',
+      presentacionDesdeSesion: p.presentacionDesdeSesion != null ? String(p.presentacionDesdeSesion) : '',
       fechaInicio: p.fechaInicio ? p.fechaInicio.slice(0, 10) : '',
       fechaFin: p.fechaFin ? p.fechaFin.slice(0, 10) : '',
       traduccionesPt: { nombre: '', descripcion: '' },
@@ -219,6 +227,8 @@ export function ProgramasPage() {
         estado: form.estado,
         timezone: form.timezone,
         diasGracia: form.diasGracia,
+        totalSesionesEsperadas: form.totalSesionesEsperadas.trim() === '' ? null : Number(form.totalSesionesEsperadas),
+        presentacionDesdeSesion: form.presentacionDesdeSesion.trim() === '' ? null : Number(form.presentacionDesdeSesion),
         fechaInicio: form.fechaInicio || null,
         fechaFin: form.fechaFin || null,
         // RF-46: plantillas globales elegidas (una por tipo). Solo se envía al crear.
@@ -625,6 +635,31 @@ function ProgramaFormModal({
             </Field>
           </div>
 
+          {/* RF-01/RF-32: nº de sesiones esperadas + sesión desde la que se habilita
+              la presentación final. La validación fina (rango, no exceder) es del backend. */}
+          <div className="form-grid">
+            <Field label={t('admin:programas.fields.total_sesiones')} hint={t('admin:programas.fields.total_sesiones_hint')}>
+              <input
+                type="number"
+                className="input"
+                value={form.totalSesionesEsperadas}
+                min={1}
+                placeholder={t('admin:programas.fields.sin_definir')}
+                onChange={e => setForm(f => ({ ...f, totalSesionesEsperadas: e.target.value }))}
+              />
+            </Field>
+            <Field label={t('admin:programas.fields.presentacion_desde_sesion')} hint={t('admin:programas.fields.presentacion_desde_sesion_hint')}>
+              <input
+                type="number"
+                className="input"
+                value={form.presentacionDesdeSesion}
+                min={1}
+                placeholder={t('admin:programas.fields.sin_definir')}
+                onChange={e => setForm(f => ({ ...f, presentacionDesdeSesion: e.target.value }))}
+              />
+            </Field>
+          </div>
+
           <div className="form-grid">
             <Field label={t('admin:programas.fields.fecha_inicio')}>
               <input type="date" className="input" value={form.fechaInicio} onChange={e => setForm(f => ({ ...f, fechaInicio: e.target.value }))} />
@@ -913,8 +948,49 @@ function ProgramaDetailDrawer({
 
         {!loading && programa && tab === 'sesiones' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button className="btn btn-primary" onClick={() => { setEditingSesion(null); setSesionModalOpen(true); }}>
+            {/* RF-01: resumen de sesiones registradas frente a las esperadas. */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                {programa.totalSesionesEsperadas != null ? (
+                  <>
+                    <strong>{programa.sesiones.length}</strong> / {programa.totalSesionesEsperadas}{' '}
+                    {t('admin:programas.sesiones.registradas')}
+                    {programa.sesiones.length < programa.totalSesionesEsperadas && (
+                      <> · {t('admin:programas.sesiones.faltan', { n: programa.totalSesionesEsperadas - programa.sesiones.length })}</>
+                    )}
+                    {programa.presentacionDesdeSesion != null && (
+                      <> · {t('admin:programas.sesiones.presentacion_desde', { n: programa.presentacionDesdeSesion })}</>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <strong>{programa.sesiones.length}</strong> {t('admin:programas.sesiones.registradas_sin_total')}
+                  </>
+                )}
+              </div>
+              <button
+                className="btn btn-primary"
+                disabled={
+                  programa.totalSesionesEsperadas != null &&
+                  programa.sesiones.length >= programa.totalSesionesEsperadas
+                }
+                title={
+                  programa.totalSesionesEsperadas != null &&
+                  programa.sesiones.length >= programa.totalSesionesEsperadas
+                    ? t('admin:programas.sesiones.total_alcanzado')
+                    : undefined
+                }
+                onClick={() => { setEditingSesion(null); setSesionModalOpen(true); }}
+              >
                 + {t('admin:programas.sesiones.actions.new')}
               </button>
             </div>

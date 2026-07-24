@@ -27,7 +27,7 @@ export function PageHeader({ title, description, back, actions }: PageHeaderProp
             className="btn-link"
             style={{ marginBottom: '0.5rem' }}
           >
-            ← {back.label}
+            {back.label}
           </Link>
         )}
         <h1>{title}</h1>

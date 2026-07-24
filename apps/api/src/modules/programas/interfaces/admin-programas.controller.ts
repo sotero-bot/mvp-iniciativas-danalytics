@@ -54,6 +54,10 @@ interface CreateProgramaDto {
   fechaInicio?: string | null;
   fechaFin?: string | null;
   estado?: EstadoPrograma;
+  // RF-01: nº de sesiones que tendrá el programa (dashboard completadas/totales).
+  totalSesionesEsperadas?: number | null;
+  // RF-32: la presentación final se habilita a partir de esta sesión.
+  presentacionDesdeSesion?: number | null;
   // RF-46: selección explícita de qué plantillas globales congela el snapshot del
   // programa (una por tipo, opcional). Si se omite, el snapshot copia todas las
   // globales activas (comportamiento por defecto).
@@ -69,6 +73,8 @@ interface UpdateProgramaDto {
   fechaInicio?: string | null;
   fechaFin?: string | null;
   estado?: EstadoPrograma;
+  totalSesionesEsperadas?: number | null; // RF-01
+  presentacionDesdeSesion?: number | null; // RF-32
   activo?: boolean;
 }
 
@@ -133,6 +139,8 @@ const PROGRAMA_SELECT = {
   estado: true,
   timezone: true,
   diasGracia: true,
+  totalSesionesEsperadas: true, // RF-01
+  presentacionDesdeSesion: true, // RF-32
   fechaInicio: true,
   fechaFin: true,
   activo: true,
@@ -362,11 +370,41 @@ export class AdminProgramasController {
     };
   }
 
+  // RF-01/RF-32: valida la configuración de sesiones del programa.
+  //  - total: nº de sesiones esperadas (null = sin definir). Debe ser entero ≥ 1 y
+  //    nunca menor que las sesiones ya registradas.
+  //  - desde: sesión a partir de la cual se habilita la presentación (null = sin
+  //    gate de sesión). Debe ser entero ≥ 1 y, si hay total, no excederlo.
+  private assertSesionesConfig(
+    total: number | null | undefined,
+    desde: number | null | undefined,
+    registradas: number,
+  ): void {
+    if (total !== null && total !== undefined) {
+      if (!Number.isInteger(total) || total < 1) throw new AppError('TOTAL_SESIONES_INVALIDO');
+      if (total < registradas) {
+        throw new AppError('TOTAL_SESIONES_INVALIDO', {
+          message: `El total de sesiones (${total}) no puede ser menor que las ${registradas} ya registradas.`,
+        });
+      }
+    }
+    if (desde !== null && desde !== undefined) {
+      if (!Number.isInteger(desde) || desde < 1) throw new AppError('PRESENTACION_DESDE_SESION_INVALIDA');
+      if (total !== null && total !== undefined && desde > total) {
+        throw new AppError('PRESENTACION_DESDE_SESION_INVALIDA', {
+          message: `La presentación no puede habilitarse desde la sesión ${desde}: el programa tiene ${total} sesiones.`,
+        });
+      }
+    }
+  }
+
   @Post('programas')
   async createPrograma(@Body() body: CreateProgramaDto) {
     // C-01: N:M — valida cada facilitador (puede venir vacío; se asignan luego).
     const facilitadorIds = [...new Set(body.facilitadorIds ?? [])];
     for (const fid of facilitadorIds) await this.assertFacilitador(fid);
+    // Aún no hay sesiones registradas al crear.
+    this.assertSesionesConfig(body.totalSesionesEsperadas, body.presentacionDesdeSesion, 0);
     try {
       const programa = await this.prisma.programa.create({
         data: {
@@ -376,6 +414,8 @@ export class AdminProgramasController {
           empresaId: body.empresaId,
           timezone: body.timezone ?? 'America/Bogota',
           diasGracia: body.diasGracia ?? 3, // RF-03/RN-03: 3 días hábiles
+          totalSesionesEsperadas: body.totalSesionesEsperadas ?? null,
+          presentacionDesdeSesion: body.presentacionDesdeSesion ?? null,
           fechaInicio: body.fechaInicio ? new Date(body.fechaInicio) : null,
           fechaFin: body.fechaFin ? new Date(body.fechaFin) : null,
           estado: body.estado ?? EstadoPrograma.borrador,
@@ -425,6 +465,17 @@ export class AdminProgramasController {
         await this.assertGruposCompletos(id);
       }
     }
+    // RF-01/RF-32: valida config de sesiones con los valores EFECTIVOS (lo que
+    // venga en el body, o lo ya guardado) contra las sesiones ya registradas.
+    if (body.totalSesionesEsperadas !== undefined || body.presentacionDesdeSesion !== undefined) {
+      const total =
+        body.totalSesionesEsperadas !== undefined ? body.totalSesionesEsperadas : existing.totalSesionesEsperadas;
+      const desde =
+        body.presentacionDesdeSesion !== undefined ? body.presentacionDesdeSesion : existing.presentacionDesdeSesion;
+      const registradas = await this.prisma.sesion.count({ where: { programaId: id } });
+      this.assertSesionesConfig(total, desde, registradas);
+    }
+
     const data: Prisma.ProgramaUpdateInput = {};
     if (body.nombre !== undefined) data.nombre = body.nombre;
     if (body.descripcion !== undefined) data.descripcion = body.descripcion ?? null;
@@ -437,6 +488,8 @@ export class AdminProgramasController {
     }
     if (body.timezone !== undefined) data.timezone = body.timezone;
     if (body.diasGracia !== undefined) data.diasGracia = body.diasGracia;
+    if (body.totalSesionesEsperadas !== undefined) data.totalSesionesEsperadas = body.totalSesionesEsperadas;
+    if (body.presentacionDesdeSesion !== undefined) data.presentacionDesdeSesion = body.presentacionDesdeSesion;
     if (body.fechaInicio !== undefined) data.fechaInicio = body.fechaInicio ? new Date(body.fechaInicio) : null;
     if (body.fechaFin !== undefined) data.fechaFin = body.fechaFin ? new Date(body.fechaFin) : null;
     if (body.estado !== undefined) data.estado = body.estado;
@@ -524,6 +577,12 @@ export class AdminProgramasController {
   async createSesion(@Param('id') programaId: string, @Body() body: CreateSesionDto) {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+    // RF-01: no exceder el nº de sesiones esperadas configurado en el programa.
+    if (programa.totalSesionesEsperadas != null && body.numeroSesion > programa.totalSesionesEsperadas) {
+      throw new AppError('SESION_EXCEDE_TOTAL', {
+        message: `El programa está configurado para ${programa.totalSesionesEsperadas} sesiones.`,
+      });
+    }
     const fechaProgramada = new Date(body.fechaProgramada);
     await this.assertSesionSchedule(programa, fechaProgramada);
     try {
@@ -562,7 +621,19 @@ export class AdminProgramasController {
     const existing = await this.prisma.sesion.findUnique({ where: { id } });
     if (!existing) throw new AppError('SESION_NOT_FOUND');
     const data: Prisma.SesionUpdateInput = {};
-    if (body.numeroSesion !== undefined) data.numeroSesion = body.numeroSesion;
+    if (body.numeroSesion !== undefined) {
+      // RF-01: no exceder el nº de sesiones esperadas del programa.
+      const prog = await this.prisma.programa.findUnique({
+        where: { id: existing.programaId },
+        select: { totalSesionesEsperadas: true },
+      });
+      if (prog?.totalSesionesEsperadas != null && body.numeroSesion > prog.totalSesionesEsperadas) {
+        throw new AppError('SESION_EXCEDE_TOTAL', {
+          message: `El programa está configurado para ${prog.totalSesionesEsperadas} sesiones.`,
+        });
+      }
+      data.numeroSesion = body.numeroSesion;
+    }
     if (body.titulo !== undefined) data.titulo = body.titulo;
     if (body.descripcion !== undefined) data.descripcion = body.descripcion ?? null;
     // Si cambia la fecha, valida rango del programa e intervalo mínimo (excluyéndose

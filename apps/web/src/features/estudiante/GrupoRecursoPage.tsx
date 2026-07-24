@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Campo, CampoRenderer } from './FormularioResponderPage';
+import { Campo, CamposSecciones } from './FormularioResponderPage';
 import { Loading } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
@@ -34,6 +34,9 @@ const AUTOSAVE_MS = 30_000; // RNF-09
 // renderer de campos del formulario individual (Fase 2).
 export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla-proyecto' }) {
   const { grupoId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  // Al abrirse desde la vista de programa (?from=), "volver" regresa ahí.
+  const backTo = searchParams.get('from') || '/estudiante/programas';
   const { t, i18n } = useTranslation(['formularios', 'common']);
   const [formulario, setFormulario] = useState<RecursoGrupo | null>(null);
   const [datos, setDatos] = useState<Datos>({});
@@ -115,7 +118,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
 
   return (
     <div className="gform-container">
-      <Link to="/estudiante/grupo" style={{ fontSize: '0.85rem' }}>
+      <Link to={backTo} className="btn-link">
         {t('formularios:grupo.back')}
       </Link>
       {loading && <Loading label={t('common:loading')} />}
@@ -144,20 +147,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
 
           {/* fieldset disabled deshabilita TODOS los controles internos en solo lectura. */}
           <fieldset disabled={bloqueada} style={{ border: 'none', padding: 0, margin: 0 }}>
-            {topLevel.map(campo => (
-              <React.Fragment key={campo.id}>
-                {campo.configPublica?.seccion && (
-                  <div className="gform-section">{campo.configPublica.seccion}</div>
-                )}
-                <CampoRenderer
-                  campo={campo}
-                  hijos={hijosDe(campo.id)}
-                  valor={datos[campo.id]}
-                  onChange={v => setValor(campo.id, v)}
-                  t={t}
-                />
-              </React.Fragment>
-            ))}
+            <CamposSecciones campos={topLevel} hijosDe={hijosDe} datos={datos} onChange={setValor} t={t} />
           </fieldset>
 
           {!bloqueada && (

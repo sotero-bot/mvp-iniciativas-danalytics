@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Loading } from '../../components/ui';
@@ -11,7 +11,6 @@ interface EstadoPresentacion {
   habilitada: boolean;
   desdeSesion: number | null;
   entrega: {
-    urlPresentacion: string | null;
     archivoKey: string | null;
     archivoNombre: string | null;
     entregadoEn: string | null;
@@ -19,14 +18,16 @@ interface EstadoPresentacion {
   } | null;
 }
 
-// Fase 3 (RF-32): entrega de la presentación final del grupo — link O archivo
+// Fase 3 (RF-32): entrega de la presentación final del grupo — archivo
 // (PDF/PPT vía presigned PUT a S3). Solo habilitada en fase de cierre
 // (a partir de la sesión configurada en el programa). Reentrega = reemplazo.
 export function GrupoPresentacionPage() {
   const { grupoId = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  // Al abrirse desde la vista de programa (?from=), "volver" regresa ahí.
+  const backTo = searchParams.get('from') || '/estudiante/programas';
   const { t } = useTranslation(['formularios', 'common']);
   const [estado, setEstado] = useState<EstadoPresentacion | null>(null);
-  const [url, setUrl] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -39,7 +40,6 @@ export function GrupoPresentacionPage() {
       .then((res) => res.json())
       .then((data: EstadoPresentacion) => {
         setEstado(data);
-        setUrl(data.entrega?.urlPresentacion ?? '');
       })
       .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
@@ -52,44 +52,36 @@ export function GrupoPresentacionPage() {
       .then((data: EstadoPresentacion) => {
         if (cancelled) return;
         setEstado(data);
-        setUrl(data.entrega?.urlPresentacion ?? '');
       })
       .catch((err) => { if (!cancelled) toast.error(translateError(err)); });
     return () => { cancelled = true; };
   }, [grupoId]);
 
   const entregar = async () => {
-    if (!url.trim() && !archivo) {
+    if (!archivo) {
       toast.error(t('formularios:presentacion.falta_entrega'));
       return;
     }
     setEnviando(true);
     setOk(false);
     try {
-      let archivoKey: string | undefined;
-      if (archivo) {
-        // 1) Presign (valida gating + formato server-side) → 2) PUT directo a S3.
-        const presign = await fetchWithErrorMapping(`${API_URL}/grupos/${grupoId}/presentacion-final/presign`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: archivo.name, contentType: archivo.type || 'application/octet-stream' }),
-        }).then(r => r.json());
-        const putRes = await fetch(presign.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': archivo.type || 'application/octet-stream' },
-          body: archivo,
-        });
-        if (!putRes.ok) throw new Error('upload_failed');
-        archivoKey = presign.key;
-      }
+      // 1) Presign (valida gating + formato server-side) → 2) PUT directo a S3.
+      const presign = await fetchWithErrorMapping(`${API_URL}/grupos/${grupoId}/presentacion-final/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: archivo.name, contentType: archivo.type || 'application/octet-stream' }),
+      }).then(r => r.json());
+      const putRes = await fetch(presign.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': archivo.type || 'application/octet-stream' },
+        body: archivo,
+      });
+      if (!putRes.ok) throw new Error('upload_failed');
 
       await fetchWithErrorMapping(`${API_URL}/grupos/${grupoId}/presentacion-final`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          urlPresentacion: url.trim() || undefined,
-          archivoKey,
-        }),
+        body: JSON.stringify({ archivoKey: presign.key }),
       });
       setOk(true);
       setArchivo(null);
@@ -107,7 +99,7 @@ export function GrupoPresentacionPage() {
 
   return (
     <div className="gform-container">
-      <Link to="/estudiante/grupo" style={{ fontSize: '0.85rem' }}>
+      <Link to={backTo} className="btn-link">
         {t('formularios:grupo.back')}
       </Link>
       {loading && <Loading label={t('common:loading')} />}
@@ -130,54 +122,48 @@ export function GrupoPresentacionPage() {
             <>
               {entrega && (
                 <div className="gform-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>✓ {t('formularios:presentacion.entregada')}</div>
-                  {entrega.entregadoPor && entrega.entregadoEn && (
-                    <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
-                      {t('formularios:presentacion.entregada_por', {
-                        nombre: entrega.entregadoPor.nombre,
-                        fecha: new Date(entrega.entregadoEn).toLocaleString(),
-                      })}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.85rem' }}>
-                    {entrega.urlPresentacion && (
-                      <a href={entrega.urlPresentacion} target="_blank" rel="noreferrer">
-                        🔗 {t('formularios:presentacion.ver_link')}
-                      </a>
+                  {/* gform-card es flex-row: envolvemos en gform-card-body (flex:1; min-width:0)
+                      para que el contenido apile en columna y el nombre largo no se salga. */}
+                  <div className="gform-card-body">
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>✓ {t('formularios:presentacion.entregada')}</div>
+                    {entrega.entregadoPor && entrega.entregadoEn && (
+                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                        {t('formularios:presentacion.entregada_por', {
+                          nombre: entrega.entregadoPor.nombre,
+                          fecha: new Date(entrega.entregadoEn).toLocaleString(),
+                        })}
+                      </div>
                     )}
                     {entrega.archivoNombre && (
-                      <span>📎 {t('formularios:presentacion.archivo_actual')}: {entrega.archivoNombre}</span>
+                      <div style={{ fontSize: '0.85rem', overflowWrap: 'anywhere' }}>
+                        📎 {t('formularios:presentacion.archivo_actual')}: {entrega.archivoNombre}
+                      </div>
                     )}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 8 }}>
-                    {t('formularios:presentacion.reemplazar_hint')}
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 8 }}>
+                      {t('formularios:presentacion.reemplazar_hint')}
+                    </div>
                   </div>
                 </div>
               )}
 
               <div className="gform-card">
-                <div className="gform-question">{t('formularios:presentacion.url_label')}</div>
-                <div className="gform-answer">
-                  <input
-                    className="gform-input"
-                    placeholder="https://…"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    aria-label={t('formularios:presentacion.url_label')}
-                  />
+                <div className="gform-question">
+                  {t(entrega ? 'formularios:presentacion.archivo_label_reemplazar' : 'formularios:presentacion.archivo_label')}
                 </div>
-              </div>
-
-              <div className="gform-card">
-                <div className="gform-question">{t('formularios:presentacion.archivo_label')}</div>
                 <div className="gform-answer">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".pdf,.ppt,.pptx"
-                    onChange={e => setArchivo(e.target.files?.[0] ?? null)}
-                    aria-label={t('formularios:presentacion.archivo_label')}
-                  />
+                  <label className="gform-file">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept=".pdf,.ppt,.pptx"
+                      onChange={e => setArchivo(e.target.files?.[0] ?? null)}
+                      aria-label={t(entrega ? 'formularios:presentacion.archivo_label_reemplazar' : 'formularios:presentacion.archivo_label')}
+                    />
+                    <span className="gform-file-btn">📎 {t('formularios:presentacion.seleccionar_archivo')}</span>
+                    <span className={archivo ? 'gform-file-name' : 'gform-file-name gform-file-name--empty'}>
+                      {archivo ? archivo.name : t('formularios:presentacion.ningun_archivo')}
+                    </span>
+                  </label>
                 </div>
               </div>
 

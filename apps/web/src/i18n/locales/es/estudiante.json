@@ -1,4 +1,27 @@
 {
+  "home": {
+    "cargando": "Cargando…",
+    "pendientes_title": "Pendientes",
+    "pendiente_encuesta": "Encuesta de inicio sin responder",
+    "pendiente_matricula": "{{programa}}: confirma tu registro",
+    "pendiente_formulario": "{{programa}}: {{nombre}}",
+    "pendiente_entregable": "{{programa}}: reto de grupo sin entregar",
+    "proxima_title": "Próxima sesión",
+    "proxima_empty": "No tienes sesiones próximas programadas.",
+    "proxima_sesion_num": "Sesión {{numero}}",
+    "proxima_recursos": "Presentación y grabación disponibles",
+    "proxima_bloqueada": "Los recursos se habilitan el {{fecha}}",
+    "programas_title": "Mis programas",
+    "programas_empty": "Aún no tienes programas activos.",
+    "sesiones_progreso": "{{hechas}} de {{total}} sesiones",
+    "reto": {
+      "sin_grupo": "Sin grupo",
+      "bloqueado": "Reto no habilitado",
+      "sin_iniciar": "Reto sin iniciar",
+      "en_progreso": "Reto en progreso",
+      "entregado": "Reto entregado"
+    }
+  },
   "programas": {
     "title": "Mis programas",
     "empty": "No estás matriculado en ningún programa.",
@@ -21,5 +44,17 @@
     "presentacion": "Ver presentación",
     "presentacion_archivo": "Descargar presentación",
     "facilitador": "Facilitador"
+  },
+  "programa": {
+    "encuesta_inicio_title": "Encuesta de inicio: Uso de IA Generativa",
+    "encuesta_inicio_desc": "Antes de acceder al programa, completa esta breve encuesta sobre tu uso de IA generativa.",
+    "encuesta_inicio_gate": "Completa la encuesta de inicio para desbloquear el resto del programa.",
+    "encuesta_inicio_hecha": "Encuesta de inicio completada. ¡Gracias!",
+    "bloqueado_banner": "Disponible al completar la encuesta de inicio.",
+    "grupo_title": "Mi grupo",
+    "formularios_title": "Formularios del programa",
+    "sesiones_title": "Sesiones",
+    "sin_grupo": "Aún no perteneces a un grupo en este programa.",
+    "sin_formularios": "No hay formularios del programa por ahora."
   }
 }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Field, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { PageHeader, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
@@ -23,30 +23,19 @@ interface Notificacion {
   enviadoEn: string | null;
 }
 
-interface Configuracion {
-  id: string;
-  clave: string;
-  emails: string[];
-  descripcion: string | null;
-  updatedAt: string;
-}
-
 const ESTADO_VARIANT: Record<string, StatusVariant> = {
   enviada: 'success',
   pendiente: 'warning',
   fallida: 'danger',
 };
 
-// RNF-12 / RF-40: bitácora de emails con reenvío + editor de listas de destinatarios.
+// RNF-12: bitácora de emails transaccionales con reenvío manual.
 export function AdminNotificacionesPage() {
   const { t } = useTranslation(['admin', 'common']);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [configs, setConfigs] = useState<Configuracion[]>([]);
   const [estado, setEstado] = useState('');
   const [loading, setLoading] = useState(false);
   const [reenviando, setReenviando] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [savingClave, setSavingClave] = useState<string | null>(null);
 
   const loadNotificaciones = useCallback(() => {
     setLoading(true);
@@ -58,18 +47,7 @@ export function AdminNotificacionesPage() {
       .finally(() => setLoading(false));
   }, [estado]);
 
-  const loadConfigs = useCallback(() => {
-    fetchWithErrorMapping(`${API_URL}/admin/configuracion-notificaciones`)
-      .then(res => res.json())
-      .then((data: Configuracion[]) => {
-        setConfigs(data);
-        setDrafts(Object.fromEntries(data.map(c => [c.clave, c.emails.join('\n')])));
-      })
-      .catch(err => toast.error(translateError(err)));
-  }, []);
-
   useEffect(() => { loadNotificaciones(); }, [loadNotificaciones]);
-  useEffect(() => { loadConfigs(); }, [loadConfigs]);
 
   const reenviar = async (id: string) => {
     setReenviando(id);
@@ -84,71 +62,12 @@ export function AdminNotificacionesPage() {
     }
   };
 
-  const guardarConfig = async (clave: string) => {
-    setSavingClave(clave);
-    try {
-      const emails = (drafts[clave] ?? '')
-        .split(/[\n,]/)
-        .map(s => s.trim())
-        .filter(Boolean);
-      await fetchWithErrorMapping(`${API_URL}/admin/configuracion-notificaciones/${clave}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails }),
-      });
-      toast.success(t('admin:notificaciones.config_guardada'));
-      loadConfigs();
-    } catch (err) {
-      toast.error(translateError(err));
-    } finally {
-      setSavingClave(null);
-    }
-  };
-
   return (
     <div style={{ padding: '2rem', maxWidth: 1100 }}>
       <PageHeader
         title={t('admin:notificaciones.title')}
         description={t('admin:notificaciones.subtitle')}
       />
-
-      {/* Editor de listas de destinatarios (RF-40) */}
-      <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.75rem' }}>{t('admin:notificaciones.config_title')}</h2>
-      {configs.length === 0 && (
-        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('admin:notificaciones.config_empty')}</p>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-        {configs.map(c => (
-          <div key={c.clave} className="card" style={{ padding: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.clave}</div>
-                {c.descripcion && (
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{c.descripcion}</div>
-                )}
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={savingClave === c.clave || (drafts[c.clave] ?? '') === c.emails.join('\n')}
-                onClick={() => guardarConfig(c.clave)}
-              >
-                {savingClave === c.clave ? t('common:loading') : t('admin:notificaciones.config_guardar')}
-              </button>
-            </div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', margin: '10px 0 4px' }}>
-              {t('admin:notificaciones.config_emails')}
-            </label>
-            <textarea
-              className="input"
-              rows={3}
-              value={drafts[c.clave] ?? ''}
-              onChange={e => setDrafts(d => ({ ...d, [c.clave]: e.target.value }))}
-              placeholder={t('admin:notificaciones.config_placeholder')}
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem' }}
-            />
-          </div>
-        ))}
-      </div>
 
       {/* Bitácora de envíos (RNF-12) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap', marginBottom: '0.75rem' }}>

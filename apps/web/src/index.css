@@ -247,6 +247,7 @@ select.input:focus-visible {
   font-size: 0.8125rem;
   font-family: var(--font-family);
   letter-spacing: -0.01em;
+  text-decoration: none;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -461,10 +462,7 @@ select.input {
 
 .page-header h1 {
   font-size: 1.5rem;
-  background: linear-gradient(135deg, #0F172A 30%, #2563EB 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-text-main);
 }
 
 /* ─── Tables ─── */
@@ -1114,36 +1112,85 @@ tr:hover td {
   color: #DC2626;
 }
 
+/* Una sección = un solo bloque conectado (encabezado + preguntas). Las tarjetas
+   internas pierden su borde/sombra/margen individuales y se separan por divisores,
+   para que se lean como una unidad y no como cajas sueltas. */
+.gform-section-group {
+  margin-top: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
 .gform-section {
   background: var(--gform-accent);
   color: #FFFFFF;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
   padding: 0.8rem 1.5rem;
   font-weight: 600;
   font-size: 0.95rem;
-  margin-top: 1.5rem;
   letter-spacing: 0.01em;
 }
 
-.gform-section + .gform-card {
+/* Dentro de una sección las preguntas se separan SOLO con espacio en blanco (sin
+   línea divisoria): el badge numerado ancla el inicio de cada una. Padding vertical
+   holgado para que la separación se lea intencional. */
+.gform-section-group .gform-card {
+  position: relative;
   margin-top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: 1.6rem;
+  padding-bottom: 1.6rem;
+}
+
+/* El foco tiñe suavemente la pregunta activa y redondea sus esquinas para que
+   destaque como una tarjeta viva dentro del bloque, sin recuadros permanentes. */
+.gform-section-group .gform-card:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+  background: var(--gform-accent-soft);
 }
 
 .gform-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 1.25rem 1.5rem 1.4rem;
   margin-top: 1rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .gform-card:focus-within {
   border-color: var(--gform-accent);
   box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.18);
+}
+
+/* Índice de la pregunta: círculo compacto en color de acento. */
+.gform-num {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-top: -0.05rem;
+  border-radius: 50%;
+  background: var(--gform-accent-soft);
+  color: var(--gform-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.gform-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .gform-question {
@@ -1206,6 +1253,59 @@ textarea.gform-input {
   resize: vertical;
   min-height: 4.5rem;
   line-height: 1.5;
+}
+
+/* File picker estilizado: oculta el input nativo y usa un botón + nombre. */
+.gform-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+
+.gform-file > input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.gform-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--gform-accent-soft);
+  color: var(--gform-accent);
+  border: 1px solid var(--gform-accent);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gform-file:hover .gform-file-btn,
+.gform-file > input[type='file']:focus-visible + .gform-file-btn {
+  background: var(--gform-accent);
+  color: #FFFFFF;
+}
+
+.gform-file-name {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.gform-file-name--empty {
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
 
 /* Opciones (radio / checkbox) */
@@ -1306,19 +1406,49 @@ textarea.gform-input {
   margin-bottom: 0.75rem;
 }
 
+.gform-iteracion-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.gform-iteracion-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gform-accent);
+}
+
+.gform-iteracion-fecha {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
 .gform-add {
-  background: none;
-  border: none;
-  padding: 0.4rem 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  background: var(--gform-accent-soft);
+  border: 1px solid var(--gform-accent);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.9rem;
   font-family: var(--font-family);
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--gform-accent);
   cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .gform-add:hover {
-  text-decoration: underline;
+  background: var(--gform-accent);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px -2px rgba(13, 148, 136, 0.4);
 }
 
 /* Pie: enviar + autosave */

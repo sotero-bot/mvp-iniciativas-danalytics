@@ -1,4 +1,5 @@
 {
+  "seccion_general": "Información general",
   "tipos": {
     "diagnostico_inicial": "Diagnóstico inicial",
     "diagnostico_final": "Diagnóstico final",
@@ -101,6 +102,8 @@
     "missing_required": "Responde los campos obligatorios antes de enviar.",
     "add_fila": "Añadir fila",
     "add_iteracion": "Añadir iteración",
+    "iteracion_semana": "Iteración · Semana {{n}}",
+    "iteracion_fecha": "Registrada el {{fecha}}",
     "quitar": "Quitar"
   },
   "grupo": {
@@ -119,18 +122,19 @@
   },
   "presentacion": {
     "title": "Presentación final",
-    "hint": "Entrega el link o sube el archivo (PDF/PPT) de la presentación final del grupo.",
+    "hint": "Sube el archivo (PDF/PPT) de la presentación final del grupo.",
     "no_habilitada": "La entrega de la presentación final aún no está habilitada.",
     "no_habilitada_sesion": "La entrega se habilita a partir de la sesión {{n}}.",
-    "url_label": "Link de la presentación",
     "archivo_label": "Archivo (PDF/PPT)",
-    "falta_entrega": "Ingresa un link o selecciona un archivo antes de entregar.",
+    "archivo_label_reemplazar": "Reemplazar archivo (PDF/PPT)",
+    "seleccionar_archivo": "Seleccionar archivo",
+    "ningun_archivo": "Ningún archivo seleccionado",
+    "falta_entrega": "Selecciona un archivo (PDF/PPT) antes de entregar.",
     "subir": "Entregar",
     "subiendo": "Entregando…",
     "entregada": "Entrega registrada",
     "entregada_por": "Entregada por {{nombre}} — {{fecha}}",
-    "reemplazar_hint": "Puedes volver a entregar para reemplazar el link o el archivo.",
-    "ver_link": "Abrir link",
+    "reemplazar_hint": "Puedes volver a entregar para reemplazar el archivo.",
     "archivo_actual": "Archivo entregado"
   },
   "reto": {
