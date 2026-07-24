@@ -26,9 +26,19 @@ function looksLikeProductionRuntime(): boolean {
   return Boolean(process.env.VERCEL || process.env.CI || process.env.NODE_ENV === 'production');
 }
 
-/** `true` si estamos en producción según `APP_ENV` o las señales automáticas. */
+/**
+ * `true` si estamos en producción.
+ *
+ * `APP_ENV`, cuando está definida explícitamente, MANDA sobre todo lo demás
+ * (imprescindible: Vercel siempre define `VERCEL=1`, así que sin esta precedencia
+ * un preview con `APP_ENV=development` se tomaría como producción). Solo cuando
+ * `APP_ENV` NO está definida se cae a las señales automáticas de deploy, para que
+ * un despliegue sin la variable sea "producción" por seguridad.
+ */
 export function isProduction(): boolean {
-  return declaredAppEnv() === 'production' || looksLikeProductionRuntime();
+  const declared = declaredAppEnv();
+  if (declared) return declared === 'production';
+  return looksLikeProductionRuntime();
 }
 
 /** `true` en pruebas/desarrollo: todo lo que NO es producción. */
