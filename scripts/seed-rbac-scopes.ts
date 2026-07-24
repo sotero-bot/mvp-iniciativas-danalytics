@@ -104,6 +104,28 @@ async function ensureUsuario(opts: {
   return prisma.usuario.create({ data: { id: randomUUID(), ...data } });
 }
 
+/**
+ * Admin danalytics de prueba (username fijo "admin", contraseña PASSWORD).
+ * Upsertea por username, igual que seed-admin.ts, para no depender de que ese
+ * seed se haya corrido antes.
+ */
+async function ensureAdmin(adminRoleId: string) {
+  const hashed = await bcrypt.hash(PASSWORD, 10);
+  return prisma.usuario.upsert({
+    where: { username: 'admin' },
+    update: { password: hashed, roleId: adminRoleId, puedeIniciarSesion: true, activo: true },
+    create: {
+      id: randomUUID(),
+      username: 'admin',
+      nombre: 'Admin Danalytics (test)',
+      password: hashed,
+      roleId: adminRoleId,
+      puedeIniciarSesion: true,
+      activo: true,
+    },
+  });
+}
+
 let _roleIds: Record<string, string> | null = null;
 async function getRoleIds() {
   if (_roleIds) return _roleIds;
@@ -212,8 +234,11 @@ async function main() {
   console.log('🌱  Seed de escenarios RBAC (roles + alcances)\n');
 
   const roleIds = await getRoleIds();
-  const admin = await prisma.usuario.findFirst({ where: { roleId: roleIds['danalytics_admin'] } });
-  if (!admin) throw new Error('No hay usuario danalytics_admin. Corre "npm run seed:admin" primero.');
+
+  // Admin danalytics de PRUEBA: username "admin" con la misma contraseña que el
+  // resto del seed (test123). Se upsertea por username; NUNCA en producción
+  // (el guard assertDevOrTest de arriba lo garantiza).
+  const admin = await ensureAdmin(roleIds['danalytics_admin']);
 
   // Empresas
   const empA = await ensureEmpresa(EMP_A.nombre, EMP_A.dominio);
