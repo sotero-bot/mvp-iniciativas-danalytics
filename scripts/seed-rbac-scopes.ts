@@ -207,9 +207,16 @@ async function ensureParticipante(programaId: string, usuarioId: string) {
   const existing = await prisma.participantePrograma.findUnique({
     where: { programaId_usuarioId: { programaId, usuarioId } },
   });
-  if (existing) return existing;
+  // Los estudiantes de prueba quedan siempre CONFIRMADOS y activos. En cada corrida
+  // se re-marca confirmadoEn para dejar el estado en verde aunque exista de antes.
+  if (existing) {
+    return prisma.participantePrograma.update({
+      where: { id: existing.id },
+      data: { activo: true, confirmadoEn: existing.confirmadoEn ?? now },
+    });
+  }
   return prisma.participantePrograma.create({
-    data: { id: randomUUID(), programaId, usuarioId },
+    data: { id: randomUUID(), programaId, usuarioId, activo: true, confirmadoEn: now },
   });
 }
 
