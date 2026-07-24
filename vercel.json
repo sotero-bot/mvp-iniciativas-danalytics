@@ -15,7 +15,7 @@
     "crons": [
         {
             "path": "/api/internal/jobs/material-disponible",
-            "schedule": "0 * * * *"
+            "schedule": "0 8 * * *"
         }
     ]
 }
