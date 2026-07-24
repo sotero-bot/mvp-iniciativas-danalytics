@@ -18,23 +18,24 @@
  *
  * Idempotente (create-if-missing por email/nombre). NO borra nada.
  * NO se ejecuta en Vercel. Uso local:
- *   TEST_PASSWORD='Prueba123*' npx tsx scripts/seed-rbac-scopes.ts
+ *   npx tsx scripts/seed-rbac-scopes.ts   # contraseña de todos: test123
+ *   TEST_PASSWORD='otra' npx tsx scripts/seed-rbac-scopes.ts   # para sobreescribirla
  */
 
 import { PrismaClient, EstadoPrograma, EstadoSesion } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
-// 🔒 Este seed crea usuarios de PRUEBA con contraseña conocida. NUNCA debe correr
-// en producción/Vercel (mismo criterio que el veto a reset-data en el deploy).
-if (process.env.VERCEL || process.env.CI || process.env.NODE_ENV === 'production') {
-  console.error('⛔  seed:rbac-scopes está bloqueado en producción/Vercel/CI. Abortado.');
-  process.exit(1);
-}
+import { assertDevOrTest } from './lib/app-env';
+
+// 🔒 Este seed crea usuarios de PRUEBA con contraseña conocida. Solo corre en
+// pruebas/desarrollo (APP_ENV=development|test); NUNCA en producción/Vercel/CI
+// (mismo criterio que el veto a reset-data en el deploy).
+assertDevOrTest('seed:rbac-scopes');
 
 const prisma = new PrismaClient();
 
-const PASSWORD = process.env.TEST_PASSWORD ?? 'Prueba123*';
+const PASSWORD = process.env.TEST_PASSWORD ?? 'test123';
 
 // Dominios .test para no colisionar con datos reales ni con el demo seed.
 const EMP_A = { nombre: 'Acme Corp (RBAC test)', dominio: 'acme-rbac.test' };
