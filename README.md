@@ -106,3 +106,5 @@ npm run start:dev
 - `prisma`: Esquema de base de datos.
 - `src/modules`: Lógica de negocio dividida en dominios (Methodology, Execution, Organization, Auth).
 
+
+<!-- deploy check: rama cambios -->
