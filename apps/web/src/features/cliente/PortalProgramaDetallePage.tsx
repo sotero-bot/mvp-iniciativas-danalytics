@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { PageHeader, Loading, StatCard, ProgressBar } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, StatCard, ProgressBar } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -77,8 +77,14 @@ export function PortalProgramaDetallePage() {
       {loading && <Loading label={t('common:loading')} />}
       {detalle && (
         <>
+          <Breadcrumb
+            items={[
+              { label: t('portal:programas.title'), to: '/portal/programas' },
+              { label: detalle.programa.nombre },
+            ]}
+          />
           <PageHeader
-            back={{ to: '/portal/programas', label: t('portal:detalle.back') }}
+            eyebrow={t('portal:programas.title')}
             title={detalle.programa.nombre}
             description={
               <>
@@ -89,7 +95,7 @@ export function PortalProgramaDetallePage() {
           />
 
           {/* Avance */}
-          <div className="stat-grid" style={{ marginBottom: '1.25rem' }}>
+          <div className="stat-grid" style={{ marginBottom: 'var(--space-5)' }}>
             {[
               { label: t('portal:detalle.sesiones_completadas'), valor: `${detalle.avance.sesionesCompletadas}/${detalle.avance.sesionesTotales}` },
               { label: t('portal:detalle.participantes_activos'), valor: String(detalle.avance.participantesActivos) },
@@ -104,104 +110,121 @@ export function PortalProgramaDetallePage() {
 
           {/* Asistencia (matriz sesión × participante, RF-20) */}
           {asistencia && asistencia.filas.length > 0 && (
-            <div className="card" style={{ marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>{t('portal:detalle.asistencia')}</h2>
-              <div className="table-container">
-                <table className="table-compact">
-                  <thead>
-                    <tr>
-                      <th>{t('portal:detalle.participante')}</th>
-                      {asistencia.sesiones.map(s => (
-                        <th key={s.id} style={{ textAlign: 'center' }}>S{s.numeroSesion}</th>
-                      ))}
-                      <th style={{ textAlign: 'right' }}>%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {asistencia.filas.map(f => (
-                      <tr key={f.usuarioId}>
-                        <td>{f.nombre}</td>
+            <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+              <div className="section-card-header">
+                <span className="section-card-title">{t('portal:detalle.asistencia')}</span>
+              </div>
+              <div className="section-card-body">
+                <div className="table-container">
+                  <table className="table-compact">
+                    <thead>
+                      <tr>
+                        <th>{t('portal:detalle.participante')}</th>
                         {asistencia.sesiones.map(s => (
-                          <td key={s.id} style={{ textAlign: 'center' }}>
-                            {f.porSesion[s.id] ? '✓' : f.porSesion[s.id] === false ? '✗' : '—'}
-                          </td>
+                          <th key={s.id} style={{ textAlign: 'center' }}>S{s.numeroSesion}</th>
                         ))}
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{Math.round(f.porcentaje * 100)}%</td>
+                        <th style={{ textAlign: 'right' }}>%</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {asistencia.filas.map(f => (
+                        <tr key={f.usuarioId}>
+                          <td>{f.nombre}</td>
+                          {asistencia.sesiones.map(s => (
+                            <td key={s.id} style={{ textAlign: 'center' }}>
+                              {f.porSesion[s.id] ? '✓' : f.porSesion[s.id] === false ? '✗' : '—'}
+                            </td>
+                          ))}
+                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{Math.round(f.porcentaje * 100)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* Diagnóstico agregado (RF-35) */}
-          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>{t('portal:detalle.diagnostico')}</h2>
-            <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-              {([['inicial', detalle.diagnostico.inicial], ['final', detalle.diagnostico.final]] as const).map(([key, bloque]) => (
-                <div key={key}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
-                    {t(`portal:detalle.${key}`)} · n={bloque.totalRespuestas}
+          <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="section-card-header">
+              <span className="section-card-title">{t('portal:detalle.diagnostico')}</span>
+            </div>
+            <div className="section-card-body">
+              <div style={{ display: 'grid', gap: 'var(--space-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                {([['inicial', detalle.diagnostico.inicial], ['final', detalle.diagnostico.final]] as const).map(([key, bloque]) => (
+                  <div key={key}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-2)' }}>
+                      {t(`portal:detalle.${key}`)} · n={bloque.totalRespuestas}
+                    </div>
+                    {bloque.dimensiones.length === 0
+                      ? <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
+                      : <BarrasDimensiones dimensiones={bloque.dimensiones} />}
                   </div>
-                  {bloque.dimensiones.length === 0
-                    ? <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
-                    : <BarrasDimensiones dimensiones={bloque.dimensiones} />}
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Proyecto por grupo (estado de la presentación final) */}
+          <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="section-card-header">
+              <span className="section-card-title">{t('portal:detalle.proyecto')}</span>
+              <span className="count-badge">{detalle.proyecto.length}</span>
+            </div>
+            <div className="section-card-body">
+              {detalle.proyecto.length === 0 && (
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
+              )}
+              {detalle.proyecto.map(g => (
+                <div key={g.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', padding: 'var(--space-2) 0', fontSize: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
+                  <span style={{ fontWeight: 600, minWidth: 160 }}>{g.nombre}</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{g.miembros} {t('portal:detalle.integrantes')}</span>
+                  <span style={{ marginLeft: 'auto' }}>
+                    {g.presentacion.entregada ? (
+                      <span style={{ color: 'var(--color-success-strong)', fontWeight: 600 }}>
+                        ✓ {t('portal:detalle.presentacion_entregada')}{g.presentacion.entregadoEn ? ` · ${fecha(g.presentacion.entregadoEn)}` : ''}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-secondary)' }}>{t('portal:detalle.presentacion_pendiente')}</span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Proyecto por grupo (estado de la presentación final) */}
-          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>{t('portal:detalle.proyecto')}</h2>
-            {detalle.proyecto.length === 0 && (
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
-            )}
-            {detalle.proyecto.map(g => (
-              <div key={g.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '6px 0', fontSize: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
-                <span style={{ fontWeight: 600, minWidth: 160 }}>{g.nombre}</span>
-                <span style={{ color: 'var(--color-text-secondary)' }}>{g.miembros} {t('portal:detalle.integrantes')}</span>
-                <span style={{ marginLeft: 'auto' }}>
-                  {g.presentacion.entregada ? (
-                    <span style={{ color: 'var(--color-success-strong)', fontWeight: 600 }}>
-                      ✓ {t('portal:detalle.presentacion_entregada')}{g.presentacion.entregadoEn ? ` · ${fecha(g.presentacion.entregadoEn)}` : ''}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--color-text-secondary)' }}>{t('portal:detalle.presentacion_pendiente')}</span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-
           {/* Feedback anónimo agregado */}
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>{t('portal:detalle.feedback')}</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.feedback_hint')}</p>
-            {detalle.feedback.totalRespuestas === 0 && <p style={{ fontSize: '0.85rem' }}>{t('portal:detalle.sin_datos')}</p>}
-            {detalle.feedback.campos.map(campo => (
-              <div key={campo.campoId} style={{ marginBottom: 14 }}>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4 }}>{campo.etiqueta}</div>
-                {campo.promedio !== undefined && campo.promedio !== null && (
-                  <div style={{ fontSize: '0.85rem' }}>{t('portal:detalle.promedio')}: <strong>{campo.promedio.toFixed(2)}</strong> (n={campo.n})</div>
-                )}
-                {campo.opciones?.map(op => (
-                  <div key={op.valor} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', marginTop: 4 }}>
-                    <span style={{ minWidth: 160 }}>{op.etiqueta}</span>
-                    <div style={{ flex: 1 }}>
-                      <ProgressBar value={campo.n ? (op.conteo / campo.n) * 100 : 0} color="#14B8A6" label={op.etiqueta} />
+          <div className="section-card">
+            <div className="section-card-header">
+              <span className="section-card-title">{t('portal:detalle.feedback')}</span>
+            </div>
+            <div className="section-card-body">
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.feedback_hint')}</p>
+              {detalle.feedback.totalRespuestas === 0 && <p style={{ fontSize: '0.85rem' }}>{t('portal:detalle.sin_datos')}</p>}
+              {detalle.feedback.campos.map(campo => (
+                <div key={campo.campoId} style={{ marginBottom: 'var(--space-4)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-1)' }}>{campo.etiqueta}</div>
+                  {campo.promedio !== undefined && campo.promedio !== null && (
+                    <div style={{ fontSize: '0.85rem' }}>{t('portal:detalle.promedio')}: <strong>{campo.promedio.toFixed(2)}</strong> (n={campo.n})</div>
+                  )}
+                  {campo.opciones?.map(op => (
+                    <div key={op.valor} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.82rem', marginTop: 'var(--space-1)' }}>
+                      <span style={{ minWidth: 160 }}>{op.etiqueta}</span>
+                      <div style={{ flex: 1 }}>
+                        <ProgressBar value={campo.n ? (op.conteo / campo.n) * 100 : 0} label={op.etiqueta} />
+                      </div>
+                      <span style={{ minWidth: 24, textAlign: 'right' }}>{op.conteo}</span>
                     </div>
-                    <span style={{ minWidth: 24, textAlign: 'right' }}>{op.conteo}</span>
-                  </div>
-                ))}
-                {campo.textos && campo.textos.length > 0 && (
-                  <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.85rem' }}>
-                    {campo.textos.map((texto, i) => <li key={i} style={{ marginBottom: 4 }}>{texto}</li>)}
-                  </ul>
-                )}
-              </div>
-            ))}
+                  ))}
+                  {campo.textos && campo.textos.length > 0 && (
+                    <ul style={{ margin: 'var(--space-1) 0 0', paddingLeft: 18, fontSize: '0.85rem' }}>
+                      {campo.textos.map((texto, i) => <li key={i} style={{ marginBottom: 'var(--space-1)' }}>{texto}</li>)}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}

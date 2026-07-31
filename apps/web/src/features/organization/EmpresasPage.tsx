@@ -1,13 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Modal, Field, StatusBadge, EmptyState } from '../../components/ui';
+import {
+  Modal, Field, StatusBadge, EmptyState,
+  Breadcrumb, PageHeader, Button, FormListLayout, DataTable, Pagination,
+} from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 5;
 
 interface Empresa {
   id: string;
@@ -76,7 +81,7 @@ function LogoUploadField({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
       {preview ? (
         <img
           src={preview}
@@ -91,12 +96,12 @@ function LogoUploadField({
           fontSize: '1.25rem', color: 'var(--color-text-tertiary)',
         }}>🖼</div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <label style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
           padding: '4px 12px', fontSize: '0.8rem',
           background: 'var(--color-primary-light)', color: 'var(--color-primary)',
-          borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+          cursor: 'pointer', fontWeight: 500,
           border: '1px solid var(--color-info-border)', width: 'fit-content',
         }}>
           {preview ? t('organization:empresas.logo_field.change_logo') : t('organization:empresas.logo_field.upload_logo')}
@@ -125,7 +130,7 @@ function LogoUploadField({
 }
 
 export function EmpresasPage() {
-  const { t } = useTranslation(['organization', 'common']);
+  const { t } = useTranslation(['organization', 'admin', 'common']);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [nombre, setNombre] = useState('');
   const [sector, setSector] = useState('');
@@ -144,7 +149,14 @@ export function EmpresasPage() {
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPdfRemove, setEditPdfRemove] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
 
+  const totalPages = Math.max(1, Math.ceil(empresas.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => empresas.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [empresas, currentPage],
+  );
 
   const load = async () => {
     try {
@@ -241,6 +253,66 @@ export function EmpresasPage() {
     }
   };
 
+  const columns: DataTableColumn<Empresa>[] = [
+    {
+      key: 'empresa',
+      header: t('organization:empresas.table.empresa'),
+      render: (emp) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <LogoPreview src={emp.logoUrl} nombre={emp.nombre} size={32} />
+          <span style={{ fontWeight: 500 }}>{emp.nombre}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'contexto_pdf',
+      header: t('organization:empresas.table.contexto_pdf'),
+      render: (emp) => (
+        emp.contextoPdfNombre ? (
+          <span title={emp.contextoPdfNombre}>
+            <StatusBadge variant="success">
+              {t('organization:empresas.table.pdf_uploaded')}
+            </StatusBadge>
+          </span>
+        ) : (
+          <StatusBadge variant="neutral">
+            {t('organization:empresas.table.pdf_missing')}
+          </StatusBadge>
+        )
+      ),
+    },
+    {
+      key: 'created',
+      header: t('organization:empresas.table.created'),
+      render: (emp) => (
+        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+          {new Date(emp.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('organization:empresas.table.actions'),
+      align: 'right',
+      render: (emp) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(emp)}>
+            {t('common:buttons.edit')}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setDeleteModal({ id: emp.id, nombre: emp.nombre })}
+            title={t('common:buttons.delete')}
+            aria-label={t('common:buttons.delete')}
+          >
+            🗑️
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <ConfirmModal
@@ -261,7 +333,7 @@ export function EmpresasPage() {
           <form
             className={editWasValidated ? 'was-validated' : ''}
             onSubmit={handleEdit}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
             noValidate
           >
             <Field label={t('organization:empresas.fields.nombre')} htmlFor="emp-edit-nombre" required>
@@ -301,26 +373,26 @@ export function EmpresasPage() {
               hint={t('organization:empresas.pdf_field.context_hint')}
             >
               {editPdfRemove ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-danger)' }}>{t('organization:empresas.pdf_field.will_delete_warning')}</span>
                   <button type="button" className="btn-link" style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}
                     onClick={() => setEditPdfRemove(false)}>{t('organization:empresas.pdf_field.undo')}</button>
                 </div>
               ) : editPdfFile ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-text-main)' }}>📄 {editPdfFile.name}</span>
                   <button type="button" className="btn-link btn-link-danger" style={{ fontSize: '0.75rem' }}
                     onClick={() => setEditPdfFile(null)}>{t('organization:empresas.pdf_field.remove')}</button>
                 </div>
               ) : editModal.contextoPdfNombre ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <StatusBadge variant="success">
                     📄 {editModal.contextoPdfNombre}
                   </StatusBadge>
                   <label style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', padding: '3px 10px',
                     fontSize: '0.78rem', background: 'var(--color-primary-light)', color: 'var(--color-primary)',
-                    borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-info-border)',
+                    cursor: 'pointer', border: '1px solid var(--color-info-border)',
                   }}>
                     {t('organization:empresas.pdf_field.replace')}
                     <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
@@ -331,9 +403,9 @@ export function EmpresasPage() {
                 </div>
               ) : (
                 <label style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px',
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', padding: '5px 14px',
                   fontSize: '0.8rem', background: 'var(--color-primary-light)', color: 'var(--color-primary)',
-                  borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-info-border)', fontWeight: 500,
+                  cursor: 'pointer', border: '1px solid var(--color-info-border)', fontWeight: 500,
                 }}>
                   {t('organization:empresas.pdf_field.upload_pdf')}
                   <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
@@ -341,196 +413,152 @@ export function EmpresasPage() {
                 </label>
               )}
             </Field>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+            <div className="form-footer">
+              <Button type="button" variant="secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</Button>
+              <Button type="submit" variant="primary" disabled={saving}>
                 {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-              </button>
+              </Button>
             </div>
           </form>
         )}
       </Modal>
 
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <h1>{t('organization:empresas.page_title')}</h1>
-          <p className="page-description">
-            {t('organization:empresas.page_description')}
-          </p>
-        </div>
-        {empresas.length > 0 && (
-          <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.empresas') },
+        ]}
+      />
+
+      <PageHeader
+        title={t('organization:empresas.page_title')}
+        description={t('organization:empresas.page_description')}
+        actions={empresas.length > 0 && (
+          <Link to="/admin/iniciativas" className="btn btn-secondary">
             {t('organization:empresas.next_iniciativas')}
           </Link>
         )}
-      </div>
+      />
 
-      {/* Create form */}
-      <div className="card mb-4" style={{ maxWidth: '560px' }}>
-        <h3 style={{ margin: '0 0 4px' }}>{t('organization:empresas.create_section_title')}</h3>
-        <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>{t('organization:empresas.create_section_subtitle')}</p>
-        <form
-          className={wasValidated ? 'was-validated' : ''}
-          onSubmit={(e) => {
-            e.preventDefault();
-            const form = e.currentTarget;
-            setWasValidated(true);
-            if (form.checkValidity()) create();
-          }}
-          noValidate
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
-          <div>
-            <input
-              className="input"
-              required
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              placeholder={t('organization:empresas.placeholders.nombre')}
-            />
-            <div className="invalid-feedback">{t('organization:empresas.validation.nombre_required')}</div>
-          </div>
-          <Field label={t('organization:empresas.fields.sector')} htmlFor="emp-sector" required>
-            <input
-              id="emp-sector"
-              className="input"
-              required
-              value={sector}
-              onChange={e => setSector(e.target.value)}
-              placeholder={t('organization:empresas.placeholders.sector')}
-            />
-            <div className="invalid-feedback">{t('organization:empresas.validation.sector_required')}</div>
-          </Field>
-          <Field label={t('organization:empresas.fields.tipo_organizacion')} htmlFor="emp-tipo" required>
-            <input
-              id="emp-tipo"
-              className="input"
-              required
-              value={tipoOrganizacion}
-              onChange={e => setTipoOrganizacion(e.target.value)}
-              placeholder={t('organization:empresas.placeholders.tipo_organizacion')}
-            />
-            <div className="invalid-feedback">{t('organization:empresas.validation.tipo_organizacion_required')}</div>
-          </Field>
-          <Field label={<>{t('organization:empresas.fields.logo')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.logo_field.optional')}</span></>}>
-            <LogoUploadField current={logoBase64} onChange={setLogoBase64} />
-          </Field>
-          <Field
-            label={<>{t('organization:empresas.fields.contexto_pdf')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.pdf_field.optional')}</span></>}
-            hint={t('organization:empresas.pdf_field.context_hint')}
-          >
-            {createPdfFile ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-main)' }}>📄 {createPdfFile.name}</span>
-                <button type="button" className="btn-link btn-link-danger" style={{ fontSize: '0.75rem' }}
-                  onClick={() => setCreatePdfFile(null)}>{t('organization:empresas.pdf_field.remove')}</button>
+      <FormListLayout
+        form={
+          <div className="card">
+            <h3 style={{ margin: '0 0 var(--space-1)' }}>{t('organization:empresas.create_section_title')}</h3>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.8125rem' }}>{t('organization:empresas.create_section_subtitle')}</p>
+            <form
+              className={wasValidated ? 'was-validated' : ''}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                setWasValidated(true);
+                if (form.checkValidity()) create();
+              }}
+              noValidate
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+            >
+              <div>
+                <input
+                  className="input"
+                  required
+                  value={nombre}
+                  onChange={e => setNombre(e.target.value)}
+                  placeholder={t('organization:empresas.placeholders.nombre')}
+                />
+                <div className="invalid-feedback">{t('organization:empresas.validation.nombre_required')}</div>
               </div>
-            ) : (
-              <label style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px',
-                fontSize: '0.8rem', background: 'var(--color-primary-light)', color: 'var(--color-primary)',
-                borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-info-border)', fontWeight: 500,
-              }}>
-                {t('organization:empresas.pdf_field.upload_pdf')}
-                <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) setCreatePdfFile(f); }} />
-              </label>
-            )}
-          </Field>
-          <div>
-            <button type="submit" className="btn btn-primary">{t('organization:empresas.create_submit')}</button>
+              <Field label={t('organization:empresas.fields.sector')} htmlFor="emp-sector" required>
+                <input
+                  id="emp-sector"
+                  className="input"
+                  required
+                  value={sector}
+                  onChange={e => setSector(e.target.value)}
+                  placeholder={t('organization:empresas.placeholders.sector')}
+                />
+                <div className="invalid-feedback">{t('organization:empresas.validation.sector_required')}</div>
+              </Field>
+              <Field label={t('organization:empresas.fields.tipo_organizacion')} htmlFor="emp-tipo" required>
+                <input
+                  id="emp-tipo"
+                  className="input"
+                  required
+                  value={tipoOrganizacion}
+                  onChange={e => setTipoOrganizacion(e.target.value)}
+                  placeholder={t('organization:empresas.placeholders.tipo_organizacion')}
+                />
+                <div className="invalid-feedback">{t('organization:empresas.validation.tipo_organizacion_required')}</div>
+              </Field>
+              <Field label={<>{t('organization:empresas.fields.logo')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.logo_field.optional')}</span></>}>
+                <LogoUploadField current={logoBase64} onChange={setLogoBase64} />
+              </Field>
+              <Field
+                label={<>{t('organization:empresas.fields.contexto_pdf')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('organization:empresas.pdf_field.optional')}</span></>}
+                hint={t('organization:empresas.pdf_field.context_hint')}
+              >
+                {createPdfFile ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-main)' }}>📄 {createPdfFile.name}</span>
+                    <button type="button" className="btn-link btn-link-danger" style={{ fontSize: '0.75rem' }}
+                      onClick={() => setCreatePdfFile(null)}>{t('organization:empresas.pdf_field.remove')}</button>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', padding: '5px 14px',
+                    fontSize: '0.8rem', background: 'var(--color-primary-light)', color: 'var(--color-primary)',
+                    cursor: 'pointer', border: '1px solid var(--color-info-border)', fontWeight: 500,
+                  }}>
+                    {t('organization:empresas.pdf_field.upload_pdf')}
+                    <input type="file" accept=".pdf,.md" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) setCreatePdfFile(f); }} />
+                  </label>
+                )}
+              </Field>
+              <Button type="submit" variant="primary" block>
+                {t('organization:empresas.create_submit')}
+              </Button>
+            </form>
           </div>
-        </form>
-      </div>
-
-      {/* Table or empty state */}
-      {empresas.length === 0 ? (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <EmptyState
-            icon="🏢"
-            title={t('organization:empresas.empty.title')}
-            description={t('organization:empresas.empty.description')}
-          />
-        </div>
-      ) : (
-        <div className="table-container">
-          <table cellPadding={0} cellSpacing={0}>
-            <thead>
-              <tr>
-                <th>{t('organization:empresas.table.empresa')}</th>
-                <th>{t('organization:empresas.table.contexto_pdf')}</th>
-                <th>{t('organization:empresas.table.created')}</th>
-                <th style={{ textAlign: 'right' }}>{t('organization:empresas.table.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {empresas.map((emp) => (
-                <tr key={emp.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <LogoPreview src={emp.logoUrl} nombre={emp.nombre} size={32} />
-                      <span style={{ fontWeight: 500 }}>{emp.nombre}</span>
-                    </div>
-                  </td>
-                  <td>
-                    {emp.contextoPdfNombre ? (
-                      <span title={emp.contextoPdfNombre}>
-                        <StatusBadge variant="success">
-                          {t('organization:empresas.table.pdf_uploaded')}
-                        </StatusBadge>
-                      </span>
-                    ) : (
-                      <StatusBadge variant="neutral">
-                        {t('organization:empresas.table.pdf_missing')}
-                      </StatusBadge>
-                    )}
-                  </td>
-                  <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-                    {new Date(emp.createdAt).toLocaleDateString()}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                        onClick={() => openEdit(emp)}
-                      >
-                        {t('common:buttons.edit')}
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ padding: '4px 8px', fontSize: '0.875rem' }}
-                        onClick={() => setDeleteModal({ id: emp.id, nombre: emp.nombre })}
-                        title={t('common:buttons.delete')}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        }
+        list={
+          empresas.length === 0 ? (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <EmptyState
+                icon="🏢"
+                title={t('organization:empresas.empty.title')}
+                description={t('organization:empresas.empty.description')}
+              />
+            </div>
+          ) : (
+            <div className="section-card">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('organization:empresas.table.header_title')}</span>
+                <span className="count-badge">{empresas.length}</span>
+              </div>
+              <DataTable columns={columns} rows={pageRows} rowKey={emp => emp.id} />
+              <Pagination
+                page={currentPage}
+                pageCount={totalPages}
+                onPageChange={setPage}
+                prevLabel={t('common:buttons.previous')}
+                nextLabel={t('common:buttons.next')}
+                info={t('organization:empresas.table.showing', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, empresas.length),
+                  total: empresas.length,
+                })}
+              />
+            </div>
+          )
+        }
+      />
 
       {/* Next step hint */}
       {empresas.length > 0 && (
-        <div style={{
-          marginTop: '1.25rem',
-          padding: '0.875rem 1.25rem',
-          background: '#F0F9FF',
-          border: '1px solid #BAE6FD',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex', alignItems: 'center', gap: '0.875rem',
-        }}>
-          <span style={{ fontSize: '1rem' }}>💡</span>
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
+        <div className="next-step-banner">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>
             <strong>{t('organization:empresas.next_step.label')}</strong> {t('organization:empresas.next_step.text')}
           </p>
-          <Link to="/admin/iniciativas" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
+          <Link to="/admin/iniciativas" className="btn btn-secondary">
             {t('organization:empresas.next_step.link')}
           </Link>
         </div>

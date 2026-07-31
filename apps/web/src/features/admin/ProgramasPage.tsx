@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { ProgramasDashboardPanel } from './ProgramasDashboardPanel';
-import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader } from '../../components/ui';
+import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader, Breadcrumb, Button, FilterToolbar, DataTable } from '../../components/ui';
 import { toast } from '../../components/toast-store';
-import type { StatusVariant } from '../../components/ui';
+import type { StatusVariant, DataTableColumn } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -292,6 +292,113 @@ export function ProgramasPage() {
 
   const empresaOptions = useMemo(() => empresas.map(e => ({ id: e.id, nombre: e.nombre })), [empresas]);
 
+  // Atenúa la fila de programas inactivos sin depender de estilos por-fila del DataTable.
+  const dim = (p: Programa, node: React.ReactNode) => (
+    <span style={{ opacity: p.activo ? 1 : 0.5 }}>{node}</span>
+  );
+
+  const columns: DataTableColumn<Programa>[] = [
+    {
+      key: 'nombre',
+      header: t('admin:programas.columns.nombre'),
+      render: p => dim(p, (
+        <>
+          <button className="btn-link" onClick={() => setDetailOpen(p)} style={{ padding: 0, textAlign: 'left', fontWeight: 500 }}>
+            {p.nombre}
+          </button>
+          {p.descripcion && (
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{p.descripcion.slice(0, 80)}</div>
+          )}
+        </>
+      )),
+    },
+    {
+      key: 'empresa',
+      header: t('admin:programas.columns.empresa'),
+      render: p => dim(p, (
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+          {p.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
+        </span>
+      )),
+    },
+    {
+      key: 'facilitador',
+      header: t('admin:programas.columns.facilitador'),
+      render: p => dim(p, (
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+          {p.facilitadores.length === 0 ? (
+            <span style={{ color: 'var(--color-border-strong)' }}>—</span>
+          ) : (
+            p.facilitadores.map(f => (
+              <div key={f.id}>
+                {f.nombre}
+                {f.email && <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}> · {f.email}</span>}
+              </div>
+            ))
+          )}
+        </span>
+      )),
+    },
+    {
+      key: 'estado',
+      header: t('admin:programas.columns.estado'),
+      align: 'center',
+      render: p => dim(p, (
+        <StatusBadge variant={ESTADO_VARIANTS[p.estado]}>
+          {t(`programa:estado.${p.estado}`)}
+        </StatusBadge>
+      )),
+    },
+    {
+      key: 'sesiones',
+      header: t('admin:programas.columns.sesiones'),
+      align: 'center',
+      render: p => dim(p, <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{p._count.sesiones}</span>),
+    },
+    {
+      key: 'participantes',
+      header: t('admin:programas.columns.participantes'),
+      align: 'center',
+      render: p => dim(p, <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{p._count.participantes}</span>),
+    },
+    {
+      key: 'acciones',
+      header: t('admin:programas.columns.acciones'),
+      align: 'right',
+      render: p => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <Button variant="secondary" size="sm" onClick={() => setDetailOpen(p)}>
+            {t('admin:programas.actions.details')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
+            {t('admin:programas.actions.edit')}
+          </Button>
+          <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/diagnostico`}>
+            {t('admin:programas.actions.diagnostico')}
+          </Link>
+          <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/asistencia`}>
+            {t('admin:programas.actions.asistencia')}
+          </Link>
+          {p.activo && (
+            <Button variant="secondary" size="sm" onClick={() => setMatriculaFor({ programa: p, modo: 'individual' })}>
+              {t('admin:programas.actions.matricular')}
+            </Button>
+          )}
+          {p.activo && (
+            <Button variant="secondary" size="sm" onClick={() => setMatriculaFor({ programa: p, modo: 'masiva' })}>
+              {t('admin:programas.participantes.actions.new_masiva')}
+            </Button>
+          )}
+          {p.activo && p.estado !== 'cancelado' && (
+            <Button variant="danger" size="sm" onClick={() => setDeleteModal(p)}>
+              {t('admin:programas.actions.cancel')}
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <ConfirmModal
@@ -302,29 +409,28 @@ export function ProgramasPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.programas') },
+        ]}
+      />
+
       <PageHeader
+        eyebrow={t('admin:sidebar.ia_en_accion_label')}
         title={t('admin:programas.page_title')}
         description={t('admin:programas.page_subtitle')}
         actions={
-          <button className="btn btn-primary" onClick={openCreate}>
+          <Button variant="primary" onClick={openCreate}>
             + {t('admin:programas.actions.new')}
-          </button>
+          </Button>
         }
       />
 
       {/* RF-04: dashboard de programas activos */}
       <ProgramasDashboardPanel />
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 12,
-        marginBottom: 16,
-        padding: 16,
-        background: 'var(--color-bg-page)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 8,
-      }}>
+      <FilterToolbar>
         <Field label={t('admin:programas.filters.empresa')}>
           <select className="input" value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}>
             <option value="">{t('admin:programas.filters.all')}</option>
@@ -350,100 +456,15 @@ export function ProgramasPage() {
             placeholder={t('admin:programas.filters.search_placeholder')}
           />
         </Field>
-      </div>
+      </FilterToolbar>
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>{t('admin:programas.columns.nombre')}</th>
-              <th>{t('admin:programas.columns.empresa')}</th>
-              <th>{t('admin:programas.columns.facilitador')}</th>
-              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.estado')}</th>
-              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.sesiones')}</th>
-              <th style={{ textAlign: 'center' }}>{t('admin:programas.columns.participantes')}</th>
-              <th style={{ textAlign: 'right' }}>{t('admin:programas.columns.acciones')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td colSpan={7}><Loading label={t('common:loading')} /></td></tr>
-            )}
-            {!loading && programas.length === 0 && (
-              <tr><td colSpan={7}><EmptyState title={t('admin:programas.empty')} /></td></tr>
-            )}
-            {programas.map(p => {
-              return (
-                <tr key={p.id} style={{ opacity: p.activo ? 1 : 0.5 }}>
-                  <td style={{ fontWeight: 500 }}>
-                    <button className="btn-link" onClick={() => setDetailOpen(p)} style={{ padding: 0, textAlign: 'left' }}>
-                      {p.nombre}
-                    </button>
-                    {p.descripcion && <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{p.descripcion.slice(0, 80)}</div>}
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {p.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {p.facilitadores.length === 0 ? (
-                      <span style={{ color: 'var(--color-border-strong)' }}>—</span>
-                    ) : (
-                      p.facilitadores.map(f => (
-                        <div key={f.id}>
-                          {f.nombre}
-                          {f.email && <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}> · {f.email}</span>}
-                        </div>
-                      ))
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <StatusBadge variant={ESTADO_VARIANTS[p.estado]}>
-                      {t(`programa:estado.${p.estado}`)}
-                    </StatusBadge>
-                  </td>
-                  <td style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {p._count.sesiones}
-                  </td>
-                  <td style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {p._count.participantes}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setDetailOpen(p)}>
-                        {t('admin:programas.actions.details')}
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>
-                        {t('admin:programas.actions.edit')}
-                      </button>
-                      <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/diagnostico`}>
-                        {t('admin:programas.actions.diagnostico')}
-                      </Link>
-                      <Link className="btn btn-secondary btn-sm" to={`/admin/programas/${p.id}/asistencia`}>
-                        {t('admin:programas.actions.asistencia')}
-                      </Link>
-                      {p.activo && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => setMatriculaFor({ programa: p, modo: 'individual' })}>
-                          {t('admin:programas.actions.matricular')}
-                        </button>
-                      )}
-                      {p.activo && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => setMatriculaFor({ programa: p, modo: 'masiva' })}>
-                          {t('admin:programas.participantes.actions.new_masiva')}
-                        </button>
-                      )}
-                      {p.activo && p.estado !== 'cancelado' && (
-                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteModal(p)}>
-                          {t('admin:programas.actions.cancel')}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && programas.length === 0 && (
+        <EmptyState title={t('admin:programas.empty')} />
+      )}
+      {!loading && programas.length > 0 && (
+        <DataTable columns={columns} rows={programas} rowKey={p => p.id} />
+      )}
 
       {modalOpen && (
         <ProgramaFormModal
@@ -1982,9 +2003,9 @@ function MatriculaModal({
                     <tbody>
                       {reporte.filas.map(f => {
                         const color =
-                          f.estado === 'ok' ? 'var(--color-success, #16a34a)'
-                          : f.estado === 'aviso' ? 'var(--color-warning, #d97706)'
-                          : 'var(--color-danger, #dc2626)';
+                          f.estado === 'ok' ? 'var(--color-success)'
+                          : f.estado === 'aviso' ? 'var(--color-warning)'
+                          : 'var(--color-danger)';
                         return (
                           <tr key={f.fila} style={{ borderTop: '1px solid var(--color-border)' }}>
                             <td style={{ padding: '6px 8px' }}>{f.fila}</td>

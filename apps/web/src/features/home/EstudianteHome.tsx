@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { Loading, EmptyState, StatusBadge, ProgressBar } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
 import { formatFechaHora, formatDiasRelativos } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
@@ -120,22 +120,22 @@ export function EstudianteHome() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       {/* Pendientes de acción: cada uno enlaza a su acción real (formulario concreto,
           confirmación del programa, reto del grupo) y muestra el programa al que pertenece. */}
       {data.pendientes.length > 0 && (
         <div>
-          <h3 style={{ margin: '0 0 0.75rem' }}>{t('pendientes_title')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('pendientes_title')}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {data.pendientes.map((p, i) => (
               <Link
                 key={`${p.tipo}-${p.plantillaId ?? p.programaId ?? i}`}
                 to={pendienteTo(p)}
                 className="card"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem',
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-3) var(--space-4)',
                   textDecoration: 'none', color: 'var(--color-text-main)',
-                  borderLeft: '4px solid var(--color-warning, #d97706)',
+                  borderLeft: '3px solid var(--color-warning)',
                 }}
               >
                 <span style={{ fontSize: '1.1rem' }}>{PENDIENTE_ICON[p.tipo]}</span>
@@ -149,7 +149,7 @@ export function EstudianteHome() {
 
       {/* Próxima sesión: la más cercana en el futuro, entre todos los programas. */}
       <div>
-        <h3 style={{ margin: '0 0 0.75rem' }}>{t('proxima_title')}</h3>
+        <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('proxima_title')}</h3>
         {data.proximaSesion ? (
           <ProximaSesionCard sesion={data.proximaSesion} lang={i18n.language} t={t} />
         ) : (
@@ -159,7 +159,7 @@ export function EstudianteHome() {
 
       {/* Resumen por programa con progreso de sesiones, grupo y estado del reto. */}
       <div>
-        <h3 style={{ margin: '0 0 0.75rem' }}>{t('programas_title')}</h3>
+        <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('programas_title')}</h3>
         {data.programas.length === 0 ? (
           <EmptyState title={t('programas_empty')} />
         ) : (
@@ -189,20 +189,20 @@ function ProximaSesionCard({
       className="card"
       style={{
         display: 'block', padding: '1.25rem', textDecoration: 'none',
-        color: 'var(--color-text-main)', borderLeft: '4px solid #38BDF8',
+        color: 'var(--color-text-main)', borderLeft: '3px solid var(--color-info)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{s.programaNombre}</div>
         <StatusBadge variant="info">{capitalizar(formatDiasRelativos(s.fechaProgramada, lang))}</StatusBadge>
       </div>
-      <div style={{ fontWeight: 700, fontSize: '1.15rem', margin: '6px 0 4px' }}>
+      <div style={{ fontWeight: 700, fontSize: '1.15rem', margin: 'var(--space-2) 0 var(--space-1)' }}>
         {t('proxima_sesion_num', { numero: s.numeroSesion })} — {s.titulo}
       </div>
       <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
         📅 {formatFechaHora(s.fechaProgramada, s.timezone, lang)}
       </div>
-      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 8 }}>
+      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
         {!s.bloqueada && s.tieneRecursos
           ? `🎥 ${t('proxima_recursos')}`
           : `🔒 ${t('proxima_bloqueada', { fecha: formatFechaHora(s.desbloqueaEn, s.timezone, lang) })}`}
@@ -227,18 +227,20 @@ function ProgramaCard({
     >
       <div style={{ fontWeight: 600 }}>{prog.nombre}</div>
       {prog.empresa && (
-        <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{prog.empresa.nombre}</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>{prog.empresa.nombre}</div>
       )}
 
       {/* Progreso de sesiones */}
-      <div style={{ margin: '0.75rem 0 0.3rem', fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+      <div style={{ margin: 'var(--space-3) 0 var(--space-1)', fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
         {t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
       </div>
-      <div style={{ height: 6, borderRadius: 999, background: 'var(--color-bg-subtle, #e5e7eb)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: '#38BDF8' }} />
-      </div>
+      <ProgressBar
+        value={pct}
+        color="var(--color-accent)"
+        label={t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
+      />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
         <StatusBadge variant={RETO_VARIANT[prog.reto]}>{t(`reto.${prog.reto}`)}</StatusBadge>
         {prog.grupo && (
           <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>

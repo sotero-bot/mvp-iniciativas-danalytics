@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
-import { StatusBadge, Modal } from '../../components/ui';
+import { StatusBadge, Modal, Button } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -118,8 +118,8 @@ export function RunnerResultsPage() {
     if (!data) return null;
 
     const markdownBoxStyle: CSSProperties = {
-        padding: '1rem 1.25rem', background: '#FAFBFF', border: '1px solid var(--color-border)',
-        borderRadius: 8, fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.7, overflowX: 'auto',
+        padding: 'var(--space-4) var(--space-5)', background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)', fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.7, overflowX: 'auto',
     };
 
     const respuestasPorPregunta = new Map((data.respuestas ?? []).map(r => [r.preguntaId, r]));
@@ -201,16 +201,15 @@ export function RunnerResultsPage() {
             maxWidth={420}
             footer={
                 <>
-                    <button className="btn btn-secondary" onClick={() => setShowRegenerarModal(false)}>
+                    <Button variant="secondary" onClick={() => setShowRegenerarModal(false)}>
                         {t('common:buttons.cancel')}
-                    </button>
-                    <button
-                        className="btn btn-primary"
-                        style={{ background: '#7C3AED', border: 'none' }}
+                    </Button>
+                    <Button
+                        variant="primary"
                         onClick={() => { setShowRegenerarModal(false); handleGenerarCanvas(true); }}
                     >
                         {t('execution:results.regenerate_modal.confirm')}
-                    </button>
+                    </Button>
                 </>
             }
         >
@@ -220,16 +219,16 @@ export function RunnerResultsPage() {
         </Modal>
         <div style={{
             minHeight: '100vh',
-            background: 'linear-gradient(160deg, #F0F4FF 0%, var(--color-bg-page) 50%, #FDF8FF 100%)',
-            padding: '0 1rem 4rem',
+            background: 'var(--color-bg-page)',
+            padding: `0 var(--space-4) var(--space-6)`,
         }}>
 
             {/* Top bar */}
             <div style={{
                 position: 'sticky', top: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
-                borderBottom: '1px solid rgba(226,232,240,0.8)',
-                padding: '0 1.5rem', height: 52,
+                background: 'var(--color-bg-card)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '0 var(--space-5)', height: 52,
                 display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
             }}>
                 <img
@@ -237,56 +236,38 @@ export function RunnerResultsPage() {
                     alt="Danalytics"
                     style={{ height: 36, objectFit: 'contain', justifySelf: 'start' }}
                 />
-                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-main)', letterSpacing: '-0.02em' }}>
+                <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-text-heading)' }}>
                     {t('common:app_name')}
                 </span>
-                <div style={{ justifySelf: 'end', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ justifySelf: 'end', display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                     <LanguageSwitcher variant="header" />
                     {data.esCanvas ? (
-                        <button
+                        <Button
+                            variant="primary"
+                            size="sm"
                             onClick={handleDescargarCanvas}
                             disabled={canvasLoading || Object.keys(canvasBloques).length === 0}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '6px 14px', borderRadius: 8,
-                                background: canvasLoading ? 'var(--color-text-tertiary)' : 'var(--color-primary)', color: 'white',
-                                border: 'none', cursor: canvasLoading ? 'not-allowed' : 'pointer',
-                                fontSize: '0.8rem', fontWeight: 600,
-                            }}
                         >
                             {canvasLoading ? t('execution:results.generating') : t('execution:results.download_canvas')}
-                        </button>
+                        </Button>
                     ) : (
-                        <button
-                            onClick={handleDescargar}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '6px 14px', borderRadius: 8,
-                                background: 'var(--color-primary)', color: 'white',
-                                border: 'none', cursor: 'pointer',
-                                fontSize: '0.8rem', fontWeight: 600,
-                            }}
-                        >
+                        <Button variant="primary" size="sm" onClick={handleDescargar}>
                             {t('execution:results.download_html')}
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
 
-            <div style={{ maxWidth: 1560, margin: '0 auto', paddingTop: '2.5rem' }}>
+            <div style={{ maxWidth: 1560, margin: '0 auto', paddingTop: 'var(--space-6)' }}>
 
                 {/* Header */}
-                <div style={{
-                    background: 'var(--color-bg-card)', borderRadius: 12, border: '1px solid var(--color-border)',
-                    padding: '2rem', marginBottom: '1.5rem',
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
                         <div>
-                            <div style={{ marginBottom: 12 }}>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
                                 <StatusBadge variant="success">{t('execution:results.completed_badge')}</StatusBadge>
                             </div>
-                            <h1 style={{ fontSize: '1.5rem', marginBottom: 6 }}>{data.nombreActividad}</h1>
+                            <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{data.nombreActividad}</h1>
                             {data.descripcionActividad && (
                                 <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: 480, textAlign: 'justify' }}>
                                     {data.descripcionActividad}
@@ -295,7 +276,7 @@ export function RunnerResultsPage() {
                         </div>
 
                         {/* Stats */}
-                        <div style={{ display: 'flex', gap: '1.5rem', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-5)', flexShrink: 0 }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>{completedCount}</div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{t('execution:results.stats.pasos_completados')}</div>
@@ -314,48 +295,31 @@ export function RunnerResultsPage() {
 
                 {/* Canvas Grid — solo si es Analytics Canvas */}
                 {data.esCanvas && (
-                    <div style={{
-                        background: 'var(--color-bg-card)', borderRadius: 12, border: '1px solid var(--color-border)',
-                        padding: '2rem', marginBottom: '1.5rem',
-                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
-                    }}>
+                    <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
                         {canvasLoading ? (
-                            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem', padding: '2rem' }}>
+                            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem', padding: 'var(--space-6)' }}>
                                 {t('execution:results.generating_canvas')}
                             </div>
                         ) : Object.keys(canvasBloques).length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '2rem' }}>
-                                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
+                            <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-4)' }}>
                                     {t('execution:results.canvas_not_generated')}
                                 </p>
-                                <button
-                                    onClick={() => handleGenerarCanvas()}
-                                    style={{
-                                        padding: '8px 20px', borderRadius: 8, border: 'none',
-                                        background: '#7C3AED', color: 'white',
-                                        fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                                    }}
-                                >
+                                <Button variant="primary" onClick={() => handleGenerarCanvas()}>
                                     {t('execution:results.generate_canvas')}
-                                </button>
+                                </Button>
                             </div>
                         ) : (
                             <>
-                                <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem' }}>
-                                    <button
+                                <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 'var(--space-4)' }}>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
                                         onClick={() => setShowRegenerarModal(true)}
                                         disabled={canvasLoading}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                                            padding: '6px 16px', borderRadius: 8,
-                                            background: '#7C3AED', color: 'white',
-                                            border: 'none',
-                                            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                                            boxShadow: '0 1px 4px rgba(124,58,237,0.25)',
-                                        }}
                                     >
                                         ↺ {t('execution:results.regenerate_canvas')}
-                                    </button>
+                                    </Button>
                                 </div>
                                 <CanvasGrid
                                     bloques={canvasBloques}
@@ -367,28 +331,23 @@ export function RunnerResultsPage() {
                 )}
 
                 {/* Steps */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                     {data.pasos.map((paso, idx) => {
                         const preguntas = paso.preguntas ?? [];
                         const respondido = pasoRespondido(paso);
                         return (
-                            <div key={paso.id} style={{
-                                background: 'var(--color-bg-card)', borderRadius: 10,
-                                border: '1px solid var(--color-border)',
-                                overflow: 'hidden',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                            }}>
+                            <div key={paso.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                                 {/* Step header */}
                                 <div style={{
-                                    padding: '1rem 1.25rem',
+                                    padding: 'var(--space-4) var(--space-5)',
                                     background: 'var(--color-bg-subtle)',
                                     borderBottom: '1px solid var(--color-border)',
-                                    display: 'flex', gap: '0.875rem', alignItems: 'flex-start',
+                                    display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start',
                                 }}>
                                     <div style={{
                                         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                                         background: respondido ? 'var(--color-primary)' : 'var(--color-border)',
-                                        color: 'white',
+                                        color: 'var(--color-bg-card)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: '0.78rem', fontWeight: 700,
                                     }}>
@@ -407,9 +366,9 @@ export function RunnerResultsPage() {
                                 </div>
 
                                 {/* Step response */}
-                                <div style={{ padding: '1.25rem' }}>
+                                <div style={{ padding: 'var(--space-5)' }}>
                                     {preguntas.length > 0 ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                                             {preguntas.map((q, qIdx) => {
                                                 const r = respuestasPorPregunta.get(q.id);
                                                 const texto = q.soloArchivo
@@ -417,19 +376,19 @@ export function RunnerResultsPage() {
                                                     : (r?.respuestaIa || r?.contenidoArchivo || r?.respuestaUsuario || r?.contenido);
                                                 return (
                                                     <div key={q.id} style={{
-                                                        paddingBottom: qIdx < preguntas.length - 1 ? 16 : 0,
-                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid var(--color-bg-subtle)' : 'none',
+                                                        paddingBottom: qIdx < preguntas.length - 1 ? 'var(--space-4)' : 0,
+                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid var(--color-border-soft)' : 'none',
                                                     }}>
                                                         {preguntas.length > 1 && (
-                                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                                 {t('execution:results.pregunta_label', { num: qIdx + 1 })}
                                                             </div>
                                                         )}
-                                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 10 }}>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: 'var(--space-3)' }}>
                                                             {q.enunciado}
                                                         </div>
                                                         {r?.archivoNombre && (
-                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-success-bg)', color: 'var(--color-success-strong)', border: '1px solid var(--color-success-border)', padding: '3px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 500, marginBottom: 8 }}>
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-success-bg)', color: 'var(--color-success-strong)', border: '1px solid var(--color-success-border)', padding: '3px 10px', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>
                                                                 📎 {r.archivoNombre}
                                                             </div>
                                                         )}
@@ -448,7 +407,7 @@ export function RunnerResultsPage() {
                                                                 </ReactMarkdown>
                                                             </div>
                                                         ) : (
-                                                            <div style={{ padding: '1rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                            <div style={{ padding: 'var(--space-4)', textAlign: 'center', background: 'var(--color-bg-subtle)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
                                                                 {t('execution:results.no_response')}
                                                             </div>
                                                         )}
@@ -467,7 +426,7 @@ export function RunnerResultsPage() {
                                                     </ReactMarkdown>
                                                 </div>
                                             ) : (
-                                                <div style={{ padding: '1.5rem', textAlign: 'center', background: '#FAFAFA', border: '1px dashed var(--color-border)', borderRadius: 8, color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                                                <div style={{ padding: 'var(--space-5)', textAlign: 'center', background: 'var(--color-bg-subtle)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)', fontSize: '0.875rem', fontStyle: 'italic' }}>
                                                     {t('execution:results.no_response')}
                                                 </div>
                                             );
@@ -479,7 +438,7 @@ export function RunnerResultsPage() {
                     })}
                 </div>
 
-                <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
+                <p style={{ textAlign: 'center', marginTop: 'var(--space-6)', fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>
                     {t('execution:results.close_hint')}
                 </p>
             </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { PageHeader, Breadcrumb, Button, Loading, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -50,25 +50,22 @@ export function EstudianteProgramasPage() {
   };
 
   return (
-    <div className="page">
+    <div className="page-wide">
+      <Breadcrumb items={[{ label: t('estudiante:programas.title') }]} />
       <PageHeader title={t('estudiante:programas.title')} />
       {loading && <Loading label={t('common:loading')} />}
 
       {!loading && pendientes.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '0.75rem' }}>{t('estudiante:programas.pendientes_title')}</h3>
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <h3 style={{ marginBottom: 'var(--space-3)' }}>{t('estudiante:programas.pendientes_title')}</h3>
           <div className="card-grid">
             {pendientes.map((p) => (
-              <div
-                key={p.id}
-                className="card"
-                style={{ padding: '1rem', borderLeft: '4px solid var(--color-warning, #d97706)' }}
-              >
+              <div key={p.id} className="card card-accent" style={{ borderLeftColor: 'var(--color-warning)' }}>
                 <div style={{ fontWeight: 600 }}>{p.nombre}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 'var(--space-2) 0' }}>
                   {t('estudiante:programas.pendiente_desc')}
                 </div>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', fontSize: '0.85rem' }}>
                   <input
                     type="checkbox"
                     checked={!!aceptado[p.id]}
@@ -76,15 +73,14 @@ export function EstudianteProgramasPage() {
                   />
                   <span>{t('estudiante:programas.confirmar_check')}</span>
                 </label>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{ marginTop: '0.75rem' }}
+                <Button
+                  variant="primary"
+                  style={{ marginTop: 'var(--space-3)' }}
                   disabled={!aceptado[p.id] || confirmando === p.id}
                   onClick={() => confirmar(p.id)}
                 >
                   {t('estudiante:programas.confirmar_boton')}
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -100,10 +96,10 @@ export function EstudianteProgramasPage() {
             key={p.id}
             to={`/estudiante/programas/${p.id}/sesiones`}
             className="card"
-            style={{ padding: '1rem', display: 'block', textDecoration: 'none' }}
+            style={{ display: 'block', textDecoration: 'none' }}
           >
             <div style={{ fontWeight: 600 }}>{p.nombre}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>
               {t('estudiante:sesiones.title')}
             </div>
           </Link>

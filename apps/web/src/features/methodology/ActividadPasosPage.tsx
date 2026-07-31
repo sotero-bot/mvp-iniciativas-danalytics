@@ -5,7 +5,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationPanel, TranslationField } from '../../components/TranslationPanel';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
-import { Loading, Alert } from '../../components/ui';
+import { Loading, Alert, Breadcrumb, PageHeader, Button, Field, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 
@@ -32,7 +32,7 @@ const PREGUNTA_BLANK = {
 };
 
 export function ActividadPasosPage() {
-  const { t } = useTranslation(['methodology', 'common']);
+  const { t } = useTranslation(['methodology', 'common', 'admin']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -227,16 +227,21 @@ export function ActividadPasosPage() {
     loadPasos();
   };
 
+  const breadcrumbItems = [
+    { label: t('admin:sidebar.actividades'), to: '/admin/actividades' },
+    { label: nombreActividad || t('methodology:pasos.page_title_actividad') },
+  ];
+
   if (loading) return <div className="runner-center"><Loading label={t('methodology:pasos.loading')} /></div>;
   if (error) return (
-    <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
+    <div className="runner-center" style={{ flexDirection: 'column', gap: 'var(--space-4)' }}>
       <Alert variant="danger">{error}</Alert>
-      <button className="btn btn-secondary" onClick={() => navigate('/admin/actividades')}>{t('common:buttons.back')}</button>
+      <Button variant="secondary" onClick={() => navigate('/admin/actividades')}>{t('common:buttons.back')}</Button>
     </div>
   );
 
   return (
-    <div className="layout-content">
+    <div>
       <ConfirmModal
         isOpen={!!modal}
         title={t('methodology:pasos.delete_modal.title')}
@@ -259,56 +264,53 @@ export function ActividadPasosPage() {
         onCancel={() => setDeleteEjemploModal(null)}
       />
 
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <button className="btn btn-secondary"
-            style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '0.8rem' }}
-            onClick={() => navigate('/admin/actividades')}>
-            {t('methodology:pasos.back_to_actividades')}
-          </button>
-          <h1>{t('methodology:pasos.page_title_actividad')}</h1>
-          <p style={{ color: 'var(--color-text-secondary)' }}>{t('methodology:pasos.actividad_label')} <strong>{nombreActividad}</strong></p>
-        </div>
-        {!showForm && (
-          <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
+      <Breadcrumb items={breadcrumbItems} />
+
+      <PageHeader
+        eyebrow={nombreActividad}
+        title={t('methodology:pasos.page_title_actividad')}
+        actions={!showForm && (
+          <Button onClick={() => { setShowForm(true); setActivePasoId(null); }}>
             {t('methodology:pasos.add_button')}
-          </button>
+          </Button>
         )}
-      </div>
+      />
 
       {showForm && (
-        <div className="card" style={{ marginBottom: '2rem', border: '1px solid var(--color-primary)' }}>
+        <div className="card card-accent" style={{ marginBottom: 'var(--space-6)' }}>
           <h3>{editingId ? t('methodology:pasos.edit_section_title') : t('methodology:pasos.create_section_title')}</h3>
           <form
             className={wasValidated ? 'was-validated' : ''}
             onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) handleSubmit(e); }}
-            style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+            style={{ marginTop: 'var(--space-4)' }}
             noValidate
           >
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="required-label">{t('methodology:pasos.fields.titulo')}</label>
-              <input className="input" required value={form.titulo}
-                onChange={e => setForm({ ...form, titulo: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.titulo')} />
-              <div className="invalid-feedback">{t('methodology:pasos.validation.titulo_required')}</div>
-            </div>
-            <div>
-              <label className="required-label">{t('methodology:pasos.fields.orden')}</label>
-              <input className="input" type="number" required value={form.orden}
-                onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-              <div className="invalid-feedback">{t('methodology:pasos.validation.orden_required')}</div>
-            </div>
-            <div>
-              <label>{t('methodology:pasos.fields.objetivo')}</label>
-              <input className="input" value={form.objetivo}
-                onChange={e => setForm({ ...form, objetivo: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.objetivo')} />
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label>{t('methodology:pasos.fields.instrucciones')}</label>
-              <textarea className="input" rows={3} value={form.instrucciones}
-                onChange={e => setForm({ ...form, instrucciones: e.target.value })}
-                placeholder={t('methodology:pasos.placeholders.instrucciones')} />
+            <div className="form-grid">
+              <div style={{ gridColumn: 'span 2' }}>
+                <Field label={t('methodology:pasos.fields.titulo')} htmlFor="paso-titulo" required
+                  error={<div className="invalid-feedback">{t('methodology:pasos.validation.titulo_required')}</div>}>
+                  <input id="paso-titulo" className="input" required value={form.titulo}
+                    onChange={e => setForm({ ...form, titulo: e.target.value })}
+                    placeholder={t('methodology:pasos.placeholders.titulo')} />
+                </Field>
+              </div>
+              <Field label={t('methodology:pasos.fields.orden')} htmlFor="paso-orden" required
+                error={<div className="invalid-feedback">{t('methodology:pasos.validation.orden_required')}</div>}>
+                <input id="paso-orden" className="input" type="number" required value={form.orden}
+                  onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
+              </Field>
+              <Field label={t('methodology:pasos.fields.objetivo')} htmlFor="paso-objetivo">
+                <input id="paso-objetivo" className="input" value={form.objetivo}
+                  onChange={e => setForm({ ...form, objetivo: e.target.value })}
+                  placeholder={t('methodology:pasos.placeholders.objetivo')} />
+              </Field>
+              <div style={{ gridColumn: 'span 2' }}>
+                <Field label={t('methodology:pasos.fields.instrucciones')} htmlFor="paso-instrucciones">
+                  <textarea id="paso-instrucciones" className="input" rows={3} value={form.instrucciones}
+                    onChange={e => setForm({ ...form, instrucciones: e.target.value })}
+                    placeholder={t('methodology:pasos.placeholders.instrucciones')} />
+                </Field>
+              </div>
             </div>
             <TranslationFields
               fields={[
@@ -319,9 +321,9 @@ export function ActividadPasosPage() {
               values={form.translations}
               onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
             />
-            <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</button>
-              <button type="submit" className="btn btn-primary">{editingId ? t('common:buttons.save_changes') : t('methodology:pasos.create_submit')}</button>
+            <div className="form-footer" style={{ marginTop: 'var(--space-4)' }}>
+              <Button type="button" variant="secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</Button>
+              <Button type="submit">{editingId ? t('common:buttons.save_changes') : t('methodology:pasos.create_submit')}</Button>
             </div>
           </form>
         </div>
@@ -329,20 +331,18 @@ export function ActividadPasosPage() {
 
       {pasos.length === 0 ? (
         <div className="card">
-          <p style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-secondary)' }}>
-            {t('methodology:pasos.empty_actividad')}
-          </p>
+          <EmptyState title={t('methodology:pasos.empty_actividad')} />
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
           {pasos.map((p) => {
             const preguntas: any[] = p.preguntas ?? [];
             const isActive = activePasoId === p.id;
 
             return (
               <div key={p.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-bg-page)' }}>
-                  <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: '1rem 1.25rem', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border)' }}>
+                  <span className="status-badge" style={{ background: 'var(--color-primary)', color: 'var(--color-bg-card)', fontWeight: 700, minWidth: 28, justifyContent: 'center' }}>
                     {p.orden}
                   </span>
                   <div style={{ flex: 1 }}>
@@ -352,23 +352,31 @@ export function ActividadPasosPage() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => setTransOpenPasoId(transOpenPasoId === p.id ? null : p.id)}
-                      title="Traducciones del paso">
+                      aria-label={t('methodology:pasos.translations_toggle')}
+                      title={t('methodology:pasos.translations_toggle')}
+                    >
                       🌐
-                    </button>
-                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
-                    </button>
-                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
-                      onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => setModal({ id: p.id, titulo: p.titulo })}
+                      aria-label={t('common:buttons.delete')}
+                    >
                       🗑️
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 {transOpenPasoId === p.id && (
-                  <div style={{ padding: '0 1.25rem 0.75rem', borderBottom: '1px solid var(--color-bg-page)' }}>
+                  <div style={{ padding: '0 1.25rem 0.75rem', borderBottom: '1px solid var(--color-border)' }}>
                     <TranslationPanel
                       fields={PASO_TRANS_FIELDS}
                       getUrl={(loc) => `${API_URL}/admin/actividades/${id}/pasos/${p.id}/translations?locale=${loc}`}
@@ -377,14 +385,14 @@ export function ActividadPasosPage() {
                   </div>
                 )}
 
-                <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--color-bg-page)', background: '#FAFAFA', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{t('methodology:pasos.ejemplo.label')}</span>
                   {p.ejemploKey ? (
                     <>
                       <span style={{ fontSize: '0.78rem', color: 'var(--color-success-strong)' }}>{t('methodology:pasos.ejemplo.uploaded_badge')}</span>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={async () => {
                           try {
                             const res = await fetchWithErrorMapping(`${API_URL}/admin/actividades/${id}/pasos/${p.id}/ejemplo-url`);
@@ -392,23 +400,23 @@ export function ActividadPasosPage() {
                             if (json.url) window.open(json.url, '_blank');
                           } catch (err) { toast.error(translateError(err)); }
                         }}
-                      >{t('methodology:pasos.ejemplo.download_button')}</button>
+                      >{t('methodology:pasos.ejemplo.download_button')}</Button>
                     </>
                   ) : (
                     <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('methodology:pasos.ejemplo.no_file')}</span>
                   )}
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 10px', fontSize: '0.72rem', background: uploadingEjemploId === p.id ? 'var(--color-border)' : 'white', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-strong)', borderRadius: 5, cursor: uploadingEjemploId === p.id ? 'wait' : 'pointer', fontWeight: 500 }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 10px', fontSize: '0.72rem', background: uploadingEjemploId === p.id ? 'var(--color-border)' : 'var(--color-bg-card)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-strong)', borderRadius: 'var(--radius-sm)', cursor: uploadingEjemploId === p.id ? 'wait' : 'pointer', fontWeight: 500 }}>
                     {uploadingEjemploId === p.id ? t('methodology:pasos.ejemplo.uploading') : (p.ejemploKey ? t('methodology:pasos.ejemplo.replace_button') : t('methodology:pasos.ejemplo.upload_button'))}
                     <input type="file" style={{ display: 'none' }} disabled={uploadingEjemploId === p.id}
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadEjemplo(p, f); e.target.value = ''; }} />
                   </label>
                   {p.ejemploKey && (
-                    <button
-                      className="btn"
-                      style={{ padding: '2px 8px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
+                    <Button
+                      variant="danger"
+                      size="sm"
                       disabled={uploadingEjemploId === p.id}
                       onClick={() => setDeleteEjemploModal({ pasoId: p.id, titulo: p.titulo })}
-                    >🗑️ {t('common:buttons.delete')}</button>
+                    >🗑️ {t('common:buttons.delete')}</Button>
                   )}
                 </div>
 
@@ -418,10 +426,9 @@ export function ActividadPasosPage() {
                       {t('methodology:preguntas.section_title', { count: preguntas.length })}
                     </span>
                     {!isActive && (
-                      <button className="btn btn-primary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
-                        onClick={() => openAddPregunta(p.id, preguntas)}>
+                      <Button size="sm" onClick={() => openAddPregunta(p.id, preguntas)}>
                         {t('methodology:preguntas.add_button')}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -443,32 +450,33 @@ export function ActividadPasosPage() {
                                 promptApiBase={`${API_URL}/admin/actividades/${id}/pasos/${p.id}/preguntas/${q.id}`}
                               />
                             ) : (
-                              <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 6 }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
-                                  <span style={{ flex: 1, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>{q.enunciado}</span>
-                                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                                    {q.usarIa && (
-                                      <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
-                                        🤖{q.iaAutomatica ? '⚡' : ''}
-                                      </span>
-                                    )}
-                                    {q.soloArchivo ? (
-                                      <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
-                                    ) : q.permitirArchivo ? (
-                                      <span className="status-badge" style={{ background: 'var(--color-success-strong)', color: '#fff', fontSize: '0.65rem' }}>📎</span>
-                                    ) : null}
-                                    <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
-                                      onClick={() => openEditPregunta(p.id, q)}>
-                                      {t('common:buttons.edit')}
-                                    </button>
-                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
-                                      onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
-                                      🗑️
-                                    </button>
-                                  </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
+                                <span style={{ flex: 1, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>{q.enunciado}</span>
+                                <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+                                  {q.usarIa && (
+                                    <span className="status-badge" style={{ background: 'var(--color-primary)', color: 'var(--color-bg-card)', fontSize: '0.65rem' }}>
+                                      🤖{q.iaAutomatica ? '⚡' : ''}
+                                    </span>
+                                  )}
+                                  {q.soloArchivo ? (
+                                    <span className="status-badge" style={{ background: 'var(--color-info)', color: 'var(--color-bg-card)', fontSize: '0.65rem' }}>📄</span>
+                                  ) : q.permitirArchivo ? (
+                                    <span className="status-badge" style={{ background: 'var(--color-success-strong)', color: 'var(--color-bg-card)', fontSize: '0.65rem' }}>📎</span>
+                                  ) : null}
+                                  <Button variant="secondary" size="sm" onClick={() => openEditPregunta(p.id, q)}>
+                                    {t('common:buttons.edit')}
+                                  </Button>
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}
+                                    aria-label={t('common:buttons.delete')}
+                                  >
+                                    🗑️
+                                  </Button>
                                 </div>
-                              </>
+                              </div>
                             )}
                           </div>
                         );
@@ -518,125 +526,127 @@ interface PreguntaFormProps {
 function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel, promptApiBase }: PreguntaFormProps) {
   const { t } = useTranslation(['methodology', 'common']);
   return (
-    <div style={{ border: '1px solid var(--color-primary)', borderRadius: 8, padding: '1rem', background: '#fafbff' }}>
+    <div style={{ border: '1px solid var(--color-primary)', padding: '1rem', background: 'var(--color-bg-accent)' }}>
       <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>
         {isEditing ? t('methodology:preguntas.edit_section_title') : t('methodology:preguntas.create_section_title')}
       </div>
       <form
         className={wasValidated ? 'was-validated' : ''}
         onSubmit={onSave}
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}
         noValidate
       >
-        <div style={{ gridColumn: 'span 2' }}>
-          <label className="required-label">{t('methodology:preguntas.fields.enunciado')}</label>
-          <textarea className="input" rows={2} required value={form.enunciado}
-            onChange={e => setForm({ ...form, enunciado: e.target.value })}
-            placeholder={t('methodology:preguntas.placeholders.enunciado')} />
-          <div className="invalid-feedback">{t('methodology:preguntas.validation.enunciado_required')}</div>
-        </div>
-
-        <div>
-          <label className="required-label">{t('methodology:preguntas.fields.orden')}</label>
-          <input className="input" type="number" required min={1} value={form.orden}
-            onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
-          <div className="invalid-feedback">{t('methodology:preguntas.validation.orden_required')}</div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
-            <input type="checkbox" checked={form.permitirArchivo}
-              onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false })}
-              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
-            <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
-          </label>
-          {form.permitirArchivo && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
-              <input type="checkbox" checked={form.soloArchivo}
-                onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#0369a1' }} />
-              <span>{t('methodology:preguntas.options.solo_archivo')}</span>
-            </label>
-          )}
-          {form.permitirArchivo && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}
-              title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
-              <input type="checkbox" checked={form.subirArchivoS3}
-                onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
-              <span>{t('methodology:preguntas.options.subir_archivo_s3')}</span>
-            </label>
-          )}
-        </div>
-
-        {form.permitirArchivo && (
+        <div className="form-grid">
           <div style={{ gridColumn: 'span 2' }}>
-            <label>{t('methodology:preguntas.fields.url_plantilla')}</label>
-            <input className="input" value={form.urlPlantilla}
-              onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
-              placeholder={t('methodology:preguntas.placeholders.url_plantilla')} />
+            <Field label={t('methodology:preguntas.fields.enunciado')} htmlFor="pregunta-enunciado" required
+              error={<div className="invalid-feedback">{t('methodology:preguntas.validation.enunciado_required')}</div>}>
+              <textarea id="pregunta-enunciado" className="input" rows={2} required value={form.enunciado}
+                onChange={e => setForm({ ...form, enunciado: e.target.value })}
+                placeholder={t('methodology:preguntas.placeholders.enunciado')} />
+            </Field>
           </div>
-        )}
 
-        <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {t('methodology:preguntas.ia_config_title')}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <Field label={t('methodology:preguntas.fields.orden')} htmlFor="pregunta-orden" required
+            error={<div className="invalid-feedback">{t('methodology:preguntas.validation.orden_required')}</div>}>
+            <input id="pregunta-orden" className="input" type="number" required min={1} value={form.orden}
+              onChange={e => setForm({ ...form, orden: parseInt(e.target.value) })} />
+          </Field>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
-              <input type="checkbox" checked={form.usarIa}
-                onChange={e => setForm({ ...form, usarIa: e.target.checked, promptIa: e.target.checked ? form.promptIa : '', iaAutomatica: e.target.checked ? form.iaAutomatica : false })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
-              <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.usar_ia')}</span>
+              <input type="checkbox" checked={form.permitirArchivo}
+                onChange={e => setForm({ ...form, permitirArchivo: e.target.checked, soloArchivo: e.target.checked ? form.soloArchivo : false })}
+                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
+              <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
             </label>
-            {form.usarIa && (
+            {form.permitirArchivo && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
-                <input type="checkbox" checked={form.iaAutomatica}
-                  onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
-                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#7C3AED' }} />
-                <span>{t('methodology:preguntas.options.ia_automatica')}</span>
+                <input type="checkbox" checked={form.soloArchivo}
+                  onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
+                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-info)' }} />
+                <span>{t('methodology:preguntas.options.solo_archivo')}</span>
+              </label>
+            )}
+            {form.permitirArchivo && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}
+                title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
+                <input type="checkbox" checked={form.subirArchivoS3}
+                  onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
+                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-success-strong)' }} />
+                <span>{t('methodology:preguntas.options.subir_archivo_s3')}</span>
               </label>
             )}
           </div>
-          {form.usarIa && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
-                  {t('methodology:preguntas.prompt_template_label')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_template_optional')}</span>
-                </label>
-                <PromptTemplateField
-                  value={form.urlPromptTemplate}
-                  onChange={(v) => setForm({ ...form, urlPromptTemplate: v })}
-                  apiBase={promptApiBase}
-                />
-              </div>
-              <div style={{ marginTop: '0.5rem' }}>
-                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
-                  {t('methodology:preguntas.fields.prompt_ia')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_ia_optional')}</span>
-                </label>
-                <textarea className="input" rows={2} value={form.promptIa}
-                  onChange={e => setForm({ ...form, promptIa: e.target.value })}
-                  placeholder={t('methodology:preguntas.placeholders.prompt_ia_hereda')} />
-              </div>
+
+          {form.permitirArchivo && (
+            <div style={{ gridColumn: 'span 2' }}>
+              <Field label={t('methodology:preguntas.fields.url_plantilla')} htmlFor="pregunta-url-plantilla">
+                <input id="pregunta-url-plantilla" className="input" value={form.urlPlantilla}
+                  onChange={e => setForm({ ...form, urlPlantilla: e.target.value })}
+                  placeholder={t('methodology:preguntas.placeholders.url_plantilla')} />
+              </Field>
             </div>
           )}
+
+          <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('methodology:preguntas.ia_config_title')}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={form.usarIa}
+                  onChange={e => setForm({ ...form, usarIa: e.target.checked, promptIa: e.target.checked ? form.promptIa : '', iaAutomatica: e.target.checked ? form.iaAutomatica : false })}
+                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
+                <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.usar_ia')}</span>
+              </label>
+              {form.usarIa && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
+                  <input type="checkbox" checked={form.iaAutomatica}
+                    onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
+                    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent)' }} />
+                  <span>{t('methodology:preguntas.options.ia_automatica')}</span>
+                </label>
+              )}
+            </div>
+            {form.usarIa && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <Field
+                  label={<>{t('methodology:preguntas.prompt_template_label')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_template_optional')}</span></>}
+                  htmlFor="pregunta-prompt-template"
+                >
+                  <PromptTemplateField
+                    value={form.urlPromptTemplate}
+                    onChange={(v) => setForm({ ...form, urlPromptTemplate: v })}
+                    apiBase={promptApiBase}
+                  />
+                </Field>
+                <Field
+                  label={<>{t('methodology:preguntas.fields.prompt_ia')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_ia_optional')}</span></>}
+                  htmlFor="pregunta-prompt-ia"
+                >
+                  <textarea id="pregunta-prompt-ia" className="input" rows={2} value={form.promptIa}
+                    onChange={e => setForm({ ...form, promptIa: e.target.value })}
+                    placeholder={t('methodology:preguntas.placeholders.prompt_ia_hereda')} />
+                </Field>
+              </div>
+            )}
+          </div>
+
+          <TranslationFields
+            fields={[
+              { key: 'enunciado', label: t('methodology:preguntas.fields.enunciado'), multiline: true },
+            ]}
+            values={form.translations}
+            onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
+          />
         </div>
 
-        <TranslationFields
-          fields={[
-            { key: 'enunciado', label: t('methodology:preguntas.fields.enunciado'), multiline: true },
-          ]}
-          values={form.translations}
-          onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
-        />
-
-        <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }} onClick={onCancel}>
+        <div className="form-footer" style={{ marginTop: '0.75rem' }}>
+          <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
             {t('common:buttons.cancel')}
-          </button>
-          <button type="submit" className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
+          </Button>
+          <Button type="submit" size="sm">
             {isEditing ? t('common:buttons.save_changes') : t('methodology:preguntas.add_action')}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

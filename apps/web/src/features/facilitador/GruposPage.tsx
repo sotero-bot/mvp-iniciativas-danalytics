@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import {
+  Breadcrumb,
+  PageHeader,
+  Field,
+  Button,
+  FormListLayout,
+  Loading,
+  EmptyState,
+} from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -28,6 +36,8 @@ export function FacilitadorGruposPage() {
   const [loading, setLoading] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [creando, setCreando] = useState(false);
+  // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
+  const [programaNombre, setProgramaNombre] = useState('');
 
   const cargar = () => {
     setLoading(true);
@@ -41,6 +51,16 @@ export function FacilitadorGruposPage() {
   };
 
   useEffect(() => { cargar(); }, [programaId]);
+
+  useEffect(() => {
+    fetchWithErrorMapping(`${API_URL}/programas`)
+      .then((res) => res.json())
+      .then((data: { id: string; nombre: string }[]) => {
+        const p = data.find((x) => x.id === programaId);
+        if (p) setProgramaNombre(p.nombre);
+      })
+      .catch(() => {});
+  }, [programaId]);
 
   const crearGrupo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,61 +102,86 @@ export function FacilitadorGruposPage() {
   const sinGrupo = participantes.filter((p) => !asignados.has(p.usuarioId));
 
   return (
-    <div className="page">
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
+          { label: programaNombre || programaId },
+          { label: t('facilitador:grupos.title') },
+        ]}
+      />
       <PageHeader
-        back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
+        eyebrow={programaNombre || undefined}
         title={t('facilitador:grupos.title')}
       />
 
-      {/* C-02: crear grupo */}
-      <form onSubmit={crearGrupo} className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', maxWidth: 480 }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', flex: '1 1 200px' }}>
-          {t('facilitador:grupos.nuevo_nombre')}
-          <input className="input" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required />
-        </label>
-        <button type="submit" className="btn btn-primary" disabled={creando}>
-          {creando ? t('common:loading') : t('facilitador:grupos.crear')}
-        </button>
-      </form>
-
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-        gap: '1.25rem',
-      }}>
-        {grupos.map((g) => (
-          <div key={g.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-text-main)' }}>{g.nombre}</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-              {t('facilitador:grupos.miembros')} ({g.miembros.length})
+      <FormListLayout
+        form={
+          // C-02: crear grupo
+          <form onSubmit={crearGrupo} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <Field label={t('facilitador:grupos.nuevo_nombre')} required>
+              <input className="input" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required />
+            </Field>
+            <div className="form-footer">
+              <Button type="submit" variant="primary" disabled={creando}>
+                {creando ? t('common:loading') : t('facilitador:grupos.crear')}
+              </Button>
             </div>
-            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {g.miembros.map((m) => (
-                <li key={m.id}>{m.usuario.nombre}</li>
-              ))}
-            </ul>
-            {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
-                Se oculta cuando ya no queda ningún participante sin grupo. */}
-            {sinGrupo.length > 0 && (
-              <label style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                {t('facilitador:grupos.asignar_label')}
-                <select
-                  className="input"
-                  value=""
-                  onChange={(e) => asignar(g.id, e.target.value)}
-                >
-                  <option value="">{t('facilitador:grupos.asignar')}</option>
-                  {sinGrupo.map((p) => (
-                    <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
-                  ))}
-                </select>
-              </label>
+          </form>
+        }
+        list={
+          <div className="section-card">
+            <div className="section-card-header">
+              <span className="section-card-title">{t('facilitador:grupos.title')}</span>
+              <span className="count-badge">{grupos.length}</span>
+            </div>
+            {loading && <Loading label={t('common:loading')} />}
+            {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
+            {!loading && grupos.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                  gap: 'var(--space-5)',
+                  padding: 'var(--space-4)',
+                }}
+              >
+                {grupos.map((g) => (
+                  <div key={g.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                      {t('facilitador:grupos.miembros')} ({g.miembros.length})
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                      {g.miembros.map((m) => (
+                        <li key={m.id}>{m.usuario.nombre}</li>
+                      ))}
+                    </ul>
+                    {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
+                        Se oculta cuando ya no queda ningún participante sin grupo. */}
+                    {sinGrupo.length > 0 && (
+                      <div style={{ marginTop: 'auto' }}>
+                        <Field label={t('facilitador:grupos.asignar_label')}>
+                          <select
+                            className="input"
+                            value=""
+                            onChange={(e) => asignar(g.id, e.target.value)}
+                          >
+                            <option value="">{t('facilitador:grupos.asignar')}</option>
+                            {sinGrupo.map((p) => (
+                              <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        ))}
-      </div>
+        }
+      />
     </div>
   );
 }

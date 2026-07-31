@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { toast } from '../../components/toast-store';
+import { Alert, Button, Field } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -68,87 +69,57 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <div className="auth-layout">
       <LanguageSwitcher variant="floating" />
-      {/* Left panel */}
-      <div className="auth-panel">
-        <div style={{ marginBottom: '3rem' }}>
-          <img src="/logo-horizontal.png" alt="Danalytics Logo" style={{
-            height: 48,
-            marginBottom: '1.5rem',
-            objectFit: 'contain'
-          }} />
-          <h1 style={{ color: 'white', fontSize: '1.875rem', margin: 0 }}>{t('auth:login_page.welcome')}</h1>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>{t('auth:login_page.subtitle')}</p>
-        </div>
 
+      <div className="auth-brand">
+        <img src="/logo-horizontal.png" alt="Danalytics Logo" style={{ height: 44, objectFit: 'contain' }} />
+        <h1>{t('auth:login_page.welcome')}</h1>
+        <p>{t('auth:login_page.subtitle')}</p>
+      </div>
+
+      <div className="auth-panel">
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label htmlFor="login-username" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
-              {t('auth:login_page.username_label')}
-            </label>
+          <Field label={t('auth:login_page.username_label')} htmlFor="login-username">
             <input
               id="login-username"
-              className="input input-on-dark"
+              className="input"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={t('auth:login_page.username_placeholder')}
               autoComplete="username"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="login-password" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
-              {t('auth:login_page.password_label')}
-            </label>
+          <Field label={t('auth:login_page.password_label')} htmlFor="login-password">
             <input
               id="login-password"
-              className="input input-on-dark"
+              className="input"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={t('auth:login_page.password_placeholder')}
               autoComplete="current-password"
             />
-          </div>
+          </Field>
 
-          {error && (
-            <div style={{
-              padding: '0.75rem 1rem',
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 'var(--radius-sm)',
-              color: '#FCA5A5',
-              fontSize: '0.875rem',
-            }} role="alert">
-              {error}
-            </div>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
 
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            style={{ marginTop: 8, padding: '0.75rem', fontSize: '0.9375rem' }}
-          >
+          <Button type="submit" disabled={loading} block style={{ marginTop: 8 }}>
             {loading ? t('auth:login_page.submitting') : t('auth:login_page.submit')}
-          </button>
+          </Button>
 
           {/* Divisor */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
-            <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{t('auth:login_page.divider')}</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
           </div>
 
           {/* Login con Google (OAuth2, RF-13) */}
           <button
             type="button"
             onClick={handleGoogle}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '0.75rem', fontSize: '0.9375rem', fontWeight: 600,
-              background: 'white', color: '#1F2937', border: 'none', borderRadius: 6,
-              cursor: 'pointer',
-            }}
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62z"/>
@@ -161,52 +132,26 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         </form>
 
         {/* C-06: enlace de acceso por correo (magic link) */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <label htmlFor="login-magic-email" style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>
-            {t('auth:login_page.magic_label')}
-          </label>
-          <form onSubmit={handleMagicLink} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <input
-              id="login-magic-email"
-              className="input input-on-dark"
-              type="email"
-              value={magicEmail}
-              onChange={e => setMagicEmail(e.target.value)}
-              placeholder={t('auth:login_page.magic_placeholder')}
-              autoComplete="email"
-              style={{ flex: '1 1 200px' }}
-            />
-            <button type="submit" className="btn" disabled={magicSending} style={{ padding: '0.6rem 1rem', fontSize: '0.875rem' }}>
-              {magicSending ? t('auth:login_page.submitting') : t('auth:login_page.magic_submit')}
-            </button>
-          </form>
-          {magicMsg && (
-            <div style={{ marginTop: 10, padding: '0.6rem 0.9rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 'var(--radius-sm)', color: '#86EFAC', fontSize: '0.85rem' }} role="status">
-              {magicMsg}
-            </div>
-          )}
-          {magicError && (
-            <div style={{ marginTop: 10, padding: '0.6rem 0.9rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', color: '#FCA5A5', fontSize: '0.85rem' }} role="alert">
-              {magicError}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right decorative panel */}
-      <div className="auth-decorative">
-        <div style={{ textAlign: 'center', maxWidth: 360 }}>
-          <div style={{
-            fontSize: '4rem',
-            marginBottom: '1.5rem',
-            opacity: 0.6,
-          }}>📊</div>
-          <h2 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '1rem', opacity: 0.9 }}>
-            {t('auth:login_page.brand_name')}
-          </h2>
-          <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-            {t('auth:login_page.brand_tagline')}
-          </p>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <Field label={t('auth:login_page.magic_label')} htmlFor="login-magic-email">
+            <form onSubmit={handleMagicLink} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input
+                id="login-magic-email"
+                className="input"
+                type="email"
+                value={magicEmail}
+                onChange={e => setMagicEmail(e.target.value)}
+                placeholder={t('auth:login_page.magic_placeholder')}
+                autoComplete="email"
+                style={{ flex: '1 1 200px' }}
+              />
+              <Button type="submit" variant="secondary" disabled={magicSending}>
+                {magicSending ? t('auth:login_page.submitting') : t('auth:login_page.magic_submit')}
+              </Button>
+            </form>
+          </Field>
+          {magicMsg && <Alert variant="success">{magicMsg}</Alert>}
+          {magicError && <Alert variant="danger">{magicError}</Alert>}
         </div>
       </div>
     </div>

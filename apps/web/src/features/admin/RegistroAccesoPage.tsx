@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Field, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Field, Loading, EmptyState, DataTable, Pagination } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -68,9 +69,47 @@ export function RegistroAccesoPage() {
 
   const totalPaginas = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
+  const columns: DataTableColumn<Fila>[] = [
+    {
+      key: 'fecha',
+      header: t('admin:registro_acceso.fecha'),
+      render: f => <span style={{ whiteSpace: 'nowrap' }}>{new Date(f.creadoEn).toLocaleString()}</span>,
+    },
+    {
+      key: 'usuario',
+      header: t('admin:registro_acceso.usuario'),
+      render: f => (
+        <span title={f.usuarioId}>
+          {f.usuario?.nombre ?? f.usuarioId}
+          {f.usuario?.email && <span style={{ color: 'var(--color-text-secondary)' }}> · {f.usuario.email}</span>}
+        </span>
+      ),
+    },
+    { key: 'rol', header: t('admin:registro_acceso.rol'), render: f => f.role },
+    { key: 'accion', header: t('admin:registro_acceso.accion'), render: f => f.accion },
+    { key: 'tipoRecurso', header: t('admin:registro_acceso.tipo_recurso'), render: f => f.tipoRecurso },
+    {
+      key: 'recurso',
+      header: t('admin:registro_acceso.recurso'),
+      render: f => <span style={{ fontFamily: 'monospace', fontSize: '0.72rem' }}>{f.recursoId ?? '—'}</span>,
+    },
+    {
+      key: 'ip',
+      header: 'IP',
+      render: f => <span style={{ whiteSpace: 'nowrap' }}>{f.ipAddress ?? '—'}</span>,
+    },
+  ];
+
   return (
-    <div style={{ padding: '2rem' }}>
+    <>
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.registro_acceso') },
+        ]}
+      />
       <PageHeader
+        eyebrow={t('admin:sidebar.auditoria_label')}
         title={t('admin:registro_acceso.title')}
         description={t('admin:registro_acceso.subtitle')}
       />
@@ -95,7 +134,7 @@ export function RegistroAccesoPage() {
           <input type="datetime-local" className="input" value={hasta} onChange={e => { setHasta(e.target.value); setPagina(0); }} />
         </Field>
       </div>
-      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem' }}>
+      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 'var(--space-1) 0 var(--space-4)' }}>
         {t('admin:registro_acceso.rango_hint')}
       </p>
 
@@ -103,46 +142,19 @@ export function RegistroAccesoPage() {
       {!loading && filas.length === 0 && (
         <EmptyState title={t('admin:registro_acceso.empty')} />
       )}
-      {filas.length > 0 && (
+      {!loading && filas.length > 0 && (
         <>
-          <div className="table-container">
-            <table style={{ fontSize: '0.8rem' }}>
-              <thead>
-                <tr>
-                  <th>{t('admin:registro_acceso.fecha')}</th>
-                  <th>{t('admin:registro_acceso.usuario')}</th>
-                  <th>{t('admin:registro_acceso.rol')}</th>
-                  <th>{t('admin:registro_acceso.accion')}</th>
-                  <th>{t('admin:registro_acceso.tipo_recurso')}</th>
-                  <th>{t('admin:registro_acceso.recurso')}</th>
-                  <th>IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map(f => (
-                  <tr key={f.id}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(f.creadoEn).toLocaleString()}</td>
-                    <td title={f.usuarioId}>
-                      {f.usuario?.nombre ?? f.usuarioId}
-                      {f.usuario?.email && <span style={{ color: 'var(--color-text-secondary)' }}> · {f.usuario.email}</span>}
-                    </td>
-                    <td>{f.role}</td>
-                    <td>{f.accion}</td>
-                    <td>{f.tipoRecurso}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.72rem' }}>{f.recursoId ?? '—'}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{f.ipAddress ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 12, fontSize: '0.82rem' }}>
-            <button type="button" className="btn" disabled={pagina === 0} onClick={() => setPagina(p => p - 1)}>←</button>
-            <span>{pagina + 1} / {totalPaginas} · {total} {t('admin:registro_acceso.registros')}</span>
-            <button type="button" className="btn" disabled={pagina + 1 >= totalPaginas} onClick={() => setPagina(p => p + 1)}>→</button>
-          </div>
+          <DataTable columns={columns} rows={filas} rowKey={f => f.id} />
+          <Pagination
+            page={pagina + 1}
+            pageCount={totalPaginas}
+            onPageChange={p => setPagina(p - 1)}
+            info={`${total} ${t('admin:registro_acceso.registros')}`}
+            prevLabel={t('common:previous')}
+            nextLabel={t('common:next')}
+          />
         </>
       )}
-    </div>
+    </>
   );
 }

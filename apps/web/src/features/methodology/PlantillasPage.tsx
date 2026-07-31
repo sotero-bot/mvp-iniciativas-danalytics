@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Modal, Field, Alert, EmptyState, PageHeader } from '../../components/ui';
+import { Modal, Field, Alert, EmptyState, Breadcrumb, PageHeader, Button, StatusBadge, FormListLayout } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
@@ -12,7 +12,7 @@ type Plantilla = { id: string; nombre: string; descripcion?: string; orden?: num
 type PlantillaJson = { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; usarIa?: boolean }[] };
 
 export function PlantillasPage() {
-  const { t } = useTranslation(['methodology', 'common']);
+  const { t } = useTranslation(['methodology', 'admin', 'common']);
   const [list, setList] = useState<Plantilla[]>([]);
   const [form, setForm] = useState({ nombre: '', descripcion: '', orden: '' });
   const [wasValidated, setWasValidated] = useState(false);
@@ -166,7 +166,7 @@ export function PlantillasPage() {
         <form
           className={editWasValidated ? 'was-validated' : ''}
           onSubmit={handleEdit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
           noValidate
         >
           <Field label={t('methodology:plantillas.fields.nombre')} required htmlFor="edit-plantilla-nombre">
@@ -194,11 +194,11 @@ export function PlantillasPage() {
               style={{ maxWidth: 160 }}
             />
           </Field>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+          <div className="form-footer">
+            <Button type="button" variant="secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</Button>
+            <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -217,16 +217,16 @@ export function PlantillasPage() {
             onClick={() => importInputRef.current?.click()}
             style={{
               border: `2px dashed ${importDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              borderRadius: 8, padding: '40px 24px', textAlign: 'center', cursor: 'pointer',
+              padding: 'var(--space-6) var(--space-5)', textAlign: 'center', cursor: 'pointer',
               background: importDragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
               transition: 'all 0.15s',
             }}
           >
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>📂</div>
+            <div style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>📂</div>
             <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>
               {importFileName || t('methodology:plantillas.import.drop_zone')}
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+            <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
               {t('methodology:plantillas.import.drop_zone_hint')}
             </p>
             <input ref={importInputRef} type="file" accept=".json" style={{ display: 'none' }}
@@ -235,34 +235,34 @@ export function PlantillasPage() {
         )}
 
         {importError && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 'var(--space-3)' }}>
             <Alert variant="danger">{importError}</Alert>
           </div>
         )}
 
         {importPreview && (
-          <div style={{ marginTop: 16 }}>
-            <p style={{ margin: '0 0 10px', fontWeight: 500, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <p style={{ margin: '0 0 var(--space-2)', fontWeight: 500, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
               {t('methodology:plantillas.import.preview', { count: importPreview.length })}
             </p>
-            <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {importPreview.map((p, i) => (
-                <div key={i} style={{ background: 'var(--color-bg-subtle)', borderRadius: 8, padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    {p.orden != null && (
-                      <span style={{ fontSize: '0.7rem', background: '#e0e7ff', color: '#3730a3', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
-                        #{p.orden}
-                      </span>
-                    )}
+                <div key={i} style={{ background: 'var(--color-bg-subtle)', padding: 'var(--space-3) var(--space-4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                    {p.orden != null && <span className="chip">#{p.orden}</span>}
                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.nombre}</div>
                   </div>
-                  {p.descripcion && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>{p.descripcion}</div>}
+                  {p.descripcion && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)' }}>{p.descripcion}</div>}
                   {p.pasos && p.pasos.length > 0 && (
                     <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {p.pasos.map((paso, j) => (
                         <li key={j} style={{ fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
                           {paso.titulo}
-                          {paso.usarIa && <span style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--color-primary-muted)', color: 'var(--color-primary-hover)', borderRadius: 4, padding: '1px 5px' }}>{t('methodology:plantillas.import.ia_badge')}</span>}
+                          {paso.usarIa && (
+                            <span style={{ marginLeft: 'var(--space-2)', fontSize: '0.7rem', background: 'var(--color-primary-muted)', color: 'var(--color-primary-hover)', padding: '1px 5px' }}>
+                              {t('methodology:plantillas.import.ia_badge')}
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -273,86 +273,91 @@ export function PlantillasPage() {
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="btn btn-secondary" onClick={() => { setImportPreview(null); setImportFileName(''); }}>{t('methodology:plantillas.import.change_file')}</button>
-              <button className="btn btn-primary" disabled={importLoading} onClick={handleImport}>
+            <div className="form-footer" style={{ marginTop: 'var(--space-4)' }}>
+              <Button variant="secondary" onClick={() => { setImportPreview(null); setImportFileName(''); }}>{t('methodology:plantillas.import.change_file')}</Button>
+              <Button variant="primary" disabled={importLoading} onClick={handleImport}>
                 {importLoading ? t('methodology:plantillas.import.importing') : t('methodology:plantillas.import.import', { count: importPreview.length })}
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         {importResult && (
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 'var(--space-4)' }}>
             <Alert variant="success" title={t('methodology:plantillas.import.success')}>
               <p style={{ margin: 0, fontSize: '0.875rem' }}>
                 {t('methodology:plantillas.import.result_plantillas', { count: importResult.plantillasCreadas })} · {t('methodology:plantillas.import.result_pasos', { count: importResult.pasosCreados })}
               </p>
             </Alert>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-              <button className="btn btn-primary" onClick={() => setImportOpen(false)}>{t('common:buttons.close')}</button>
+            <div className="form-footer" style={{ marginTop: 'var(--space-4)' }}>
+              <Button variant="primary" onClick={() => setImportOpen(false)}>{t('common:buttons.close')}</Button>
             </div>
           </div>
         )}
       </Modal>
 
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.plantillas') },
+        ]}
+      />
+
       <PageHeader
         title={t('methodology:plantillas.page_title')}
         description={t('methodology:plantillas.page_description')}
-        actions={<button className="btn btn-secondary" onClick={openImport}>{t('methodology:plantillas.import_button')}</button>}
+        actions={<Button variant="secondary" onClick={openImport}>{t('methodology:plantillas.import_button')}</Button>}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
-
-        {/* Formulario crear */}
-        <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
-          <h3 style={{ margin: '0 0 4px' }}>{t('methodology:plantillas.create_section_title')}</h3>
-          <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>
-            {t('methodology:plantillas.create_section_subtitle')}
-          </p>
-          <form
-            className={wasValidated ? 'was-validated' : ''}
-            onSubmit={(e) => {
-              e.preventDefault();
-              const formEl = e.currentTarget;
-              setWasValidated(true);
-              if (formEl.checkValidity()) handleCreate();
-            }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            noValidate
-          >
-            <Field label={t('methodology:plantillas.fields.nombre')} required htmlFor="new-plantilla-nombre">
-              <>
-                <input id="new-plantilla-nombre" className="input" required placeholder={t('methodology:plantillas.placeholders.nombre')}
-                  value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-                <div className="invalid-feedback">{t('methodology:plantillas.validation.nombre_required')}</div>
-              </>
-            </Field>
-            <Field label={<>{t('methodology:plantillas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:plantillas.optional_label')}</span></>}>
-              <textarea className="input" placeholder={t('methodology:plantillas.placeholders.descripcion')}
-                value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
-                rows={3} />
-            </Field>
-            <Field
-              label={<>{t('methodology:plantillas.fields.orden_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:plantillas.optional_label')}</span></>}
-              hint={t('methodology:plantillas.orden_help_alt')}
+      <FormListLayout
+        form={
+          <div className="card" style={{ position: 'sticky', top: 'var(--space-5)' }}>
+            <h3 style={{ margin: '0 0 var(--space-1)' }}>{t('methodology:plantillas.create_section_title')}</h3>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.8125rem' }}>
+              {t('methodology:plantillas.create_section_subtitle')}
+            </p>
+            <form
+              className={wasValidated ? 'was-validated' : ''}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formEl = e.currentTarget;
+                setWasValidated(true);
+                if (formEl.checkValidity()) handleCreate();
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+              noValidate
             >
-              <input
-                className="input"
-                type="number"
-                min="1"
-                placeholder={t('methodology:plantillas.placeholders.orden')}
-                value={form.orden}
-                onChange={e => setForm({ ...form, orden: e.target.value })}
-              />
-            </Field>
-            <button type="submit" className="btn btn-primary">{t('methodology:plantillas.create_submit')}</button>
-          </form>
-        </div>
-
-        {/* Lista */}
-        <div>
-          {loaded && list.length === 0 ? (
+              <Field label={t('methodology:plantillas.fields.nombre')} required htmlFor="new-plantilla-nombre">
+                <>
+                  <input id="new-plantilla-nombre" className="input" required placeholder={t('methodology:plantillas.placeholders.nombre')}
+                    value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                  <div className="invalid-feedback">{t('methodology:plantillas.validation.nombre_required')}</div>
+                </>
+              </Field>
+              <Field label={<>{t('methodology:plantillas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:plantillas.optional_label')}</span></>}>
+                <textarea className="input" placeholder={t('methodology:plantillas.placeholders.descripcion')}
+                  value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
+                  rows={3} />
+              </Field>
+              <Field
+                label={<>{t('methodology:plantillas.fields.orden_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:plantillas.optional_label')}</span></>}
+                hint={t('methodology:plantillas.orden_help_alt')}
+              >
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  placeholder={t('methodology:plantillas.placeholders.orden')}
+                  value={form.orden}
+                  onChange={e => setForm({ ...form, orden: e.target.value })}
+                />
+              </Field>
+              <Button type="submit" variant="primary" block>{t('methodology:plantillas.create_submit')}</Button>
+            </form>
+          </div>
+        }
+        list={
+          loaded && list.length === 0 ? (
             <div className="card">
               <EmptyState
                 icon="📋"
@@ -361,54 +366,47 @@ export function PlantillasPage() {
               />
             </div>
           ) : (
-            list.map(p => (
-              <div key={p.id} className="card" style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {p.orden != null && (
-                        <span style={{
-                          fontSize: '0.7rem', background: '#e0e7ff', color: '#3730a3',
-                          borderRadius: 4, padding: '2px 8px', fontWeight: 700,
-                        }}>
-                          {t('methodology:plantillas.step_badge', { num: p.orden })}
-                        </span>
-                      )}
-                      {p._count.pasos > 0 ? (
-                        <span className="status-badge status-info" style={{ fontSize: '0.7rem' }}>
-                          {t('methodology:plantillas.pasos_count', { count: p._count.pasos })}
-                        </span>
-                      ) : (
-                        <span className="status-badge status-warning" style={{ fontSize: '0.7rem' }}>{t('methodology:plantillas.no_pasos')}</span>
+            <div>
+              {list.map(p => (
+                <div key={p.id} className="card" style={{ marginBottom: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                        {p.orden != null && (
+                          <StatusBadge variant="neutral">{t('methodology:plantillas.step_badge', { num: p.orden })}</StatusBadge>
+                        )}
+                        {p._count.pasos > 0 ? (
+                          <StatusBadge variant="info">{t('methodology:plantillas.pasos_count', { count: p._count.pasos })}</StatusBadge>
+                        ) : (
+                          <StatusBadge variant="warning">{t('methodology:plantillas.no_pasos')}</StatusBadge>
+                        )}
+                      </div>
+                      <h3 style={{ margin: '0 0 var(--space-1)', color: 'var(--color-text-main)', fontSize: '1rem' }}>{p.nombre}</h3>
+                      {p.descripcion && (
+                        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                          {p.descripcion}
+                        </p>
                       )}
                     </div>
-                    <h3 style={{ margin: '0 0 4px', color: 'var(--color-text-main)', fontSize: '1rem' }}>{p.nombre}</h3>
-                    {p.descripcion && (
-                      <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.8125rem', lineHeight: 1.5 }}>
-                        {p.descripcion}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.82rem' }}
-                      onClick={() => openEdit(p)}>
-                      {t('common:buttons.edit')}
-                    </button>
-                    <Link to={`/admin/plantillas/${p.id}/pasos`} className="btn btn-primary"
-                      style={{ padding: '5px 12px', fontSize: '0.82rem', textDecoration: 'none' }}>
-                      {t('methodology:plantillas.configure_pasos')}
-                    </Link>
-                    <button className="btn btn-danger" style={{ padding: '5px 8px', fontSize: '0.875rem' }}
-                      onClick={() => setDeleteModal({ id: p.id, nombre: p.nombre })} title={t('common:buttons.delete')}>
-                      🗑️
-                    </button>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+                      <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
+                        {t('common:buttons.edit')}
+                      </Button>
+                      <Link to={`/admin/plantillas/${p.id}/pasos`} className="btn btn-primary btn-sm">
+                        {t('methodology:plantillas.configure_pasos')}
+                      </Link>
+                      <Button variant="danger" size="sm" onClick={() => setDeleteModal({ id: p.id, nombre: p.nombre })}
+                        title={t('common:buttons.delete')} aria-label={t('common:buttons.delete')}>
+                        🗑️
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+              ))}
+            </div>
+          )
+        }
+      />
     </div>
   );
 }

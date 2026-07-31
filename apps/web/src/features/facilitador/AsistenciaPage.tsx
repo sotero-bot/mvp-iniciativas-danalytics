@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Alert, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Field, Alert, Loading, EmptyState, DataTable } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { toast } from '../../components/toast-store';
 
@@ -29,6 +30,8 @@ export function FacilitadorAsistenciaPage() {
   const [observacion, setObservacion] = useState('');
   const [enviandoObs, setEnviandoObs] = useState(false);
   const [confirmarCorreo, setConfirmarCorreo] = useState(false);
+  // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
+  const [programaNombre, setProgramaNombre] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -46,6 +49,17 @@ export function FacilitadorAsistenciaPage() {
   };
 
   useEffect(() => { load(); }, [sesionId]);
+
+  useEffect(() => {
+    if (!programaId) return;
+    fetchWithErrorMapping(`${API_URL}/programas`)
+      .then((res) => res.json())
+      .then((data: { id: string; nombre: string }[]) => {
+        const p = data.find((x) => x.id === programaId);
+        if (p) setProgramaNombre(p.nombre);
+      })
+      .catch(() => {});
+  }, [programaId]);
 
   const togglePresente = (usuarioId: string) => {
     setRegistros((prev) =>
@@ -104,80 +118,81 @@ export function FacilitadorAsistenciaPage() {
     }
   };
 
+  const columns: DataTableColumn<Registro>[] = [
+    { key: 'nombre', header: t('facilitador:asistencia.participante'), render: (r) => r.nombre },
+    {
+      key: 'presente',
+      header: t('facilitador:asistencia.presente'),
+      align: 'center',
+      render: (r) => (
+        <input
+          type="checkbox"
+          checked={r.presente}
+          onChange={() => togglePresente(r.usuarioId)}
+          aria-label={`${t('facilitador:asistencia.presente')} — ${r.nombre}`}
+        />
+      ),
+    },
+    {
+      key: 'nota',
+      header: t('facilitador:asistencia.nota'),
+      render: (r) => (
+        <input
+          className="input"
+          value={r.nota ?? ''}
+          onChange={(e) => setNota(r.usuarioId, e.target.value)}
+          aria-label={`${t('facilitador:asistencia.nota')} — ${r.nombre}`}
+        />
+      ),
+    },
+  ];
+
   return (
-    <div className="page">
-      <PageHeader title={t('facilitador:asistencia.title')} />
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
+          { label: programaNombre || programaId || '—', to: programaId ? `/facilitador/programas/${programaId}/sesiones` : undefined },
+          { label: t('facilitador:asistencia.title') },
+        ]}
+      />
+      <PageHeader
+        eyebrow={programaNombre || undefined}
+        title={t('facilitador:asistencia.title')}
+      />
       {errorCode === 'SESION_FUTURA' && <Alert variant="warning">{t('facilitador:asistencia.future_banner')}</Alert>}
       {errorCode === 'ASISTENCIA_FUERA_DE_PLAZO' && <Alert variant="warning">{t('facilitador:asistencia.locked_banner')}</Alert>}
       {loading && <Loading label={t('common:loading')} />}
       {!loading && !errorCode && registros.length === 0 && <EmptyState title={t('facilitador:asistencia.empty')} />}
 
       {!loading && !errorCode && registros.length > 0 && (
-        <>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('facilitador:asistencia.participante')}</th>
-                  <th style={{ textAlign: 'center' }}>{t('facilitador:asistencia.presente')}</th>
-                  <th>{t('facilitador:asistencia.nota')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registros.map((r) => (
-                  <tr key={r.usuarioId}>
-                    <td>{r.nombre}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={r.presente}
-                        onChange={() => togglePresente(r.usuarioId)}
-                        aria-label={`${t('facilitador:asistencia.presente')} — ${r.nombre}`}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        value={r.nota ?? ''}
-                        onChange={(e) => setNota(r.usuarioId, e.target.value)}
-                        aria-label={`${t('facilitador:asistencia.nota')} — ${r.nombre}`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <DataTable columns={columns} rows={registros} rowKey={(r) => r.usuarioId} />
       )}
 
       {!loading && !errorCode && (
-        <div className="card" style={{ padding: '1rem', marginTop: 24 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>
-            {t('facilitador:asistencia.obs_general_title')}
-          </div>
-          <textarea
-            className="textarea"
-            rows={4}
-            value={observacion}
-            placeholder={t('facilitador:asistencia.obs_general_placeholder')}
-            onChange={(e) => setObservacion(e.target.value)}
-            aria-label={t('facilitador:asistencia.obs_general_title')}
-          />
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
-            <button className="btn btn-primary" disabled={saving} onClick={guardar}>
-              {saving ? t('common:loading') : t('facilitador:asistencia.save')}
-            </button>
-            <button
-              className="btn btn-secondary"
-              style={{ marginLeft: 'auto' }}
+        <div className="card" style={{ padding: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
+          <Field label={t('facilitador:asistencia.obs_general_title')}>
+            <textarea
+              className="textarea"
+              rows={4}
+              value={observacion}
+              placeholder={t('facilitador:asistencia.obs_general_placeholder')}
+              onChange={(e) => setObservacion(e.target.value)}
+            />
+          </Field>
+          <div className="form-footer">
+            <Button
+              variant="secondary"
               disabled={enviandoObs || observacion.trim().length === 0}
               onClick={() => setConfirmarCorreo(true)}
             >
               {enviandoObs
                 ? t('facilitador:asistencia.obs_general_sending')
                 : t('facilitador:asistencia.obs_general_send')}
-            </button>
+            </Button>
+            <Button variant="primary" disabled={saving} onClick={guardar}>
+              {saving ? t('common:loading') : t('facilitador:asistencia.save')}
+            </Button>
           </div>
         </div>
       )}

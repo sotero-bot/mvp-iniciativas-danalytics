@@ -58,12 +58,14 @@
       "message": "Também serão desativadas todas as iniciativas, atividades e execuções de \"{{nombre}}\"."
     },
     "table": {
+      "header_title": "Empresas cadastradas",
       "empresa": "Empresa",
       "contexto_pdf": "Contexto PDF",
       "created": "Criada",
       "actions": "Ações",
       "pdf_uploaded": "📄 Enviado",
-      "pdf_missing": "Sem PDF"
+      "pdf_missing": "Sem PDF",
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}"
     },
     "empty": {
       "title": "Ainda não há empresas cadastradas",
@@ -125,7 +127,8 @@
       "nombre": "Nome",
       "empresa": "Empresa",
       "descripcion": "Descrição",
-      "actions": "Ações"
+      "actions": "Ações",
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}"
     },
     "empty": {
       "title": "Ainda não há iniciativas",

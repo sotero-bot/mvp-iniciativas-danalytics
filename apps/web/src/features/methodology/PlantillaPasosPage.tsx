@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PromptTemplateField } from '../../components/PromptTemplateField';
 import { TranslationFields, emptyTranslations } from '../../components/TranslationFields';
-import { Modal, Field, Alert, Loading, EmptyState, PageHeader } from '../../components/ui';
+import { Modal, Field, Alert, Loading, EmptyState, PageHeader, Breadcrumb, Button, StatusBadge } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, ApiError } from '../../shared/api/fetchWithErrorMapping';
 import { toast } from '../../components/toast-store';
 
@@ -255,11 +255,25 @@ export function PlantillaPasosPage() {
     }
   };
 
-  if (loading) return <div className="runner-center"><Loading label={t('methodology:pasos.loading')} /></div>;
+  const breadcrumbItems = [
+    { label: t('methodology:plantillas.page_title'), to: '/admin/plantillas' },
+    { label: nombrePlantilla || t('methodology:pasos.plantilla_label') },
+    { label: t('methodology:pasos.page_title_plantilla') },
+  ];
+
+  if (loading) return (
+    <div className="layout-content">
+      <Breadcrumb items={breadcrumbItems} />
+      <div className="runner-center"><Loading label={t('methodology:pasos.loading')} /></div>
+    </div>
+  );
   if (error) return (
-    <div className="runner-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-      <Alert variant="danger">{error}</Alert>
-      <button className="btn btn-secondary" onClick={() => navigate('/admin/plantillas')}>{t('methodology:pasos.back')}</button>
+    <div className="layout-content">
+      <Breadcrumb items={[{ label: t('methodology:plantillas.page_title'), to: '/admin/plantillas' }, { label: t('methodology:pasos.page_title_plantilla') }]} />
+      <div className="runner-center" style={{ flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <Alert variant="danger">{error}</Alert>
+        <Button variant="secondary" onClick={() => navigate('/admin/plantillas')}>{t('methodology:pasos.back')}</Button>
+      </div>
     </div>
   );
 
@@ -280,17 +294,18 @@ export function PlantillaPasosPage() {
         onCancel={() => setPreguntaModal(null)}
       />
 
+      <Breadcrumb items={breadcrumbItems} />
+
       <PageHeader
-        back={{ to: '/admin/plantillas', label: t('methodology:pasos.back_to_plantillas') }}
+        eyebrow={nombrePlantilla}
         title={t('methodology:pasos.page_title_plantilla')}
-        description={<>{t('methodology:pasos.plantilla_label')} <strong>{nombrePlantilla}</strong></>}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={openTrans}>🌐 Traducciones</button>
+            <Button variant="secondary" onClick={openTrans}>🌐 Traducciones</Button>
             {!showForm && (
-              <button className="btn btn-primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
+              <Button variant="primary" onClick={() => { setShowForm(true); setActivePasoId(null); }}>
                 {t('methodology:pasos.add_button')}
-              </button>
+              </Button>
             )}
           </>
         }
@@ -307,7 +322,7 @@ export function PlantillaPasosPage() {
 
         {!transPreview && !transResult && (
           <>
-            <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
               Sube un JSON con <code>locale</code>, <code>nombre</code>, <code>descripcion</code> y <code>pasos</code> (ordenados por <code>orden</code>).
             </p>
             <div
@@ -317,14 +332,14 @@ export function PlantillaPasosPage() {
               onClick={() => transInputRef.current?.click()}
               style={{
                 border: `2px dashed ${transDragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                borderRadius: 8, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
+                borderRadius: 'var(--radius-md)', padding: 'var(--space-6) var(--space-5)', textAlign: 'center', cursor: 'pointer',
                 background: transDragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
                 transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontSize: '2rem', marginBottom: 8 }}>🌐</div>
+              <div style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>🌐</div>
               <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-main)' }}>{transFileName || 'Arrastra el JSON de traducciones aquí'}</p>
-              <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>o haz clic para seleccionar</p>
+              <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>o haz clic para seleccionar</p>
               <input ref={transInputRef} type="file" accept=".json" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) parseTransFile(f); }} />
             </div>
@@ -332,47 +347,45 @@ export function PlantillaPasosPage() {
         )}
 
         {transError && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 'var(--space-3)' }}>
             <Alert variant="danger">{transError}</Alert>
           </div>
         )}
 
         {transPreview && (
-          <div style={{ marginTop: 4 }}>
-            <div style={{ background: 'var(--color-bg-subtle)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#065f46', borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
-                  {transPreview.locale?.toUpperCase()}
-                </span>
+          <div style={{ marginTop: 'var(--space-1)' }}>
+            <div style={{ background: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <StatusBadge variant="success">{transPreview.locale?.toUpperCase()}</StatusBadge>
                 {transPreview.nombre && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{transPreview.nombre}</span>}
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
                 {(transPreview.pasos ?? []).length} paso(s) · {(transPreview.pasos ?? []).reduce((s: number, p: any) => s + (p.preguntas ?? []).length, 0)} pregunta(s)
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => { setTransPreview(null); setTransFileName(''); }}>Cambiar archivo</button>
-              <button className="btn btn-primary" disabled={transLoading} onClick={handleLoadTrans}>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => { setTransPreview(null); setTransFileName(''); }}>Cambiar archivo</Button>
+              <Button variant="primary" disabled={transLoading} onClick={handleLoadTrans}>
                 {transLoading ? 'Cargando...' : 'Cargar traducciones'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         {transResult && (
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 'var(--space-2)' }}>
             <Alert variant="success" title={<>✅ {transResult.total} traducciones cargadas</>}>
               <span style={{ fontSize: '0.85rem' }}>
                 {transResult.pasos} pasos · {transResult.preguntas} preguntas
               </span>
             </Alert>
             {transResult.warnings?.length > 0 && (
-              <ul style={{ margin: '12px 0 14px', paddingLeft: 18, color: 'var(--color-warning-strong)', fontSize: '0.825rem' }}>
+              <ul style={{ margin: 'var(--space-3) 0 var(--space-4)', paddingLeft: 'var(--space-4)', color: 'var(--color-warning-strong)', fontSize: '0.825rem' }}>
                 {transResult.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
               </ul>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary" onClick={() => setTransOpen(false)}>Cerrar</button>
+              <Button variant="primary" onClick={() => setTransOpen(false)}>Cerrar</Button>
             </div>
           </div>
         )}
@@ -432,9 +445,9 @@ export function PlantillaPasosPage() {
               onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
             />
 
-            <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</button>
-              <button type="submit" className="btn btn-primary">{editingId ? t('methodology:pasos.save_changes') : t('methodology:pasos.save_paso')}</button>
+            <div className="form-footer" style={{ gridColumn: 'span 2' }}>
+              <Button type="button" variant="secondary" onClick={handleCancelEdit}>{t('common:buttons.cancel')}</Button>
+              <Button type="submit" variant="primary">{editingId ? t('methodology:pasos.save_changes') : t('methodology:pasos.save_paso')}</Button>
             </div>
           </form>
         </div>
@@ -454,38 +467,36 @@ export function PlantillaPasosPage() {
             return (
               <div key={p.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 {/* Paso header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-bg-page)' }}>
-                  <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: 'var(--space-4) var(--space-5)', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border)' }}>
+                  <span className="status-badge" style={{ background: 'var(--color-primary)', color: 'var(--color-bg-card)', fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
                     {p.orden}
                   </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '1rem' }}>{p.titulo}</div>
                     {p.objetivo && (
-                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{p.objetivo}</div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>{p.objetivo}</div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleEdit(p)}>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <Button variant="secondary" size="sm" onClick={() => handleEdit(p)}>
                       {t('common:buttons.edit')}
-                    </button>
-                    <button className="btn" style={{ padding: '3px 8px', fontSize: '0.78rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
-                      onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
+                    </Button>
+                    <Button variant="danger" size="sm" aria-label={t('common:buttons.delete')} onClick={() => setModal({ id: p.id, titulo: p.titulo })}>
                       🗑️
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 {/* Preguntas section */}
-                <div style={{ padding: '1rem 1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       {t('methodology:preguntas.section_title', { count: preguntas.length })}
                     </span>
                     {!isActive && (
-                      <button className="btn btn-primary" style={{ padding: '3px 10px', fontSize: '0.78rem' }}
-                        onClick={() => openAddPregunta(p.id, preguntas)}>
+                      <Button variant="primary" size="sm" onClick={() => openAddPregunta(p.id, preguntas)}>
                         {t('methodology:preguntas.add_button')}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -509,28 +520,25 @@ export function PlantillaPasosPage() {
                               />
                             ) : (
                               <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
                                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', minWidth: 20, textAlign: 'center' }}>{q.orden}</span>
                                   <span style={{ flex: 1, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>{q.enunciado}</span>
-                                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                  <div style={{ display: 'flex', gap: 'var(--space-1)', flexShrink: 0, alignItems: 'center' }}>
                                     {q.usarIa && (
-                                      <span className="status-badge" style={{ background: 'var(--color-primary)', color: '#fff', fontSize: '0.65rem' }}>
-                                        🤖{q.iaAutomatica ? '⚡' : ''}
-                                      </span>
+                                      <StatusBadge variant="info">🤖{q.iaAutomatica ? '⚡' : ''}</StatusBadge>
                                     )}
                                     {q.soloArchivo ? (
-                                      <span className="status-badge" style={{ background: '#0369a1', color: '#fff', fontSize: '0.65rem' }}>📄</span>
+                                      <StatusBadge variant="info">📄</StatusBadge>
                                     ) : q.permitirArchivo ? (
-                                      <span className="status-badge" style={{ background: 'var(--color-success-strong)', color: '#fff', fontSize: '0.65rem' }}>📎</span>
+                                      <StatusBadge variant="success">📎</StatusBadge>
                                     ) : null}
-                                    <button className="btn btn-secondary" style={{ padding: '1px 7px', fontSize: '0.72rem' }}
-                                      onClick={() => openEditPregunta(p.id, q)}>
+                                    <Button variant="secondary" size="sm" onClick={() => openEditPregunta(p.id, q)}>
                                       {t('common:buttons.edit')}
-                                    </button>
-                                    <button className="btn" style={{ padding: '1px 6px', fontSize: '0.72rem', background: 'var(--color-danger-bg)', color: 'var(--color-danger-strong)', border: '1px solid var(--color-danger-border)' }}
+                                    </Button>
+                                    <Button variant="danger" size="sm" aria-label={t('common:buttons.delete')}
                                       onClick={() => setPreguntaModal({ pasoId: p.id, id: q.id, enunciado: q.enunciado })}>
                                       🗑️
-                                    </button>
+                                    </Button>
                                   </div>
                                 </div>
                               </>
@@ -588,7 +596,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
   const { t } = useTranslation(['methodology', 'common']);
   const fid = useId();
   return (
-    <div style={{ border: '1px solid var(--color-primary)', borderRadius: 8, padding: '1rem', background: '#fafbff' }}>
+    <div style={{ border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--color-primary-light)' }}>
       <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>
         {isEditing ? t('methodology:preguntas.edit_section_title') : t('methodology:preguntas.create_section_title')}
       </div>
@@ -628,15 +636,15 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.permitir_archivo')}</span>
           </label>
           {form.permitirArchivo && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 'var(--space-2)' }}>
               <input type="checkbox" checked={form.soloArchivo}
                 onChange={e => setForm({ ...form, soloArchivo: e.target.checked })}
-                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#0369a1' }} />
+                style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-info)' }} />
               <span>{t('methodology:preguntas.options.solo_archivo')}</span>
             </label>
           )}
           {form.permitirArchivo && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 'var(--space-2)' }}
               title={t('methodology:preguntas.options.subir_archivo_s3_title')}>
               <input type="checkbox" checked={form.subirArchivoS3}
                 onChange={e => setForm({ ...form, subirArchivoS3: e.target.checked })}
@@ -669,18 +677,18 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
               <span style={{ fontWeight: 600 }}>{t('methodology:preguntas.options.usar_ia')}</span>
             </label>
             {form.usarIa && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', userSelect: 'none', fontSize: '0.85rem', marginLeft: 'var(--space-2)' }}>
                 <input type="checkbox" checked={form.iaAutomatica}
                   onChange={e => setForm({ ...form, iaAutomatica: e.target.checked })}
-                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#7C3AED' }} />
+                  style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent)' }} />
                 <span>{t('methodology:preguntas.options.ia_automatica')}</span>
               </label>
             )}
           </div>
           {form.usarIa && (
-            <div style={{ marginTop: '0.5rem' }}>
+            <div style={{ marginTop: 'var(--space-2)' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500, fontSize: '0.875rem' }}>
+                <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500, fontSize: '0.875rem' }}>
                   {t('methodology:preguntas.prompt_template_label')} <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>{t('methodology:preguntas.prompt_template_optional')}</span>
                 </label>
                 <PromptTemplateField
@@ -712,13 +720,13 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
           onChange={(locale, key, val) => setForm({ ...form, translations: { ...form.translations, [locale]: { ...form.translations[locale], [key]: val } } })}
         />
 
-        <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }} onClick={onCancel}>
+        <div className="form-footer" style={{ gridColumn: 'span 2', marginTop: 0 }}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             {t('common:buttons.cancel')}
-          </button>
-          <button type="submit" className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
+          </Button>
+          <Button type="submit" variant="primary">
             {isEditing ? t('methodology:preguntas.save_changes') : t('methodology:preguntas.add_action')}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

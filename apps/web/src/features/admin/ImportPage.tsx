@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader, Field, Alert, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Field, Alert, EmptyState, Button, FormListLayout, StatCard } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
@@ -112,210 +112,195 @@ export function ImportPage() {
 
   return (
     <div className="layout-content">
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:import.page_title') },
+        ]}
+      />
       <PageHeader
+        eyebrow={t('admin:sidebar.gestion_label')}
         title={t('admin:import.page_title')}
         description={t('admin:import.page_description')}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      <FormListLayout
+        form={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
 
-        {/* Izquierda: empresa + upload + formato */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Selector de empresa */}
+            <div className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+              <Field
+                label={t('admin:import.empresa_label')}
+                required
+                hint={empresas.length === 0 ? t('admin:import.empresas_empty') : undefined}
+              >
+                <select
+                  className="input"
+                  value={empresaId}
+                  onChange={e => setEmpresaId(e.target.value)}
+                >
+                  <option value="">{t('admin:import.empresa_placeholder')}</option>
+                  {empresas.map(e => (
+                    <option key={e.id} value={e.id}>{e.nombre}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
 
-          {/* Selector de empresa */}
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <Field
-              label={t('admin:import.empresa_label')}
-              required
-              hint={empresas.length === 0 ? t('admin:import.empresas_empty') : undefined}
+            {/* Drop zone */}
+            <div
+              onClick={() => inputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+              style={{
+                border: `2px dashed ${dragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                padding: 'var(--space-6) var(--space-5)',
+                textAlign: 'center',
+                cursor: 'pointer',
+                background: dragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
+                transition: 'all 0.15s',
+              }}
             >
-              <select
-                className="input"
-                value={empresaId}
-                onChange={e => setEmpresaId(e.target.value)}
-              >
-                <option value="">{t('admin:import.empresa_placeholder')}</option>
-                {empresas.map(e => (
-                  <option key={e.id} value={e.id}>{e.nombre}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          {/* Drop zone */}
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={e => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
-            style={{
-              border: `2px dashed ${dragging ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              borderRadius: 'var(--radius-md)',
-              padding: '2rem 1.5rem',
-              textAlign: 'center',
-              cursor: 'pointer',
-              background: dragging ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
-              transition: 'all 0.15s',
-            }}
-          >
-            <div style={{ fontSize: '1.75rem', marginBottom: 6 }}>📂</div>
-            <p style={{ margin: '0 0 3px', fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
-              {fileName || t('admin:import.drop_zone_label')}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>{t('admin:import.drop_zone_hint')}</p>
-            <input ref={inputRef} type="file" accept=".json" style={{ display: 'none' }}
-              onChange={e => handleFile(e.target.files?.[0])} />
-          </div>
-
-          {parseError && (
-            <Alert variant="danger">{parseError}</Alert>
-          )}
-
-          {/* Formato esperado */}
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-              {t('admin:import.format_label')}
-            </p>
-            <pre style={{
-              margin: 0, fontSize: '0.72rem', lineHeight: 1.6,
-              color: 'var(--color-text-secondary)', background: 'var(--color-bg-page)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6, padding: '0.75rem',
-              overflowX: 'auto', whiteSpace: 'pre',
-            }}>
-              {EJEMPLO}
-            </pre>
-            <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
-              {t('admin:import.format_note')}
-            </p>
-          </div>
-        </div>
-
-        {/* Derecha: preview o resultado */}
-        <div>
-          {result && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{
-                background: '#ECFDF5', border: '1px solid #A7F3D0',
-                borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem',
-              }}>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#065F46', marginBottom: 12 }}>
-                  ✓ {t('admin:import.result_success', { empresa: result.empresa })}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  {[
-                    { label: t('admin:import.result_iniciativas_created'), val: result.iniciativasCreadas },
-                    { label: t('admin:import.result_actividades_created'), val: result.actividadesCreadas },
-                  ].map(({ label, val }) => (
-                    <div key={label} style={{ background: 'white', borderRadius: 8, padding: '0.625rem 0.875rem', border: '1px solid #D1FAE5' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669' }}>{val}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {result.details.map((ini: any, i: number) => (
-                <div key={i} className="card" style={{ padding: '1rem 1.25rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>📌 {ini.nombre}</div>
-                  {ini.actividades.map((act: any, j: number) => (
-                    <div key={j} style={{ paddingLeft: '1rem', fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 4 }}>
-                      ⚡ {act.nombre}
-                      {act.plantilla && (
-                        <span style={{ marginLeft: 6, fontSize: '0.72rem', background: '#EEF2FF', color: '#4338CA', padding: '1px 6px', borderRadius: 4 }}>
-                          📋 {act.plantilla} ({act.pasosCopados})
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              <button className="btn btn-secondary" onClick={reset} style={{ alignSelf: 'start' }}>
-                {t('admin:import.import_another')}
-              </button>
+              <div style={{ fontSize: '1.75rem', marginBottom: 'var(--space-2)' }}>📂</div>
+              <p style={{ margin: '0 0 3px', fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+                {fileName || t('admin:import.drop_zone_label')}
+              </p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>{t('admin:import.drop_zone_hint')}</p>
+              <input ref={inputRef} type="file" accept=".json" style={{ display: 'none' }}
+                onChange={e => handleFile(e.target.files?.[0])} />
             </div>
-          )}
 
-          {preview && !result && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{
-                background: '#EFF6FF', border: '1px solid #BFDBFE',
-                borderRadius: 'var(--radius-md)', padding: '0.875rem 1.25rem',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            {parseError && (
+              <Alert variant="danger">{parseError}</Alert>
+            )}
+
+            {/* Formato esperado */}
+            <div className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+              <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                {t('admin:import.format_label')}
+              </p>
+              <pre style={{
+                margin: 0, fontSize: '0.72rem', lineHeight: 1.6,
+                color: 'var(--color-text-secondary)', background: 'var(--color-bg-page)',
+                border: '1px solid var(--color-border)',
+                padding: 'var(--space-3)',
+                overflowX: 'auto', whiteSpace: 'pre',
               }}>
-                <div>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1D4ED8' }}>{t('admin:import.preview_title')}</span>
-                  <span style={{ marginLeft: 10, fontSize: '0.82rem', color: '#3B82F6' }}>
-                    {t('admin:import.preview_iniciativas', { count: preview.length })} · {t('admin:import.preview_actividades', { count: totalActividades })}
-                  </span>
-                  {empresaSeleccionada && (
-                    <span style={{ marginLeft: 10, fontSize: '0.82rem', color: '#6B7280' }}>
-                      → {empresaSeleccionada.nombre}
-                    </span>
-                  )}
-                </div>
-                <button className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} onClick={reset}>
-                  {t('admin:import.preview_clear')}
-                </button>
-              </div>
-
-              {preview.map((ini, i) => (
-                <div key={i} className="card" style={{ padding: '1rem 1.25rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                    📌 {ini.nombre}
-                    {ini.descripcion && <span style={{ fontWeight: 400, fontSize: '0.82rem', color: 'var(--color-text-tertiary)', marginLeft: 8 }}>— {ini.descripcion}</span>}
-                  </div>
-                  {(ini.actividades ?? []).map((act, j) => (
-                    <div key={j} style={{ paddingLeft: '1rem', fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 4, borderLeft: '2px solid #BFDBFE', paddingTop: 2, paddingBottom: 2 }}>
-                      ⚡ {act.nombre}
-                      {act.plantilla && (
-                        <span style={{ marginLeft: 6, fontSize: '0.72rem', background: '#EEF2FF', color: '#4338CA', padding: '1px 6px', borderRadius: 4 }}>
-                          📋 {act.plantilla}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                  {!ini.actividades?.length && (
-                    <div style={{ paddingLeft: '1rem', fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('admin:import.preview_no_activities')}</div>
-                  )}
-                </div>
-              ))}
-
-              {!empresaId && (
-                <div style={{ padding: '10px 14px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 'var(--radius-sm)', color: '#92400E', fontSize: '0.875rem' }}>
-                  ⚠ {t('admin:import.select_empresa_warning')}
-                </div>
-              )}
-
-              {apiError && (
-                <div style={{ padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--radius-sm)', color: '#DC2626', fontSize: '0.875rem' }}>
-                  ⚠ {apiError}
-                </div>
-              )}
-
-              <button
-                className="btn btn-primary"
-                onClick={handleImport}
-                disabled={loading || !canImport}
-                style={{ alignSelf: 'start', minWidth: 180 }}
-              >
-                {loading ? t('admin:import.importing') : t('admin:import.confirm_import')}
-              </button>
-            </div>
-          )}
-
-          {!preview && !result && (
-            <div className="card" style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', marginBottom: 10 }}>⬆</div>
-              <p style={{ margin: 0, color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>
-                {t('admin:import.empty_preview')}
+                {EJEMPLO}
+              </pre>
+              <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
+                {t('admin:import.format_note')}
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        }
+        list={
+          <div>
+            {result && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <Alert variant="success" title={t('admin:import.result_success', { empresa: result.empresa })}>
+                  <div className="stat-grid">
+                    <StatCard label={t('admin:import.result_iniciativas_created')} value={result.iniciativasCreadas} />
+                    <StatCard label={t('admin:import.result_actividades_created')} value={result.actividadesCreadas} />
+                  </div>
+                </Alert>
 
-      </div>
+                {result.details.map((ini: any, i: number) => (
+                  <div key={i} className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>📌 {ini.nombre}</div>
+                    {ini.actividades.map((act: any, j: number) => (
+                      <div key={j} style={{ paddingLeft: 'var(--space-4)', fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>
+                        ⚡ {act.nombre}
+                        {act.plantilla && (
+                          <span className="chip" style={{ marginLeft: 'var(--space-2)', fontSize: '0.72rem', padding: '1px 6px' }}>
+                            📋 {act.plantilla} ({act.pasosCopados})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+                <div className="actions-end">
+                  <Button variant="secondary" onClick={reset}>
+                    {t('admin:import.import_another')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {preview && !result && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <Alert variant="info">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t('admin:import.preview_title')}</span>
+                      <span style={{ marginLeft: 'var(--space-3)', fontSize: '0.82rem' }}>
+                        {t('admin:import.preview_iniciativas', { count: preview.length })} · {t('admin:import.preview_actividades', { count: totalActividades })}
+                      </span>
+                      {empresaSeleccionada && (
+                        <span className="chip" style={{ marginLeft: 'var(--space-3)' }}>
+                          <span className="chip-dot" aria-hidden="true" />
+                          {empresaSeleccionada.nombre}
+                        </span>
+                      )}
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={reset}>
+                      {t('admin:import.preview_clear')}
+                    </Button>
+                  </div>
+                </Alert>
+
+                {preview.map((ini, i) => (
+                  <div key={i} className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>
+                      📌 {ini.nombre}
+                      {ini.descripcion && <span style={{ fontWeight: 400, fontSize: '0.82rem', color: 'var(--color-text-tertiary)', marginLeft: 'var(--space-2)' }}>— {ini.descripcion}</span>}
+                    </div>
+                    {(ini.actividades ?? []).map((act, j) => (
+                      <div key={j} style={{ paddingLeft: 'var(--space-4)', fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)', borderLeft: '2px solid var(--color-border-strong)', paddingTop: 2, paddingBottom: 2 }}>
+                        ⚡ {act.nombre}
+                        {act.plantilla && (
+                          <span className="chip" style={{ marginLeft: 'var(--space-2)', fontSize: '0.72rem', padding: '1px 6px' }}>
+                            📋 {act.plantilla}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {!ini.actividades?.length && (
+                      <div style={{ paddingLeft: 'var(--space-4)', fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('admin:import.preview_no_activities')}</div>
+                    )}
+                  </div>
+                ))}
+
+                {!empresaId && (
+                  <Alert variant="warning">{t('admin:import.select_empresa_warning')}</Alert>
+                )}
+
+                {apiError && (
+                  <Alert variant="danger">{apiError}</Alert>
+                )}
+
+                <div className="form-footer">
+                  <Button
+                    variant="primary"
+                    onClick={handleImport}
+                    disabled={loading || !canImport}
+                  >
+                    {loading ? t('admin:import.importing') : t('admin:import.confirm_import')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!preview && !result && (
+              <EmptyState icon="⬆" title={t('admin:import.empty_preview')} />
+            )}
+          </div>
+        }
+      />
     </div>
   );
 }

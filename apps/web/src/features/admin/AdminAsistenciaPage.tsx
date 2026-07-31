@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -70,14 +70,20 @@ export function AdminAsistenciaPage() {
     fraccion >= 0.8 ? 'var(--color-success-strong)' : fraccion >= 0.5 ? 'var(--color-warning-strong)' : 'var(--color-danger-strong)';
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 1100 }}>
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('admin:programas.page_title'), to: '/admin/programas' },
+          { label: t('admin:asistencia.title') },
+        ]}
+      />
       <PageHeader
-        back={{ to: '/admin/programas', label: t('admin:asistencia.back') }}
+        eyebrow={t('admin:programas.page_title')}
         title={t('admin:asistencia.title')}
         actions={
-          <button className="btn" onClick={exportar} disabled={exporting || !resumen || resumen.filas.length === 0}>
-            ⬇ {exporting ? t('common:loading') : t('admin:asistencia.export')}
-          </button>
+          <Button variant="primary" onClick={exportar} disabled={exporting || !resumen || resumen.filas.length === 0}>
+            {exporting ? t('common:loading') : t('admin:asistencia.export')}
+          </Button>
         }
       />
       {loading && <Loading label={t('common:loading')} />}

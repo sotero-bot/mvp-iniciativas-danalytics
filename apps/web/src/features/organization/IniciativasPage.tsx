@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Modal, Field } from '../../components/ui';
+import {
+  Modal, Field, StatusBadge, EmptyState,
+  Breadcrumb, PageHeader, Button, FormListLayout, DataTable, Pagination,
+} from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 5;
 
 interface Iniciativa {
   id: string;
@@ -23,7 +28,7 @@ interface Empresa {
 }
 
 export function IniciativasPage() {
-  const { t } = useTranslation(['organization', 'common']);
+  const { t } = useTranslation(['organization', 'admin', 'common']);
   const [iniciativas, setIniciativas] = useState<Iniciativa[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -41,6 +46,14 @@ export function IniciativasPage() {
   const [editEmpresaId, setEditEmpresaId] = useState('');
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(iniciativas.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => iniciativas.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [iniciativas, currentPage],
+  );
 
   useEffect(() => {
     Promise.all([
@@ -122,6 +135,49 @@ export function IniciativasPage() {
     }
   };
 
+  const columns: DataTableColumn<Iniciativa>[] = [
+    {
+      key: 'nombre',
+      header: t('organization:iniciativas.table.nombre'),
+      render: (ini) => <strong>{ini.nombre}</strong>,
+    },
+    {
+      key: 'empresa',
+      header: t('organization:iniciativas.table.empresa'),
+      render: (ini) => <StatusBadge variant="neutral">{ini.empresa?.nombre}</StatusBadge>,
+    },
+    {
+      key: 'descripcion',
+      header: t('organization:iniciativas.table.descripcion'),
+      render: (ini) => (
+        ini.descripcion
+          ? <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>{ini.descripcion}</span>
+          : <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('organization:iniciativas.table.actions'),
+      align: 'right',
+      render: (ini) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(ini)}>
+            {t('common:buttons.edit')}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setDeleteModal({ id: ini.id, nombre: ini.nombre })}
+            title={t('common:buttons.delete')}
+            aria-label={t('common:buttons.delete')}
+          >
+            🗑️
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <ConfirmModal
@@ -140,7 +196,7 @@ export function IniciativasPage() {
         <form
           className={editWasValidated ? 'was-validated' : ''}
           onSubmit={handleEdit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
           noValidate
         >
           <Field label={t('organization:iniciativas.fields.empresa')} htmlFor="ini-edit-empresa" required>
@@ -159,29 +215,31 @@ export function IniciativasPage() {
           <Field label={t('organization:iniciativas.fields.descripcion')} htmlFor="ini-edit-descripcion">
             <textarea id="ini-edit-descripcion" className="input" value={editDescripcion} onChange={e => setEditDescripcion(e.target.value)} rows={3} />
           </Field>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+          <div className="form-footer">
+            <Button type="button" variant="secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</Button>
+            <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <h1>{t('organization:iniciativas.page_title')}</h1>
-          <p className="page-description">
-            {t('organization:iniciativas.page_description')}
-          </p>
-        </div>
-        {iniciativas.length > 0 && (
-          <Link to="/admin/actividades" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.iniciativas') },
+        ]}
+      />
+
+      <PageHeader
+        title={t('organization:iniciativas.page_title')}
+        description={t('organization:iniciativas.page_description')}
+        actions={iniciativas.length > 0 && (
+          <Link to="/admin/actividades" className="btn btn-secondary">
             {t('organization:iniciativas.next_actividades')}
           </Link>
         )}
-      </div>
+      />
 
       {/* Prerequisite warning */}
       {loaded && empresas.length === 0 && (
@@ -193,150 +251,104 @@ export function IniciativasPage() {
               {t('organization:iniciativas.prereq_banner.text')}
             </p>
           </div>
-          <Link to="/admin/empresas" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
+          <Link to="/admin/empresas" className="btn btn-secondary">
             {t('organization:iniciativas.prereq_banner.link')}
           </Link>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
-        {/* Create form */}
-        <div className="card">
-          <h3 style={{ margin: '0 0 4px' }}>{t('organization:iniciativas.create_section_title')}</h3>
-          <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>
-            {t('organization:iniciativas.create_section_subtitle')}
-          </p>
-          <form
-            className={wasValidated ? 'was-validated' : ''}
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              setWasValidated(true);
-              if (form.checkValidity()) handleSubmit(e);
-            }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-            noValidate
-          >
-            <Field label={t('organization:iniciativas.fields.empresa')} htmlFor="ini-empresa" required>
-              <select id="ini-empresa" className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required disabled={empresas.length === 0}>
-                <option value="">{empresas.length === 0 ? t('organization:iniciativas.placeholders.no_empresas') : t('organization:iniciativas.placeholders.select_empresa')}</option>
-                {empresas.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.nombre}</option>
-                ))}
-              </select>
-              <div className="invalid-feedback">{t('organization:iniciativas.validation.empresa_required')}</div>
-            </Field>
-            <Field label={t('organization:iniciativas.fields.nombre')} htmlFor="ini-nombre" required>
-              <input id="ini-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)}
-                placeholder={t('organization:iniciativas.placeholders.nombre')} required disabled={empresas.length === 0} />
-              <div className="invalid-feedback">{t('organization:iniciativas.validation.nombre_required')}</div>
-            </Field>
-            <Field
-              label={<>{t('organization:iniciativas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('organization:iniciativas.optional_label')}</span></>}
-              htmlFor="ini-descripcion"
+      <FormListLayout
+        form={
+          <div className="card">
+            <h3 style={{ margin: '0 0 var(--space-1)' }}>{t('organization:iniciativas.create_section_title')}</h3>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.8125rem' }}>
+              {t('organization:iniciativas.create_section_subtitle')}
+            </p>
+            <form
+              className={wasValidated ? 'was-validated' : ''}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                setWasValidated(true);
+                if (form.checkValidity()) handleSubmit(e);
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+              noValidate
             >
-              <textarea id="ini-descripcion" className="input" value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                placeholder={t('organization:iniciativas.placeholders.descripcion')} rows={3} disabled={empresas.length === 0} />
-            </Field>
-            <button type="submit" className="btn btn-primary" disabled={empresas.length === 0}>
-              {t('organization:iniciativas.create_submit')}
-            </button>
-          </form>
-        </div>
-
-        {/* Table */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0 }}>{t('organization:iniciativas.table.header_title')}</h3>
-            {iniciativas.length > 0 && (
-              <span style={{
-                background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: '1px solid var(--color-info-border)',
-                borderRadius: 9999, padding: '2px 10px', fontSize: '0.72rem', fontWeight: 600,
-              }}>{iniciativas.length}</span>
-            )}
+              <Field label={t('organization:iniciativas.fields.empresa')} htmlFor="ini-empresa" required>
+                <select id="ini-empresa" className="input" value={empresaId} onChange={e => setEmpresaId(e.target.value)} required disabled={empresas.length === 0}>
+                  <option value="">{empresas.length === 0 ? t('organization:iniciativas.placeholders.no_empresas') : t('organization:iniciativas.placeholders.select_empresa')}</option>
+                  {empresas.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                  ))}
+                </select>
+                <div className="invalid-feedback">{t('organization:iniciativas.validation.empresa_required')}</div>
+              </Field>
+              <Field label={t('organization:iniciativas.fields.nombre')} htmlFor="ini-nombre" required>
+                <input id="ini-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)}
+                  placeholder={t('organization:iniciativas.placeholders.nombre')} required disabled={empresas.length === 0} />
+                <div className="invalid-feedback">{t('organization:iniciativas.validation.nombre_required')}</div>
+              </Field>
+              <Field
+                label={<>{t('organization:iniciativas.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('organization:iniciativas.optional_label')}</span></>}
+                htmlFor="ini-descripcion"
+              >
+                <textarea id="ini-descripcion" className="input" value={descripcion} onChange={e => setDescripcion(e.target.value)}
+                  placeholder={t('organization:iniciativas.placeholders.descripcion')} rows={3} disabled={empresas.length === 0} />
+              </Field>
+              <Button type="submit" variant="primary" block disabled={empresas.length === 0}>
+                {t('organization:iniciativas.create_submit')}
+              </Button>
+            </form>
           </div>
-
-          {iniciativas.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🚀</div>
-              <p className="empty-state-title">{t('organization:iniciativas.empty.title')}</p>
-              <p className="empty-state-desc">
-                {empresas.length === 0
+        }
+        list={
+          iniciativas.length === 0 ? (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <EmptyState
+                icon="🚀"
+                title={t('organization:iniciativas.empty.title')}
+                description={empresas.length === 0
                   ? t('organization:iniciativas.empty.no_empresas')
                   : t('organization:iniciativas.empty.default')}
-              </p>
-              {empresas.length === 0 && (
-                <Link to="/admin/empresas" className="btn btn-secondary" style={{ textDecoration: 'none', marginTop: 4, fontSize: '0.8125rem' }}>
-                  {t('organization:iniciativas.empty.link_empresas')}
-                </Link>
-              )}
+                action={empresas.length === 0 && (
+                  <Link to="/admin/empresas" className="btn btn-secondary">
+                    {t('organization:iniciativas.empty.link_empresas')}
+                  </Link>
+                )}
+              />
             </div>
           ) : (
-            <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t('organization:iniciativas.table.nombre')}</th>
-                    <th>{t('organization:iniciativas.table.empresa')}</th>
-                    <th>{t('organization:iniciativas.table.descripcion')}</th>
-                    <th style={{ textAlign: 'right' }}>{t('organization:iniciativas.table.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {iniciativas.map(ini => (
-                    <tr key={ini.id}>
-                      <td><strong>{ini.nombre}</strong></td>
-                      <td>
-                        <span className="status-badge status-neutral">{ini.empresa?.nombre}</span>
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 200 }}>
-                        {ini.descripcion || <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                            onClick={() => openEdit(ini)}
-                          >
-                            {t('common:buttons.edit')}
-                          </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ padding: '4px 8px', fontSize: '0.875rem' }}
-                            onClick={() => setDeleteModal({ id: ini.id, nombre: ini.nombre })}
-                            title={t('common:buttons.delete')}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="section-card">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('organization:iniciativas.table.header_title')}</span>
+                <span className="count-badge">{iniciativas.length}</span>
+              </div>
+              <DataTable columns={columns} rows={pageRows} rowKey={ini => ini.id} />
+              <Pagination
+                page={currentPage}
+                pageCount={totalPages}
+                onPageChange={setPage}
+                prevLabel={t('common:buttons.previous')}
+                nextLabel={t('common:buttons.next')}
+                info={t('organization:iniciativas.table.showing', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, iniciativas.length),
+                  total: iniciativas.length,
+                })}
+              />
             </div>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Next step hint */}
       {iniciativas.length > 0 && (
-        <div style={{
-          marginTop: '1.25rem',
-          padding: '0.875rem 1.25rem',
-          background: '#F0F9FF',
-          border: '1px solid #BAE6FD',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex', alignItems: 'center', gap: '0.875rem',
-        }}>
-          <span style={{ fontSize: '1rem' }}>💡</span>
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
+        <div className="next-step-banner">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>
             <strong>{t('organization:iniciativas.next_step.label')}</strong> {t('organization:iniciativas.next_step.text')}
           </p>
-          <Link to="/admin/actividades" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
+          <Link to="/admin/actividades" className="btn btn-secondary">
             {t('organization:iniciativas.next_step.link')}
           </Link>
         </div>

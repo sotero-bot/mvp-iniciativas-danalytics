@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
@@ -111,11 +111,14 @@ export function EstudianteSesionesPage() {
   const from = `/estudiante/programas/${programaId}/sesiones`;
 
   return (
-    <div className="page">
-      <PageHeader
-        back={{ to: '/estudiante/programas', label: t('estudiante:sesiones.back') }}
-        title={programaNombre}
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('estudiante:programas.title'), to: '/estudiante/programas' },
+          { label: programaNombre },
+        ]}
       />
+      <PageHeader eyebrow={t('estudiante:programas.title')} title={programaNombre} />
       {loading && <Loading label={t('common:loading')} />}
 
       {!loading && encuestaInicio && (
@@ -137,7 +140,7 @@ export function EstudianteSesionesPage() {
           {sesiones.length === 0 ? (
             <EmptyState title={t('estudiante:sesiones.empty')} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               {sesiones.map((s) => (
                 <SesionCard key={s.id} sesion={s} lang={i18n.language} t={t} />
               ))}
@@ -149,7 +152,7 @@ export function EstudianteSesionesPage() {
           {misGrupos.length === 0 ? (
             <EmptyState title={t('estudiante:programa.sin_grupo')} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               {misGrupos.map((g) => (
                 <GrupoCard key={g.id} grupo={g} from={from} />
               ))}
@@ -175,7 +178,7 @@ export function EstudianteSesionesPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ margin: '1.5rem 0 0.75rem' }}>{children}</h3>;
+  return <h3 style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>{children}</h3>;
 }
 
 // Gate: encuesta de inicio global. Si está pendiente/en progreso se resalta y
@@ -196,12 +199,12 @@ function EncuestaInicioCard({
       <div
         className="card"
         style={{
-          padding: '0.9rem 1rem',
-          marginBottom: '1rem',
-          borderLeft: '4px solid var(--color-success, #22C55E)',
+          padding: 'var(--space-3) var(--space-4)',
+          marginBottom: 'var(--space-4)',
+          borderLeft: '4px solid var(--color-success)',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 'var(--space-3)',
         }}
       >
         <span>✅</span>
@@ -214,21 +217,19 @@ function EncuestaInicioCard({
     <div
       className="card"
       style={{
-        padding: '1.25rem',
-        marginBottom: '1.25rem',
-        borderLeft: '4px solid var(--color-warning, #d97706)',
+        padding: 'var(--space-5)',
+        marginBottom: 'var(--space-5)',
+        borderLeft: '4px solid var(--color-warning)',
       }}
     >
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase' }}>
-        {t('formularios:tipos.diagnostico_inicial')}
-      </div>
-      <div style={{ fontWeight: 700, fontSize: '1.1rem', margin: '4px 0 6px' }}>
+      <div className="eyebrow">{t('formularios:tipos.diagnostico_inicial')}</div>
+      <div style={{ fontWeight: 600, fontSize: '1.1rem', margin: 'var(--space-1) 0 var(--space-2)' }}>
         {t('estudiante:programa.encuesta_inicio_title')}
       </div>
-      <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+      <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
         {t('estudiante:programa.encuesta_inicio_desc')}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <Link className="btn btn-primary" to={`/estudiante/formularios/${encuesta.id}?from=${encodeURIComponent(from)}`}>
           {encuesta.estado === 'en_progreso'
             ? t('formularios:estudiante.continuar')
@@ -260,15 +261,15 @@ function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
   const bloqueada = !g.recursos.bitacora.habilitada;
 
   return (
-    <div className="card" style={{ padding: '1.25rem' }}>
+    <div className="card" style={{ padding: 'var(--space-5)' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'baseline',
-          gap: 12,
+          gap: 'var(--space-3)',
           flexWrap: 'wrap',
-          marginBottom: 16,
+          marginBottom: 'var(--space-4)',
         }}
       >
         <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{g.nombre}</div>
@@ -280,7 +281,7 @@ function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
       {/* O-01: la habilitación de la bitácora es el gate de TODA la sección del
           reto. Sin habilitar, los tres recursos quedan bloqueados. */}
       {!g.recursos.bitacora.habilitada && (
-        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
           🔒 {t('formularios:grupo.bitacora_bloqueada')}
         </div>
       )}
@@ -290,7 +291,7 @@ function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 12,
+          gap: 'var(--space-3)',
         }}
       >
         <RecursoTile icon="📓" titulo={t('formularios:tipos.bitacora')} bloqueada={bloqueada}>
@@ -334,18 +335,18 @@ function RecursoTile({
     <div
       aria-disabled={bloqueada}
       style={{
-        border: '1px solid var(--color-border, #e5e7eb)',
-        borderRadius: 10,
-        padding: '0.85rem',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-3)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--space-2)',
         opacity: bloqueada ? 0.5 : 1,
         pointerEvents: bloqueada ? 'none' : 'auto',
       }}
     >
       <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{icon} {titulo}</span>
-      <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{children}</span>
+      <span style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>{children}</span>
     </div>
   );
 }
@@ -353,11 +354,9 @@ function RecursoTile({
 function FormularioCard({ formulario: f, from }: { formulario: FormularioDisponible; from: string }) {
   const { t } = useTranslation(['formularios']);
   return (
-    <div className="card" style={{ padding: '1rem' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#14B8A6', textTransform: 'uppercase' }}>
-        {t(`formularios:tipos.${f.tipoFormulario}`)}
-      </div>
-      <div style={{ fontWeight: 600, margin: '4px 0 10px' }}>{f.nombre}</div>
+    <div className="card" style={{ padding: 'var(--space-4)' }}>
+      <div className="eyebrow">{t(`formularios:tipos.${f.tipoFormulario}`)}</div>
+      <div style={{ fontWeight: 600, margin: 'var(--space-1) 0 var(--space-3)' }}>{f.nombre}</div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <StatusBadge variant={ESTADO_VARIANT[f.estado] ?? 'neutral'}>
           {t(`formularios:estudiante.estado.${f.estado}`)}
@@ -384,8 +383,8 @@ function SesionCard({
   t: ReturnType<typeof useTranslation>['t'];
 }) {
   return (
-    <div className="card" style={{ padding: '1rem', opacity: s.bloqueada ? 0.6 : 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+    <div className="card" style={{ padding: 'var(--space-4)', opacity: s.bloqueada ? 0.6 : 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)' }}>
         <div>
           <div style={{ fontWeight: 600 }}>
             {t('estudiante:sesiones.numero', { numero: s.numeroSesion })} — {s.titulo}
@@ -394,7 +393,7 @@ function SesionCard({
             {formatFechaHora(s.fechaProgramada, s.timezone, lang)}
           </div>
           {s.facilitadores.length > 0 && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>
               {t('estudiante:sesiones.facilitador')}: {s.facilitadores.map((f) => f.nombre).join(', ')}
             </div>
           )}
@@ -406,7 +405,7 @@ function SesionCard({
             })}
           </span>
         ) : s.urlPresentacion || s.presentacionArchivoUrl || s.urlGrabacion ? (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
             {/* Prioridad: si hay archivo subido se ofrece la descarga; si no, el enlace. */}
             {s.presentacionArchivoUrl ? (
               <a className="btn" href={s.presentacionArchivoUrl} target="_blank" rel="noreferrer">

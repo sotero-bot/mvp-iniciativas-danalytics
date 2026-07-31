@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Loading } from '../../components/ui';
+import { Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -99,18 +99,21 @@ export function GrupoPresentacionPage() {
 
   return (
     <div className="gform-container">
-      <Link to={backTo} className="btn-link">
-        {t('formularios:grupo.back')}
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: t('formularios:grupo.title'), to: backTo },
+          { label: t('formularios:presentacion.title') },
+        ]}
+      />
+      <PageHeader
+        eyebrow={t('formularios:grupo.title')}
+        title={t('formularios:presentacion.title')}
+        description={t('formularios:presentacion.hint')}
+      />
       {loading && <Loading label={t('common:loading')} />}
 
       {estado && (
         <>
-          <div className="gform-header">
-            <h1>{t('formularios:presentacion.title')}</h1>
-            <p className="gform-desc">{t('formularios:presentacion.hint')}</p>
-          </div>
-
           {/* RF-32: bloqueada hasta la fase de cierre configurada en el programa. */}
           {!estado.habilitada ? (
             <div className="gform-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
@@ -125,9 +128,9 @@ export function GrupoPresentacionPage() {
                   {/* gform-card es flex-row: envolvemos en gform-card-body (flex:1; min-width:0)
                       para que el contenido apile en columna y el nombre largo no se salga. */}
                   <div className="gform-card-body">
-                    <div style={{ fontWeight: 600, marginBottom: 6 }}>✓ {t('formularios:presentacion.entregada')}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>✓ {t('formularios:presentacion.entregada')}</div>
                     {entrega.entregadoPor && entrega.entregadoEn && (
-                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)' }}>
                         {t('formularios:presentacion.entregada_por', {
                           nombre: entrega.entregadoPor.nombre,
                           fecha: new Date(entrega.entregadoEn).toLocaleString(),
@@ -139,7 +142,7 @@ export function GrupoPresentacionPage() {
                         📎 {t('formularios:presentacion.archivo_actual')}: {entrega.archivoNombre}
                       </div>
                     )}
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 8 }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
                       {t('formularios:presentacion.reemplazar_hint')}
                     </div>
                   </div>
@@ -167,11 +170,11 @@ export function GrupoPresentacionPage() {
                 </div>
               </div>
 
-              <div className="gform-footer">
-                <button className="gform-submit" disabled={enviando} onClick={entregar}>
-                  {enviando ? t('formularios:presentacion.subiendo') : t('formularios:presentacion.subir')}
-                </button>
+              <div className="form-footer">
                 {ok && <span className="gform-autosave">✓ {t('formularios:presentacion.entregada')}</span>}
+                <Button variant="primary" disabled={enviando} onClick={entregar}>
+                  {enviando ? t('formularios:presentacion.subiendo') : t('formularios:presentacion.subir')}
+                </Button>
               </div>
             </>
           )}

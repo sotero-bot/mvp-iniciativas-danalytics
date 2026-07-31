@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { ProgressBar } from '../../components/ui';
+import { Button, ProgressBar } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -37,18 +37,23 @@ export function ProgramasDashboardPanel() {
   if (!loading && items.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+    <div style={{ marginBottom: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
         <h2 style={{ fontSize: '1.05rem', margin: 0 }}>{t('admin:dashboard_programas.title')}</h2>
         <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
           · {t('admin:dashboard_programas.activos', { count: items.length })}
         </span>
-        <button className="btn-link" style={{ marginLeft: 'auto' }} onClick={() => setOpen(o => !o)}>
+        <Button
+          variant="link"
+          size="sm"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => setOpen(o => !o)}
+        >
           {open ? t('admin:dashboard_programas.ocultar') : t('admin:dashboard_programas.mostrar')}
-        </button>
+        </Button>
       </div>
       {open && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-3)' }}>
           {items.map(it => {
             const pctSesiones = it.totalSesiones > 0 ? Math.round((it.sesionesCompletadas / it.totalSesiones) * 100) : 0;
             return (
@@ -56,18 +61,18 @@ export function ProgramasDashboardPanel() {
                 key={it.id}
                 to={`/admin/programas/${it.id}/asistencia`}
                 className="card"
-                style={{ padding: '1rem', textDecoration: 'none', color: 'inherit', display: 'block' }}
+                style={{ padding: 'var(--space-4)', textDecoration: 'none', color: 'inherit', display: 'block' }}
               >
-                <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: 10 }}>{it.nombre}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: 'var(--space-3)' }}>{it.nombre}</div>
 
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 2 }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-1)' }}>
                   {t('admin:dashboard_programas.sesiones')}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                   <div style={{ flex: 1 }}>
                     <ProgressBar
                       value={pctSesiones}
-                      color="#14B8A6"
+                      color="var(--color-success)"
                       label={t('admin:dashboard_programas.sesiones')}
                     />
                   </div>

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo } from '../estudiante/FormularioResponderPage';
-import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -37,12 +37,14 @@ type Pestana = 'bitacoras' | 'plantillas';
 // TODOS los grupos de su programa en SOLO lectura (sin edición ni export, RN-07).
 export function FacilitadorRetoPage() {
   const { id: programaId = '' } = useParams();
-  const { t, i18n } = useTranslation(['formularios', 'common']);
+  const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common']);
   const [pestana, setPestana] = useState<Pestana>('bitacoras');
   const [data, setData] = useState<Record<Pestana, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
   const [loading, setLoading] = useState(false);
   // O-01: estado de habilitación de la bitácora.
   const [bitacoraHabilitada, setBitacoraHabilitada] = useState<boolean | null>(null);
+  // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
+  const [programaNombre, setProgramaNombre] = useState('');
 
   const cargarEstadoBitacora = () => {
     fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/bitacora/estado`)
@@ -52,6 +54,16 @@ export function FacilitadorRetoPage() {
   };
 
   useEffect(() => { cargarEstadoBitacora(); }, [programaId]);
+
+  useEffect(() => {
+    fetchWithErrorMapping(`${API_URL}/programas`)
+      .then((res) => res.json())
+      .then((programas: { id: string; nombre: string }[]) => {
+        const p = programas.find((x) => x.id === programaId);
+        if (p) setProgramaNombre(p.nombre);
+      })
+      .catch(() => { /* no bloquea la vista */ });
+  }, [programaId]);
 
   const toggleBitacora = async () => {
     try {
@@ -83,20 +95,28 @@ export function FacilitadorRetoPage() {
 
   const recurso = data[pestana];
   const tabStyle = (activa: boolean): React.CSSProperties => ({
-    padding: '0.5rem 1rem', border: 'none', borderBottom: activa ? '2px solid #14B8A6' : '2px solid transparent',
-    background: 'none', cursor: 'pointer', fontWeight: activa ? 700 : 500,
-    color: activa ? 'var(--color-text-main)' : 'var(--color-text-secondary)', fontSize: '0.9rem',
+    padding: 'var(--space-2) var(--space-4)', border: 'none',
+    borderBottom: activa ? '2px solid var(--color-primary)' : '2px solid transparent',
+    background: 'none', cursor: 'pointer', fontWeight: activa ? 600 : 500,
+    color: activa ? 'var(--color-primary)' : 'var(--color-text-secondary)', fontSize: '0.9rem',
   });
 
   return (
-    <div className="page">
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
+          { label: programaNombre || programaId },
+          { label: t('formularios:reto.title') },
+        ]}
+      />
       <PageHeader
-        back={{ to: '/facilitador/programas', label: t('formularios:resultados.back') }}
+        eyebrow={programaNombre || undefined}
         title={t('formularios:reto.title')}
         description={t('formularios:reto.solo_lectura')}
       />
 
-      <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: '1.25rem' }}>
+      <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-5)' }}>
         <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>
           📓 {t('formularios:reto.bitacoras')}
         </button>
@@ -107,14 +127,14 @@ export function FacilitadorRetoPage() {
 
       {/* O-01: habilitación de la bitácora para los grupos (admin o facilitador). */}
       {pestana === 'bitacoras' && bitacoraHabilitada !== null && (
-        <div className="card" style={{ padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="card" style={{ padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
           <div style={{ fontSize: '0.85rem' }}>
             {bitacoraHabilitada ? '🟢 ' : '🔒 '}
             {bitacoraHabilitada ? t('formularios:reto.bitacora_habilitada') : t('formularios:reto.bitacora_no_habilitada')}
           </div>
-          <button className="btn" onClick={toggleBitacora}>
+          <Button variant="primary" size="sm" onClick={toggleBitacora}>
             {bitacoraHabilitada ? t('formularios:reto.bitacora_deshabilitar') : t('formularios:reto.bitacora_habilitar')}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -123,10 +143,10 @@ export function FacilitadorRetoPage() {
       {!loading && recurso && !recurso.plantilla && <EmptyState title={t('formularios:reto.sin_plantilla')} />}
 
       {!loading && recurso?.plantilla && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {recurso.grupos.map(g => (
-            <div key={g.id} className="card" style={{ padding: '1.1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            <div key={g.id} className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                 <div style={{ fontWeight: 600 }}>{g.nombre}</div>
                 {g.respuesta?.ultimoEditor && g.respuesta.ultimaEdicionEn && (
                   <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
@@ -137,7 +157,7 @@ export function FacilitadorRetoPage() {
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
                 {t('formularios:grupo.miembros')}: {g.miembros.map(m => m.nombre).join(', ') || '—'}
               </div>
 
@@ -166,10 +186,10 @@ function RespuestaReadOnly({ campos, datos }: { campos: Campo[]; datos: Record<s
   const hijosDe = (id: string) => campos.filter(c => c.campoPadreId === id);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       {topLevel.map(campo => (
         <div key={campo.id}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>{campo.etiqueta}</div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: 'var(--space-1)' }}>{campo.etiqueta}</div>
           <ValorReadOnly campo={campo} hijos={hijosDe(campo.id)} valor={datos[campo.id]} />
         </div>
       ))}
@@ -217,14 +237,14 @@ function ValorReadOnly({ campo, hijos, valor }: { campo: Campo; hijos: Campo[]; 
       const iteraciones = Array.isArray(valor) ? (valor as Record<string, unknown>[]) : [];
       if (iteraciones.length === 0) return vacio;
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {iteraciones.map((iteracion, i) => (
-            <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: '0.7rem 0.85rem' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+            <div key={i} className="gform-iteracion">
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)' }}>
                 #{i + 1}
               </div>
               {hijos.map(hijo => (
-                <div key={hijo.id} style={{ marginBottom: 6 }}>
+                <div key={hijo.id} style={{ marginBottom: 'var(--space-2)' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{hijo.etiqueta}: </span>
                   <ValorReadOnly campo={hijo} hijos={[]} valor={iteracion[hijo.id]} />
                 </div>

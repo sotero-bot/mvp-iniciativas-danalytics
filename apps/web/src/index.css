@@ -1,44 +1,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
+/* ═══════════════════════════════════════════════════════════════════
+   Design tokens — estilo sobrio y elegante (navy, plano, recto).
+   Poppins es la tipografía de marca de la empresa: se usa SIEMPRE
+   (cuerpo y títulos), nunca una serif. Los NOMBRES de variable se
+   mantienen para que todo el CSS heredado se re-estilice solo; solo
+   cambian los valores. Ver .claude/rules/frontend/03-estilos-tokens.md
+   ═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* Palette */
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-primary-light: #EFF6FF;
-  --color-primary-muted: #DBEAFE;
+  /* Marca: el azul navy es el color de la empresa (acción/jerarquía) */
+  --color-primary: #0F2A4A;
+  --color-primary-hover: #14385F;
+  --color-primary-light: #EEF4FB;
+  --color-primary-muted: #E7EDF5;
 
-  --color-text-main: #0F172A;
-  --color-text-secondary: #64748B;
-  --color-text-tertiary: #94A3B8;
+  /* Acento azul (eyebrow, enlaces internos, puntos, detalles) */
+  --color-accent: #155BA0;
+  --color-link: #0F3D6B;
 
-  --color-bg-page: #F8FAFC;
+  /* Texto */
+  --color-text-main: #1C1F24;
+  --color-text-heading: #0F1720;
+  --color-text-secondary: #5A606A;
+  --color-text-muted: #6B7078;
+  --color-text-tertiary: #9AA1AB;
+
+  /* Superficies: blanco sobre fondo cálido */
+  --color-bg-page: #F7F6F3;
   --color-bg-card: #FFFFFF;
-  --color-bg-subtle: #F1F5F9;
-  --color-bg-accent: #EFF6FF;
-  --color-bg-highlight: #F8FAFC;
+  --color-bg-subtle: #EEF1F5;
+  --color-bg-accent: #EEF4FB;
+  --color-bg-highlight: #F7F6F3;
 
-  --color-border: #E2E8F0;
-  --color-border-strong: #CBD5E1;
+  /* Bordes hairline con tinte navy */
+  --color-border: rgba(15, 42, 74, 0.12);
+  --color-border-strong: rgba(15, 42, 74, 0.22);
+  --color-border-soft: rgba(15, 42, 74, 0.06);
 
-  /* Semantic status colors (texto + fondo suave + borde) */
-  --color-success: #059669;
-  --color-success-strong: #15803D;
-  --color-success-bg: #ECFDF5;
-  --color-success-border: #A7F3D0;
+  /* Estados semánticos (texto + fondo suave + borde) */
+  --color-success: #1F7A4D;
+  --color-success-strong: #1A6842;
+  --color-success-bg: #E8F3EC;
+  --color-success-border: rgba(31, 122, 77, 0.22);
 
-  --color-danger: #DC2626;
-  --color-danger-strong: #B91C1C;
-  --color-danger-bg: #FEF2F2;
-  --color-danger-border: #FECACA;
+  --color-danger: #B23B3B;
+  --color-danger-strong: #9E2F2F;
+  --color-danger-bg: #FBEDED;
+  --color-danger-border: rgba(178, 59, 59, 0.25);
 
-  --color-warning: #D97706;
-  --color-warning-strong: #B45309;
-  --color-warning-bg: #FFFBEB;
-  --color-warning-border: #FDE68A;
+  --color-warning: #B8791A;
+  --color-warning-strong: #97640F;
+  --color-warning-bg: #FBF1E2;
+  --color-warning-border: rgba(184, 121, 26, 0.25);
 
-  --color-info: #2563EB;
-  --color-info-bg: #EFF6FF;
-  --color-info-border: #BFDBFE;
+  --color-info: #155BA0;
+  --color-info-bg: #EEF4FB;
+  --color-info-border: rgba(21, 91, 160, 0.2);
 
   /* Spacing scale */
   --space-1: 0.25rem;
@@ -48,29 +65,36 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
+  /* Padding de página (aprovecha el ancho; ver 01-estructura-pagina.md) */
+  --page-pad-y: 2.75rem;
+  --page-pad-x: 3.5rem;
+
   /* Breakpoint de referencia móvil (documental): 768px */
 
   /* Sidebar */
-  --sidebar-bg: #0F172A;
-  --sidebar-text: #94A3B8;
+  --sidebar-bg: #0F2A4A;
+  --sidebar-text: #A8BFD9;
   --sidebar-text-hover: #F1F5F9;
-  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.10);
   --sidebar-active-text: #FFFFFF;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-border: rgba(255, 255, 255, 0.12);
 
-  /* Radii */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Radii: esquinas rectas (sobrio). Solo píldoras/chips tienen radio. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-chip: 2px;
+  --radius-pill: 9999px;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  /* Sombras: superficies planas (solo overlays elevan) */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-card: none;
+  --shadow-md: 0 10px 30px -12px rgba(15, 23, 32, 0.25);
+  --shadow-overlay: 0 24px 60px -20px rgba(15, 23, 32, 0.35);
+  --shadow-focus: 0 0 0 3px rgba(21, 91, 160, 0.18);
 
   --font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   --transition: all 0.15s ease;
@@ -94,20 +118,28 @@ body {
   line-height: 1.6;
 }
 
+/* Títulos: misma tipografía de marca (Poppins) que el cuerpo, solo cambia peso/tamaño. */
 h1,
 h2,
-h3,
-h4 {
+h3 {
   margin-top: 0;
   margin-bottom: 0;
-  color: var(--color-text-main);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  color: var(--color-text-heading);
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1.25;
 }
 
+h4 {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: var(--color-text-heading);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 h1 {
-  font-size: 1.75rem;
+  font-size: 1.875rem;
 }
 
 h2 {
@@ -115,17 +147,25 @@ h2 {
 }
 
 h3 {
-  font-size: 1.125rem;
+  font-size: 1.1875rem;
 }
 
 h4 {
   font-size: 0.9375rem;
-  font-weight: 600;
 }
 
 p {
   margin-top: 0;
   color: var(--color-text-secondary);
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent);
 }
 
 /* ─── Focus visible (accesibilidad AA / navegación por teclado) ─── */
@@ -154,75 +194,71 @@ select.input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0.5rem 1rem;
+  gap: 8px;
+  padding: 0.75rem 1.5rem;
   border-radius: var(--radius-sm);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   transition: var(--transition);
   white-space: nowrap;
   font-family: var(--font-family);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-decoration: none;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none !important;
 }
 
+/* Primario = azul empresa (navy), plano y recto. Es el botón de la acción
+   principal: confirmar / enviar / crear. Debe ir alineado a la derecha
+   (ver .form-footer / .actions-end y 05-feedback.md). */
 .btn-primary {
-  background: linear-gradient(135deg, #2563EB, #1D4ED8);
-  color: white;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: var(--color-primary);
+  color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.3);
+  background: var(--color-primary-hover);
 }
 
 .btn-secondary {
-  background-color: white;
-  color: var(--color-text-main);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-xs);
+  background-color: #fff;
+  color: var(--color-primary);
+  border-color: var(--color-border-strong);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background-color: var(--color-bg-subtle);
-  border-color: var(--color-border-strong);
 }
 
+/* Destructivo = contorno rojo (no relleno), discreto pero claro. */
 .btn-danger {
-  background-color: var(--color-danger-bg);
+  background-color: #fff;
   color: var(--color-danger);
-  border: 1px solid var(--color-danger-border);
+  border-color: var(--color-danger-border);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #FEE2E2;
-  border-color: #FCA5A5;
+  background-color: var(--color-danger-bg);
 }
 
 .btn-success {
-  background-color: var(--color-success-bg);
+  background-color: #fff;
   color: var(--color-success-strong);
-  border: 1px solid var(--color-success-border);
+  border-color: var(--color-success-border);
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #D1FAE5;
-  border-color: #6EE7B7;
+  background-color: var(--color-success-bg);
+}
+
+/* Botón a todo el ancho (submit al pie de un formulario en columna). */
+.btn-block {
+  width: 100%;
 }
 
 /* Botón compacto para acciones inline en filas de tablas / datatables. */
@@ -277,9 +313,9 @@ select.input:focus-visible {
 .textarea {
   display: block;
   width: 100%;
-  padding: 0.5625rem 0.75rem;
+  padding: 0.75rem 0.875rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background-color: white;
   color: var(--color-text-main);
   font-size: 0.875rem;
@@ -306,17 +342,17 @@ select.input {
 }
 
 /* ─── Cards ─── */
+/* Superficie plana: borde hairline, sin sombra, esquinas rectas. */
 .card {
   background-color: var(--color-bg-card);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  padding: 1.5rem;
+  padding: 1.75rem;
   border: 1px solid var(--color-border);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.card:hover {
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+/* Panel destacado: barra de acento navy a la izquierda (ej. "Generar enlace"). */
+.card-accent {
+  border-left: 3px solid var(--color-primary);
 }
 
 /* ─── Form Validation ─── */
@@ -442,35 +478,65 @@ select.input {
 }
 
 /* ─── Main Content ─── */
+/* Fondo plano cálido y padding generoso que aprovecha el ancho (no se deja
+   espacio muerto a los lados). Ver 01-estructura-pagina.md. */
 .main-content {
   flex: 1;
-  padding: 2rem 2.5rem;
+  padding: var(--page-pad-y) var(--page-pad-x);
   overflow-y: auto;
   min-width: 0;
-  background: linear-gradient(180deg, #F0F4FF 0px, #F8FAFC 280px);
+  background: var(--color-bg-page);
 }
 
 /* ─── Page Header ─── */
 .page-header {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1.75rem;
-  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .page-header h1 {
-  font-size: 1.5rem;
-  color: var(--color-text-main);
+  font-size: 1.875rem;
+}
+
+/* Eyebrow: etiqueta de contexto sobre el título (paso, sección, entidad
+   seleccionada). Ayuda a saber "dónde estoy". */
+.page-header-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+.page-header-subtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  margin: 0.5rem 0 0;
+  max-width: 60ch;
+}
+
+/* Zona de acciones del header: SIEMPRE a la derecha. */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 /* ─── Tables ─── */
+/* Tabla hairline: sin relleno de cabecera, separadores finos, plano.
+   La columna de acciones se alinea a la derecha (th:last-child / .col-actions). */
 .table-container {
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-xs);
 }
 
 table {
@@ -481,30 +547,36 @@ table {
 }
 
 th {
-  background-color: var(--color-bg-subtle);
-  color: var(--color-text-secondary);
+  background-color: transparent;
+  color: var(--color-text-muted);
   font-weight: 600;
-  padding: 0.625rem 1.25rem;
-  font-size: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--color-border);
 }
 
 td {
-  padding: 0.875rem 1.25rem;
-  border-top: 1px solid var(--color-bg-subtle);
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--color-border-soft);
   color: var(--color-text-main);
   font-size: 0.875rem;
   vertical-align: middle;
 }
 
-tr:last-child td {
-  border-bottom: none;
+tr:first-child td {
+  border-top: none;
 }
 
 tr:hover td {
-  background-color: #FAFBFF;
+  background-color: var(--color-bg-page);
+}
+
+/* Última columna (acciones) alineada a la derecha por convención. */
+th:last-child,
+.col-actions {
+  text-align: right;
 }
 
 /* ─── Status Badges ─── */
@@ -1730,6 +1802,209 @@ textarea.gform-input {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Primitivas del estilo sobrio (navy, tipografía de marca Poppins). Extraídas de los ejemplos
+   de diseño. Las reglas de .claude/rules/frontend/ citan estas clases.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Breadcrumb (miga de pan) ─── */
+/* Indica SIEMPRE dónde estás. El último segmento es la vista actual; cuando
+   la vista depende de una entidad seleccionada (p. ej. un programa), esa
+   entidad debe aparecer como segmento. Ver 01-estructura-pagina.md. */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.breadcrumb a:hover {
+  color: var(--color-accent);
+}
+
+.breadcrumb-sep {
+  color: #C3C8D0;
+  user-select: none;
+}
+
+.breadcrumb-current {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ─── Eyebrow (etiqueta de contexto suelta) ─── */
+.eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* ─── Grid formulario + listado ─── */
+/* En vistas de registro, el formulario va a la izquierda y el listado de lo
+   ya registrado a la derecha (más ancho). Ver 06-formularios.md. */
+.form-list-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ─── Section card (panel con cabecera + contador) ─── */
+.section-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.section-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-card-title {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.section-card-body {
+  padding: 1.75rem;
+}
+
+/* Contador junto a un título de sección. */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+}
+
+/* ─── Chip (etiqueta de dato, p. ej. empresa) ─── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-chip);
+  max-width: 100%;
+}
+
+.chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* ─── Filter bar (fila de búsqueda + selects) ─── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.filter-bar .input {
+  width: auto;
+}
+
+/* Separador vertical entre grupos de filtros. */
+.filter-bar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--color-border-strong);
+}
+
+/* ─── Pie de acciones ─── */
+/* Fila donde vive el botón primario (confirmar/enviar): SIEMPRE a la derecha.
+   Ver 05-feedback.md. */
+.form-footer,
+.actions-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.form-footer {
+  margin-top: 1.5rem;
+}
+
+/* ─── Paginación ─── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.125rem 1.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-btn {
+  border: 1px solid var(--color-border-strong);
+  background: #fff;
+  color: var(--color-primary);
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+.pagination-btn-active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ─── Banner "siguiente paso" ─── */
+.next-step-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.75rem;
+  background: var(--color-bg-accent);
+  border: 1px solid var(--color-info-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Responsive (Fase 0). La app no tenía ningún @media de UI.
    Breakpoint móvil/tablet: 768px.
    ═══════════════════════════════════════════════════════════════════ */
@@ -1840,6 +2115,17 @@ textarea.gform-input {
     grid-template-columns: 1fr;
   }
 
+  /* Form + listado → apilados (formulario arriba, listado debajo) */
+  .form-list-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Paginación → apila info y controles */
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   /* Dashboard de 4 columnas → 2 en móvil */
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1877,43 +2163,44 @@ textarea.gform-input {
   }
 }
 
-/* ─── Auth (login) — layout de 2 columnas responsive ─── */
+/* ─── Auth (login) — tarjeta centrada, fondo claro profesional ─── */
 .auth-layout {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+  background: linear-gradient(160deg, #EEF4FB 0%, #F7F6F3 55%, #EEF4FB 100%);
   position: relative;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.auth-brand h1 {
+  font-size: 1.625rem;
+  color: var(--color-text-heading);
+}
+
+.auth-brand p {
+  max-width: 360px;
 }
 
 .auth-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 3rem 4rem;
-  max-width: 480px;
-}
-
-.auth-decorative {
-  flex: 1;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
-  border-left: 1px solid rgba(255, 255, 255, 0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-}
-
-/* Input sobre fondo oscuro (login): hereda .input y ajusta colores al tema */
-.input-on-dark {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 0.9375rem;
-}
-
-.input-on-dark::placeholder {
-  color: var(--color-text-tertiary);
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  padding: 2.75rem;
+  box-sizing: border-box;
 }
 
 /* Estado centrado (callbacks de Google / magic link) sobre fondo oscuro */
@@ -1938,13 +2225,7 @@ textarea.gform-input {
 }
 
 @media (max-width: 768px) {
-  .auth-decorative {
-    display: none;
-  }
-
   .auth-panel {
-    max-width: none;
-    width: 100%;
     padding: 2rem 1.25rem;
   }
 }

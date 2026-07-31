@@ -2,11 +2,12 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { PageHeader, StatusBadge } from '../../components/ui';
+import { Breadcrumb, PageHeader, StatusBadge, Button, Field, EmptyState, Alert, FormListLayout, DataTable, Pagination } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { fetchWithErrorMapping, translateError, withAuth } from '../../shared/api/fetchWithErrorMapping';
 import { toast } from '../../components/toast-store';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
+const PAGE_SIZE = 5;
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -36,7 +37,7 @@ export function InstanciasPage() {
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterActividad, setFilterActividad] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [enlacePage, setEnlacePage] = useState(1);
 
   const handleDeleteInstancia = async () => {
     if (!deleteModal) return;
@@ -159,20 +160,288 @@ export function InstanciasPage() {
     });
   }, [instancias, search, filterEstado, filterEmpresa, filterActividad]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
+  const enlaceTotalPages = Math.max(1, Math.ceil(filteredEnlaces.length / PAGE_SIZE));
+  const enlaceCurrentPage = Math.min(enlacePage, enlaceTotalPages);
+  const paginatedEnlaces = useMemo(
+    () => filteredEnlaces.slice((enlaceCurrentPage - 1) * PAGE_SIZE, enlaceCurrentPage * PAGE_SIZE),
+    [filteredEnlaces, enlaceCurrentPage],
+  );
+
+  const enlaceColumns: DataTableColumn<any>[] = [
+    {
+      key: 'etiqueta',
+      header: t('execution:instancias.enlaces_activos.table.etiqueta'),
+      render: (e) => (
+        <span style={{ fontWeight: 500 }}>
+          {e.nombre || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.enlaces_activos.table.sin_etiqueta')}</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'actividad',
+      header: t('execution:instancias.enlaces_activos.table.actividad'),
+      render: (e) => (
+        <>
+          <div>{e.actividad?.nombre || '—'}</div>
+          {e.actividad?.plantillaOrigen && (
+            <span className="chip" style={{ fontSize: '0.68rem', marginTop: 2 }}>
+              📋 {e.actividad.plantillaOrigen.nombre}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'estado',
+      header: t('execution:instancias.enlaces_activos.table.estado'),
+      render: (e) => (
+        <StatusBadge variant={e.activo ? 'success' : 'neutral'}>
+          {e.activo ? t('execution:instancias.enlaces_activos.table.activo') : t('execution:instancias.enlaces_activos.table.inactivo')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'creado',
+      header: t('execution:instancias.enlaces_activos.table.creado'),
+      render: (e) => (
+        <span style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+          {new Date(e.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('execution:instancias.enlaces_activos.table.actions'),
+      align: 'right',
+      render: (e) => {
+        const url = `${window.location.origin}/runner/enlace/${e.accessToken}?lang=${i18n.language}`;
+        return (
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { navigator.clipboard.writeText(url); toast.success(t('execution:instancias.link_copied')); }}
+            >
+              {t('execution:instancias.enlaces_activos.copy')}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              aria-label={t('common:buttons.delete')}
+              title={t('common:buttons.delete')}
+              onClick={() => setDeleteEnlaceModal(e.id)}
+            >🗑️</Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const individualColumns: DataTableColumn<any>[] = [
+    {
+      key: 'estado',
+      header: t('execution:instancias.individuales.table.estado'),
+      render: (ins) => (
+        <StatusBadge variant={
+          ins.estado === 'finalizado' ? 'success' :
+          ins.estado === 'iniciado' ? 'warning' : 'neutral'
+        }>
+          {ESTADO_LABELS[ins.estado] ?? ins.estado}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actividad',
+      header: t('execution:instancias.individuales.table.actividad'),
+      render: (ins) => (
+        <>
+          <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{ins.actividad?.nombre || t('execution:instancias.individuales.table.desconocida')}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+            {ins.actividad?.iniciativa?.nombre || '—'}
+          </div>
+          {ins.actividad?.plantillaOrigen && (
+            <span className="chip" style={{ fontSize: '0.68rem', marginTop: 2 }}>
+              📋 {ins.actividad.plantillaOrigen.nombre}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'usuario',
+      header: t('execution:instancias.individuales.table.usuario'),
+      render: (ins) => (
+        <span style={{ fontSize: '0.875rem' }}>
+          {ins.usuario?.nombre || (ins.emailReferencia
+            ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
+            : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.individuales.table.pendiente')}</span>
+          )}
+          {ins.usuario?.email && (
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.email}</div>
+          )}
+          {ins.usuario?.cargo && (
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.cargo}</div>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'area',
+      header: t('execution:instancias.individuales.table.area'),
+      render: (ins) => (
+        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-main)' }}>
+          {ins.usuario?.area || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>—</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'archivos',
+      header: t('execution:instancias.individuales.table.archivos'),
+      render: (ins) => {
+        const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        const respArchivos = (ins.respuestas ?? []).filter((r: any) => r.archivoNombre);
+        const interArchivos = (ins.interacciones ?? []).filter((i: any) => i.archivoNombre);
+        if (respArchivos.length === 0 && interArchivos.length === 0) {
+          return <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>;
+        }
+        const labelFor = (titulo: string) => [
+          slug(ins.actividad?.iniciativa?.empresa?.nombre || ''),
+          slug(ins.actividad?.nombre || ''),
+          slug(ins.usuario?.area || ''),
+          slug(titulo || ''),
+        ].filter(Boolean).join('_') + '.xlsx';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {respArchivos.map((r: any) => (
+              <button
+                key={r.preguntaId}
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetchWithErrorMapping(`${API_URL}/admin/instancias/${ins.id}/respuestas/${r.preguntaId}/archivo-url`);
+                    const json = await res.json();
+                    if (!json.url) return;
+                    const a = document.createElement('a');
+                    a.href = json.url;
+                    a.download = json.archivoNombre ?? '';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  } catch (err) { toast.error(translateError(err)); }
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '3px 8px', fontSize: '0.72rem',
+                  background: 'var(--color-success-bg)', color: 'var(--color-success-strong)',
+                  borderRadius: 5, fontWeight: 600,
+                  border: '1px solid var(--color-success-border)', whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+                title={r.archivoNombre}
+              >
+                ⬇ {labelFor(r.pregunta?.paso?.titulo)}
+              </button>
+            ))}
+            {interArchivos.map((inter: any) => (
+              <a
+                key={inter.pasoId}
+                href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '3px 8px', fontSize: '0.72rem',
+                  background: 'var(--color-primary-light)', color: 'var(--color-primary-hover)',
+                  borderRadius: 5, fontWeight: 600, textDecoration: 'none',
+                  border: '1px solid var(--color-info-border)', whiteSpace: 'nowrap',
+                }}
+                title={t('execution:instancias.individuales.actions.interaccion_title')}
+              >
+                ⬇ {labelFor(inter.paso?.titulo)}
+              </a>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'ultima_actualizacion',
+      header: t('execution:instancias.individuales.table.ultima_actualizacion'),
+      render: (ins) => (
+        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+          {new Date(ins.updatedAt).toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('execution:instancias.individuales.table.actions'),
+      align: 'right',
+      render: (ins) => (
+        <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Link to={`/admin/instancias/${ins.id}`} className="btn btn-secondary btn-sm"
+            style={{ textDecoration: 'none' }}>
+            {t('execution:instancias.individuales.actions.view_results')}
+          </Link>
+          <Button variant="secondary" size="sm"
+            onClick={() => descargarPdf(ins.id)}
+            title={t('execution:instancias.individuales.actions.pdf_title')}>
+            📄 PDF
+          </Button>
+          <Button variant="secondary" size="sm"
+            onClick={() => descargarZip(ins.id)}
+            title={t('execution:instancias.individuales.actions.zip_title')}>
+            📦 ZIP
+          </Button>
+          <Button variant="secondary" size="sm"
+            onClick={() => copyLink(ins.accessToken)}>
+            {t('execution:instancias.individuales.actions.copy_link')}
+          </Button>
+          <Button variant="danger" size="sm"
+            aria-label={t('common:buttons.delete')}
+            onClick={() => setDeleteModal(ins.id)} title={t('common:buttons.delete')}>
+            🗑️
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const individualEmptyMessage = search || filterEstado || filterEmpresa || filterActividad ? (
+    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
+      {t('execution:instancias.individuales.no_filter_results')}
+    </div>
+  ) : (
+    <div className="empty-state" style={{ padding: '2.5rem 2rem' }}>
+      <div className="empty-state-icon">📋</div>
+      <p className="empty-state-title">{t('execution:instancias.individuales.empty.title')}</p>
+      <p className="empty-state-desc">
+        {t('execution:instancias.individuales.empty.description')}
+      </p>
+    </div>
+  );
 
   const handleSearch = (val: string) => { setSearch(val); setPage(1); };
   const handleFilterEstado = (val: string) => { setFilterEstado(val); setPage(1); };
-  const handlePageSize = (val: number) => { setPageSize(val); setPage(1); };
 
-  // Stats
-  const finalizadas = instancias.filter(i => i.estado === 'finalizado').length;
-  const enProgreso = instancias.filter(i => i.estado === 'iniciado').length;
-  const pendientes = instancias.filter(i => i.estado === 'generado').length;
+  const actividadError = wasValidated && !formEnlace.actividadId
+    ? t('execution:instancias.generar_enlace.actividad_required')
+    : undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.ejecuciones') },
+        ]}
+      />
 
       <ConfirmModal isOpen={!!deleteModal} title={t('execution:instancias.delete_instancia_modal.title')}
         message={t('execution:instancias.delete_instancia_modal.message')}
@@ -183,13 +452,14 @@ export function InstanciasPage() {
 
       {/* Page header */}
       <PageHeader
+        eyebrow={t('admin:sidebar.ejecuciones')}
         title={t('execution:instancias.page_title')}
         description={t('execution:instancias.page_description')}
       />
 
       {/* Prerequisite warning */}
       {loaded && actividades.length === 0 && (
-        <div className="prereq-banner" style={{ marginBottom: '1.25rem' }}>
+        <div className="prereq-banner">
           <span className="prereq-banner-icon">⚠️</span>
           <div className="prereq-banner-body">
             <p className="prereq-banner-title">{t('execution:instancias.prereq_banner.title')}</p>
@@ -197,216 +467,130 @@ export function InstanciasPage() {
               {t('execution:instancias.prereq_banner.text')}
             </p>
           </div>
-          <Link to="/admin/actividades" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
+          <Link to="/admin/actividades" className="btn btn-secondary" style={{ textDecoration: 'none', flexShrink: 0 }}>
             {t('execution:instancias.prereq_banner.link')}
           </Link>
         </div>
       )}
 
-      {/* Stats en una fila */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{t('execution:instancias.summary_title')}</h2>
-        <div style={{ display: 'flex', gap: '0.625rem' }}>
-          {[
-            { label: t('execution:instancias.stats.finalizadas'), value: finalizadas, color: 'var(--color-success)', bg: 'var(--color-success-bg)', border: 'var(--color-success-border)' },
-            { label: t('execution:instancias.stats.en_progreso'), value: enProgreso, color: 'var(--color-warning)', bg: 'var(--color-warning-bg)', border: 'var(--color-warning-border)' },
-            { label: t('execution:instancias.stats.pendientes'),  value: pendientes,  color: 'var(--color-text-secondary)', bg: 'var(--color-bg-page)', border: 'var(--color-border)' },
-          ].map(s => (
-            <div key={s.label} style={{
-              background: s.bg, border: `1px solid ${s.border}`,
-              borderRadius: 8, padding: '0.375rem 0.875rem',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{ fontSize: '1.1rem', fontWeight: 700, color: s.color }}>{s.value}</span>
-              <span style={{ fontSize: '0.72rem', color: s.color, fontWeight: 500 }}>{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Sección 1 + 2: Generar enlace / Enlaces activos (lado a lado) ── */}
+      <FormListLayout
+        form={
+        <div className="section-card">
+          <div className="section-card-header">
+            <span className="section-card-title">{t('execution:instancias.generar_enlace.section_title')}</span>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{t('execution:instancias.generar_enlace.section_subtitle')}</span>
+          </div>
 
-      {/* ── Filtros globales ── */}
-      {(empresaOptions.length > 0 || actividadOptions.length > 0) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-          <select
-            className="input"
-            style={{ maxWidth: 200, fontSize: '0.82rem' }}
-            value={filterEmpresa}
-            onChange={e => { setFilterEmpresa(e.target.value); setPage(1); }}
-          >
-            <option value="">{t('execution:instancias.filters.all_empresas')}</option>
-            {empresaOptions.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-          <select
-            className="input"
-            style={{ maxWidth: 220, fontSize: '0.82rem' }}
-            value={filterActividad}
-            onChange={e => { setFilterActividad(e.target.value); setPage(1); }}
-          >
-            <option value="">{t('execution:instancias.filters.all_actividades')}</option>
-            {actividadOptions.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-          {(filterEmpresa || filterActividad) && (
-            <button
-              className="btn btn-secondary"
-              style={{ fontSize: '0.78rem', padding: '0.375rem 0.75rem' }}
-              onClick={() => { setFilterEmpresa(''); setFilterActividad(''); setPage(1); }}
-            >
-              {t('execution:instancias.filters.clear')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── Sección 1: Generar enlace ── */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
-          <div style={{ width: 3, height: 16, background: 'var(--color-primary)', borderRadius: 9999 }} />
-          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.generar_enlace.section_title')}</h2>
-          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{t('execution:instancias.generar_enlace.section_subtitle')}</span>
-        </div>
-
-        <div className="card" style={{ padding: '1rem', background: 'linear-gradient(135deg, #FAFBFF, #F5F8FF)' }}>
+          <div className="section-card-body">
           <form
-            className={wasValidated ? 'was-validated' : ''}
             onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) generarEnlace(); }}
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}
             noValidate
           >
-            <div>
-              <label htmlFor="enlace-actividad" className="required-label" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>{t('execution:instancias.generar_enlace.actividad_label')}</label>
-              <select id="enlace-actividad" className="input" style={{ fontSize: '0.82rem' }} required value={formEnlace.actividadId}
-                onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
-                <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
-                {actividades.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
-                    {a.plantillaOrigen ? ` [📋 ${a.plantillaOrigen.nombre}]` : ''}
-                  </option>
-                ))}
-              </select>
-              <div className="invalid-feedback">{t('execution:instancias.generar_enlace.actividad_required')}</div>
+            <div className="form-grid">
+              <Field
+                label={t('execution:instancias.generar_enlace.actividad_label')}
+                htmlFor="enlace-actividad"
+                required
+                error={actividadError}
+              >
+                <select id="enlace-actividad" className="input" required value={formEnlace.actividadId}
+                  onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
+                  <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
+                  {actividades.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
+                      {a.plantillaOrigen ? ` [📋 ${a.plantillaOrigen.nombre}]` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                label={<>{t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span></>}
+                htmlFor="enlace-etiqueta"
+              >
+                <input id="enlace-etiqueta" className="input" placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
+                  value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
+              </Field>
             </div>
-            <div>
-              <label htmlFor="enlace-etiqueta" style={{ display: 'block', marginBottom: 4, fontSize: '0.78rem', fontWeight: 500 }}>
-                {t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span>
-              </label>
-              <input id="enlace-etiqueta" className="input" style={{ fontSize: '0.82rem' }} placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
-                value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
+            <div className="form-footer">
+              <Button type="submit" variant="primary" disabled={generandoEnlace}>
+                {generandoEnlace ? t('execution:instancias.generar_enlace.generating') : t('execution:instancias.generar_enlace.submit')}
+              </Button>
             </div>
-            <button type="submit" className="btn btn-primary" style={{ fontSize: '0.82rem' }} disabled={generandoEnlace}>
-              {generandoEnlace ? t('execution:instancias.generar_enlace.generating') : t('execution:instancias.generar_enlace.submit')}
-            </button>
           </form>
 
           {enlaceGenerado && (
-            <div style={{
-              marginTop: '0.75rem', padding: '0.625rem 1rem', borderRadius: 6,
-              background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)',
-              display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap',
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-success-strong)', fontSize: '0.78rem', marginBottom: 2 }}>{t('execution:instancias.generar_enlace.success_title')}</div>
-                <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: 'var(--color-success-strong)' }}>{enlaceGenerado}</code>
+            <Alert variant="success" className="" title={t('execution:instancias.generar_enlace.success_title')}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{enlaceGenerado}</code>
+                <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(enlaceGenerado)}>
+                  {t('execution:instancias.generar_enlace.copy')}
+                </Button>
+                <button
+                  type="button"
+                  aria-label={t('common:buttons.close')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', flexShrink: 0 }}
+                  onClick={() => setEnlaceGenerado(null)}
+                >✕</button>
               </div>
-              <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: '0.75rem', flexShrink: 0 }}
-                onClick={() => navigator.clipboard.writeText(enlaceGenerado)}>{t('execution:instancias.generar_enlace.copy')}</button>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', flexShrink: 0 }}
-                onClick={() => setEnlaceGenerado(null)}>✕</button>
-            </div>
+            </Alert>
           )}
+          </div>
         </div>
-      </section>
-
-      {/* ── Sección 2: Enlaces activos ── */}
-      {enlaces.length > 0 && (
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
-            <div style={{ width: 3, height: 16, background: '#8B5CF6', borderRadius: 9999 }} />
-            <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.enlaces_activos.section_title')}</h2>
-            <span style={{
-              background: '#EDE9FE', color: '#6D28D9', border: '1px solid #DDD6FE',
-              borderRadius: 9999, padding: '1px 8px', fontSize: '0.7rem', fontWeight: 600,
-            }}>{filteredEnlaces.length}</span>
+        }
+        list={
+          enlaces.length === 0 ? (
+        <div className="section-card">
+          <div className="section-card-header">
+            <span className="section-card-title">{t('execution:instancias.enlaces_activos.section_title')}</span>
+            <span className="count-badge">0</span>
+          </div>
+          <EmptyState title={t('common:no_data')} />
+        </div>
+          ) : (
+        <div className="section-card">
+          <div className="section-card-header">
+            <span className="section-card-title">{t('execution:instancias.enlaces_activos.section_title')}</span>
+            <span className="count-badge">{filteredEnlaces.length}</span>
           </div>
 
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-              <table className="table-compact">
-                <thead>
-                  <tr>
-                    <th>{t('execution:instancias.enlaces_activos.table.etiqueta')}</th>
-                    <th>{t('execution:instancias.enlaces_activos.table.actividad')}</th>
-                    <th>{t('execution:instancias.enlaces_activos.table.estado')}</th>
-                    <th>{t('execution:instancias.enlaces_activos.table.creado')}</th>
-                    <th style={{ textAlign: 'right' }}>{t('execution:instancias.enlaces_activos.table.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEnlaces.length === 0 ? (
-                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.25rem', color: 'var(--color-text-secondary)' }}>
-                      {t('execution:instancias.enlaces_activos.table.no_results')}
-                    </td></tr>
-                  ) : filteredEnlaces.map((e: any) => {
-                    const url = `${window.location.origin}/runner/enlace/${e.accessToken}?lang=${i18n.language}`;
-                    return (
-                      <tr key={e.id}>
-                        <td style={{ fontWeight: 500 }}>
-                          {e.nombre || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.enlaces_activos.table.sin_etiqueta')}</span>}
-                        </td>
-                        <td>
-                          <div>{e.actividad?.nombre || '—'}</div>
-                          {e.actividad?.plantillaOrigen && (
-                            <span style={{ fontSize: '0.68rem', color: '#4338CA', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 4, padding: '1px 5px', marginTop: 2, display: 'inline-block' }}>
-                              📋 {e.actividad.plantillaOrigen.nombre}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <StatusBadge variant={e.activo ? 'success' : 'neutral'}>
-                            {e.activo ? t('execution:instancias.enlaces_activos.table.activo') : t('execution:instancias.enlaces_activos.table.inactivo')}
-                          </StatusBadge>
-                        </td>
-                        <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                          {new Date(e.createdAt).toLocaleDateString()}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                            <button className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                              onClick={() => { navigator.clipboard.writeText(url); toast.success(t('execution:instancias.link_copied')); }}>
-                              {t('execution:instancias.enlaces_activos.copy')}
-                            </button>
-                            <button className="btn btn-danger" style={{ padding: '3px 6px', fontSize: '0.8rem' }}
-                              onClick={() => setDeleteEnlaceModal(e.id)} title="Eliminar">🗑️</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
+          <DataTable
+            columns={enlaceColumns}
+            rows={paginatedEnlaces}
+            rowKey={e => e.id}
+            emptyMessage={t('execution:instancias.enlaces_activos.table.no_results')}
+          />
+          <Pagination
+            page={enlaceCurrentPage}
+            pageCount={enlaceTotalPages}
+            onPageChange={setEnlacePage}
+            prevLabel={t('common:buttons.previous')}
+            nextLabel={t('common:buttons.next')}
+            info={t('execution:instancias.enlaces_activos.pagination.showing', {
+              from: (enlaceCurrentPage - 1) * PAGE_SIZE + 1,
+              to: Math.min(enlaceCurrentPage * PAGE_SIZE, filteredEnlaces.length),
+              total: filteredEnlaces.length,
+            })}
+          />
+        </div>
+          )
+        }
+      />
 
       {/* ── Sección 3: Ejecuciones individuales ── */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.625rem' }}>
-          <div style={{ width: 3, height: 16, background: '#0EA5E9', borderRadius: 9999 }} />
-          <h2 style={{ margin: 0, fontSize: '0.95rem' }}>{t('execution:instancias.individuales.section_title')}</h2>
-          <span style={{
-            background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD',
-            borderRadius: 9999, padding: '1px 10px', fontSize: '0.75rem', fontWeight: 600,
-          }}>{instancias.length}</span>
+      <div className="section-card">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('execution:instancias.individuales.section_title')}</span>
+          <span className="count-badge">{instancias.length}</span>
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div>
 
           {/* Toolbar */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
-            padding: '0.5rem 1rem', borderBottom: '1px solid var(--color-border)',
+            display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap',
+            padding: 'var(--space-2) var(--space-4)', borderBottom: '1px solid var(--color-border)',
             background: 'var(--color-bg-subtle)',
           }}>
             <input
@@ -415,266 +599,79 @@ export function InstanciasPage() {
               placeholder={t('execution:instancias.filters.search_placeholder')}
               value={search}
               onChange={e => handleSearch(e.target.value)}
+              aria-label={t('execution:instancias.filters.search_placeholder')}
             />
             <select
               className="input"
               style={{ maxWidth: 150, fontSize: '0.78rem' }}
               value={filterEstado}
               onChange={e => handleFilterEstado(e.target.value)}
+              aria-label={t('execution:instancias.filters.all_estados')}
             >
               <option value="">{t('execution:instancias.filters.all_estados')}</option>
               <option value="generado">{ESTADO_LABELS.generado}</option>
               <option value="iniciado">{ESTADO_LABELS.iniciado}</option>
               <option value="finalizado">{ESTADO_LABELS.finalizado}</option>
             </select>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-              {t('execution:instancias.filters.show')}
+            {empresaOptions.length > 0 && (
               <select
                 className="input"
-                style={{ width: 70, fontSize: '0.82rem', padding: '0.375rem 0.5rem' }}
-                value={pageSize}
-                onChange={e => handlePageSize(Number(e.target.value))}
+                style={{ maxWidth: 170, fontSize: '0.78rem' }}
+                value={filterEmpresa}
+                onChange={e => { setFilterEmpresa(e.target.value); setPage(1); setEnlacePage(1); }}
+                aria-label={t('execution:instancias.filters.all_empresas')}
               >
-                {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                <option value="">{t('execution:instancias.filters.all_empresas')}</option>
+                {empresaOptions.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              {t('execution:instancias.filters.per_page')}
-            </div>
+            )}
+            {actividadOptions.length > 0 && (
+              <select
+                className="input"
+                style={{ maxWidth: 170, fontSize: '0.78rem' }}
+                value={filterActividad}
+                onChange={e => { setFilterActividad(e.target.value); setPage(1); setEnlacePage(1); }}
+                aria-label={t('execution:instancias.filters.all_actividades')}
+              >
+                <option value="">{t('execution:instancias.filters.all_actividades')}</option>
+                {actividadOptions.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
+            {(filterEmpresa || filterActividad) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setFilterEmpresa(''); setFilterActividad(''); setPage(1); setEnlacePage(1); }}
+              >
+                {t('execution:instancias.filters.clear')}
+              </Button>
+            )}
           </div>
 
           {/* Table */}
-          <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-            <table className="table-compact">
-              <thead>
-                <tr>
-                  <th>{t('execution:instancias.individuales.table.estado')}</th>
-                  <th>{t('execution:instancias.individuales.table.actividad')}</th>
-                  <th>{t('execution:instancias.individuales.table.usuario')}</th>
-                  <th>{t('execution:instancias.individuales.table.area')}</th>
-                  <th>{t('execution:instancias.individuales.table.archivos')}</th>
-                  <th>{t('execution:instancias.individuales.table.ultima_actualizacion')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('execution:instancias.individuales.table.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((ins: any) => (
-                  <tr key={ins.id}>
-                    <td>
-                      <StatusBadge variant={
-                        ins.estado === 'finalizado' ? 'success' :
-                        ins.estado === 'iniciado' ? 'warning' : 'neutral'
-                      }>
-                        {ESTADO_LABELS[ins.estado] ?? ins.estado}
-                      </StatusBadge>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{ins.actividad?.nombre || t('execution:instancias.individuales.table.desconocida')}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                        {ins.actividad?.iniciativa?.nombre || '—'}
-                      </div>
-                      {ins.actividad?.plantillaOrigen && (
-                        <span style={{ fontSize: '0.68rem', color: '#4338CA', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 4, padding: '1px 5px', marginTop: 3, display: 'inline-block' }}>
-                          📋 {ins.actividad.plantillaOrigen.nombre}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ fontSize: '0.875rem' }}>
-                      {ins.usuario?.nombre || (ins.emailReferencia
-                        ? <span style={{ color: 'var(--color-text-secondary)' }}>{ins.emailReferencia}</span>
-                        : <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>{t('execution:instancias.individuales.table.pendiente')}</span>
-                      )}
-                      {ins.usuario?.email && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.email}</div>
-                      )}
-                      {ins.usuario?.cargo && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>{ins.usuario.cargo}</div>
-                      )}
-                    </td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--color-text-main)' }}>
-                      {ins.usuario?.area || <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>—</span>}
-                    </td>
-                    <td>
-                      {(() => {
-                        const slug = (s: string) => (s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-                        const respArchivos = (ins.respuestas ?? []).filter((r: any) => r.archivoNombre);
-                        const interArchivos = (ins.interacciones ?? []).filter((i: any) => i.archivoNombre);
-                        if (respArchivos.length === 0 && interArchivos.length === 0) {
-                          return <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic' }}>—</span>;
-                        }
-                        const labelFor = (titulo: string) => [
-                          slug(ins.actividad?.iniciativa?.empresa?.nombre || ''),
-                          slug(ins.actividad?.nombre || ''),
-                          slug(ins.usuario?.area || ''),
-                          slug(titulo || ''),
-                        ].filter(Boolean).join('_') + '.xlsx';
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {respArchivos.map((r: any) => (
-                              <button
-                                key={r.preguntaId}
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetchWithErrorMapping(`${API_URL}/admin/instancias/${ins.id}/respuestas/${r.preguntaId}/archivo-url`);
-                                    const json = await res.json();
-                                    if (!json.url) return;
-                                    const a = document.createElement('a');
-                                    a.href = json.url;
-                                    a.download = json.archivoNombre ?? '';
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                  } catch (err) { toast.error(translateError(err)); }
-                                }}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  padding: '3px 8px', fontSize: '0.72rem',
-                                  background: 'var(--color-success-bg)', color: 'var(--color-success-strong)',
-                                  borderRadius: 5, fontWeight: 600,
-                                  border: '1px solid var(--color-success-border)', whiteSpace: 'nowrap',
-                                  cursor: 'pointer',
-                                }}
-                                title={r.archivoNombre}
-                              >
-                                ⬇ {labelFor(r.pregunta?.paso?.titulo)}
-                              </button>
-                            ))}
-                            {interArchivos.map((inter: any) => (
-                              <a
-                                key={inter.pasoId}
-                                href={`${API_URL}/admin/instancias/${ins.id}/excel/${inter.pasoId}`}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  padding: '3px 8px', fontSize: '0.72rem',
-                                  background: 'var(--color-primary-light)', color: 'var(--color-primary-hover)',
-                                  borderRadius: 5, fontWeight: 600, textDecoration: 'none',
-                                  border: '1px solid var(--color-info-border)', whiteSpace: 'nowrap',
-                                }}
-                                title={t('execution:instancias.individuales.actions.interaccion_title')}
-                              >
-                                ⬇ {labelFor(inter.paso?.titulo)}
-                              </a>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                      {new Date(ins.updatedAt).toLocaleString()}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <Link to={`/admin/instancias/${ins.id}`} className="btn btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.78rem', textDecoration: 'none' }}>
-                          {t('execution:instancias.individuales.actions.view_results')}
-                        </Link>
-                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                          onClick={() => descargarPdf(ins.id)}
-                          title={t('execution:instancias.individuales.actions.pdf_title')}>
-                          📄 PDF
-                        </button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                          onClick={() => descargarZip(ins.id)}
-                          title={t('execution:instancias.individuales.actions.zip_title')}>
-                          📦 ZIP
-                        </button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                          onClick={() => copyLink(ins.accessToken)}>
-                          {t('execution:instancias.individuales.actions.copy_link')}
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.875rem' }}
-                          onClick={() => setDeleteModal(ins.id)} title="Eliminar">
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {paginated.length === 0 && (
-                  <tr>
-                    <td colSpan={7}>
-                      {search || filterEstado || filterEmpresa || filterActividad ? (
-                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-secondary)' }}>
-                          {t('execution:instancias.individuales.no_filter_results')}
-                        </div>
-                      ) : (
-                        <div className="empty-state" style={{ padding: '2.5rem 2rem' }}>
-                          <div className="empty-state-icon">📋</div>
-                          <p className="empty-state-title">{t('execution:instancias.individuales.empty.title')}</p>
-                          <p className="empty-state-desc">
-                            {t('execution:instancias.individuales.empty.description')}
-                          </p>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination footer */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0.5rem 1rem', borderTop: '1px solid var(--color-border)',
-            background: 'var(--color-bg-subtle)', flexWrap: 'wrap', gap: '0.75rem',
-          }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              {filtered.length === 0 ? t('execution:instancias.individuales.pagination.no_results') : t('execution:instancias.individuales.pagination.showing', { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, filtered.length), total: filtered.length })}
-            </span>
-
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-              >«</button>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                onClick={() => setPage(p => p - 1)}
-                disabled={page === 1}
-              >‹</button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
-                .reduce<(number | '...')[]>((acc, n, i, arr) => {
-                  if (i > 0 && n - (arr[i - 1] as number) > 1) acc.push('...');
-                  acc.push(n);
-                  return acc;
-                }, [])
-                .map((n, i) => n === '...'
-                  ? <span key={`ellipsis-${i}`} style={{ padding: '4px 8px', fontSize: '0.8rem', color: 'var(--color-text-tertiary)' }}>…</span>
-                  : <button
-                      key={n}
-                      className="btn"
-                      style={{
-                        padding: '4px 10px', fontSize: '0.8rem',
-                        background: page === n ? 'var(--color-primary)' : 'var(--color-bg-card)',
-                        color: page === n ? 'white' : 'var(--color-text-main)',
-                        border: `1px solid ${page === n ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                      }}
-                      onClick={() => setPage(n as number)}
-                    >{n}</button>
-                )}
-
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                onClick={() => setPage(p => p + 1)}
-                disabled={page === totalPages}
-              >›</button>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-              >»</button>
-            </div>
-          </div>
+          <DataTable
+            columns={individualColumns}
+            rows={paginated}
+            rowKey={ins => ins.id}
+            emptyMessage={individualEmptyMessage}
+          />
+          <Pagination
+            page={currentPage}
+            pageCount={totalPages}
+            onPageChange={setPage}
+            prevLabel={t('common:buttons.previous')}
+            nextLabel={t('common:buttons.next')}
+            info={filtered.length === 0
+              ? t('execution:instancias.individuales.pagination.no_results')
+              : t('execution:instancias.individuales.pagination.showing', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, filtered.length),
+                  total: filtered.length,
+                })}
+          />
 
         </div>
-      </section>
+      </div>
 
     </div>
   );

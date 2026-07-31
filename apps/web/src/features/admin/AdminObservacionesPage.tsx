@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Field, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { PageHeader, Breadcrumb, Field, FilterToolbar, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -67,13 +67,19 @@ export function AdminObservacionesPage() {
   }, [programas]);
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 1000 }}>
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.observaciones') },
+        ]}
+      />
       <PageHeader
         title={t('admin:observaciones.title')}
         description={t('admin:observaciones.subtitle')}
       />
 
-      <div className="toolbar">
+      <FilterToolbar>
         <Field label={t('admin:observaciones.programa')}>
           <select className="input" value={programaId} onChange={e => setProgramaId(e.target.value)}>
             <option value="">{t('admin:observaciones.todos')}</option>
@@ -92,17 +98,17 @@ export function AdminObservacionesPage() {
             {TIPOS.map(tp => <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>)}
           </select>
         </Field>
-      </div>
+      </FilterToolbar>
 
       {loading && <Loading label={t('common:loading')} />}
       {!loading && observaciones.length === 0 && (
         <EmptyState title={t('admin:observaciones.empty')} />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
         {observaciones.map(o => (
-          <div key={o.id} className="card" style={{ padding: '0.75rem 1rem' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+          <div key={o.id} className="card" style={{ padding: 'var(--space-3) var(--space-4)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}>
               <StatusBadge variant={o.urgencia === 'urgente' ? 'danger' : 'neutral'}>
                 {o.urgencia === 'urgente' ? '⚠ ' : ''}{t(`facilitador:observaciones.urgencias.${o.urgencia}`)}
               </StatusBadge>
@@ -113,7 +119,7 @@ export function AdminObservacionesPage() {
               </span>
             </div>
             <div style={{ fontSize: '0.9rem' }}>{o.texto}</div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 'var(--space-1)' }}>
               {o.notificadoEn
                 ? t('admin:observaciones.notificado', { fecha: new Date(o.notificadoEn).toLocaleString() })
                 : t('admin:observaciones.no_notificado')}

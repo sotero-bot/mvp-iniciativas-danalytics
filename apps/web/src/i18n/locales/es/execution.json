@@ -50,6 +50,9 @@
         "inactivo": "Inactivo",
         "no_results": "No hay enlaces para los filtros aplicados."
       },
+      "pagination": {
+        "showing": "Mostrando {{from}}–{{to}} de {{total}}"
+      },
       "copy": "Copiar"
     },
     "individuales": {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, EmptyState } from '../../components/ui';
 import { EstudianteHome } from './EstudianteHome';
 
 export interface HomeUser {
@@ -22,6 +22,8 @@ export interface CardDef {
 // Secciones por rol (tarjetas del inicio + ítems del sidebar). Las rutas de los
 // roles no-admin aún no existen (Fase 1+): van sin `to` y se muestran como
 // "Próximamente".
+// Nota: `color` se comparte con el sidebar de App.tsx (icono de cada ítem), por
+// eso se mantiene como hex literal — un cambio aquí afecta ambos lugares.
 export const ROLE_CARDS: Record<string, CardDef[]> = {
   danalytics_admin: [
     { key: 'adm_empresas', icon: '🏢', color: '#3B82F6', to: '/admin/empresas' },
@@ -57,16 +59,21 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
 // Se renderiza DENTRO del Layout (área de contenido, tema claro).
 export function HomePage({ user }: { user: HomeUser | null }) {
   const { t } = useTranslation('common', { keyPrefix: 'home' });
+  const { t: tc } = useTranslation(['common', 'admin']);
   const slug = user?.role?.slug ?? '';
   const cards = ROLE_CARDS[slug] ?? [];
   const displayName = user?.nombre || user?.username || user?.email || '';
+  const roleLabel = slug ? tc(`roles.${slug}`) : undefined;
 
   return (
-    <div className="page">
-      <h1 style={{ fontSize: '1.6rem', margin: '0 0 0.4rem', color: 'var(--color-text-main)' }}>
-        {displayName ? t('greeting', { name: displayName }) : t('greeting_no_name')}
-      </h1>
-      <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 1.75rem' }}>{t('subtitle')}</p>
+    <div>
+      <Breadcrumb items={[{ label: tc('admin:sidebar.home') }]} />
+
+      <PageHeader
+        eyebrow={roleLabel}
+        title={displayName ? t('greeting', { name: displayName }) : t('greeting_no_name')}
+        description={t('subtitle')}
+      />
 
       {/* El estudiante ve un dashboard con su próxima sesión, pendientes y progreso
           por programa; el resto de roles conservan las tarjetas de navegación. */}
@@ -76,28 +83,24 @@ export function HomePage({ user }: { user: HomeUser | null }) {
           const inner = (
             <>
               <div style={{
-                width: 40, height: 40, borderRadius: 10, marginBottom: 12,
+                width: 40, height: 40, borderRadius: 0, marginBottom: 'var(--space-3)',
                 background: `${card.color}1f`, border: `1px solid ${card.color}55`,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '1.15rem',
               }}>{card.icon}</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 4, color: 'var(--color-text-main)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 'var(--space-1)', color: 'var(--color-text-main)' }}>
                 {t(`cards.${card.key}.title`)}
               </div>
               <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
                 {t(`cards.${card.key}.desc`)}
               </div>
               {!card.to && (
-                <span style={{
-                  display: 'inline-block', marginTop: 12, fontSize: '0.7rem', fontWeight: 600,
-                  color: 'var(--color-text-secondary)', background: 'var(--color-bg-subtle)',
-                  border: '1px solid var(--color-border)', borderRadius: 999, padding: '2px 10px',
-                }}>{t('coming_soon')}</span>
+                <span className="chip" style={{ marginTop: 'var(--space-3)' }}>{t('coming_soon')}</span>
               )}
             </>
           );
 
-          const base: React.CSSProperties = { display: 'block', padding: '1.1rem', textDecoration: 'none' };
+          const base: React.CSSProperties = { display: 'block', padding: 'var(--space-5)', textDecoration: 'none' };
 
           return card.to ? (
             <Link key={card.key} to={card.to} className="card" style={base}>{inner}</Link>

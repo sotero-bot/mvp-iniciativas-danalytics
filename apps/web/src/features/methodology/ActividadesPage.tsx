@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Modal, Field, EmptyState } from '../../components/ui';
+import { Modal, Field, EmptyState, Breadcrumb, PageHeader, Button, StatusBadge, FormListLayout, FilterToolbar, DataTable, Pagination } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 5;
 
 type PlantillaOption = { id: string; nombre: string; _count: { pasos: number } };
 
 export function ActividadesPage() {
-  const { t } = useTranslation(['methodology', 'common']);
+  const { t } = useTranslation(['methodology', 'admin', 'common']);
   const [list, setList] = useState<any[]>([]);
   const [iniciativas, setIniciativas] = useState<any[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaOption[]>([]);
@@ -25,6 +27,7 @@ export function ActividadesPage() {
   const [editWasValidated, setEditWasValidated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(1);
 
   const empresas = React.useMemo(() => {
     const seen = new Set<string>();
@@ -74,6 +77,64 @@ export function ActividadesPage() {
       if (!valida) setForm(prev => ({ ...prev, iniciativaId: '' }));
     }
   }, [empresaFiltro]);
+
+  useEffect(() => { setPage(1); }, [empresaFiltro]);
+
+  const totalPages = Math.max(1, Math.ceil(listFiltrada.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => listFiltrada.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [listFiltrada, currentPage],
+  );
+
+  const columns: DataTableColumn<any>[] = [
+    {
+      key: 'nombre',
+      header: t('methodology:actividades.table.nombre'),
+      render: (a) => <strong>{a.nombre}</strong>,
+    },
+    {
+      key: 'iniciativa',
+      header: t('methodology:actividades.table.iniciativa'),
+      render: (a) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <StatusBadge variant="info">{a.iniciativa?.empresa?.nombre}</StatusBadge>
+          <StatusBadge variant="neutral">{a.iniciativa?.nombre}</StatusBadge>
+          {a.plantillaOrigenId && (
+            <StatusBadge variant="info">{t('methodology:actividades.from_template_badge')}</StatusBadge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'descripcion',
+      header: t('methodology:actividades.table.descripcion'),
+      render: (a) => (
+        a.descripcion
+          ? <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>{a.descripcion}</span>
+          : <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('methodology:actividades.table.actions'),
+      align: 'right',
+      render: (a) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(a)}>
+            {t('common:buttons.edit')}
+          </Button>
+          <Link to={`/admin/actividades/${a.id}/pasos`} className="btn btn-primary btn-sm">
+            {t('methodology:actividades.configure_pasos')}
+          </Link>
+          <Button variant="danger" size="sm" onClick={() => setDeleteModal({ id: a.id, nombre: a.nombre })}
+            title={t('common:buttons.delete')} aria-label={t('common:buttons.delete')}>
+            🗑️
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   const create = async () => {
     if (!form.iniciativaId) return;
@@ -160,7 +221,7 @@ export function ActividadesPage() {
         <form
           className={editWasValidated ? 'was-validated' : ''}
           onSubmit={handleEdit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
           noValidate
         >
           <Field label={t('methodology:actividades.fields.iniciativa')} htmlFor="act-edit-iniciativa" required>
@@ -182,73 +243,63 @@ export function ActividadesPage() {
             <textarea id="act-edit-descripcion" className="input" rows={4} value={editForm.descripcion}
               onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} />
           </Field>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+          <div className="form-footer">
+            <Button type="button" variant="secondary" onClick={() => setEditModal(null)}>{t('common:buttons.cancel')}</Button>
+            <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t('common:buttons.saving_short') : t('common:buttons.save_changes')}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <h1>{t('methodology:actividades.page_title')}</h1>
-          <p className="page-description">
-            {t('methodology:actividades.page_description')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
-          <Link to="/admin/plantillas" className="btn btn-secondary"
-            style={{ textDecoration: 'none', fontSize: '0.8rem' }}>
-            {t('methodology:actividades.manage_plantillas')}
-          </Link>
-          {list.length > 0 && (
-            <Link to="/admin/instancias" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-              {t('methodology:actividades.next_ejecuciones')}
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.actividades') },
+        ]}
+      />
+
+      <PageHeader
+        title={t('methodology:actividades.page_title')}
+        description={t('methodology:actividades.page_description')}
+        actions={
+          <>
+            <Link to="/admin/plantillas" className="btn btn-secondary">
+              {t('methodology:actividades.manage_plantillas')}
             </Link>
-          )}
-        </div>
-      </div>
+            {list.length > 0 && (
+              <Link to="/admin/instancias" className="btn btn-secondary">
+                {t('methodology:actividades.next_ejecuciones')}
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {/* Filtro por empresa */}
       {loaded && empresas.length > 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          background: 'var(--color-bg-card)', border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)', padding: '0.625rem 1rem',
-          marginBottom: '1.25rem', boxShadow: 'var(--shadow-xs)',
-        }}>
-          <span style={{ fontSize: '1rem', lineHeight: 1 }}>🏢</span>
-          <label htmlFor="act-empresa-filtro" style={{
-            fontWeight: 600, fontSize: '0.875rem',
-            color: 'var(--color-text-main)', whiteSpace: 'nowrap',
-          }}>
-            {t('methodology:actividades.filter.empresa_label')}
-          </label>
-          <select
-            id="act-empresa-filtro"
-            className="input"
-            style={{ flex: 1, maxWidth: 320, marginBottom: 0 }}
-            value={empresaFiltro}
-            onChange={e => setEmpresaFiltro(e.target.value)}
-          >
-            <option value="">{t('methodology:actividades.filter.all_empresas')}</option>
-            {empresas.map(e => (
-              <option key={e.id} value={e.id}>{e.nombre}</option>
-            ))}
-          </select>
-          {empresaFiltro ? (
-            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-              {t('methodology:actividades.filter.result', { count: listFiltrada.length })}
-            </span>
-          ) : (
-            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-              {t('methodology:actividades.filter.total', { count: list.length })}
-            </span>
-          )}
-        </div>
+        <FilterToolbar>
+          <span aria-hidden="true">🏢</span>
+          <Field label={t('methodology:actividades.filter.empresa_label')} htmlFor="act-empresa-filtro">
+            <select
+              id="act-empresa-filtro"
+              className="input"
+              value={empresaFiltro}
+              onChange={e => setEmpresaFiltro(e.target.value)}
+            >
+              <option value="">{t('methodology:actividades.filter.all_empresas')}</option>
+              {empresas.map(e => (
+                <option key={e.id} value={e.id}>{e.nombre}</option>
+              ))}
+            </select>
+          </Field>
+          <FilterToolbar.Divider />
+          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
+            {empresaFiltro
+              ? t('methodology:actividades.filter.result', { count: listFiltrada.length })
+              : t('methodology:actividades.filter.total', { count: list.length })}
+          </span>
+        </FilterToolbar>
       )}
 
       {/* Prerequisite warning */}
@@ -261,105 +312,102 @@ export function ActividadesPage() {
               {t('methodology:actividades.prereq_banner.text')}
             </p>
           </div>
-          <Link to="/admin/iniciativas" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, fontSize: '0.8125rem' }}>
+          <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ flexShrink: 0 }}>
             {t('methodology:actividades.prereq_banner.link')}
           </Link>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
-
-        {/* Create form */}
-        <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '20px' }}>
-          <h3 style={{ margin: '0 0 4px' }}>{t('methodology:actividades.create_section_title')}</h3>
-          <p style={{ margin: '0 0 16px', fontSize: '0.8125rem' }}>
-            {t('methodology:actividades.create_section_subtitle')}
-          </p>
-          <form
-            className={wasValidated ? 'was-validated' : ''}
-            onSubmit={(e) => { e.preventDefault(); const formEl = e.currentTarget; setWasValidated(true); if (formEl.checkValidity()) create(); }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            noValidate
-          >
-            <Field label={t('methodology:actividades.fields.iniciativa')} htmlFor="act-iniciativa" required>
-              <select id="act-iniciativa" className="input" required value={form.iniciativaId}
-                onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
-                disabled={iniciativasFiltradas.length === 0}>
-                <option value="">{iniciativasFiltradas.length === 0 ? t('methodology:actividades.placeholders.no_iniciativas') : t('methodology:actividades.placeholders.select_iniciativa')}</option>
-                {iniciativasFiltradas.map(ini => (
-                  <option key={ini.id} value={ini.id}>{ini.nombre}{!empresaFiltro && ini.empresa ? ` (${ini.empresa.nombre})` : ''}</option>
-                ))}
-              </select>
-              <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
-            </Field>
-
-            {/* Selector de plantilla */}
-            <Field
-              label={<>{t('methodology:actividades.fields.plantilla')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
-              htmlFor="act-plantilla"
+      <FormListLayout
+        form={
+          <div className="card" style={{ position: 'sticky', top: 'var(--space-5)' }}>
+            <h3 style={{ margin: '0 0 var(--space-1)' }}>{t('methodology:actividades.create_section_title')}</h3>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.8125rem' }}>
+              {t('methodology:actividades.create_section_subtitle')}
+            </p>
+            <form
+              className={wasValidated ? 'was-validated' : ''}
+              onSubmit={(e) => { e.preventDefault(); const formEl = e.currentTarget; setWasValidated(true); if (formEl.checkValidity()) create(); }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+              noValidate
             >
-              {plantillas.length === 0 ? (
-                <>
-                  <select id="act-plantilla" className="input" disabled>
-                    <option>{t('methodology:actividades.placeholders.no_plantillas')}</option>
-                  </select>
-                  <div style={{ marginTop: 4, fontSize: '0.78rem' }}>
-                    <Link to="/admin/plantillas" style={{ color: 'var(--color-primary)' }}>{t('methodology:actividades.plantilla_create_link')}</Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <select id="act-plantilla" className="input" value={form.plantillaId}
-                    onChange={e => setForm({ ...form, plantillaId: e.target.value })}
-                    disabled={iniciativasFiltradas.length === 0}>
-                    <option value="">{t('methodology:actividades.placeholders.no_plantilla')}</option>
-                    {plantillas.map(p => (
-                      <option key={p.id} value={p.id}>{t('methodology:actividades.plantilla_pasos_option', { nombre: p.nombre, count: p._count.pasos })}</option>
-                    ))}
-                  </select>
-                  {plantillaSeleccionada && (
-                    plantillaSeleccionada._count.pasos > 0 ? (
-                      <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--color-success-strong)' }}>
-                        <Trans
-                          i18nKey="methodology:actividades.plantilla_info_with_pasos"
-                          values={{ count: plantillaSeleccionada._count.pasos }}
-                          components={[<strong />]}
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--color-warning-strong)' }}>
-                        {t('methodology:actividades.plantilla_info_no_pasos')}
-                      </div>
-                    )
-                  )}
-                </>
-              )}
-            </Field>
+              <Field label={t('methodology:actividades.fields.iniciativa')} htmlFor="act-iniciativa" required>
+                <select id="act-iniciativa" className="input" required value={form.iniciativaId}
+                  onChange={e => setForm({ ...form, iniciativaId: e.target.value })}
+                  disabled={iniciativasFiltradas.length === 0}>
+                  <option value="">{iniciativasFiltradas.length === 0 ? t('methodology:actividades.placeholders.no_iniciativas') : t('methodology:actividades.placeholders.select_iniciativa')}</option>
+                  {iniciativasFiltradas.map(ini => (
+                    <option key={ini.id} value={ini.id}>{ini.nombre}{!empresaFiltro && ini.empresa ? ` (${ini.empresa.nombre})` : ''}</option>
+                  ))}
+                </select>
+                <div className="invalid-feedback">{t('methodology:actividades.validation.iniciativa_required')}</div>
+              </Field>
 
-            <Field label={t('methodology:actividades.fields.nombre')} htmlFor="act-nombre" required>
-              <input id="act-nombre" className="input" required placeholder={t('methodology:actividades.placeholders.nombre')}
-                value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
-                disabled={iniciativasFiltradas.length === 0} />
-              <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required')}</div>
-            </Field>
-            <Field
-              label={<>{t('methodology:actividades.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
-              htmlFor="act-descripcion"
-            >
-              <textarea id="act-descripcion" className="input" placeholder={t('methodology:actividades.placeholders.descripcion')}
-                value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
-                rows={4} disabled={iniciativasFiltradas.length === 0} />
-            </Field>
-            <button type="submit" className="btn btn-primary" disabled={iniciativasFiltradas.length === 0}>
-              {t('methodology:actividades.create_submit')}
-            </button>
-          </form>
-        </div>
+              {/* Selector de plantilla */}
+              <Field
+                label={<>{t('methodology:actividades.fields.plantilla')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
+                htmlFor="act-plantilla"
+              >
+                {plantillas.length === 0 ? (
+                  <>
+                    <select id="act-plantilla" className="input" disabled>
+                      <option>{t('methodology:actividades.placeholders.no_plantillas')}</option>
+                    </select>
+                    <div style={{ marginTop: 'var(--space-1)', fontSize: '0.78rem' }}>
+                      <Link to="/admin/plantillas" className="btn-link">{t('methodology:actividades.plantilla_create_link')}</Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <select id="act-plantilla" className="input" value={form.plantillaId}
+                      onChange={e => setForm({ ...form, plantillaId: e.target.value })}
+                      disabled={iniciativasFiltradas.length === 0}>
+                      <option value="">{t('methodology:actividades.placeholders.no_plantilla')}</option>
+                      {plantillas.map(p => (
+                        <option key={p.id} value={p.id}>{t('methodology:actividades.plantilla_pasos_option', { nombre: p.nombre, count: p._count.pasos })}</option>
+                      ))}
+                    </select>
+                    {plantillaSeleccionada && (
+                      plantillaSeleccionada._count.pasos > 0 ? (
+                        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', fontSize: '0.8rem', color: 'var(--color-success-strong)' }}>
+                          <Trans
+                            i18nKey="methodology:actividades.plantilla_info_with_pasos"
+                            values={{ count: plantillaSeleccionada._count.pasos }}
+                            components={[<strong />]}
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', fontSize: '0.8rem', color: 'var(--color-warning-strong)' }}>
+                          {t('methodology:actividades.plantilla_info_no_pasos')}
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
+              </Field>
 
-        {/* List */}
-        <div>
-          {listFiltrada.length === 0 ? (
+              <Field label={t('methodology:actividades.fields.nombre')} htmlFor="act-nombre" required>
+                <input id="act-nombre" className="input" required placeholder={t('methodology:actividades.placeholders.nombre')}
+                  value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
+                  disabled={iniciativasFiltradas.length === 0} />
+                <div className="invalid-feedback">{t('methodology:actividades.validation.nombre_required')}</div>
+              </Field>
+              <Field
+                label={<>{t('methodology:actividades.fields.descripcion')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('methodology:actividades.optional_label')}</span></>}
+                htmlFor="act-descripcion"
+              >
+                <textarea id="act-descripcion" className="input" placeholder={t('methodology:actividades.placeholders.descripcion')}
+                  value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })}
+                  rows={4} disabled={iniciativasFiltradas.length === 0} />
+              </Field>
+              <Button type="submit" variant="primary" block disabled={iniciativasFiltradas.length === 0}>
+                {t('methodology:actividades.create_submit')}
+              </Button>
+            </form>
+          </div>
+        }
+        list={
+          listFiltrada.length === 0 ? (
             <div className="card">
               <EmptyState
                 icon="⚡"
@@ -370,74 +418,43 @@ export function ActividadesPage() {
                     ? t('methodology:actividades.empty.filter_default')
                     : t('methodology:actividades.empty.default')}
                 action={iniciativas.length === 0 ? (
-                  <Link to="/admin/iniciativas" className="btn btn-secondary" style={{ textDecoration: 'none', fontSize: '0.8125rem' }}>
+                  <Link to="/admin/iniciativas" className="btn btn-secondary">
                     {t('methodology:actividades.empty.link_iniciativas')}
                   </Link>
                 ) : undefined}
               />
             </div>
           ) : (
-            listFiltrada.map((a: any) => (
-              <div key={a.id} className="card" style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
-                      <span className="status-badge status-info" style={{ fontSize: '0.7rem' }}>
-                        {a.iniciativa?.empresa?.nombre}
-                      </span>
-                      <span className="status-badge status-neutral" style={{ fontSize: '0.7rem' }}>
-                        {a.iniciativa?.nombre}
-                      </span>
-                      {a.plantillaOrigenId && (
-                        <span className="status-badge" style={{ fontSize: '0.7rem', background: '#EEF2FF', color: '#4338CA', border: '1px solid #C7D2FE' }}>
-                          {t('methodology:actividades.from_template_badge')}
-                        </span>
-                      )}
-                    </div>
-                    <h3 style={{ margin: '0 0 4px', color: 'var(--color-text-main)', fontSize: '1rem' }}>{a.nombre}</h3>
-                    {a.descripcion && (
-                      <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.8125rem', lineHeight: 1.5 }}>
-                        {a.descripcion}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.82rem' }}
-                      onClick={() => openEdit(a)}>
-                      {t('common:buttons.edit')}
-                    </button>
-                    <Link to={`/admin/actividades/${a.id}/pasos`} className="btn btn-primary"
-                      style={{ padding: '5px 12px', fontSize: '0.82rem', textDecoration: 'none' }}>
-                      {t('methodology:actividades.configure_pasos')}
-                    </Link>
-                    <button className="btn btn-danger" style={{ padding: '5px 8px', fontSize: '0.875rem' }}
-                      onClick={() => setDeleteModal({ id: a.id, nombre: a.nombre })} title={t('common:buttons.delete')}>
-                      🗑️
-                    </button>
-                  </div>
-                </div>
+            <div className="section-card">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('methodology:actividades.table.header_title')}</span>
+                <span className="count-badge">{listFiltrada.length}</span>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+              <DataTable columns={columns} rows={pageRows} rowKey={a => a.id} />
+              <Pagination
+                page={currentPage}
+                pageCount={totalPages}
+                onPageChange={setPage}
+                prevLabel={t('common:buttons.previous')}
+                nextLabel={t('common:buttons.next')}
+                info={t('methodology:actividades.table.showing', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, listFiltrada.length),
+                  total: listFiltrada.length,
+                })}
+              />
+            </div>
+          )
+        }
+      />
 
       {/* Next step hint */}
       {list.length > 0 && (
-        <div style={{
-          marginTop: '1.25rem',
-          padding: '0.875rem 1.25rem',
-          background: '#F0F9FF',
-          border: '1px solid #BAE6FD',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex', alignItems: 'center', gap: '0.875rem',
-        }}>
-          <span style={{ fontSize: '1rem' }}>💡</span>
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: '#0369A1' }}>
+        <div className="next-step-banner">
+          <p style={{ margin: 0, fontSize: '0.8125rem' }}>
             <strong>{t('methodology:actividades.next_step.label')}</strong> {t('methodology:actividades.next_step.text')}
           </p>
-          <Link to="/admin/instancias" className="btn btn-secondary"
-            style={{ textDecoration: 'none', flexShrink: 0, padding: '4px 12px', fontSize: '0.8rem' }}>
+          <Link to="/admin/instancias" className="btn btn-secondary">
             {t('methodology:actividades.next_step.link')}
           </Link>
         </div>

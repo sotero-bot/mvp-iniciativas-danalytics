@@ -1,4 +1,7 @@
 export { PageHeader } from './PageHeader';
+export { Breadcrumb } from './Breadcrumb';
+export type { BreadcrumbItem } from './Breadcrumb';
+export { Button } from './Button';
 export { Field } from './Field';
 export { StatusBadge } from './StatusBadge';
 export type { StatusVariant } from './StatusBadge';
@@ -8,3 +11,8 @@ export { EmptyState } from './EmptyState';
 export { Loading } from './Loading';
 export { Alert } from './Alert';
 export { Modal } from './Modal';
+export { FormListLayout } from './FormListLayout';
+export { DataTable } from './DataTable';
+export type { DataTableColumn } from './DataTable';
+export { FilterToolbar } from './FilterToolbar';
+export { Pagination } from './Pagination';

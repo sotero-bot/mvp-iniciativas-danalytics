@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { formatFechaHora } from '../../shared/formatDate';
 
@@ -28,6 +28,8 @@ export function FacilitadorSesionesPage() {
   // C-04: borrador del enlace de grabación por sesión.
   const [grabacionDraft, setGrabacionDraft] = useState<Record<string, string>>({});
   const [guardandoGrab, setGuardandoGrab] = useState<string | null>(null);
+  // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
+  const [programaNombre, setProgramaNombre] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -39,6 +41,16 @@ export function FacilitadorSesionesPage() {
   };
 
   useEffect(() => { load(); }, [programaId]);
+
+  useEffect(() => {
+    fetchWithErrorMapping(`${API_URL}/programas`)
+      .then((res) => res.json())
+      .then((data: { id: string; nombre: string }[]) => {
+        const p = data.find((x) => x.id === programaId);
+        if (p) setProgramaNombre(p.nombre);
+      })
+      .catch(() => {});
+  }, [programaId]);
 
   // C-04: el facilitador sube/actualiza el enlace de grabación de una sesión ya realizada.
   const guardarGrabacion = async (sesionId: string) => {
@@ -59,18 +71,25 @@ export function FacilitadorSesionesPage() {
   };
 
   return (
-    <div className="page">
+    <div>
+      <Breadcrumb
+        items={[
+          { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
+          { label: programaNombre || programaId },
+          { label: t('facilitador:sesiones.title') },
+        ]}
+      />
       <PageHeader
-        back={{ to: '/facilitador/programas', label: t('facilitador:sesiones.back') }}
+        eyebrow={programaNombre || undefined}
         title={t('facilitador:sesiones.title')}
       />
       {loading && <Loading label={t('common:loading')} />}
       {!loading && sesiones.length === 0 && <EmptyState title={t('facilitador:sesiones.empty')} />}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         {sesiones.map((s) => (
-          <div key={s.id} className="card" style={{ padding: '1rem', opacity: s.bloqueada ? 0.6 : 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div key={s.id} className="card" style={{ padding: 'var(--space-4)', opacity: s.bloqueada ? 0.6 : 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)' }}>
               <div>
                 <div style={{ fontWeight: 600 }}>
                   {t('facilitador:sesiones.numero', { numero: s.numeroSesion })} — {s.titulo}
@@ -82,7 +101,7 @@ export function FacilitadorSesionesPage() {
               {s.bloqueada ? (
                 <span style={{ fontSize: '0.8rem' }}>🔒 {t('facilitador:sesiones.locked')}</span>
               ) : (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                   {/* Prioridad: si hay archivo subido se ofrece la descarga; si no, el enlace. */}
                   {s.presentacionArchivoUrl ? (
                     <a className="btn btn-secondary" href={s.presentacionArchivoUrl} target="_blank" rel="noreferrer">
@@ -106,7 +125,7 @@ export function FacilitadorSesionesPage() {
             </div>
             {/* C-04: subir/actualizar el enlace de grabación (solo sesiones ya realizadas). */}
             {!s.bloqueada && new Date(s.fechaProgramada).getTime() <= Date.now() && (
-              <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                   className="input"
                   style={{ flex: '1 1 240px', fontSize: '0.82rem' }}
@@ -114,9 +133,13 @@ export function FacilitadorSesionesPage() {
                   value={grabacionDraft[s.id] ?? s.urlGrabacion ?? ''}
                   onChange={(e) => setGrabacionDraft((d) => ({ ...d, [s.id]: e.target.value }))}
                 />
-                <button className="btn btn-primary" disabled={guardandoGrab === s.id} onClick={() => guardarGrabacion(s.id)}>
+                <Button
+                  variant="primary"
+                  disabled={guardandoGrab === s.id}
+                  onClick={() => guardarGrabacion(s.id)}
+                >
                   {guardandoGrab === s.id ? t('common:loading') : t('facilitador:sesiones.grabacion_guardar')}
-                </button>
+                </Button>
               </div>
             )}
           </div>

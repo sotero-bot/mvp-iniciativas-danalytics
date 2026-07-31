@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { Alert, Loading } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -38,10 +39,14 @@ export function EnlaceRunnerPage() {
     if (error) {
         return (
             <div className="runner-layout">
-                <div className="card runner-card" style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>🔗</div>
-                    <h2 style={{ color: 'var(--color-danger)', marginBottom: 12 }}>{t('execution:enlace_runner.error_title', { defaultValue: 'Enlace no disponible' })}</h2>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
+                <div className="card runner-card">
+                    <Alert
+                        variant="danger"
+                        icon="🔗"
+                        title={t('execution:enlace_runner.error_title', { defaultValue: 'Enlace no disponible' })}
+                    >
+                        {error}
+                    </Alert>
                 </div>
             </div>
         );
@@ -49,10 +54,7 @@ export function EnlaceRunnerPage() {
 
     return (
         <div className="runner-center">
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', marginBottom: 12 }}>⏳</div>
-                <p style={{ color: 'var(--color-text-secondary)' }}>{t('execution:enlace_runner.preparing', { defaultValue: 'Preparando tu sesión...' })}</p>
-            </div>
+            <Loading label={t('execution:enlace_runner.preparing', { defaultValue: 'Preparando tu sesión...' })} />
         </div>
     );
 }

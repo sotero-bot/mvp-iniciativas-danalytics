@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo, CamposSecciones } from './FormularioResponderPage';
-import { Loading } from '../../components/ui';
+import { Alert, Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
+import type { BreadcrumbItem } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -116,33 +117,36 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
   const topLevel = (formulario?.campos ?? []).filter(c => !c.campoPadreId);
   const hijosDe = (id: string) => (formulario?.campos ?? []).filter(c => c.campoPadreId === id);
 
+  // La entidad seleccionada es el grupo: aparece como segmento del breadcrumb
+  // y como eyebrow del PageHeader (regla 01).
+  const breadcrumbItems: BreadcrumbItem[] = [{ label: t('formularios:grupo.title'), to: backTo }];
+  if (formulario) {
+    breadcrumbItems.push({ label: formulario.grupo.nombre });
+    breadcrumbItems.push({ label: formulario.nombre });
+  }
+
   return (
     <div className="gform-container">
-      <Link to={backTo} className="btn-link">
-        {t('formularios:grupo.back')}
-      </Link>
+      <Breadcrumb items={breadcrumbItems} />
       {loading && <Loading label={t('common:loading')} />}
 
       {formulario && (
         <>
-          <div className="gform-header">
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#14B8A6', textTransform: 'uppercase' }}>
-              {formulario.grupo.nombre}
-            </div>
-            <h1>{formulario.nombre}</h1>
-            {formulario.descripcion && <p className="gform-desc">{formulario.descripcion}</p>}
-            {/* RF-16: recurso colaborativo del grupo — se muestra quién editó por última vez. */}
-            {ultimaEdicion && (
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 6 }}>
-                {t('formularios:grupo.ultima_edicion', { nombre: ultimaEdicion.nombre, fecha: ultimaEdicion.fecha })}
-              </div>
-            )}
-          </div>
+          <PageHeader
+            eyebrow={formulario.grupo.nombre}
+            title={formulario.nombre}
+            description={formulario.descripcion ?? undefined}
+          />
+
+          {/* RF-16: recurso colaborativo del grupo — se muestra quién editó por última vez. */}
+          {ultimaEdicion && (
+            <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-4)' }}>
+              {t('formularios:grupo.ultima_edicion', { nombre: ultimaEdicion.nombre, fecha: ultimaEdicion.fecha })}
+            </p>
+          )}
 
           {bloqueada && (
-            <div style={{ fontSize: '0.85rem', color: '#0D9488', margin: '10px 0', fontWeight: 600 }}>
-              🔒 {t('formularios:grupo.cerrado_banner')}
-            </div>
+            <Alert variant="info">{t('formularios:grupo.cerrado_banner')}</Alert>
           )}
 
           {/* fieldset disabled deshabilita TODOS los controles internos en solo lectura. */}
@@ -151,11 +155,11 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
           </fieldset>
 
           {!bloqueada && (
-            <div className="gform-footer">
-              <button className="gform-submit" onClick={guardarDraft}>
-                {t('formularios:grupo.guardar')}
-              </button>
+            <div className="form-footer">
               {autosaveInfo && <span className="gform-autosave">✓ {autosaveInfo}</span>}
+              <Button variant="primary" onClick={guardarDraft}>
+                {t('formularios:grupo.guardar')}
+              </Button>
             </div>
           )}
         </>

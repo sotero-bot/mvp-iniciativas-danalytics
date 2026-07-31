@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { PageHeader, Field, Modal, StatusBadge, Loading, EmptyState } from '../../components/ui';
+import {
+  Breadcrumb,
+  PageHeader,
+  Field,
+  Modal,
+  StatusBadge,
+  Loading,
+  EmptyState,
+  Button,
+  DataTable,
+  FilterToolbar,
+  Pagination,
+} from '../../components/ui';
+import type { DataTableColumn, StatusVariant } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
@@ -22,15 +35,17 @@ interface RoleOption {
   descripcion?: string | null;
 }
 
-const ROLE_COLORS: Record<string, { bg: string; fg: string; border: string }> = {
-  danalytics_admin:    { bg: 'rgba(37,99,235,0.12)',  fg: '#1D4ED8', border: 'rgba(37,99,235,0.35)' },
-  facilitador:         { bg: 'rgba(217,119,6,0.12)',  fg: '#B45309', border: 'rgba(217,119,6,0.35)' },
-  estudiante:          { bg: 'rgba(34,197,94,0.12)',  fg: '#15803D', border: 'rgba(34,197,94,0.35)' },
-  cliente_admin:       { bg: 'rgba(168,85,247,0.12)', fg: '#7E22CE', border: 'rgba(168,85,247,0.35)' },
-  usuario_cliente:     { bg: 'rgba(139,92,246,0.10)', fg: '#6D28D9', border: 'rgba(139,92,246,0.30)' },
-  participante_legacy: { bg: 'rgba(100,116,139,0.12)', fg: '#475569', border: 'rgba(100,116,139,0.35)' },
+// StatusBadge solo tiene 5 variantes semánticas; con 6 roles, dos comparten
+// variante (danalytics_admin / cliente_admin comparten "info": ambos son
+// perfiles de administración). El nombre del rol ya los distingue.
+const ROLE_BADGE_VARIANT: Record<string, StatusVariant> = {
+  danalytics_admin: 'info',
+  cliente_admin: 'info',
+  facilitador: 'warning',
+  estudiante: 'success',
+  usuario_cliente: 'neutral',
+  participante_legacy: 'neutral',
 };
-const DEFAULT_ROLE_COLOR = { bg: 'rgba(100,116,139,0.12)', fg: '#475569', border: 'rgba(100,116,139,0.35)' };
 
 interface EmpresaLite {
   id: string;
@@ -379,9 +394,128 @@ export function UsuariosPage() {
   };
 
   const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
-  const thSortStyle = (align: 'left' | 'center'): React.CSSProperties => ({
-    textAlign: align, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
-  });
+
+  // Encabezado de columna ordenable: botón inline (accesible por teclado),
+  // hereda la tipografía muted/uppercase de `th` vía `color:inherit`/`font:inherit`.
+  const sortHeader = (key: SortKey, label: string) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(key)}
+      style={{
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        margin: 0,
+        font: 'inherit',
+        color: 'inherit',
+        textTransform: 'inherit',
+        letterSpacing: 'inherit',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}{sortArrow(key)}
+    </button>
+  );
+
+  const columns: DataTableColumn<Usuario>[] = [
+    {
+      key: 'nombre',
+      header: sortHeader('nombre', t('admin:usuarios.columns.nombre')),
+      render: u => (
+        <span style={{ opacity: u.activo ? 1 : 0.55 }}>
+          <span style={{ fontWeight: 500 }}>{u.nombre}</span>
+          {u.cargo && <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{u.cargo}</div>}
+        </span>
+      ),
+    },
+    {
+      key: 'identificacion',
+      header: sortHeader('identificacion', t('admin:usuarios.columns.identificacion')),
+      render: u => (
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', opacity: u.activo ? 1 : 0.55 }}>
+          {u.username && <div>@{u.username}</div>}
+          {u.email && <div>{u.email}</div>}
+          {!u.username && !u.email && <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'role',
+      header: sortHeader('role', t('admin:usuarios.columns.role')),
+      render: u => {
+        const slug = u.role?.slug ?? 'participante_legacy';
+        return (
+          <StatusBadge variant={ROLE_BADGE_VARIANT[slug] ?? 'neutral'}>
+            {u.role?.nombre ?? t(`admin:usuarios.roles.${slug}`)}
+          </StatusBadge>
+        );
+      },
+    },
+    {
+      key: 'empresa',
+      header: sortHeader('empresa', t('admin:usuarios.columns.empresa')),
+      render: u => (
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', opacity: u.activo ? 1 : 0.55 }}>
+          {u.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'login',
+      header: sortHeader('login', t('admin:usuarios.columns.login')),
+      align: 'center',
+      render: u => (
+        <span title={u.puedeIniciarSesion ? t('admin:usuarios.login_enabled') : t('admin:usuarios.login_disabled')}>
+          {u.puedeIniciarSesion ? '🔓' : '🔒'}
+        </span>
+      ),
+    },
+    {
+      key: 'estado',
+      header: sortHeader('estado', t('admin:usuarios.columns.estado')),
+      align: 'center',
+      render: u => (
+        <StatusBadge variant={u.activo ? 'success' : 'danger'}>
+          {u.activo ? t('admin:usuarios.status.active') : t('admin:usuarios.status.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'acciones',
+      header: t('admin:usuarios.columns.acciones'),
+      align: 'right',
+      render: u => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>
+            {t('admin:usuarios.actions.edit')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
+            {t('admin:usuarios.actions.reset_password')}
+          </Button>
+          {u.role?.slug === 'usuario_cliente' && (
+            <Button variant="secondary" size="sm" onClick={() => abrirProgramasCliente(u)}>
+              {t('admin:usuarios.actions.programas_cliente')}
+            </Button>
+          )}
+          {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
+            <Button variant="secondary" size="sm" onClick={() => reenviarInvitacion(u)}>
+              {t('admin:usuarios.actions.resend_invite')}
+            </Button>
+          )}
+          {u.activo ? (
+            <Button variant="danger" size="sm" onClick={() => setDeleteModal(u)}>
+              {t('admin:usuarios.actions.deactivate')}
+            </Button>
+          ) : (
+            <Button variant="success" size="sm" onClick={() => handleReactivate(u)}>
+              {t('admin:usuarios.actions.reactivate')}
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -393,27 +527,24 @@ export function UsuariosPage() {
         onCancel={() => setDeleteModal(null)}
       />
 
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/admin/inicio' },
+          { label: t('admin:sidebar.usuarios') },
+        ]}
+      />
+
       <PageHeader
         title={t('admin:usuarios.page_title')}
         description={t('admin:usuarios.page_subtitle')}
         actions={
-          <button className="btn btn-primary" onClick={openCreate}>
+          <Button variant="primary" onClick={openCreate}>
             + {t('admin:usuarios.actions.new')}
-          </button>
+          </Button>
         }
       />
 
-      {/* Filtros */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 12,
-        marginBottom: 16,
-        padding: 16,
-        background: 'var(--color-bg-page)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 8,
-      }}>
+      <FilterToolbar>
         <Field label={t('admin:usuarios.filters.role')}>
           <select className="input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
             <option value="">{t('admin:usuarios.filters.all')}</option>
@@ -449,144 +580,47 @@ export function UsuariosPage() {
             placeholder={t('admin:usuarios.filters.search_placeholder')}
           />
         </Field>
-      </div>
+      </FilterToolbar>
 
-      {/* Tabla */}
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th style={thSortStyle('left')} onClick={() => toggleSort('nombre')}>{t('admin:usuarios.columns.nombre')}{sortArrow('nombre')}</th>
-              <th style={thSortStyle('left')} onClick={() => toggleSort('identificacion')}>{t('admin:usuarios.columns.identificacion')}{sortArrow('identificacion')}</th>
-              <th style={thSortStyle('left')} onClick={() => toggleSort('role')}>{t('admin:usuarios.columns.role')}{sortArrow('role')}</th>
-              <th style={thSortStyle('left')} onClick={() => toggleSort('empresa')}>{t('admin:usuarios.columns.empresa')}{sortArrow('empresa')}</th>
-              <th style={thSortStyle('center')} onClick={() => toggleSort('login')}>{t('admin:usuarios.columns.login')}{sortArrow('login')}</th>
-              <th style={thSortStyle('center')} onClick={() => toggleSort('estado')}>{t('admin:usuarios.columns.estado')}{sortArrow('estado')}</th>
-              <th style={{ textAlign: 'right' }}>{t('admin:usuarios.columns.acciones')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td colSpan={7}><Loading label={t('common:loading')} /></td></tr>
-            )}
-            {!loading && usuarios.length === 0 && (
-              <tr><td colSpan={7}><EmptyState title={t('admin:usuarios.empty')} /></td></tr>
-            )}
-            {pageRows.map(u => {
-              const slug = u.role?.slug ?? 'participante_legacy';
-              const c = ROLE_COLORS[slug] ?? DEFAULT_ROLE_COLOR;
-              return (
-                <tr key={u.id} style={{ opacity: u.activo ? 1 : 0.55 }}>
-                  <td style={{ fontWeight: 500 }}>
-                    {u.nombre}
-                    {u.cargo && <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{u.cargo}</div>}
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {u.username && <div>@{u.username}</div>}
-                    {u.email && <div>{u.email}</div>}
-                    {!u.username && !u.email && <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
-                  </td>
-                  <td>
-                    <span style={{
-                      display: 'inline-block', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600,
-                      background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 999,
-                    }}>
-                      {u.role?.nombre ?? t(`admin:usuarios.roles.${slug}`)}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    {u.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span title={u.puedeIniciarSesion ? t('admin:usuarios.login_enabled') : t('admin:usuarios.login_disabled')}>
-                      {u.puedeIniciarSesion ? '🔓' : '🔒'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <StatusBadge variant={u.activo ? 'success' : 'danger'}>
-                      {u.activo ? t('admin:usuarios.status.active') : t('admin:usuarios.status.inactive')}
-                    </StatusBadge>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(u)}>
-                        {t('admin:usuarios.actions.edit')}
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => { setResetPasswordModal(u); setNewPassword(''); }}>
-                        {t('admin:usuarios.actions.reset_password')}
-                      </button>
-                      {u.role?.slug === 'usuario_cliente' && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => abrirProgramasCliente(u)}>
-                          {t('admin:usuarios.actions.programas_cliente')}
-                        </button>
-                      )}
-                      {u.role?.slug !== 'danalytics_admin' && u.puedeIniciarSesion && u.email && u.activo && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => reenviarInvitacion(u)}>
-                          {t('admin:usuarios.actions.resend_invite')}
-                        </button>
-                      )}
-                      {u.activo ? (
-                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteModal(u)}>
-                          {t('admin:usuarios.actions.deactivate')}
-                        </button>
-                      ) : (
-                        <button className="btn btn-success btn-sm" onClick={() => handleReactivate(u)}>
-                          {t('admin:usuarios.actions.reactivate')}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Datatable: paginación */}
-      {!loading && total > 0 && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          gap: 12, marginTop: 12, flexWrap: 'wrap',
-        }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-            {t('admin:usuarios.table.showing', {
-              from: (currentPage - 1) * pageSize + 1,
-              to: Math.min(currentPage * pageSize, total),
-              total,
-            })}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-              {t('admin:usuarios.table.per_page')}
-              <select
-                className="input"
-                style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
-                value={pageSize}
-                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </label>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={currentPage <= 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >
-              {t('admin:usuarios.table.prev')}
-            </button>
-            <span style={{ fontSize: '0.82rem', minWidth: 48, textAlign: 'center' }}>{currentPage} / {totalPages}</span>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            >
-              {t('admin:usuarios.table.next')}
-            </button>
-          </div>
-        </div>
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && usuarios.length === 0 && (
+        <EmptyState title={t('admin:usuarios.empty')} />
+      )}
+      {!loading && usuarios.length > 0 && (
+        <>
+          <DataTable columns={columns} rows={pageRows} rowKey={u => u.id} />
+          <Pagination
+            page={currentPage}
+            pageCount={totalPages}
+            onPageChange={setPage}
+            prevLabel={t('admin:usuarios.table.prev')}
+            nextLabel={t('admin:usuarios.table.next')}
+            info={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <span>
+                  {t('admin:usuarios.table.showing', {
+                    from: (currentPage - 1) * pageSize + 1,
+                    to: Math.min(currentPage * pageSize, total),
+                    total,
+                  })}
+                </span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  {t('admin:usuarios.table.per_page')}
+                  <select
+                    className="input"
+                    style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+              </div>
+            }
+          />
+        </>
       )}
 
       {/* Modal crear/editar */}
@@ -649,7 +683,7 @@ export function UsuariosPage() {
             </Field>
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer', marginBottom: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.85rem', cursor: 'pointer', marginBottom: 'var(--space-4)' }}>
             <input
               type="checkbox"
               checked={form.puedeIniciarSesion}
@@ -659,7 +693,7 @@ export function UsuariosPage() {
           </label>
 
           {editing && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer', marginBottom: 14 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.85rem', cursor: 'pointer', marginBottom: 'var(--space-4)' }}>
               <input
                 type="checkbox"
                 checked={form.activo}
@@ -669,13 +703,13 @@ export function UsuariosPage() {
             </label>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+          <div className="form-footer">
+            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
               {t('common:buttons.cancel')}
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            </Button>
+            <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t('common:actions.saving') : t('common:buttons.save')}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -688,10 +722,10 @@ export function UsuariosPage() {
         maxWidth={420}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setResetPasswordModal(null)}>{t('common:buttons.cancel')}</button>
-            <button className="btn btn-primary" onClick={submitResetPassword} disabled={!newPassword}>
+            <Button variant="secondary" onClick={() => setResetPasswordModal(null)}>{t('common:buttons.cancel')}</Button>
+            <Button variant="primary" onClick={submitResetPassword} disabled={!newPassword}>
               {t('common:buttons.save')}
-            </button>
+            </Button>
           </>
         }
       >
@@ -717,7 +751,7 @@ export function UsuariosPage() {
         title={t('admin:usuarios.programas_modal.title')}
         maxWidth={520}
       >
-        <p style={{ margin: '0 0 12px', color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>
+        <p style={{ margin: '0 0 var(--space-3)', color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>
           {programasModal && t('admin:usuarios.programas_modal.subtitle', { nombre: programasModal.nombre })}
         </p>
         {!programasCliente && <Loading label={t('common:loading')} inline />}
@@ -725,7 +759,7 @@ export function UsuariosPage() {
           <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('admin:usuarios.programas_modal.empty')}</p>
         )}
         {programasCliente && programasModal && programasCliente.programas.map(p => (
-          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: '0.88rem', cursor: 'pointer' }}>
+          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '4px 0', fontSize: '0.88rem', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={programasCliente.asignados.includes(p.id)}

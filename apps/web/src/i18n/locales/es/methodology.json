@@ -121,6 +121,14 @@
     },
     "from_template_badge": "📋 Desde plantilla",
     "configure_pasos": "⚙️ Configurar pasos",
+    "table": {
+      "header_title": "Actividades registradas",
+      "nombre": "Nombre",
+      "iniciativa": "Iniciativa",
+      "descripcion": "Descripción",
+      "actions": "Acciones",
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}"
+    },
     "delete_modal": {
       "title": "¿Eliminar Actividad?",
       "message": "Se desactivarán también los pasos y ejecuciones de \"{{nombre}}\"."
@@ -160,6 +168,7 @@
     "back_to_actividades": "← Volver a Actividades",
     "back": "Volver",
     "loading": "Cargando pasos...",
+    "translations_toggle": "Traducciones del paso",
     "add_button": "➕ Agregar Paso",
     "create_section_title": "Nuevo Paso",
     "edit_section_title": "Editar Paso",

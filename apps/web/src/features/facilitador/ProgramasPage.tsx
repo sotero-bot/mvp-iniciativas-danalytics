@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState, StatusBadge, Field } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, Field, FilterToolbar } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
@@ -72,21 +72,13 @@ export function FacilitadorProgramasPage() {
   }, [programas, search, filterEmpresa, filterEstado]);
 
   return (
-    <div className="page">
+    <div>
+      <Breadcrumb items={[{ label: t('facilitador:programas.title') }]} />
       <PageHeader title={t('facilitador:programas.title')} />
 
       {/* Filtros: búsqueda por nombre, empresa y estado */}
       {!loading && programas.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 12,
-          marginBottom: 16,
-          padding: 16,
-          background: 'var(--color-bg-page)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-        }}>
+        <FilterToolbar>
           <Field label={t('facilitador:programas.filtros.buscar')}>
             <input
               className="input"
@@ -107,7 +99,7 @@ export function FacilitadorProgramasPage() {
               {ESTADOS.map((s) => <option key={s} value={s}>{t(`facilitador:programas.estado.${s}`)}</option>)}
             </select>
           </Field>
-        </div>
+        </FilterToolbar>
       )}
 
       {loading && <Loading label={t('common:loading')} />}
@@ -119,7 +111,8 @@ export function FacilitadorProgramasPage() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '1rem',
+        gap: 'var(--space-4)',
+        marginTop: 'var(--space-4)',
       }}>
         {programasFiltrados.map((p) => {
           const fechas = [p.fechaInicio, p.fechaFin]
@@ -132,9 +125,9 @@ export function FacilitadorProgramasPage() {
             { key: 'resultados', icon: '📊', label: t('formularios:resultados.title'), to: `/facilitador/programas/${p.id}/resultados` },
           ];
           return (
-            <div key={p.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div key={p.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               {/* Encabezado: nombre + estado */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
                 <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-text-main)', lineHeight: 1.3 }}>
                   {p.nombre}
                 </div>
@@ -156,7 +149,7 @@ export function FacilitadorProgramasPage() {
               )}
 
               {/* Acciones como botones */}
-              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                 {acciones.map((a) => (
                   <Link key={a.key} className="btn btn-secondary btn-sm" to={a.to}>
                     <span aria-hidden>{a.icon}</span> {a.label}

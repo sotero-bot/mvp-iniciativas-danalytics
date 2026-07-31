@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Loading } from '../../components/ui';
+import { Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
+import type { BreadcrumbItem } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { formatFechaHora } from '../../shared/formatDate';
 
@@ -165,22 +166,24 @@ export function FormularioResponderPage() {
   const topLevel = (formulario?.campos ?? []).filter(c => !c.campoPadreId);
   const hijosDe = (id: string) => (formulario?.campos ?? []).filter(c => c.campoPadreId === id);
 
+  const breadcrumbItems: BreadcrumbItem[] = [{ label: t('formularios:estudiante.title'), to: backTo }];
+  if (formulario) breadcrumbItems.push({ label: formulario.nombre });
+
   return (
     <div className="gform-container">
-      <Link to={backTo} className="btn-link">
-        {t('formularios:estudiante.back')}
-      </Link>
+      <Breadcrumb items={breadcrumbItems} />
       {loading && <Loading label={t('common:loading')} />}
 
       {formulario && (
         <>
-          <div className="gform-header">
-            <h1>{formulario.nombre}</h1>
-            {formulario.descripcion && <p className="gform-desc">{formulario.descripcion}</p>}
-            {!enviado && (
-              <div className="gform-required-note">{t('formularios:estudiante.required_note')}</div>
-            )}
-          </div>
+          <PageHeader
+            eyebrow={t(`formularios:tipos.${formulario.tipoFormulario}`)}
+            title={formulario.nombre}
+            description={formulario.descripcion ?? undefined}
+          />
+          {!enviado && (
+            <div className="gform-required-note">{t('formularios:estudiante.required_note')}</div>
+          )}
 
           {enviado ? (
             <div className="gform-sent">✓ {t('formularios:estudiante.submitted_banner')}</div>
@@ -188,14 +191,14 @@ export function FormularioResponderPage() {
             <>
               <CamposSecciones campos={topLevel} hijosDe={hijosDe} datos={datos} onChange={setValor} t={t} />
 
-              <div className="gform-footer">
-                <button className="gform-submit" disabled={enviando} onClick={enviar}>
-                  {enviando ? t('formularios:estudiante.submitting') : t('formularios:estudiante.submit')}
-                </button>
-                <button className="btn btn-secondary" onClick={guardarDraft}>
-                  {t('formularios:estudiante.draft_save')}
-                </button>
+              <div className="form-footer">
                 {autosaveInfo && <span className="gform-autosave">✓ {autosaveInfo}</span>}
+                <Button variant="secondary" onClick={guardarDraft}>
+                  {t('formularios:estudiante.draft_save')}
+                </Button>
+                <Button variant="primary" disabled={enviando} onClick={enviar}>
+                  {enviando ? t('formularios:estudiante.submitting') : t('formularios:estudiante.submit')}
+                </Button>
               </div>
             </>
           )}
@@ -463,8 +466,8 @@ function CampoInput({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
                   </button>
                 </div>
                 {hijos.map(hijo => (
-                  <div key={hijo.id} style={{ marginBottom: 12 }}>
-                    <div className="gform-question" style={{ fontSize: '0.875rem', marginBottom: 6 }}>
+                  <div key={hijo.id} style={{ marginBottom: 'var(--space-3)' }}>
+                    <div className="gform-question" style={{ fontSize: '0.875rem', marginBottom: 'var(--space-2)' }}>
                       {hijo.etiqueta}
                     </div>
                     <CampoInput

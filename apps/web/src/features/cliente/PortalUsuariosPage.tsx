@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Field, FormListLayout, Loading, EmptyState, StatusBadge } from '../../components/ui';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { toast } from '../../components/toast-store';
 
@@ -132,96 +132,112 @@ export function PortalUsuariosPage() {
   };
 
   return (
-    <div className="page page-narrow">
+    <div>
+      {/* Vista de nivel superior del portal cliente: no depende de una entidad
+          seleccionada (el alcance es la propia empresa del actor, implícito en
+          el JWT), por eso el breadcrumb tiene un único segmento — la vista
+          actual — sin padre navegable que la anteceda. */}
+      <Breadcrumb items={[{ label: t('portal:usuarios.title') }]} />
       <PageHeader title={t('portal:usuarios.title')} description={t('portal:usuarios.subtitle')} />
 
-      <form onSubmit={invitar} className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', flex: '1 1 200px' }}>
-          {t('portal:usuarios.nombre')}
-          <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} required />
-        </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', flex: '1 1 240px' }}>
-          {t('portal:usuarios.email')}
-          <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-        </label>
-        <button type="submit" className="btn btn-primary" disabled={enviando}>
-          {enviando ? t('common:loading') : t('portal:usuarios.invitar')}
-        </button>
-      </form>
-
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && miembros.length === 0 && (
-        <EmptyState title={t('portal:usuarios.empty')} />
-      )}
-      {miembros.length > 0 && (
-        <div className="table-container">
-          <table className="table-compact">
-            <thead>
-              <tr>
-                <th>{t('portal:usuarios.nombre')}</th>
-                <th>{t('portal:usuarios.email')}</th>
-                <th>{t('portal:usuarios.estado')}</th>
-                <th>{t('portal:usuarios.invitado')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {miembros.map(m => (
-                <React.Fragment key={m.id}>
-                <tr style={{ opacity: m.activo ? 1 : 0.55 }}>
-                  <td style={{ fontWeight: 600 }}>{m.usuario.nombre}</td>
-                  <td>{m.usuario.email ?? '—'}</td>
-                  <td>
-                    <StatusBadge variant={m.activo ? 'success' : 'neutral'}>
-                      {m.activo ? t('portal:usuarios.activo') : t('portal:usuarios.revocado')}
-                    </StatusBadge>
-                  </td>
-                  <td style={{ color: 'var(--color-text-secondary)' }}>
-                    {new Date(m.invitadoEn).toLocaleDateString()}{m.invitadoPor ? ` · ${m.invitadoPor.nombre}` : ''}
-                  </td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {m.activo && m.usuario.role?.slug === 'usuario_cliente' && (
-                      <>
-                        <button type="button" className="btn-link" onClick={() => toggleProgramas(m.usuario.id)}>
-                          {t('portal:usuarios.programas')}
-                        </button>
-                        {' · '}
-                        <button type="button" className="btn-link btn-link-danger" onClick={() => setRevocarTarget(m)}>
-                          {t('portal:usuarios.revocar')}
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-                {programasOpen === m.usuario.id && (
-                  <tr>
-                    <td colSpan={5} style={{ background: 'var(--color-bg-subtle)' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: 6 }}>
-                        {t('portal:usuarios.programas_asignados')}
-                      </div>
-                      {!programasData && <Loading label={t('common:loading')} inline />}
-                      {programasData && programasData.programas.length === 0 && (
-                        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('portal:usuarios.sin_programas')}</p>
-                      )}
-                      {programasData && programasData.programas.map(pr => (
-                        <label key={pr.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: '0.82rem', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={programasData.asignados.includes(pr.id)}
-                            onChange={e => toggleAsignacion(m.usuario.id, pr.id, e.target.checked)}
-                          />
-                          {pr.nombre}
-                        </label>
-                      ))}
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <FormListLayout
+        form={
+          <form onSubmit={invitar} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <Field label={t('portal:usuarios.nombre')} required>
+              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} required />
+            </Field>
+            <Field label={t('portal:usuarios.email')} required>
+              <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            </Field>
+            <div className="form-footer">
+              <Button type="submit" variant="primary" disabled={enviando}>
+                {enviando ? t('common:loading') : t('portal:usuarios.invitar')}
+              </Button>
+            </div>
+          </form>
+        }
+        list={
+          <div className="section-card">
+            <div className="section-card-header">
+              <span className="section-card-title">{t('portal:usuarios.title')}</span>
+              <span className="count-badge">{miembros.length}</span>
+            </div>
+            {loading && <Loading label={t('common:loading')} />}
+            {!loading && miembros.length === 0 && (
+              <EmptyState title={t('portal:usuarios.empty')} />
+            )}
+            {!loading && miembros.length > 0 && (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t('portal:usuarios.nombre')}</th>
+                      <th>{t('portal:usuarios.email')}</th>
+                      <th>{t('portal:usuarios.estado')}</th>
+                      <th>{t('portal:usuarios.invitado')}</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {miembros.map(m => (
+                      <React.Fragment key={m.id}>
+                        <tr style={{ opacity: m.activo ? 1 : 0.55 }}>
+                          <td style={{ fontWeight: 600 }}>{m.usuario.nombre}</td>
+                          <td>{m.usuario.email ?? '—'}</td>
+                          <td>
+                            <StatusBadge variant={m.activo ? 'success' : 'neutral'}>
+                              {m.activo ? t('portal:usuarios.activo') : t('portal:usuarios.revocado')}
+                            </StatusBadge>
+                          </td>
+                          <td style={{ color: 'var(--color-text-secondary)' }}>
+                            {new Date(m.invitadoEn).toLocaleDateString()}{m.invitadoPor ? ` · ${m.invitadoPor.nombre}` : ''}
+                          </td>
+                          <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {m.activo && m.usuario.role?.slug === 'usuario_cliente' && (
+                              <>
+                                <Button variant="link" onClick={() => toggleProgramas(m.usuario.id)}>
+                                  {t('portal:usuarios.programas')}
+                                </Button>
+                                {' · '}
+                                <Button variant="link" className="btn-link-danger" onClick={() => setRevocarTarget(m)}>
+                                  {t('portal:usuarios.revocar')}
+                                </Button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                        {programasOpen === m.usuario.id && (
+                          <tr>
+                            <td colSpan={5} style={{ background: 'var(--color-bg-subtle)' }}>
+                              <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: 'var(--space-1)' }}>
+                                {t('portal:usuarios.programas_asignados')}
+                              </div>
+                              {!programasData && <Loading label={t('common:loading')} inline />}
+                              {programasData && programasData.programas.length === 0 && (
+                                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('portal:usuarios.sin_programas')}</p>
+                              )}
+                              {programasData && programasData.programas.map(pr => (
+                                <label key={pr.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '3px 0', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={programasData.asignados.includes(pr.id)}
+                                    onChange={e => toggleAsignacion(m.usuario.id, pr.id, e.target.checked)}
+                                  />
+                                  {pr.nombre}
+                                </label>
+                              ))}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        }
+      />
 
       <ConfirmModal
         isOpen={!!revocarTarget}

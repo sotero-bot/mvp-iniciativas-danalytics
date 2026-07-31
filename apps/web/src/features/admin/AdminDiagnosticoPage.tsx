@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { PageHeader, StatusBadge, Loading } from '../../components/ui';
+import { PageHeader, Breadcrumb, Button, StatusBadge, DataTable, Loading } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -46,10 +47,19 @@ interface SnapshotEstado {
 // RF-49: estado del snapshot por tipo con indicador de "versión anterior".
 export function AdminDiagnosticoPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['formularios', 'common']);
+  const { t } = useTranslation(['formularios', 'common', 'admin']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [snapshots, setSnapshots] = useState<SnapshotEstado[]>([]);
   const [loading, setLoading] = useState(false);
+  // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
+  const [programaNombre, setProgramaNombre] = useState('');
+
+  useEffect(() => {
+    fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}`)
+      .then((res) => res.json())
+      .then((p: { nombre: string }) => setProgramaNombre(p.nombre))
+      .catch(() => {});
+  }, [programaId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,143 +125,144 @@ export function AdminDiagnosticoPage() {
     ? [...new Set([...detalle.inicial.dimensiones, ...detalle.final.dimensiones].map(d => d.dimension))].sort()
     : [];
 
+  const comparativoColumns: DataTableColumn<Detalle['comparativo'][number]>[] = [
+    { key: 'dimension', header: t('formularios:resultados.dimension'), render: fila => <span style={{ textTransform: 'capitalize' }}>{fila.dimension}</span> },
+    { key: 'inicial', header: t('formularios:resultados.inicial'), render: fila => fila.inicial?.toFixed(2) ?? '—' },
+    { key: 'final', header: t('formularios:resultados.final'), render: fila => <strong>{fila.final?.toFixed(2) ?? '—'}</strong> },
+  ];
+
+  const individualColumns: DataTableColumn<Individual>[] = [
+    {
+      key: 'participante',
+      header: t('formularios:resultados.participante'),
+      render: ind => (
+        <>
+          {ind.usuario.nombre}
+          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{ind.usuario.email}</div>
+        </>
+      ),
+    },
+    {
+      key: 'enviado',
+      header: t('formularios:resultados.enviado'),
+      render: ind => (ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'),
+    },
+    ...dimensiones.map(d => ({
+      key: d,
+      header: <span style={{ textTransform: 'capitalize' }}>{d}</span>,
+      render: (ind: Individual) => ind.scores?.[d]?.promedio?.toFixed(2) ?? '—',
+    })),
+  ];
+
   return (
-    <div style={{ padding: '2rem', maxWidth: 960 }}>
+    <>
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.programas'), to: '/admin/programas' },
+          { label: programaNombre || programaId },
+          { label: t('formularios:resultados.diagnostico') },
+        ]}
+      />
       <PageHeader
-        back={{ to: '/admin/programas', label: t('formularios:resultados.back') }}
+        eyebrow={programaNombre || undefined}
         title={t('formularios:resultados.diagnostico')}
-        actions={<button className="btn" onClick={exportar}>⬇ {t('formularios:resultados.export')}</button>}
+        actions={<Button variant="primary" onClick={exportar}>{t('formularios:resultados.export')}</Button>}
       />
       {loading && <Loading label={t('common:loading')} />}
 
       {/* RF-49: snapshot por tipo */}
-      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: '1.05rem', margin: 0 }}>{t('formularios:resultados.snapshot.title')}</h2>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+        <div className="section-card-header">
+          <span className="section-card-title" style={{ flex: 1 }}>{t('formularios:resultados.snapshot.title')}</span>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
             {/* Aditivo y seguro: rellena tipos faltantes sin tocar los existentes. */}
             {!loading && (
-              <button className="btn-link" onClick={sincronizar}>
-                ＋ {t('formularios:resultados.snapshot.sincronizar')}
-              </button>
+              <Button variant="link" onClick={sincronizar}>
+                {t('formularios:resultados.snapshot.sincronizar')}
+              </Button>
             )}
             {/* Visible también sin snapshot (programas activados antes de crear los
                 templates globales): el mismo endpoint lo genera desde cero (RF-47). */}
             {snapshots.every(s => s.respuestas === 0) && !loading && (
-              <button className="btn-link" onClick={regenerar}>
-                ↻ {snapshots.length === 0
+              <Button variant="link" onClick={regenerar}>
+                {snapshots.length === 0
                   ? t('formularios:resultados.snapshot.generar')
                   : t('formularios:resultados.snapshot.regenerar')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
-        {snapshots.length === 0 && !loading && (
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-            {t('formularios:resultados.snapshot.empty')}
-          </p>
-        )}
-        {snapshots.map(s => (
-          <div key={s.id} style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: '0.85rem', padding: '6px 0', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, minWidth: 180 }}>{t(`formularios:tipos.${s.tipoFormulario}`)}</span>
-            <span>{s.nombre} · v{s.version}</span>
-            <span style={{ color: 'var(--color-text-secondary)' }}>
-              {t('formularios:resultados.snapshot.fecha')}: {new Date(s.snapshotEn).toLocaleDateString()}
-            </span>
-            <span>{t('formularios:builder.respuestas', { count: s.respuestas })}</span>
-            {s.desactualizado ? (
-              <StatusBadge variant="warning">
-                {t('formularios:resultados.snapshot.desactualizado')}
-              </StatusBadge>
-            ) : (
-              <StatusBadge variant="success">
-                {t('formularios:resultados.snapshot.al_dia')}
-              </StatusBadge>
-            )}
-          </div>
-        ))}
+        <div className="section-card-body">
+          {snapshots.length === 0 && !loading && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+              {t('formularios:resultados.snapshot.empty')}
+            </p>
+          )}
+          {snapshots.map(s => (
+            <div key={s.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', fontSize: '0.85rem', padding: 'var(--space-2) 0', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 600, minWidth: 180 }}>{t(`formularios:tipos.${s.tipoFormulario}`)}</span>
+              <span>{s.nombre} · v{s.version}</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>
+                {t('formularios:resultados.snapshot.fecha')}: {new Date(s.snapshotEn).toLocaleDateString()}
+              </span>
+              <span>{t('formularios:builder.respuestas', { count: s.respuestas })}</span>
+              {s.desactualizado ? (
+                <StatusBadge variant="warning">
+                  {t('formularios:resultados.snapshot.desactualizado')}
+                </StatusBadge>
+              ) : (
+                <StatusBadge variant="success">
+                  {t('formularios:resultados.snapshot.al_dia')}
+                </StatusBadge>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {detalle && (
         <>
           {/* Comparativo (RF-34) */}
-          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>{t('formularios:resultados.comparativo')}</h2>
-            {detalle.comparativo.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('formularios:resultados.sin_datos')}</p>
-            ) : (
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t('formularios:resultados.dimension')}</th>
-                      <th>{t('formularios:resultados.inicial')}</th>
-                      <th>{t('formularios:resultados.final')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detalle.comparativo.map(fila => (
-                      <tr key={fila.dimension}>
-                        <td style={{ textTransform: 'capitalize' }}>{fila.dimension}</td>
-                        <td>{fila.inicial?.toFixed(2) ?? '—'}</td>
-                        <td style={{ fontWeight: 600 }}>{fila.final?.toFixed(2) ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="section-card-header">
+              <span className="section-card-title">{t('formularios:resultados.comparativo')}</span>
+            </div>
+            <div className="section-card-body">
+              <DataTable
+                columns={comparativoColumns}
+                rows={detalle.comparativo}
+                rowKey={fila => fila.dimension}
+                emptyMessage={t('formularios:resultados.sin_datos')}
+              />
+            </div>
           </div>
 
           {/* Agregados + individuales por momento */}
           {([['inicial', detalle.inicial], ['final', detalle.final]] as const).map(([key, bloque]) => (
-            <div key={key} className="card" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>
-                {t(`formularios:resultados.${key}`)} · {bloque.totalRespuestas} {t('formularios:resultados.n').toLowerCase()}
-              </h2>
-              {bloque.dimensiones.length > 0 && <BarrasDimensiones dimensiones={bloque.dimensiones} />}
-              {bloque.individuales.length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 6 }}>
-                    {t('formularios:resultados.individuales')}
+            <div key={key} className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+              <div className="section-card-header">
+                <span className="section-card-title">{t(`formularios:resultados.${key}`)}</span>
+                <span className="count-badge">{bloque.totalRespuestas}</span>
+              </div>
+              <div className="section-card-body">
+                {bloque.dimensiones.length > 0 && <BarrasDimensiones dimensiones={bloque.dimensiones} />}
+                {bloque.individuales.length > 0 && (
+                  <div style={{ marginTop: 'var(--space-4)' }}>
+                    <h4 style={{ marginBottom: 'var(--space-2)' }}>
+                      {t('formularios:resultados.individuales')}
+                    </h4>
+                    <DataTable
+                      columns={individualColumns}
+                      rows={bloque.individuales}
+                      rowKey={ind => ind.usuario.id}
+                    />
                   </div>
-                  <div className="table-container">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>{t('formularios:resultados.participante')}</th>
-                          <th>{t('formularios:resultados.enviado')}</th>
-                          {dimensiones.map(d => (
-                            <th key={d} style={{ textTransform: 'capitalize' }}>{d}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bloque.individuales.map(ind => (
-                          <tr key={ind.usuario.id}>
-                            <td>
-                              {ind.usuario.nombre}
-                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{ind.usuario.email}</div>
-                            </td>
-                            <td>
-                              {ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'}
-                            </td>
-                            {dimensiones.map(d => (
-                              <td key={d}>
-                                {ind.scores?.[d]?.promedio?.toFixed(2) ?? '—'}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </>
       )}
-    </div>
+    </>
   );
 }
