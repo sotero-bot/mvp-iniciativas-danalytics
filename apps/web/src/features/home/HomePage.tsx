@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Breadcrumb, PageHeader, EmptyState } from '../../components/ui';
 import { EstudianteHome } from './EstudianteHome';
+import { FacilitadorProgramasPage } from '../facilitador/ProgramasPage';
 
 export interface HomeUser {
   nombre: string;
@@ -31,28 +32,22 @@ export const ROLE_CARDS: Record<string, CardDef[]> = {
     { key: 'adm_usuarios', icon: '👥', color: '#22C55E', to: '/admin/usuarios' },
     { key: 'adm_actividades', icon: '🧩', color: '#F59E0B', to: '/admin/actividades' },
   ],
-  // El facilitador trabaja siempre dentro de un programa: sesiones, grupos,
-  // observaciones, resultados y reto se alcanzan desde la tarjeta del programa.
-  // Por eso el sidebar/inicio solo expone "Mis programas" (evita ítems muertos
-  // como observaciones sin destino global y duplicados de ruta que confunden el
-  // estado activo del sidebar).
-  facilitador: [
-    { key: 'fac_programas', icon: '🎓', color: '#38BDF8', to: '/facilitador/programas' },
-  ],
   // El estudiante entra siempre por "Mis programas": la vista de cada programa
   // engloba sesiones, grupo/reto y formularios (incl. la encuesta de inicio). Por
   // eso no hay ítems sueltos de formularios ni de grupo en el sidebar/inicio.
   estudiante: [
     { key: 'est_programas', icon: '🎓', color: '#38BDF8', to: '/estudiante/programas' },
   ],
+  // Los resultados (avance, asistencia, diagnóstico, feedback) se ven dentro
+  // del detalle de cada programa (RF-43), no como pantalla propia — por eso no
+  // hay un ítem "Resultados" separado (duplicaría la ruta de "Programas" y
+  // confundiría el estado activo del sidebar, igual que en facilitador/estudiante).
   cliente_admin: [
     { key: 'cli_programas', icon: '🎓', color: '#38BDF8', to: '/portal/programas' },
-    { key: 'cli_resultados', icon: '📈', color: '#22C55E', to: '/portal/programas' },
     { key: 'cli_usuarios', icon: '👥', color: '#F59E0B', to: '/portal/usuarios' },
   ],
   usuario_cliente: [
     { key: 'cli_programas', icon: '🎓', color: '#38BDF8', to: '/portal/programas' },
-    { key: 'cli_resultados', icon: '📈', color: '#22C55E', to: '/portal/programas' },
   ],
 };
 
@@ -64,6 +59,13 @@ export function HomePage({ user }: { user: HomeUser | null }) {
   const cards = ROLE_CARDS[slug] ?? [];
   const displayName = user?.nombre || user?.username || user?.email || '';
   const roleLabel = slug ? tc(`roles.${slug}`) : undefined;
+
+  // El facilitador entra siempre a trabajar con sus programas: en vez de un
+  // saludo genérico + tarjeta "Mis programas", Inicio ES directamente ese
+  // listado (misma vista que /facilitador/programas, con su propio breadcrumb).
+  if (slug === 'facilitador') {
+    return <FacilitadorProgramasPage />;
+  }
 
   return (
     <div>

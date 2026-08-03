@@ -37,7 +37,7 @@ type Pestana = 'bitacoras' | 'plantillas';
 // TODOS los grupos de su programa en SOLO lectura (sin edición ni export, RN-07).
 export function FacilitadorRetoPage() {
   const { id: programaId = '' } = useParams();
-  const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common']);
+  const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common', 'admin']);
   const [pestana, setPestana] = useState<Pestana>('bitacoras');
   const [data, setData] = useState<Record<Pestana, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
   const [loading, setLoading] = useState(false);
@@ -105,8 +105,9 @@ export function FacilitadorRetoPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('formularios:reto.title') },
         ]}
       />

@@ -30,7 +30,7 @@ interface Participante {
 // integrantes (sin quitar/renombrar/eliminar — eso es del admin).
 export function FacilitadorGruposPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['facilitador', 'common']);
+  const { t } = useTranslation(['facilitador', 'common', 'admin']);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,8 +105,9 @@ export function FacilitadorGruposPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('facilitador:grupos.title') },
         ]}
       />

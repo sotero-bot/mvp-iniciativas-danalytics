@@ -159,7 +159,7 @@ export function AdminDiagnosticoPage() {
       <Breadcrumb
         items={[
           { label: t('admin:sidebar.programas'), to: '/admin/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('formularios:resultados.diagnostico') },
         ]}
       />

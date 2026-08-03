@@ -36,7 +36,7 @@ function formatFecha(iso: string, locale?: string): string {
 }
 
 export function FacilitadorProgramasPage() {
-  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common']);
+  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common', 'admin']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -73,7 +73,7 @@ export function FacilitadorProgramasPage() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: t('facilitador:programas.title') }]} />
+      <Breadcrumb items={[{ label: t('admin:sidebar.home'), to: '/inicio' }, { label: t('facilitador:programas.title') }]} />
       <PageHeader title={t('facilitador:programas.title')} />
 
       {/* Filtros: búsqueda por nombre, empresa y estado */}

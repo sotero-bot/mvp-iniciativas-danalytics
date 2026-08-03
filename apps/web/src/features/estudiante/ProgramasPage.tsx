@@ -13,7 +13,7 @@ interface Programa {
 }
 
 export function EstudianteProgramasPage() {
-  const { t } = useTranslation(['estudiante', 'common']);
+  const { t } = useTranslation(['estudiante', 'common', 'admin']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [pendientes, setPendientes] = useState<Programa[]>([]);
   const [aceptado, setAceptado] = useState<Record<string, boolean>>({});
@@ -51,7 +51,7 @@ export function EstudianteProgramasPage() {
 
   return (
     <div className="page-wide">
-      <Breadcrumb items={[{ label: t('estudiante:programas.title') }]} />
+      <Breadcrumb items={[{ label: t('admin:sidebar.home'), to: '/inicio' }, { label: t('estudiante:programas.title') }]} />
       <PageHeader title={t('estudiante:programas.title')} />
       {loading && <Loading label={t('common:loading')} />}
 

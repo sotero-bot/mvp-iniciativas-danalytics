@@ -55,10 +55,12 @@ Toda vista sigue este orden:
       })
       .catch(() => {});
   }, [programaId]);
-  // uso: { label: programaNombre || programaId } / eyebrow={programaNombre || undefined}
+  // uso: { label: programaNombre || '—' } / eyebrow={programaNombre || undefined}
   ```
-  El `|| programaId` es solo un placeholder transitorio mientras resuelve la
-  petición (o si falla); no lo dejes como valor final a propósito.
+  El `|| programaId` como placeholder transitorio **también rompe la regla**:
+  aunque sea momentáneo, el usuario alcanza a ver el UUID crudo mientras
+  resuelve la petición. Usa `|| '—'` (o similar) como placeholder — nunca el
+  `id` de la ruta, ni siquiera transitoriamente.
 
 ## Encabezado (`PageHeader`)
 - `eyebrow`: contexto (paso, sección o entidad seleccionada). Uppercase, acento.

@@ -32,10 +32,6 @@
         "title": "Atividades",
         "desc": "Atividades e modelos de Decisão IA."
       },
-      "fac_programas": {
-        "title": "Meus programas",
-        "desc": "Programas que você facilita."
-      },
       "fac_asistencia": {
         "title": "Presença",
         "desc": "Registre a presença das suas sessões."
@@ -67,10 +63,6 @@
       "cli_programas": {
         "title": "Programas",
         "desc": "Programas da sua organização."
-      },
-      "cli_resultados": {
-        "title": "Resultados",
-        "desc": "Progresso e resultados agregados."
       },
       "cli_usuarios": {
         "title": "Usuários",

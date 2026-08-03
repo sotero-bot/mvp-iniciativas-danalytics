@@ -41,7 +41,7 @@ interface IniciativaDecisionIa {
 // RF-42: lista unificada (Decisión IA + IA en Acción) de la empresa del actor,
 // SOLO lectura. El backend acota por empresaId del JWT (RN-09).
 export function PortalProgramasPage() {
-  const { t } = useTranslation(['portal', 'common']);
+  const { t } = useTranslation(['portal', 'common', 'admin']);
   const [iaEnAccion, setIaEnAccion] = useState<ProgramaIaEnAccion[]>([]);
   const [decisionIa, setDecisionIa] = useState<IniciativaDecisionIa[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function PortalProgramasPage() {
 
   return (
     <div className="page-wide">
-      <Breadcrumb items={[{ label: t('portal:programas.title') }]} />
+      <Breadcrumb items={[{ label: t('admin:sidebar.home'), to: '/inicio' }, { label: t('portal:programas.title') }]} />
       <PageHeader title={t('portal:programas.title')} description={t('portal:programas.subtitle')} />
       {loading && <Loading label={t('common:loading')} />}
 

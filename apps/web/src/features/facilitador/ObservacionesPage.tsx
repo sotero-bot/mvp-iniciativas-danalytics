@@ -29,7 +29,7 @@ interface Observacion {
 
 export function FacilitadorObservacionesPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['facilitador', 'common']);
+  const { t } = useTranslation(['facilitador', 'common', 'admin']);
   const [observaciones, setObservaciones] = useState<Observacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -107,8 +107,9 @@ export function FacilitadorObservacionesPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('facilitador:observaciones.title') },
         ]}
       />

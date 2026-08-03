@@ -45,7 +45,7 @@ interface ResumenAsistencia {
 // agregado, proyecto y feedback. Todo SOLO lectura, sin export (RN-07).
 export function PortalProgramaDetallePage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['portal', 'common']);
+  const { t } = useTranslation(['portal', 'common', 'admin']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +79,7 @@ export function PortalProgramaDetallePage() {
         <>
           <Breadcrumb
             items={[
+              { label: t('admin:sidebar.home'), to: '/inicio' },
               { label: t('portal:programas.title'), to: '/portal/programas' },
               { label: detalle.programa.nombre },
             ]}

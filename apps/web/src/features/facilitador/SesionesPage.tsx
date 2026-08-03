@@ -22,7 +22,7 @@ interface Sesion {
 
 export function FacilitadorSesionesPage() {
   const { id: programaId = '' } = useParams();
-  const { t, i18n } = useTranslation(['facilitador', 'common']);
+  const { t, i18n } = useTranslation(['facilitador', 'common', 'admin']);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [loading, setLoading] = useState(false);
   // C-04: borrador del enlace de grabación por sesión.
@@ -74,8 +74,9 @@ export function FacilitadorSesionesPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('facilitador:sesiones.title') },
         ]}
       />

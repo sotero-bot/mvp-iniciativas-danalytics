@@ -21,7 +21,7 @@ interface Registro {
 export function FacilitadorAsistenciaPage() {
   const { id: sesionId = '' } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation(['facilitador', 'common']);
+  const { t } = useTranslation(['facilitador', 'common', 'admin']);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [programaId, setProgramaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -151,8 +151,9 @@ export function FacilitadorAsistenciaPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId || '—', to: programaId ? `/facilitador/programas/${programaId}/sesiones` : undefined },
+          { label: programaNombre || '—', to: programaId ? `/facilitador/programas/${programaId}/sesiones` : undefined },
           { label: t('facilitador:asistencia.title') },
         ]}
       />

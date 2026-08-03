@@ -37,7 +37,7 @@ interface Feedback {
 // feedback es anónimo — el backend nunca envía identificadores.
 export function FacilitadorResultadosPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['formularios', 'facilitador', 'common']);
+  const { t } = useTranslation(['formularios', 'facilitador', 'common', 'admin']);
   const [diagnostico, setDiagnostico] = useState<Diagnostico | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,8 +75,9 @@ export function FacilitadorResultadosPage() {
     <>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('facilitador:programas.title'), to: '/facilitador/programas' },
-          { label: programaNombre || programaId },
+          { label: programaNombre || '—' },
           { label: t('formularios:resultados.title') },
         ]}
       />

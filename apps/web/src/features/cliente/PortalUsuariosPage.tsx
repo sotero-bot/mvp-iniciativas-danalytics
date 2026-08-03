@@ -32,7 +32,7 @@ interface ProgramasAsignables {
 // La ruta ya está protegida (PortalRoute allow=cliente_admin); el backend
 // re-valida con @Roles('cliente_admin') + empresaId del JWT (RN-09).
 export function PortalUsuariosPage() {
-  const { t, i18n } = useTranslation(['portal', 'common']);
+  const { t, i18n } = useTranslation(['portal', 'common', 'admin']);
   const [miembros, setMiembros] = useState<MiembroPortal[]>([]);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -137,7 +137,7 @@ export function PortalUsuariosPage() {
           seleccionada (el alcance es la propia empresa del actor, implícito en
           el JWT), por eso el breadcrumb tiene un único segmento — la vista
           actual — sin padre navegable que la anteceda. */}
-      <Breadcrumb items={[{ label: t('portal:usuarios.title') }]} />
+      <Breadcrumb items={[{ label: t('admin:sidebar.home'), to: '/inicio' }, { label: t('portal:usuarios.title') }]} />
       <PageHeader title={t('portal:usuarios.title')} description={t('portal:usuarios.subtitle')} />
 
       <FormListLayout

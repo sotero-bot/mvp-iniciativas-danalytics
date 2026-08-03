@@ -65,7 +65,7 @@ const ESTADO_VARIANT: Record<string, StatusVariant> = {
 // enviada, aparece de primera y el resto queda bloqueado hasta completarla.
 export function EstudianteSesionesPage() {
   const { id: programaId = '' } = useParams();
-  const { t, i18n } = useTranslation(['estudiante', 'formularios', 'common']);
+  const { t, i18n } = useTranslation(['estudiante', 'formularios', 'common', 'admin']);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [formularios, setFormularios] = useState<FormularioDisponible[]>([]);
   const [grupos, setGrupos] = useState<MiGrupo[]>([]);
@@ -114,6 +114,7 @@ export function EstudianteSesionesPage() {
     <div>
       <Breadcrumb
         items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
           { label: t('estudiante:programas.title'), to: '/estudiante/programas' },
           { label: programaNombre },
         ]}
