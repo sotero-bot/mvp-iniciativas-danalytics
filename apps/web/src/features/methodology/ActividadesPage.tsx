@@ -276,32 +276,6 @@ export function ActividadesPage() {
         }
       />
 
-      {/* Filtro por empresa */}
-      {loaded && empresas.length > 1 && (
-        <FilterToolbar>
-          <span aria-hidden="true">🏢</span>
-          <Field label={t('methodology:actividades.filter.empresa_label')} htmlFor="act-empresa-filtro">
-            <select
-              id="act-empresa-filtro"
-              className="input"
-              value={empresaFiltro}
-              onChange={e => setEmpresaFiltro(e.target.value)}
-            >
-              <option value="">{t('methodology:actividades.filter.all_empresas')}</option>
-              {empresas.map(e => (
-                <option key={e.id} value={e.id}>{e.nombre}</option>
-              ))}
-            </select>
-          </Field>
-          <FilterToolbar.Divider />
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-            {empresaFiltro
-              ? t('methodology:actividades.filter.result', { count: listFiltrada.length })
-              : t('methodology:actividades.filter.total', { count: list.length })}
-          </span>
-        </FilterToolbar>
-      )}
-
       {/* Prerequisite warning */}
       {loaded && iniciativas.length === 0 && (
         <div className="prereq-banner">
@@ -407,8 +381,41 @@ export function ActividadesPage() {
           </div>
         }
         list={
-          listFiltrada.length === 0 ? (
-            <div className="card">
+          <div className="section-card">
+            <div className="section-card-header">
+              <span className="section-card-title">{t('methodology:actividades.table.header_title')}</span>
+              <span className="count-badge">{listFiltrada.length}</span>
+            </div>
+
+            {/* Filtro por empresa */}
+            {loaded && empresas.length > 1 && (
+              <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
+                <FilterToolbar>
+                  <span aria-hidden="true">🏢</span>
+                  <Field label={t('methodology:actividades.filter.empresa_label')} htmlFor="act-empresa-filtro">
+                    <select
+                      id="act-empresa-filtro"
+                      className="input"
+                      value={empresaFiltro}
+                      onChange={e => setEmpresaFiltro(e.target.value)}
+                    >
+                      <option value="">{t('methodology:actividades.filter.all_empresas')}</option>
+                      {empresas.map(e => (
+                        <option key={e.id} value={e.id}>{e.nombre}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <FilterToolbar.Divider />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
+                    {empresaFiltro
+                      ? t('methodology:actividades.filter.result', { count: listFiltrada.length })
+                      : t('methodology:actividades.filter.total', { count: list.length })}
+                  </span>
+                </FilterToolbar>
+              </div>
+            )}
+
+            {listFiltrada.length === 0 ? (
               <EmptyState
                 icon="⚡"
                 title={empresaFiltro ? t('methodology:actividades.empty.title_filter') : t('methodology:actividades.empty.title_default')}
@@ -423,28 +430,24 @@ export function ActividadesPage() {
                   </Link>
                 ) : undefined}
               />
-            </div>
-          ) : (
-            <div className="section-card">
-              <div className="section-card-header">
-                <span className="section-card-title">{t('methodology:actividades.table.header_title')}</span>
-                <span className="count-badge">{listFiltrada.length}</span>
-              </div>
-              <DataTable columns={columns} rows={pageRows} rowKey={a => a.id} />
-              <Pagination
-                page={currentPage}
-                pageCount={totalPages}
-                onPageChange={setPage}
-                prevLabel={t('common:buttons.previous')}
-                nextLabel={t('common:buttons.next')}
-                info={t('methodology:actividades.table.showing', {
-                  from: (currentPage - 1) * PAGE_SIZE + 1,
-                  to: Math.min(currentPage * PAGE_SIZE, listFiltrada.length),
-                  total: listFiltrada.length,
-                })}
-              />
-            </div>
-          )
+            ) : (
+              <>
+                <DataTable columns={columns} rows={pageRows} rowKey={a => a.id} />
+                <Pagination
+                  page={currentPage}
+                  pageCount={totalPages}
+                  onPageChange={setPage}
+                  prevLabel={t('common:buttons.previous')}
+                  nextLabel={t('common:buttons.next')}
+                  info={t('methodology:actividades.table.showing', {
+                    from: (currentPage - 1) * PAGE_SIZE + 1,
+                    to: Math.min(currentPage * PAGE_SIZE, listFiltrada.length),
+                    total: listFiltrada.length,
+                  })}
+                />
+              </>
+            )}
+          </div>
         }
       />
 

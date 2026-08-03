@@ -119,7 +119,6 @@ export function ImportPage() {
         ]}
       />
       <PageHeader
-        eyebrow={t('admin:sidebar.gestion_label')}
         title={t('admin:import.page_title')}
         description={t('admin:import.page_description')}
       />

@@ -30,6 +30,14 @@
     "pasos_count_one": "{{count}} passo",
     "pasos_count_other": "{{count}} passos",
     "configure_pasos": "⚙️ Configurar passos",
+    "table": {
+      "header_title": "Modelos registrados",
+      "paso": "Passo",
+      "nombre": "Nome",
+      "pasos": "Passos",
+      "actions": "Ações",
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}"
+    },
     "delete_modal": {
       "title": "Excluir Modelo?",
       "message": "O modelo \"{{nombre}}\" será desativado. As atividades já criadas a partir dele NÃO serão afetadas."

@@ -109,7 +109,6 @@ export function RegistroAccesoPage() {
         ]}
       />
       <PageHeader
-        eyebrow={t('admin:sidebar.auditoria_label')}
         title={t('admin:registro_acceso.title')}
         description={t('admin:registro_acceso.subtitle')}
       />

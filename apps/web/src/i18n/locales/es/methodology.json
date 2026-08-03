@@ -30,6 +30,14 @@
     "pasos_count_one": "{{count}} paso",
     "pasos_count_other": "{{count}} pasos",
     "configure_pasos": "⚙️ Configurar pasos",
+    "table": {
+      "header_title": "Plantillas registradas",
+      "paso": "Paso",
+      "nombre": "Nombre",
+      "pasos": "Pasos",
+      "actions": "Acciones",
+      "showing": "Mostrando {{from}}–{{to}} de {{total}}"
+    },
     "delete_modal": {
       "title": "¿Eliminar Plantilla?",
       "message": "La plantilla \"{{nombre}}\" se desactivará. Las actividades ya creadas desde ella NO se verán afectadas."

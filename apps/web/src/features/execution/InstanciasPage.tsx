@@ -434,7 +434,7 @@ export function InstanciasPage() {
     : undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+    <div>
 
       <Breadcrumb
         items={[
@@ -452,10 +452,11 @@ export function InstanciasPage() {
 
       {/* Page header */}
       <PageHeader
-        eyebrow={t('admin:sidebar.ejecuciones')}
         title={t('execution:instancias.page_title')}
         description={t('execution:instancias.page_description')}
       />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
 
       {/* Prerequisite warning */}
       {loaded && actividades.length === 0 && (
@@ -485,34 +486,33 @@ export function InstanciasPage() {
           <div className="section-card-body">
           <form
             onSubmit={(e) => { e.preventDefault(); setWasValidated(true); if (e.currentTarget.checkValidity()) generarEnlace(); }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
             noValidate
           >
-            <div className="form-grid">
-              <Field
-                label={t('execution:instancias.generar_enlace.actividad_label')}
-                htmlFor="enlace-actividad"
-                required
-                error={actividadError}
-              >
-                <select id="enlace-actividad" className="input" required value={formEnlace.actividadId}
-                  onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
-                  <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
-                  {actividades.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
-                      {a.plantillaOrigen ? ` [📋 ${a.plantillaOrigen.nombre}]` : ''}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field
-                label={<>{t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span></>}
-                htmlFor="enlace-etiqueta"
-              >
-                <input id="enlace-etiqueta" className="input" placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
-                  value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
-              </Field>
-            </div>
+            <Field
+              label={t('execution:instancias.generar_enlace.actividad_label')}
+              htmlFor="enlace-actividad"
+              required
+              error={actividadError}
+            >
+              <select id="enlace-actividad" className="input" required value={formEnlace.actividadId}
+                onChange={e => setFormEnlace({ ...formEnlace, actividadId: e.target.value })}>
+                <option value="">{t('execution:instancias.generar_enlace.select_actividad')}</option>
+                {actividades.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.iniciativa?.empresa?.nombre} · {a.iniciativa?.nombre} · {a.nombre}
+                    {a.plantillaOrigen ? ` [📋 ${a.plantillaOrigen.nombre}]` : ''}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label={<>{t('execution:instancias.generar_enlace.etiqueta_label')} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>{t('execution:instancias.generar_enlace.etiqueta_optional')}</span></>}
+              htmlFor="enlace-etiqueta"
+            >
+              <input id="enlace-etiqueta" className="input" placeholder={t('execution:instancias.generar_enlace.etiqueta_placeholder')}
+                value={formEnlace.nombre} onChange={e => setFormEnlace({ ...formEnlace, nombre: e.target.value })} />
+            </Field>
             <div className="form-footer">
               <Button type="submit" variant="primary" disabled={generandoEnlace}>
                 {generandoEnlace ? t('execution:instancias.generar_enlace.generating') : t('execution:instancias.generar_enlace.submit')}
@@ -671,6 +671,8 @@ export function InstanciasPage() {
           />
 
         </div>
+      </div>
+
       </div>
 
     </div>

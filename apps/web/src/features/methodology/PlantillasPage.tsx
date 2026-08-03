@@ -1,12 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Modal, Field, Alert, EmptyState, Breadcrumb, PageHeader, Button, StatusBadge, FormListLayout } from '../../components/ui';
+import { Modal, Field, Alert, EmptyState, Breadcrumb, PageHeader, Button, StatusBadge, FormListLayout, DataTable, Pagination } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 8;
 
 type Plantilla = { id: string; nombre: string; descripcion?: string; orden?: number | null; _count: { pasos: number } };
 type PlantillaJson = { nombre: string; descripcion?: string; orden?: number; pasos?: { titulo: string; objetivo?: string; usarIa?: boolean }[] };
@@ -22,6 +24,7 @@ export function PlantillasPage() {
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(1);
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -146,6 +149,59 @@ export function PlantillasPage() {
       toast.error(translateError(err));
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => list.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [list, currentPage],
+  );
+
+  const columns: DataTableColumn<Plantilla>[] = [
+    {
+      key: 'paso',
+      header: t('methodology:plantillas.table.paso'),
+      render: (p) => p.orden != null ? <StatusBadge variant="neutral">{t('methodology:plantillas.step_badge', { num: p.orden })}</StatusBadge> : <span style={{ color: 'var(--color-text-tertiary)' }}>—</span>,
+    },
+    {
+      key: 'nombre',
+      header: t('methodology:plantillas.table.nombre'),
+      render: (p) => (
+        <div>
+          <strong>{p.nombre}</strong>
+          {p.descripcion && (
+            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', marginTop: 2 }}>{p.descripcion}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'pasos',
+      header: t('methodology:plantillas.table.pasos'),
+      render: (p) => p._count.pasos > 0
+        ? <StatusBadge variant="info">{t('methodology:plantillas.pasos_count', { count: p._count.pasos })}</StatusBadge>
+        : <StatusBadge variant="warning">{t('methodology:plantillas.no_pasos')}</StatusBadge>,
+    },
+    {
+      key: 'actions',
+      header: t('methodology:plantillas.table.actions'),
+      align: 'right',
+      render: (p) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
+            {t('common:buttons.edit')}
+          </Button>
+          <Link to={`/admin/plantillas/${p.id}/pasos`} className="btn btn-primary btn-sm">
+            {t('methodology:plantillas.configure_pasos')}
+          </Link>
+          <Button variant="danger" size="sm" onClick={() => setDeleteModal({ id: p.id, nombre: p.nombre })}
+            title={t('common:buttons.delete')} aria-label={t('common:buttons.delete')}>
+            🗑️
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -305,7 +361,7 @@ export function PlantillasPage() {
 
       <PageHeader
         title={t('methodology:plantillas.page_title')}
-        description={t('methodology:plantillas.page_description')}
+        description={<><strong>{t('admin:sidebar.decision_ia_label')}</strong> — {t('methodology:plantillas.page_description')}</>}
         actions={<Button variant="secondary" onClick={openImport}>{t('methodology:plantillas.import_button')}</Button>}
       />
 
@@ -366,43 +422,24 @@ export function PlantillasPage() {
               />
             </div>
           ) : (
-            <div>
-              {list.map(p => (
-                <div key={p.id} className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                        {p.orden != null && (
-                          <StatusBadge variant="neutral">{t('methodology:plantillas.step_badge', { num: p.orden })}</StatusBadge>
-                        )}
-                        {p._count.pasos > 0 ? (
-                          <StatusBadge variant="info">{t('methodology:plantillas.pasos_count', { count: p._count.pasos })}</StatusBadge>
-                        ) : (
-                          <StatusBadge variant="warning">{t('methodology:plantillas.no_pasos')}</StatusBadge>
-                        )}
-                      </div>
-                      <h3 style={{ margin: '0 0 var(--space-1)', color: 'var(--color-text-main)', fontSize: '1rem' }}>{p.nombre}</h3>
-                      {p.descripcion && (
-                        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.8125rem', lineHeight: 1.5 }}>
-                          {p.descripcion}
-                        </p>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
-                      <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
-                        {t('common:buttons.edit')}
-                      </Button>
-                      <Link to={`/admin/plantillas/${p.id}/pasos`} className="btn btn-primary btn-sm">
-                        {t('methodology:plantillas.configure_pasos')}
-                      </Link>
-                      <Button variant="danger" size="sm" onClick={() => setDeleteModal({ id: p.id, nombre: p.nombre })}
-                        title={t('common:buttons.delete')} aria-label={t('common:buttons.delete')}>
-                        🗑️
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="section-card">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('methodology:plantillas.table.header_title')}</span>
+                <span className="count-badge">{list.length}</span>
+              </div>
+              <DataTable columns={columns} rows={pageRows} rowKey={p => p.id} />
+              <Pagination
+                page={currentPage}
+                pageCount={totalPages}
+                onPageChange={setPage}
+                prevLabel={t('common:buttons.previous')}
+                nextLabel={t('common:buttons.next')}
+                info={t('methodology:plantillas.table.showing', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, list.length),
+                  total: list.length,
+                })}
+              />
             </div>
           )
         }

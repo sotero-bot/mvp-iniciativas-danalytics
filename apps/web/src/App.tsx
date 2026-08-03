@@ -19,6 +19,7 @@ import { ActividadPasosPage } from './features/methodology/ActividadPasosPage';
 import { PlantillasPage } from './features/methodology/PlantillasPage';
 import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { SidebarIcon } from './components/SidebarIcon';
 import { ToastHost } from './components/toast-store';
 import { HomePage, ROLE_CARDS } from './features/home/HomePage';
 import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
@@ -64,6 +65,11 @@ export function clearCurrentUserCache() {
 }
 
 const ADMIN_SLUG = 'danalytics_admin';
+// Estos roles ya tienen todos sus destinos cubiertos en Inicio (tarjetas o,
+// en el caso de estudiante, su propio dashboard vía EstudianteHome); el
+// sidebar solo agregaría una entrada duplicada sin navegación nueva, así que
+// para ellos el sidebar se limita a "Inicio".
+const SIDEBAR_HOME_ONLY_ROLES = ['cliente_admin', 'usuario_cliente', 'estudiante', 'facilitador'];
 
 interface SessionPayload {
   sub: string;
@@ -134,7 +140,8 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
   const role = session?.role ?? null;
   const isAdmin = role === ADMIN_SLUG;
   const inicioPath = isAdmin ? '/admin/inicio' : '/inicio';
-  const roleCards = !isAdmin ? (ROLE_CARDS[role ?? ''] ?? []) : [];
+  const showRoleCardsInSidebar = !isAdmin && !SIDEBAR_HOME_ONLY_ROLES.includes(role ?? '');
+  const roleCards = showRoleCardsInSidebar ? (ROLE_CARDS[role ?? ''] ?? []) : [];
 
   // Datos del card de usuario: usa el perfil (nombre/rol/empresa reales) cuando cargó;
   // si el fetch aún no volvió o falló (p. ej. token expirado), cae al JWT para que
@@ -229,42 +236,55 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.decision_ia_label')}</div>
         <nav>
           {[
-            { num: 1, label: t('admin:sidebar.empresas'), to: '/admin/empresas', color: '#3B82F6', bg: 'rgba(59,130,246,0.18)' },
-            { num: 2, label: t('admin:sidebar.iniciativas'), to: '/admin/iniciativas', color: '#A78BFA', bg: 'rgba(139,92,246,0.18)' },
-            { num: 3, label: t('admin:sidebar.actividades'), to: '/admin/actividades', color: '#FCD34D', bg: 'rgba(245,158,11,0.18)' },
+            { num: 1, label: t('admin:sidebar.empresas'), to: '/admin/empresas' },
+            { num: 2, label: t('admin:sidebar.iniciativas'), to: '/admin/iniciativas' },
+            { num: 3, label: t('admin:sidebar.actividades'), to: '/admin/actividades' },
           ].map(item => (
             <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <span style={{
                 width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-                background: item.bg,
-                border: `1px solid ${item.color}40`,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--sidebar-border)',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.6rem', fontWeight: 800, color: item.color,
+                fontSize: '0.6rem', fontWeight: 800, color: '#FFFFFF',
                 letterSpacing: '-0.01em',
               }}>{item.num}</span>
               {item.label}
             </NavLink>
           ))}
-          <NavLink to="/admin/plantillas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(244,114,182,0.18)',
-              border: '1px solid #F472B640',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>📋</span>
-            {t('admin:sidebar.plantillas')}
-          </NavLink>
           <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(34,197,94,0.18)',
-              border: '1px solid #6EE7B740',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.6rem', fontWeight: 800, color: '#6EE7B7',
+              fontSize: '0.6rem', fontWeight: 800, color: '#FFFFFF',
               letterSpacing: '-0.01em',
             }}>4</span>
             {t('admin:sidebar.ejecuciones')}
+          </NavLink>
+        </nav>
+
+        {/* — Plantillas (compartidas entre Decisión IA e IA en Acción) — */}
+        <div className="sidebar-section-label" style={{ marginTop: '1.25rem' }}>{t('admin:sidebar.plantillas_label')}</div>
+        <nav>
+          <NavLink to="/admin/plantillas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}><SidebarIcon name="plantillas" /></span>
+            {t('admin:sidebar.plantillas')}
+          </NavLink>
+          <NavLink to="/admin/formularios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}><SidebarIcon name="formularios" /></span>
+            {t('admin:sidebar.formularios')}
           </NavLink>
         </nav>
 
@@ -274,31 +294,19 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <NavLink to="/admin/programas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(20,184,166,0.18)',
-              border: '1px solid #14B8A640',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>🎓</span>
+            }}><SidebarIcon name="programas" /></span>
             {t('admin:sidebar.programas')}
-          </NavLink>
-          <NavLink to="/admin/formularios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(245,158,11,0.18)',
-              border: '1px solid #F59E0B40',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>🧾</span>
-            {t('admin:sidebar.formularios')}
           </NavLink>
           <NavLink to="/admin/observaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(239,68,68,0.18)',
-              border: '1px solid #EF444440',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>📝</span>
+            }}><SidebarIcon name="observaciones" /></span>
             {t('admin:sidebar.observaciones')}
           </NavLink>
         </nav>
@@ -309,21 +317,19 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <NavLink to="/admin/usuarios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(56,189,248,0.18)',
-              border: '1px solid #38BDF840',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>👥</span>
+            }}><SidebarIcon name="usuarios" /></span>
             {t('admin:sidebar.usuarios')}
           </NavLink>
           <NavLink to="/admin/notificaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(245,158,11,0.18)',
-              border: '1px solid #F59E0B40',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>📧</span>
+            }}><SidebarIcon name="notificaciones" /></span>
             {t('admin:sidebar.notificaciones')}
           </NavLink>
         </nav>
@@ -334,11 +340,10 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <NavLink to="/admin/registro-acceso" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
               width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(167,139,250,0.18)',
-              border: '1px solid #A78BFA40',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem',
-            }}>🛡</span>
+            }}><SidebarIcon name="registro-acceso" /></span>
             {t('admin:sidebar.registro_acceso')}
           </NavLink>
         </nav>
@@ -359,7 +364,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
                 <div style={{ color: '#F1F5F9', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {displayName}
                 </div>
-                <div style={{ color: 'var(--sidebar-text)', fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ color: '#FFFFFF', fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {displayRole || '—'}{displayEmpresa ? ` · ${displayEmpresa}` : ''}
                 </div>
               </div>
@@ -372,7 +377,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
               display: 'flex', alignItems: 'center', gap: 8,
               width: '100%', padding: '0.5625rem 0.625rem',
               background: 'none', border: 'none', borderRadius: 'var(--radius-sm)',
-              color: 'var(--sidebar-text)', fontSize: '0.875rem', fontWeight: 500,
+              color: '#FFFFFF', fontSize: '0.875rem', fontWeight: 500,
               cursor: 'pointer', transition: 'var(--transition)', fontFamily: 'var(--font-family)'
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#F1F5F9'; }}

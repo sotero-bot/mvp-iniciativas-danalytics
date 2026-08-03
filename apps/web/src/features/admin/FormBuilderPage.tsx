@@ -281,9 +281,8 @@ export function FormBuilderPage() {
         ]}
       />
       <PageHeader
-        eyebrow={t('admin:sidebar.gestion_label')}
         title={t('formularios:builder.title')}
-        description={t('formularios:builder.subtitle')}
+        description={<><strong>{t('admin:sidebar.ia_en_accion_label')}</strong> — {t('formularios:builder.subtitle')}</>}
         actions={
           <Button variant="primary" onClick={() => setModalOpen(true)}>
             + {t('formularios:builder.new')}

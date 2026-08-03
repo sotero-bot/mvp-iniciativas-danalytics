@@ -120,7 +120,6 @@ export function AdminNotificacionesPage() {
         ]}
       />
       <PageHeader
-        eyebrow={t('admin:sidebar.gestion_label')}
         title={t('admin:notificaciones.title')}
         description={t('admin:notificaciones.subtitle')}
       />

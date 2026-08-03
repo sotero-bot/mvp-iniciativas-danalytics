@@ -417,7 +417,6 @@ export function ProgramasPage() {
       />
 
       <PageHeader
-        eyebrow={t('admin:sidebar.ia_en_accion_label')}
         title={t('admin:programas.page_title')}
         description={t('admin:programas.page_subtitle')}
         actions={
