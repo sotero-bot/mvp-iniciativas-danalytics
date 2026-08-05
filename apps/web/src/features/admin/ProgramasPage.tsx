@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { ProgramasDashboardPanel } from './ProgramasDashboardPanel';
-import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader, Breadcrumb, Button, FilterToolbar, DataTable } from '../../components/ui';
+import { Modal, Field, StatusBadge, Loading, EmptyState, PageHeader, Breadcrumb, Button, FilterToolbar, DataTable, InfoTooltip } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import type { StatusVariant, DataTableColumn } from '../../components/ui';
 
@@ -643,7 +643,7 @@ function ProgramaFormModal({
             <Field label={t('admin:programas.fields.timezone')}>
               <input className="input" value={form.timezone} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))} />
             </Field>
-            <Field label={t('admin:programas.fields.dias_gracia')}>
+            <Field label={<>{t('admin:programas.fields.dias_gracia')}<InfoTooltip label={t('admin:programas.fields.dias_gracia_hint')} /></>}>
               <input
                 type="number"
                 className="input"
@@ -1473,8 +1473,11 @@ function SesionFormModal({
 
           {langTab === 'es' ? (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
-                <Field label={t('admin:programas.sesiones.fields.numero')} required>
+              <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 12 }}>
+                <Field
+                  label={<>{t('admin:programas.sesiones.fields.numero')}<InfoTooltip label={t('admin:programas.sesiones.fields.numero_hint')} /></>}
+                  required
+                >
                   <input
                     type="number"
                     className="input"
@@ -1551,7 +1554,9 @@ function SesionFormModal({
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: -4 }}>
               {t('admin:programas.sesiones.presentacion.hint')}
             </div>
-            <Field label={t('admin:programas.sesiones.fields.url_presentacion')}>
+            <Field
+              label={<>{t('admin:programas.sesiones.fields.url_presentacion')}<InfoTooltip label={t('admin:programas.sesiones.fields.url_presentacion_hint')} /></>}
+            >
               <input
                 className="input"
                 type="url"
@@ -1560,6 +1565,22 @@ function SesionFormModal({
                 placeholder="https://…"
               />
             </Field>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                margin: '-2px 0',
+                color: 'var(--color-text-tertiary)',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+              }}
+            >
+              <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+              {t('admin:programas.sesiones.presentacion.o')}
+              <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+            </div>
             <Field label={t('admin:programas.sesiones.fields.archivo_presentacion')}>
             {nombreArchivoActual || archivo ? (
               <div
@@ -1618,7 +1639,9 @@ function SesionFormModal({
             </div>
           </Field>
           </fieldset>
-          <Field label={t('admin:programas.sesiones.fields.url_grabacion')}>
+          <Field
+            label={<>{t('admin:programas.sesiones.fields.url_grabacion')}<InfoTooltip label={t('admin:programas.sesiones.fields.url_grabacion_hint')} /></>}
+          >
             <input
               className="input"
               type="url"
@@ -1931,7 +1954,7 @@ function MatriculaModal({
                 {t('admin:programas.participantes.fields.enviar_invitacion')}
               </label>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setMostrarNuevo(false)} disabled={saving}>{t('common:buttons.cancel')}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => sinDisponibles ? onClose() : setMostrarNuevo(false)} disabled={saving}>{t('common:buttons.cancel')}</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? t('common:actions.saving') : t('common:buttons.save')}
                 </button>
@@ -2055,10 +2078,6 @@ function MatriculaModal({
           )}
         </div>
       )}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-        <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:buttons.close')}</button>
-      </div>
     </Modal>
   );
 }

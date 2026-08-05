@@ -7,13 +7,20 @@ import {
   agregarScoresPorDimension,
   CampoAgregado,
   CampoParaFormato,
-  DimensionAgregada,
+  DimensionesPorCategoria,
 } from './agregados';
 import { ScoresPorDimension } from './scoring';
 
 export interface DiagnosticoAgregado {
   totalRespuestas: number;
-  dimensiones: DimensionAgregada[];
+  dimensiones: DimensionesPorCategoria;
+}
+
+export interface ComparativoDimension {
+  dimension: string;
+  inicial: number | null;
+  final: number | null;
+  preguntas: number;
 }
 
 export interface DiagnosticoIndividual {
@@ -79,28 +86,64 @@ export class ResultadosService {
     };
   }
 
-  // RF-34 (solo admin): individuales + comparativo inicial vs. final.
+  // RF-34 (solo admin): individuales + comparativo inicial vs. final. Escala y
+  // selección se comparan por separado — nunca se combinan (ver scoring.ts).
   async diagnosticoDetalle(programaId: string): Promise<{
     inicial: DiagnosticoAgregado & { individuales: DiagnosticoIndividual[] };
     final: DiagnosticoAgregado & { individuales: DiagnosticoIndividual[] };
-    comparativo: { dimension: string; inicial: number | null; final: number | null }[];
+    comparativo: DimensionesPorCategoria<ComparativoDimension>;
   }> {
     const [inicial, final] = await Promise.all([
       this.detalleDeTipo(programaId, 'diagnostico_inicial'),
       this.detalleDeTipo(programaId, 'diagnostico_final'),
     ]);
 
-    const dimensiones = new Set([
-      ...inicial.dimensiones.map(d => d.dimension),
-      ...final.dimensiones.map(d => d.dimension),
-    ]);
-    const comparativo = [...dimensiones].sort().map(dimension => ({
-      dimension,
-      inicial: inicial.dimensiones.find(d => d.dimension === dimension)?.promedio ?? null,
-      final: final.dimensiones.find(d => d.dimension === dimension)?.promedio ?? null,
-    }));
+    return {
+      inicial,
+      final,
+      comparativo: {
+        escala: this.compararCategoria(inicial.dimensiones.escala, final.dimensiones.escala),
+        seleccion: this.compararCategoria(inicial.dimensiones.seleccion, final.dimensiones.seleccion),
+      },
+    };
+  }
 
-    return { inicial, final, comparativo };
+  private compararCategoria(
+    inicial: DiagnosticoAgregado['dimensiones']['escala'],
+    final: DiagnosticoAgregado['dimensiones']['escala'],
+  ): ComparativoDimension[] {
+    const dimensiones = new Set([...inicial.map(d => d.dimension), ...final.map(d => d.dimension)]);
+    return [...dimensiones].sort().map(dimension => {
+      const dInicial = inicial.find(d => d.dimension === dimension);
+      const dFinal = final.find(d => d.dimension === dimension);
+      return {
+        dimension,
+        inicial: dInicial?.promedio ?? null,
+        final: dFinal?.promedio ?? null,
+        preguntas: Math.max(dInicial?.preguntas ?? 0, dFinal?.preguntas ?? 0),
+      };
+    });
+  }
+
+  // diagnostico_inicial es GLOBAL (RF-28): el estudiante lo responde una sola
+  // vez sin importar el programa, y la respuesta queda con programaId=null
+  // (ver TIPOS_GLOBALES_DIRECTOS en estudiante-formularios.controller.ts). Para
+  // el detalle/agregado por-programa no se puede filtrar por
+  // RespuestaFormulario.programaId (siempre null); hay que ubicar la respuesta
+  // por matrícula activa del estudiante en ese programa, igual que
+  // diagnosticoInicialGlobal.
+  private whereRespuestasDeTipo(
+    programaId: string,
+    tipo: TipoFormulario,
+  ): Prisma.RespuestaFormularioWhereInput {
+    if (tipo === 'diagnostico_inicial') {
+      return {
+        estado: 'submitted',
+        plantilla: { tipoFormulario: tipo, programaId: null },
+        usuarioRespondiente: { participaciones: { some: { programaId, activo: true } } },
+      };
+    }
+    return { programaId, estado: 'submitted', plantilla: { tipoFormulario: tipo } };
   }
 
   private async agregadoDeTipo(
@@ -108,7 +151,7 @@ export class ResultadosService {
     tipo: TipoFormulario,
   ): Promise<DiagnosticoAgregado> {
     const respuestas = await this.prisma.respuestaFormulario.findMany({
-      where: { programaId, estado: 'submitted', plantilla: { tipoFormulario: tipo } },
+      where: this.whereRespuestasDeTipo(programaId, tipo),
       select: { scoresPorDimensionJson: true },
     });
     return {
@@ -121,7 +164,7 @@ export class ResultadosService {
 
   private async detalleDeTipo(programaId: string, tipo: TipoFormulario) {
     const respuestas = await this.prisma.respuestaFormulario.findMany({
-      where: { programaId, estado: 'submitted', plantilla: { tipoFormulario: tipo } },
+      where: this.whereRespuestasDeTipo(programaId, tipo),
       select: {
         scoresPorDimensionJson: true,
         enviadoEn: true,

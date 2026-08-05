@@ -20,7 +20,28 @@ export interface ScoreDimension {
   respondidas: number;
 }
 
-export type ScoresPorDimension = Record<string, ScoreDimension>;
+/**
+ * Categoría del score de un campo. Likert y número comparten una escala
+ * numérica abierta ("escala"); opción múltiple usa puntajes discretos que el
+ * admin configura por opción ("seleccion"). Se agregan por separado porque
+ * mezclarlas en un mismo promedio no es comparable (RN — decisión de producto:
+ * nunca promediar escala junto con selección, aunque compartan `dimension`).
+ */
+export type CategoriaScore = 'escala' | 'seleccion';
+
+export function categoriaDeCampo(tipoCampo: TipoCampo): CategoriaScore | null {
+  switch (tipoCampo) {
+    case 'likert':
+    case 'numero':
+      return 'escala';
+    case 'opcion_multiple':
+      return 'seleccion';
+    default:
+      return null;
+  }
+}
+
+export type ScoresPorDimension = Record<CategoriaScore, Record<string, ScoreDimension>>;
 
 /**
  * Score de una respuesta individual a un campo, o null si no puntúa.
@@ -59,27 +80,37 @@ export function scoreDeCampo(campo: CampoParaScoring, valor: unknown): number | 
 }
 
 /**
- * RF-26/RF-29: agrega los scores por `dimension` de campo. Campos sin dimensión
- * o sin respuesta puntuable no participan.
+ * RF-26/RF-29: agrega los scores por `dimension` de campo, separados por
+ * categoría (escala vs. selección — nunca mezcladas). Campos sin dimensión o
+ * sin respuesta puntuable no participan.
  */
 export function calcularScoresPorDimension(
   campos: CampoParaScoring[],
   datosRespuesta: Record<string, unknown>,
 ): ScoresPorDimension {
-  const acumulado: Record<string, { total: number; respondidas: number }> = {};
+  const acumulado: Record<CategoriaScore, Record<string, { total: number; respondidas: number }>> = {
+    escala: {},
+    seleccion: {},
+  };
 
   for (const campo of campos) {
     if (!campo.dimension) continue;
+    const categoria = categoriaDeCampo(campo.tipoCampo);
+    if (!categoria) continue;
     const score = scoreDeCampo(campo, datosRespuesta[campo.id]);
     if (score === null) continue;
-    const bucket = (acumulado[campo.dimension] ??= { total: 0, respondidas: 0 });
+    const bucket = (acumulado[categoria][campo.dimension] ??= { total: 0, respondidas: 0 });
     bucket.total += score;
     bucket.respondidas += 1;
   }
 
-  const resultado: ScoresPorDimension = {};
-  for (const [dimension, { total, respondidas }] of Object.entries(acumulado)) {
-    resultado[dimension] = { total, respondidas, promedio: total / respondidas };
-  }
-  return resultado;
+  const construir = (categoria: CategoriaScore): Record<string, ScoreDimension> => {
+    const resultado: Record<string, ScoreDimension> = {};
+    for (const [dimension, { total, respondidas }] of Object.entries(acumulado[categoria])) {
+      resultado[dimension] = { total, respondidas, promedio: total / respondidas };
+    }
+    return resultado;
+  };
+
+  return { escala: construir('escala'), seleccion: construir('seleccion') };
 }

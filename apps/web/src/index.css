@@ -765,6 +765,8 @@ th:last-child,
   padding: 2rem;
   max-width: 440px;
   width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
   animation: scaleIn 0.15s ease;
 }
@@ -1177,10 +1179,13 @@ th:last-child,
   white-space: pre-line;
 }
 
+.gform-container .page-header {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 .gform-required-note {
   margin-top: 0.9rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--color-border);
   font-size: 0.8rem;
   color: #DC2626;
 }
@@ -1242,6 +1247,17 @@ th:last-child,
 .gform-card:focus-within {
   border-color: var(--gform-accent);
   box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.18);
+}
+
+.gform-card--error {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+}
+
+.gform-section-group .gform-card--error {
+  background: var(--color-danger-bg);
+  border-left: 3px solid var(--color-danger);
+  padding-left: calc(1.5rem - 3px);
 }
 
 /* Índice de la pregunta: círculo compacto en color de acento. */
@@ -1641,6 +1657,55 @@ textarea.gform-input {
   line-height: 1.5;
 }
 
+.info-tooltip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+}
+
+.info-tooltip-trigger {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: help;
+}
+
+.info-tooltip-trigger:hover,
+.info-tooltip-trigger:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.info-tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: var(--color-text-heading);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-overlay);
+  z-index: 20;
+  pointer-events: none;
+}
+
 .field-error {
   font-size: 0.75rem;
   color: var(--color-danger);
@@ -2005,6 +2070,52 @@ textarea.gform-input {
   border: 1px solid var(--color-info-border);
 }
 
+/* ─── Banner "aviso IA" (fijo, solo en vistas de Decisión IA) ─── */
+.ai-disclaimer-footer {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 2rem);
+  padding: 8px 18px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-strong);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.ai-disclaimer-footer-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ai-disclaimer-footer {
+    left: 1rem;
+    right: 1rem;
+    bottom: 8px;
+    transform: none;
+    max-width: none;
+    width: auto;
+    text-align: left;
+    border-radius: var(--radius-md);
+  }
+
+  /* Reserva espacio al pie para que el aviso fijo no tape botones */
+  body.has-ai-disclaimer-footer .main-content,
+  body.has-ai-disclaimer-footer .auth-layout {
+    padding-bottom: 6.5rem;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Responsive (Fase 0). La app no tenía ningún @media de UI.
    Breakpoint móvil/tablet: 768px.
@@ -2141,6 +2252,7 @@ textarea.gform-input {
   .modal-box {
     max-width: none;
     width: 100%;
+    max-height: 100vh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 

@@ -521,6 +521,7 @@ export function InstanciasPage() {
           </form>
 
           {enlaceGenerado && (
+            <div style={{ marginTop: 'var(--space-4)' }}>
             <Alert variant="success" className="" title={t('execution:instancias.generar_enlace.success_title')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                 <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{enlaceGenerado}</code>
@@ -535,6 +536,7 @@ export function InstanciasPage() {
                 >✕</button>
               </div>
             </Alert>
+            </div>
           )}
           </div>
         </div>

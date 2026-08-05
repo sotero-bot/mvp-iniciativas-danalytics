@@ -65,6 +65,7 @@ export function FormularioResponderPage() {
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [autosaveInfo, setAutosaveInfo] = useState<string | null>(null);
+  const [erroresIds, setErroresIds] = useState<Set<string>>(new Set());
 
   // Autosave: refs para que el intervalo lea el estado vigente sin re-crearse.
   // Guard de StrictMode: solo useRef (bug conocido del proyecto), sin AbortController.
@@ -128,6 +129,12 @@ export function FormularioResponderPage() {
   const setValor = (campoId: string, valor: unknown) => {
     dirtyRef.current = true;
     setDatos(prev => ({ ...prev, [campoId]: valor }));
+    setErroresIds(prev => {
+      if (!prev.has(campoId)) return prev;
+      const copia = new Set(prev);
+      copia.delete(campoId);
+      return copia;
+    });
   };
 
   const camposFaltantes = (): Campo[] =>
@@ -141,10 +148,14 @@ export function FormularioResponderPage() {
     );
 
   const enviar = async () => {
-    if (camposFaltantes().length > 0) {
+    const faltantes = camposFaltantes();
+    if (faltantes.length > 0) {
+      setErroresIds(new Set(faltantes.map(c => c.id)));
       toast.error(t('formularios:estudiante.missing_required'));
+      document.getElementById(`campo-${faltantes[0].id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    setErroresIds(new Set());
     setEnviando(true);
     try {
       await fetchWithErrorMapping(`${API_URL}/formularios/${plantillaId}/submit`, {
@@ -189,7 +200,14 @@ export function FormularioResponderPage() {
             <div className="gform-sent">✓ {t('formularios:estudiante.submitted_banner')}</div>
           ) : (
             <>
-              <CamposSecciones campos={topLevel} hijosDe={hijosDe} datos={datos} onChange={setValor} t={t} />
+              <CamposSecciones
+                campos={topLevel}
+                hijosDe={hijosDe}
+                datos={datos}
+                onChange={setValor}
+                t={t}
+                erroresIds={erroresIds}
+              />
 
               <div className="form-footer">
                 {autosaveInfo && <span className="gform-autosave">✓ {autosaveInfo}</span>}
@@ -221,6 +239,7 @@ interface CampoRendererProps {
   onChange: (valor: unknown) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
   numero?: number;
+  error?: boolean;
 }
 
 // Agrupa los campos top-level en secciones. Un campo con `configPublica.seccion`
@@ -234,9 +253,10 @@ interface CamposSeccionesProps {
   datos: Record<string, unknown>;
   onChange: (campoId: string, valor: unknown) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  erroresIds?: Set<string>;
 }
 
-export function CamposSecciones({ campos, hijosDe, datos, onChange, t }: CamposSeccionesProps) {
+export function CamposSecciones({ campos, hijosDe, datos, onChange, t, erroresIds }: CamposSeccionesProps) {
   const grupos: { seccion: string | null; campos: Campo[] }[] = [];
   for (const campo of campos) {
     const seccion = campo.configPublica?.seccion || null;
@@ -266,6 +286,7 @@ export function CamposSecciones({ campos, hijosDe, datos, onChange, t }: CamposS
                 onChange={v => onChange(campo.id, v)}
                 t={t}
                 numero={numero}
+                error={erroresIds?.has(campo.id)}
               />
             );
           })}
@@ -275,9 +296,9 @@ export function CamposSecciones({ campos, hijosDe, datos, onChange, t }: CamposS
   );
 }
 
-export function CampoRenderer({ campo, hijos, valor, onChange, t, numero }: CampoRendererProps) {
+export function CampoRenderer({ campo, hijos, valor, onChange, t, numero, error }: CampoRendererProps) {
   return (
-    <div className="gform-card">
+    <div id={`campo-${campo.id}`} className={`gform-card${error ? ' gform-card--error' : ''}`}>
       {numero !== undefined && <div className="gform-num">{numero}</div>}
       <div className="gform-card-body">
         <div className="gform-question">
@@ -290,6 +311,7 @@ export function CampoRenderer({ campo, hijos, valor, onChange, t, numero }: Camp
         <div className="gform-answer">
           <CampoInput campo={campo} hijos={hijos} valor={valor} onChange={onChange} t={t} />
         </div>
+        {error && <div className="field-error">{t('formularios:estudiante.campo_obligatorio')}</div>}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { TipoCampo } from '@prisma/client';
 
 import { ConfigCampo } from './form-config';
-import { ScoresPorDimension } from './scoring';
+import { CategoriaScore, ScoresPorDimension } from './scoring';
 
 /**
  * Agregados de resultados (Plan 2 §2.4 — RF-33/34/35/36, RN-06).
@@ -15,6 +15,11 @@ export interface DimensionAgregada {
   dimension: string;
   promedio: number;
   n: number;
+  /** Cuántas preguntas del formulario componen esta dimensión (máx. de
+   * `respondidas` visto entre los respondientes). Sirve para distinguir en la
+   * UI una dimensión de una sola pregunta (el promedio es directo) de una que
+   * combina varias (el promedio del estudiante ya es en sí un promedio). */
+  preguntas: number;
 }
 
 export interface CampoParaAgregado {
@@ -24,26 +29,41 @@ export interface CampoParaAgregado {
   configJson: unknown;
 }
 
+/** Dimensiones agregadas, separadas en dos secciones que nunca se mezclan:
+ * "escala" (likert/número) y "seleccion" (opción múltiple). */
+export interface DimensionesPorCategoria<T = DimensionAgregada> {
+  escala: T[];
+  seleccion: T[];
+}
+
 /**
  * Promedio por dimensión sobre los `scoresPorDimensionJson` ya calculados en el
  * submit (RF-29): promedio de los promedios individuales, n = respondientes.
+ * Escala y selección se agregan por separado (nunca se combinan en un mismo
+ * promedio, aunque compartan `dimension`).
  */
 export function agregarScoresPorDimension(
   scoresList: (ScoresPorDimension | null | undefined)[],
-): DimensionAgregada[] {
-  const buckets: Record<string, { suma: number; n: number }> = {};
-  for (const scores of scoresList) {
-    if (!scores || typeof scores !== 'object') continue;
-    for (const [dimension, score] of Object.entries(scores)) {
-      if (typeof score?.promedio !== 'number') continue;
-      const bucket = (buckets[dimension] ??= { suma: 0, n: 0 });
-      bucket.suma += score.promedio;
-      bucket.n += 1;
+): DimensionesPorCategoria {
+  const agregarCategoria = (categoria: CategoriaScore): DimensionAgregada[] => {
+    const buckets: Record<string, { suma: number; n: number; preguntas: number }> = {};
+    for (const scores of scoresList) {
+      const grupo = scores?.[categoria];
+      if (!grupo || typeof grupo !== 'object') continue;
+      for (const [dimension, score] of Object.entries(grupo)) {
+        if (typeof score?.promedio !== 'number') continue;
+        const bucket = (buckets[dimension] ??= { suma: 0, n: 0, preguntas: 0 });
+        bucket.suma += score.promedio;
+        bucket.n += 1;
+        bucket.preguntas = Math.max(bucket.preguntas, score.respondidas ?? 0);
+      }
     }
-  }
-  return Object.entries(buckets)
-    .map(([dimension, { suma, n }]) => ({ dimension, promedio: suma / n, n }))
-    .sort((a, b) => a.dimension.localeCompare(b.dimension));
+    return Object.entries(buckets)
+      .map(([dimension, { suma, n, preguntas }]) => ({ dimension, promedio: suma / n, n, preguntas }))
+      .sort((a, b) => a.dimension.localeCompare(b.dimension));
+  };
+
+  return { escala: agregarCategoria('escala'), seleccion: agregarCategoria('seleccion') };
 }
 
 export type CampoAgregado =

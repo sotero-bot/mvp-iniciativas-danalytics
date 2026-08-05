@@ -179,6 +179,7 @@
       "estado": "Estado",
       "timezone": "Zona horaria",
       "dias_gracia": "Días de gracia",
+      "dias_gracia_hint": "Días hábiles que el facilitador conserva acceso al programa después de que se marque como finalizado.",
       "fecha_inicio": "Fecha de inicio",
       "fecha_fin": "Fecha de fin",
       "total_sesiones": "Sesiones esperadas",
@@ -240,17 +241,21 @@
         "message": "¿Seguro que quieres eliminar la sesión «{{titulo}}»? Esta acción no se puede deshacer."
       },
       "fields": {
-        "numero": "Nº",
+        "numero": "N.º de sesión",
+        "numero_hint": "Indica el orden de esta sesión dentro del programa (1, 2, 3…). Cada sesión debe tener un número distinto.",
         "titulo": "Título",
         "descripcion": "Descripción",
         "fecha": "Fecha y hora",
         "url_grabacion": "URL de grabación",
+        "url_grabacion_hint": "Pega aquí el enlace al video de la sesión (por ejemplo, de Zoom, Google Drive o YouTube). Este campo es opcional.",
         "url_presentacion": "URL de la presentación",
+        "url_presentacion_hint": "Pega el enlace público a la presentación (por ejemplo, de Google Slides, Canva o un PDF). Úsalo solo si no vas a subir el archivo abajo.",
         "archivo_presentacion": "Archivo de la presentación"
       },
       "presentacion": {
         "legend": "Presentación",
-        "hint": "Agrega un enlace o sube un archivo. Con uno de los dos es suficiente.",
+        "hint": "Elige UNA de las dos opciones de abajo: pega el enlace de la presentación o sube el archivo. No es necesario hacer las dos cosas.",
+        "o": "O",
         "requerida": "Agrega un enlace o un archivo de presentación."
       },
       "presentacion_archivo_hint": "PDF, PPT o PPTX. Alternativa o complemento al enlace.",

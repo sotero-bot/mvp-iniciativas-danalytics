@@ -3,11 +3,14 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { PageHeader, Breadcrumb, Button, StatusBadge, DataTable, Loading } from '../../components/ui';
+import { PageHeader, Breadcrumb, Button, StatusBadge, DataTable, Loading, Alert, InfoTooltip } from '../../components/ui';
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { formatDimension } from '../../shared/formatDimension';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+type Categoria = 'escala' | 'seleccion';
 
 interface ScoreDimension {
   total: number;
@@ -15,22 +18,43 @@ interface ScoreDimension {
   respondidas: number;
 }
 
+interface DimensionAgregada {
+  dimension: string;
+  promedio: number;
+  n: number;
+  preguntas: number;
+}
+
+// Escala (likert/número) y selección (opción múltiple) nunca se mezclan en un
+// mismo promedio: son dos secciones separadas en toda la vista.
+interface DimensionesPorCategoria {
+  escala: DimensionAgregada[];
+  seleccion: DimensionAgregada[];
+}
+
 interface Individual {
   usuario: { id: string; nombre: string; email: string };
-  scores: Record<string, ScoreDimension> | null;
+  scores: Record<Categoria, Record<string, ScoreDimension>> | null;
   enviadoEn: string | null;
 }
 
 interface Bloque {
   totalRespuestas: number;
-  dimensiones: { dimension: string; promedio: number; n: number }[];
+  dimensiones: DimensionesPorCategoria;
   individuales: Individual[];
+}
+
+interface ComparativoDimension {
+  dimension: string;
+  inicial: number | null;
+  final: number | null;
+  preguntas: number;
 }
 
 interface Detalle {
   inicial: Bloque;
   final: Bloque;
-  comparativo: { dimension: string; inicial: number | null; final: number | null }[];
+  comparativo: Record<Categoria, ComparativoDimension[]>;
 }
 
 interface SnapshotEstado {
@@ -121,17 +145,29 @@ export function AdminDiagnosticoPage() {
     }
   };
 
-  const dimensiones = detalle
-    ? [...new Set([...detalle.inicial.dimensiones, ...detalle.final.dimensiones].map(d => d.dimension))].sort()
-    : [];
+  // El diagnóstico final está en el modelo/requerimientos pero, si el programa
+  // nunca tomó snapshot de ese tipo, es porque no se ha creado ninguna
+  // plantilla — no es "sin respuestas todavía", es una funcionalidad pendiente.
+  const finalPendiente = !loading && !snapshots.some(s => s.tipoFormulario === 'diagnostico_final');
 
-  const comparativoColumns: DataTableColumn<Detalle['comparativo'][number]>[] = [
-    { key: 'dimension', header: t('formularios:resultados.dimension'), render: fila => <span style={{ textTransform: 'capitalize' }}>{fila.dimension}</span> },
-    { key: 'inicial', header: t('formularios:resultados.inicial'), render: fila => fila.inicial?.toFixed(2) ?? '—' },
-    { key: 'final', header: t('formularios:resultados.final'), render: fila => <strong>{fila.final?.toFixed(2) ?? '—'}</strong> },
+  const dimensionHeader = (dimension: string, preguntas: number) => (
+    <>
+      {formatDimension(dimension)}
+      {preguntas > 1 && (
+        <div style={{ fontSize: '0.7rem', fontWeight: 400, textTransform: 'none', color: 'var(--color-text-tertiary)' }}>
+          {t('formularios:resultados.n_preguntas', { count: preguntas })}
+        </div>
+      )}
+    </>
+  );
+
+  const comparativoColumns: DataTableColumn<ComparativoDimension>[] = [
+    { key: 'dimension', header: t('formularios:resultados.dimension'), width: '260px', render: fila => dimensionHeader(fila.dimension, fila.preguntas) },
+    { key: 'inicial', header: t('formularios:resultados.inicial'), width: '140px', render: fila => fila.inicial?.toFixed(2) ?? '—' },
+    { key: 'final', header: t('formularios:resultados.final'), width: '140px', render: fila => <strong>{fila.final?.toFixed(2) ?? '—'}</strong> },
   ];
 
-  const individualColumns: DataTableColumn<Individual>[] = [
+  const individualColumnsFor = (categoria: Categoria, dims: DimensionAgregada[]): DataTableColumn<Individual>[] => [
     {
       key: 'participante',
       header: t('formularios:resultados.participante'),
@@ -147,10 +183,10 @@ export function AdminDiagnosticoPage() {
       header: t('formularios:resultados.enviado'),
       render: ind => (ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'),
     },
-    ...dimensiones.map(d => ({
-      key: d,
-      header: <span style={{ textTransform: 'capitalize' }}>{d}</span>,
-      render: (ind: Individual) => ind.scores?.[d]?.promedio?.toFixed(2) ?? '—',
+    ...dims.map(d => ({
+      key: d.dimension,
+      header: dimensionHeader(d.dimension, d.preguntas),
+      render: (ind: Individual) => ind.scores?.[categoria]?.[d.dimension]?.promedio?.toFixed(2) ?? '—',
     })),
   ];
 
@@ -222,42 +258,94 @@ export function AdminDiagnosticoPage() {
 
       {detalle && (
         <>
-          {/* Comparativo (RF-34) */}
+          {/* Comparativo (RF-34). Escala y selección van en secciones separadas:
+              no son la misma escala de medición y nunca se combinan. */}
           <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
             <div className="section-card-header">
-              <span className="section-card-title">{t('formularios:resultados.comparativo')}</span>
+              <span className="section-card-title">
+                {t('formularios:resultados.comparativo')}
+                <InfoTooltip label={t('formularios:resultados.comparativo_info')} />
+              </span>
             </div>
             <div className="section-card-body">
-              <DataTable
-                columns={comparativoColumns}
-                rows={detalle.comparativo}
-                rowKey={fila => fila.dimension}
-                emptyMessage={t('formularios:resultados.sin_datos')}
-              />
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                {t('formularios:resultados.comparativo_hint')}
+              </p>
+              {finalPendiente && (
+                <Alert variant="info" title={t('formularios:resultados.final_pendiente_titulo')} className="mb-4">
+                  {t('formularios:resultados.final_pendiente_desc')}
+                </Alert>
+              )}
+              {(['escala', 'seleccion'] as const).map(categoria => (
+                <div key={categoria} style={{ marginTop: 'var(--space-4)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                    {t(`formularios:resultados.categoria_${categoria}`)}
+                  </h4>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: 'var(--space-2)' }}>
+                    {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                  </p>
+                  <DataTable
+                    columns={comparativoColumns}
+                    rows={detalle.comparativo[categoria]}
+                    rowKey={fila => fila.dimension}
+                    emptyMessage={t('formularios:resultados.sin_datos')}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Agregados + individuales por momento */}
+          {/* Agregados + individuales por momento, cada uno separado en dos
+              secciones (escala / selección). */}
           {([['inicial', detalle.inicial], ['final', detalle.final]] as const).map(([key, bloque]) => (
             <div key={key} className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
               <div className="section-card-header">
-                <span className="section-card-title">{t(`formularios:resultados.${key}`)}</span>
+                <span className="section-card-title">
+                  {t(`formularios:resultados.${key}`)}
+                  <InfoTooltip label={t('formularios:resultados.comparativo_info')} />
+                </span>
                 <span className="count-badge">{bloque.totalRespuestas}</span>
               </div>
               <div className="section-card-body">
-                {bloque.dimensiones.length > 0 && <BarrasDimensiones dimensiones={bloque.dimensiones} />}
-                {bloque.individuales.length > 0 && (
-                  <div style={{ marginTop: 'var(--space-4)' }}>
-                    <h4 style={{ marginBottom: 'var(--space-2)' }}>
-                      {t('formularios:resultados.individuales')}
-                    </h4>
-                    <DataTable
-                      columns={individualColumns}
-                      rows={bloque.individuales}
-                      rowKey={ind => ind.usuario.id}
-                    />
-                  </div>
+                {key === 'final' && finalPendiente && (
+                  <Alert variant="info" title={t('formularios:resultados.final_pendiente_titulo')}>
+                    {t('formularios:resultados.final_pendiente_desc')}
+                  </Alert>
                 )}
+                {(['escala', 'seleccion'] as const).map(categoria => {
+                  const dims = bloque.dimensiones[categoria];
+                  if (dims.length === 0) return null;
+                  const individuales = bloque.individuales.filter(ind => ind.scores?.[categoria] && Object.keys(ind.scores[categoria]).length > 0);
+                  return (
+                    <div key={categoria} style={{ marginTop: 'var(--space-4)' }}>
+                      <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                        {t(`formularios:resultados.categoria_${categoria}`)}
+                      </h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                        {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                      </p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                        {t('formularios:resultados.bloque_barras_hint')}
+                      </p>
+                      <BarrasDimensiones dimensiones={dims} />
+                      {individuales.length > 0 && (
+                        <div style={{ marginTop: 'var(--space-4)' }}>
+                          <h4 style={{ marginBottom: 'var(--space-2)' }}>
+                            {t('formularios:resultados.individuales')}
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                            {t('formularios:resultados.bloque_individuales_hint')}
+                          </p>
+                          <DataTable
+                            columns={individualColumnsFor(categoria, dims)}
+                            rows={individuales}
+                            rowKey={ind => ind.usuario.id}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

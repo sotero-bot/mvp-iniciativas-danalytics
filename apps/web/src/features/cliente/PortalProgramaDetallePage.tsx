@@ -8,8 +8,11 @@ import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-interface DimensionAgregada { dimension: string; promedio: number; n: number }
-interface BloqueDiagnostico { totalRespuestas: number; dimensiones: DimensionAgregada[] }
+interface DimensionAgregada { dimension: string; promedio: number; n: number; preguntas: number }
+// Escala (likert/número) y selección (opción múltiple) nunca se mezclan en un
+// mismo promedio: son dos secciones separadas.
+interface DimensionesPorCategoria { escala: DimensionAgregada[]; seleccion: DimensionAgregada[] }
+interface BloqueDiagnostico { totalRespuestas: number; dimensiones: DimensionesPorCategoria }
 
 interface Detalle {
   programa: {
@@ -45,7 +48,7 @@ interface ResumenAsistencia {
 // agregado, proyecto y feedback. Todo SOLO lectura, sin export (RN-07).
 export function PortalProgramaDetallePage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['portal', 'common', 'admin']);
+  const { t } = useTranslation(['portal', 'common', 'admin', 'formularios']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
   const [loading, setLoading] = useState(false);
@@ -158,9 +161,25 @@ export function PortalProgramaDetallePage() {
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-2)' }}>
                       {t(`portal:detalle.${key}`)} · n={bloque.totalRespuestas}
                     </div>
-                    {bloque.dimensiones.length === 0
-                      ? <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
-                      : <BarrasDimensiones dimensiones={bloque.dimensiones} />}
+                    {bloque.dimensiones.escala.length === 0 && bloque.dimensiones.seleccion.length === 0 ? (
+                      <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
+                    ) : (
+                      (['escala', 'seleccion'] as const).map(categoria => {
+                        const dims = bloque.dimensiones[categoria];
+                        if (dims.length === 0) return null;
+                        return (
+                          <div key={categoria} style={{ marginBottom: 'var(--space-3)' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                              {t(`formularios:resultados.categoria_${categoria}`)}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-1)' }}>
+                              {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                            </div>
+                            <BarrasDimensiones dimensiones={dims} />
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 ))}
               </div>

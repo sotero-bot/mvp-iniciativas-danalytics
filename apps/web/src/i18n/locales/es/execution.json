@@ -33,7 +33,7 @@
       "actividad_required": "Seleccione una actividad.",
       "generating": "Generando...",
       "submit": "Generar enlace",
-      "success_title": "✓ Enlace generado y copiado",
+      "success_title": "Enlace generado y copiado",
       "copy": "Copiar",
       "error_prefix": "Error al generar el enlace: "
     },

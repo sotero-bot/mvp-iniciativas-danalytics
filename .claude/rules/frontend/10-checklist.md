@@ -27,6 +27,7 @@ Repasar antes de dar por completada cualquier vista nueva o modificada.
 ## Formularios
 - [ ] Campos con `Field` (label asociado); submit bloquea doble envío.
 - [ ] Vista de registro usa `FormListLayout` (formulario izquierda + listado derecha).
+- [ ] Labels sin abreviaturas/símbolos crudos; explicación corta y crítica visible siempre, explicación larga en `InfoTooltip`. → [06](06-formularios.md)
 
 ## Estados y datos
 - [ ] loading / vacío / error cubiertos.

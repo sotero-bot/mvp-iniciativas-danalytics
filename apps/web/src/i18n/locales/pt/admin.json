@@ -179,6 +179,7 @@
       "estado": "Estado",
       "timezone": "Fuso horário",
       "dias_gracia": "Dias de tolerância",
+      "dias_gracia_hint": "Dias úteis em que o facilitador mantém acesso ao programa depois que ele é marcado como finalizado.",
       "fecha_inicio": "Data de início",
       "fecha_fin": "Data de fim",
       "total_sesiones": "Sessões esperadas",
@@ -240,17 +241,21 @@
         "message": "Tem certeza de que deseja excluir a sessão «{{titulo}}»? Esta ação não pode ser desfeita."
       },
       "fields": {
-        "numero": "Nº",
+        "numero": "N.º da sessão",
+        "numero_hint": "Indica a ordem desta sessão dentro do programa (1, 2, 3…). Cada sessão deve ter um número diferente.",
         "titulo": "Título",
         "descripcion": "Descrição",
         "fecha": "Data e hora",
         "url_grabacion": "URL da gravação",
+        "url_grabacion_hint": "Cole aqui o link do vídeo da sessão (por exemplo, do Zoom, Google Drive ou YouTube). Este campo é opcional.",
         "url_presentacion": "URL da apresentação",
+        "url_presentacion_hint": "Cole o link público da apresentação (por exemplo, do Google Slides, Canva ou um PDF). Use apenas se não for enviar o arquivo abaixo.",
         "archivo_presentacion": "Arquivo da apresentação"
       },
       "presentacion": {
         "legend": "Apresentação",
-        "hint": "Adicione um link ou envie um arquivo. Basta um dos dois.",
+        "hint": "Escolha UMA das duas opções abaixo: cole o link da apresentação ou envie o arquivo. Não é necessário fazer as duas coisas.",
+        "o": "OU",
         "requerida": "Adicione um link ou um arquivo de apresentação."
       },
       "presentacion_archivo_hint": "PDF, PPT ou PPTX. Alternativa ou complemento ao link.",

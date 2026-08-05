@@ -34,25 +34,38 @@ export class AdminResultadosController {
 
     const workbook = new ExcelJS.Workbook();
 
-    const comparativo = workbook.addWorksheet('Comparativo');
-    comparativo.addRow(['Dimensión', 'Inicial (promedio)', 'Final (promedio)']);
-    for (const fila of detalle.comparativo) {
-      comparativo.addRow([fila.dimension, fila.inicial, fila.final]);
+    // Escala y selección van en hojas separadas: nunca se combinan en un mismo
+    // promedio ni en la misma tabla (ver scoring.ts).
+    for (const [nombre, filas] of [
+      ['Comparativo - Escala', detalle.comparativo.escala],
+      ['Comparativo - Selección', detalle.comparativo.seleccion],
+    ] as const) {
+      const sheet = workbook.addWorksheet(nombre);
+      sheet.addRow(['Dimensión', 'Inicial (promedio)', 'Final (promedio)']);
+      for (const fila of filas) sheet.addRow([fila.dimension, fila.inicial, fila.final]);
     }
 
     for (const [nombre, bloque] of [
       ['Inicial', detalle.inicial],
       ['Final', detalle.final],
     ] as const) {
-      const dimensiones = bloque.dimensiones.map(d => d.dimension);
+      const dimEscala = bloque.dimensiones.escala.map(d => d.dimension);
+      const dimSeleccion = bloque.dimensiones.seleccion.map(d => d.dimension);
       const sheet = workbook.addWorksheet(nombre);
-      sheet.addRow(['Participante', 'Email', 'Enviado', ...dimensiones]);
+      sheet.addRow([
+        'Participante',
+        'Email',
+        'Enviado',
+        ...dimEscala.map(d => `Escala: ${d}`),
+        ...dimSeleccion.map(d => `Selección: ${d}`),
+      ]);
       for (const ind of bloque.individuales) {
         sheet.addRow([
           ind.usuario.nombre,
           ind.usuario.email,
           ind.enviadoEn ? new Date(ind.enviadoEn).toISOString() : '',
-          ...dimensiones.map(d => ind.scores?.[d]?.promedio ?? null),
+          ...dimEscala.map(d => ind.scores?.escala?.[d]?.promedio ?? null),
+          ...dimSeleccion.map(d => ind.scores?.seleccion?.[d]?.promedio ?? null),
         ]);
       }
     }
@@ -81,11 +94,15 @@ export class AdminResultadosController {
 
     const workbook = new ExcelJS.Workbook();
 
-    // Hoja 1 — Dimensiones (scoring agregado)
-    const dims = detalle.dimensiones.map(d => d.dimension);
-    const hDim = workbook.addWorksheet('Dimensiones');
+    // Hoja 1 — Dimensiones (scoring agregado). Escala y selección por separado:
+    // nunca se combinan en un mismo promedio (ver scoring.ts).
+    const hDim = workbook.addWorksheet('Dimensiones - Escala');
     hDim.addRow(['Dimensión', 'Promedio', 'Respuestas']);
-    for (const d of detalle.dimensiones) hDim.addRow([d.dimension, d.promedio, d.n]);
+    for (const d of detalle.dimensiones.escala) hDim.addRow([d.dimension, d.promedio, d.n]);
+
+    const hDimSel = workbook.addWorksheet('Dimensiones - Selección');
+    hDimSel.addRow(['Dimensión', 'Promedio', 'Respuestas']);
+    for (const d of detalle.dimensiones.seleccion) hDimSel.addRow([d.dimension, d.promedio, d.n]);
 
     // Hoja 2 — Por pregunta (opción múltiple → conteo; likert/número → promedio;
     // texto → cada respuesta en su fila).

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { EmpresasPage } from './features/organization/EmpresasPage';
 import { IniciativasPage } from './features/organization/IniciativasPage';
@@ -20,7 +20,7 @@ import { PlantillasPage } from './features/methodology/PlantillasPage';
 import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { SidebarIcon } from './components/SidebarIcon';
-import { ToastHost } from './components/toast-store';
+import { ToastHost, toast } from './components/toast-store';
 import { HomePage, ROLE_CARDS } from './features/home/HomePage';
 import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
 import { FacilitadorSesionesPage } from './features/facilitador/SesionesPage';
@@ -396,31 +396,34 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
 import { LoginPage } from './features/auth/LoginPage';
 
-function AiDisclaimerFooter() {
+// Módulo Decisión IA: vistas donde interviene un agente y el aviso aplica
+// (ver sidebar en Layout, sección "Decisión IA"). El login también lo muestra
+// porque ahí se anuncia el uso de IA del panel antes de entrar.
+const DECISION_IA_PATH_PREFIXES = ['/admin/empresas', '/admin/iniciativas', '/admin/actividades', '/admin/instancias'];
+
+// Links públicos de respuesta a formularios: siempre muestran el aviso, sin
+// importar si el navegador tiene una sesión admin abierta (ej. al probar el
+// enlace desde el mismo dispositivo del panel).
+const PUBLIC_FORM_PATH_PREFIXES = ['/runner'];
+
+function AiDisclaimerFooter({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { t } = useTranslation('common');
+  const location = useLocation();
+  const isDecisionIaView = DECISION_IA_PATH_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
+  const isPublicFormView = PUBLIC_FORM_PATH_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
+  const shouldShow = !isAuthenticated || isDecisionIaView || isPublicFormView;
+
+  // En móvil el aviso es un bar fijo al pie: reserva espacio en el contenido
+  // para que no tape botones (ver .has-ai-disclaimer-footer en index.css).
+  React.useEffect(() => {
+    document.body.classList.toggle('has-ai-disclaimer-footer', shouldShow);
+    return () => document.body.classList.remove('has-ai-disclaimer-footer');
+  }, [shouldShow]);
+
+  if (!shouldShow) return null;
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 14,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      padding: '8px 18px',
-      background: 'rgba(254, 243, 199, 0.97)',
-      backdropFilter: 'blur(8px)',
-      color: '#78350F',
-      fontSize: '0.8rem',
-      fontWeight: 500,
-      borderRadius: 9999,
-      border: '1px solid #FCD34D',
-      boxShadow: '0 4px 12px rgba(217, 119, 6, 0.18)',
-      zIndex: 1000,
-      pointerEvents: 'none',
-      whiteSpace: 'nowrap',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-    }}>
-      <span style={{ fontSize: '0.95rem' }}>⚠️</span>
+    <div className="ai-disclaimer-footer">
+      <span className="ai-disclaimer-footer-icon">⚠️</span>
       {t('footer.ai_disclaimer')}
     </div>
   );
@@ -428,6 +431,7 @@ function AiDisclaimerFooter() {
 
 
 function App() {
+  const { t } = useTranslation('auth');
   const [token, setToken] = React.useState<string | null>(localStorage.getItem('admin_token'));
   const session = decodeSession(token);
   const isAuthenticated = !!session; // token presente Y no expirado
@@ -440,22 +444,29 @@ function App() {
     setToken(newToken);
   };
 
-  const handleLogout = React.useCallback(() => {
+  const clearSession = React.useCallback(() => {
     localStorage.removeItem('admin_token');
     clearCurrentUserCache();
     setToken(null);
   }, []);
 
+  // Logout explícito del usuario (clic en "Cerrar sesión"): confirma con un toast.
+  const handleLogout = React.useCallback(() => {
+    clearSession();
+    toast.success(t('logout_success'));
+  }, [clearSession, t]);
+
   // Sesión expirada: (a) si el JWT en localStorage ya venció al montar, lo
   // limpiamos; (b) cuando una llamada al API devuelve 401 de token, el helper
   // dispara 'auth:session-expired' y aquí cerramos sesión → redirige a login.
   // Esto evita el estado inconsistente "mensaje de sesión expirada pero sigo dentro".
+  // No es un logout iniciado por el usuario, así que no mostramos el toast de logout.
   React.useEffect(() => {
-    if (token && !decodeSession(token)) handleLogout();
-    const onExpired = () => handleLogout();
+    if (token && !decodeSession(token)) clearSession();
+    const onExpired = () => clearSession();
     window.addEventListener('auth:session-expired', onExpired);
     return () => window.removeEventListener('auth:session-expired', onExpired);
-  }, [token, handleLogout]);
+  }, [token, clearSession]);
 
   // Ruta solo para danalytics_admin. Sin token → login; con token pero otro rol
   // → redirige a su inicio (bloquea el acceso por URL directa). RNF-01: esto es
@@ -488,7 +499,7 @@ function App() {
   return (
     <BrowserRouter>
       <ToastHost />
-      <AiDisclaimerFooter />
+      <AiDisclaimerFooter isAuthenticated={isAuthenticated} />
       <Routes>
         {/* Admin Routes (Protected) */}
         <Route path="/admin/inicio" element={<AdminRoute><Layout onLogout={handleLogout}><DashboardPage /></Layout></AdminRoute>} />

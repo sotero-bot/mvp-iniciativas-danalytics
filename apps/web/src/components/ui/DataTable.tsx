@@ -9,6 +9,9 @@ export interface DataTableColumn<T> {
   render: (row: T) => ReactNode;
   /** Alineación del texto de la columna. `right` para la columna de acciones. */
   align?: 'left' | 'right' | 'center';
+  /** Ancho fijo (ej. '220px'). Útil para alinear columnas entre tablas
+   * separadas que muestran las mismas columnas con datos distintos. */
+  width?: string;
 }
 
 interface DataTableProps<T> {
@@ -25,13 +28,18 @@ interface DataTableProps<T> {
  * estilos base de index.css. Marca la columna de acciones con `align: 'right'`.
  */
 export function DataTable<T>({ columns, rows, rowKey, emptyMessage }: DataTableProps<T>) {
+  const cellStyle = (col: DataTableColumn<T>) => ({
+    ...(col.align ? { textAlign: col.align } : undefined),
+    ...(col.width ? { width: col.width } : undefined),
+  });
+
   return (
     <div className="table-container">
       <table>
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col.key} style={col.align ? { textAlign: col.align } : undefined}>
+              <th key={col.key} style={cellStyle(col)}>
                 {col.header}
               </th>
             ))}
@@ -48,7 +56,7 @@ export function DataTable<T>({ columns, rows, rowKey, emptyMessage }: DataTableP
             rows.map((row) => (
               <tr key={rowKey(row)}>
                 {columns.map((col) => (
-                  <td key={col.key} style={col.align ? { textAlign: col.align } : undefined}>
+                  <td key={col.key} style={cellStyle(col)}>
                     {col.render(row)}
                   </td>
                 ))}

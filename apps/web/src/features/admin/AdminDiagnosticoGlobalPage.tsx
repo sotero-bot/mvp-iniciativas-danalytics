@@ -5,8 +5,11 @@ import { BarrasDimensiones } from '../facilitador/ResultadosPage';
 import { PageHeader, Breadcrumb, Button, Field, FilterToolbar, ProgressBar, DataTable, Loading } from '../../components/ui';
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { formatDimension } from '../../shared/formatDimension';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+type Categoria = 'escala' | 'seleccion';
 
 interface ScoreDimension {
   total: number;
@@ -14,9 +17,23 @@ interface ScoreDimension {
   respondidas: number;
 }
 
+interface DimensionAgregada {
+  dimension: string;
+  promedio: number;
+  n: number;
+  preguntas: number;
+}
+
+// Escala (likert/número) y selección (opción múltiple) nunca se mezclan en un
+// mismo promedio: son dos secciones separadas.
+interface DimensionesPorCategoria {
+  escala: DimensionAgregada[];
+  seleccion: DimensionAgregada[];
+}
+
 interface Individual {
   usuario: { id: string; nombre: string; email: string };
-  scores: Record<string, ScoreDimension> | null;
+  scores: Record<Categoria, Record<string, ScoreDimension>> | null;
   enviadoEn: string | null;
 }
 
@@ -27,7 +44,7 @@ type CampoAgregado =
 
 interface Detalle {
   totalRespuestas: number;
-  dimensiones: { dimension: string; promedio: number; n: number }[];
+  dimensiones: DimensionesPorCategoria;
   porCampo: CampoAgregado[];
   individuales: Individual[];
 }
@@ -114,9 +131,18 @@ export function AdminDiagnosticoGlobalPage() {
     }
   };
 
-  const dimensiones = detalle ? detalle.dimensiones.map(d => d.dimension) : [];
+  const dimensionHeader = (dimension: string, preguntas: number) => (
+    <>
+      {formatDimension(dimension)}
+      {preguntas > 1 && (
+        <div style={{ fontSize: '0.7rem', fontWeight: 400, textTransform: 'none', color: 'var(--color-text-tertiary)' }}>
+          {t('formularios:resultados.n_preguntas', { count: preguntas })}
+        </div>
+      )}
+    </>
+  );
 
-  const individualColumns: DataTableColumn<Individual>[] = [
+  const individualColumnsFor = (categoria: Categoria, dims: DimensionAgregada[]): DataTableColumn<Individual>[] => [
     {
       key: 'participante',
       header: t('formularios:resultados.participante'),
@@ -132,10 +158,10 @@ export function AdminDiagnosticoGlobalPage() {
       header: t('formularios:resultados.enviado'),
       render: ind => (ind.enviadoEn ? new Date(ind.enviadoEn).toLocaleDateString() : '—'),
     },
-    ...dimensiones.map(d => ({
-      key: d,
-      header: <span style={{ textTransform: 'capitalize' }}>{d}</span>,
-      render: (ind: Individual) => ind.scores?.[d]?.promedio?.toFixed(2) ?? '—',
+    ...dims.map(d => ({
+      key: d.dimension,
+      header: dimensionHeader(d.dimension, d.preguntas),
+      render: (ind: Individual) => ind.scores?.[categoria]?.[d.dimension]?.promedio?.toFixed(2) ?? '—',
     })),
   ];
 
@@ -192,25 +218,39 @@ export function AdminDiagnosticoGlobalPage() {
               <span className="count-badge">{detalle.totalRespuestas}</span>
             </div>
             <div className="section-card-body">
-              {detalle.dimensiones.length === 0 ? (
+              {detalle.dimensiones.escala.length === 0 && detalle.dimensiones.seleccion.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                   {t('formularios:resultados.sin_datos')}
                 </p>
               ) : (
-                <BarrasDimensiones dimensiones={detalle.dimensiones} />
-              )}
-
-              {detalle.individuales.length > 0 && (
-                <div style={{ marginTop: 'var(--space-4)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-2)' }}>
-                    {t('formularios:resultados.individuales')}
-                  </h4>
-                  <DataTable
-                    columns={individualColumns}
-                    rows={detalle.individuales}
-                    rowKey={ind => ind.usuario.id}
-                  />
-                </div>
+                (['escala', 'seleccion'] as const).map(categoria => {
+                  const dims = detalle.dimensiones[categoria];
+                  if (dims.length === 0) return null;
+                  const individuales = detalle.individuales.filter(ind => ind.scores?.[categoria] && Object.keys(ind.scores[categoria]).length > 0);
+                  return (
+                    <div key={categoria} style={{ marginBottom: 'var(--space-4)' }}>
+                      <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                        {t(`formularios:resultados.categoria_${categoria}`)}
+                      </h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: 'var(--space-2)' }}>
+                        {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                      </p>
+                      <BarrasDimensiones dimensiones={dims} />
+                      {individuales.length > 0 && (
+                        <div style={{ marginTop: 'var(--space-4)' }}>
+                          <h4 style={{ marginBottom: 'var(--space-2)' }}>
+                            {t('formularios:resultados.individuales')}
+                          </h4>
+                          <DataTable
+                            columns={individualColumnsFor(categoria, dims)}
+                            rows={individuales}
+                            rowKey={ind => ind.usuario.id}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

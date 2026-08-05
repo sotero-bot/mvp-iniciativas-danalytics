@@ -16,6 +16,7 @@ busca en `components/ui/` (barrel: `components/ui/index.ts`).
 | `PageHeader` | Encabezado: eyebrow + título (Poppins) + descripción + acciones a la derecha |
 | `Button` | Botón (`variant` primary/secondary/danger/success/link, `size='sm'`, `block`) |
 | `Field` | Campo de formulario accesible (label asociado + hint + error) |
+| `InfoTooltip` | Ícono "?" junto a un label con explicación larga/secundaria al hover/foco. → [06](06-formularios.md) |
 | `FormListLayout` | Vista de registro: formulario izquierda + listado derecha |
 | `DataTable` | Tabla hairline con columnas tipadas; `align:'right'` para acciones |
 | `FilterToolbar` | Fila de búsqueda + selects (`FilterToolbar.Divider`) |

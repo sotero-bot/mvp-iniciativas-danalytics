@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Breadcrumb, Loading, ProgressBar } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { formatDimension } from '../../shared/formatDimension';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -11,11 +12,19 @@ interface DimensionAgregada {
   dimension: string;
   promedio: number;
   n: number;
+  preguntas: number;
+}
+
+// Escala (likert/número) y selección (opción múltiple) nunca se mezclan en un
+// mismo promedio: son dos secciones separadas.
+interface DimensionesPorCategoria {
+  escala: DimensionAgregada[];
+  seleccion: DimensionAgregada[];
 }
 
 interface Diagnostico {
-  inicial: { totalRespuestas: number; dimensiones: DimensionAgregada[] };
-  final: { totalRespuestas: number; dimensiones: DimensionAgregada[] };
+  inicial: { totalRespuestas: number; dimensiones: DimensionesPorCategoria };
+  final: { totalRespuestas: number; dimensiones: DimensionesPorCategoria };
 }
 
 interface CampoFeedback {
@@ -99,10 +108,24 @@ export function FacilitadorResultadosPage() {
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-2)' }}>
                     {t(`formularios:resultados.${key}`)} · {bloque.totalRespuestas} {t('formularios:resultados.n').toLowerCase()}
                   </div>
-                  {bloque.dimensiones.length === 0 ? (
+                  {bloque.dimensiones.escala.length === 0 && bloque.dimensiones.seleccion.length === 0 ? (
                     <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('formularios:resultados.sin_datos')}</p>
                   ) : (
-                    <BarrasDimensiones dimensiones={bloque.dimensiones} />
+                    (['escala', 'seleccion'] as const).map(categoria => {
+                      const dims = bloque.dimensiones[categoria];
+                      if (dims.length === 0) return null;
+                      return (
+                        <div key={categoria} style={{ marginBottom: 'var(--space-3)' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                            {t(`formularios:resultados.categoria_${categoria}`)}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-1)' }}>
+                            {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                          </div>
+                          <BarrasDimensiones dimensiones={dims} />
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               ))}
@@ -160,14 +183,22 @@ export function FacilitadorResultadosPage() {
 }
 
 export function BarrasDimensiones({ dimensiones }: { dimensiones: DimensionAgregada[] }) {
+  const { t } = useTranslation('formularios');
   const max = Math.max(...dimensiones.map(d => d.promedio), 5);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       {dimensiones.map(d => (
         <div key={d.dimension} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.82rem' }}>
-          <span style={{ minWidth: 140, textTransform: 'capitalize' }}>{d.dimension}</span>
+          <span style={{ minWidth: 140 }}>
+            {formatDimension(d.dimension)}
+            {d.preguntas > 1 && (
+              <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 400, color: 'var(--color-text-tertiary)' }}>
+                {t('resultados.n_preguntas', { count: d.preguntas })}
+              </span>
+            )}
+          </span>
           <div style={{ flex: 1 }}>
-            <ProgressBar value={(d.promedio / max) * 100} color="var(--color-primary)" label={d.dimension} />
+            <ProgressBar value={(d.promedio / max) * 100} color="var(--color-primary)" label={formatDimension(d.dimension)} />
           </div>
           <span style={{ minWidth: 44, textAlign: 'right', fontWeight: 600 }}>{d.promedio.toFixed(2)}</span>
         </div>

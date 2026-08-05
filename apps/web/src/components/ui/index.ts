@@ -3,6 +3,7 @@ export { Breadcrumb } from './Breadcrumb';
 export type { BreadcrumbItem } from './Breadcrumb';
 export { Button } from './Button';
 export { Field } from './Field';
+export { InfoTooltip } from './InfoTooltip';
 export { StatusBadge } from './StatusBadge';
 export type { StatusVariant } from './StatusBadge';
 export { ProgressBar } from './ProgressBar';
