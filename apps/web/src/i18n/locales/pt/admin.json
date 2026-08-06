@@ -179,7 +179,7 @@
       "estado": "Estado",
       "timezone": "Fuso horário",
       "dias_gracia": "Dias de tolerância",
-      "dias_gracia_hint": "Dias úteis em que o facilitador mantém acesso ao programa depois que ele é marcado como finalizado. Ao vencer esse prazo (\"carência vencida\"), o facilitador perde o acesso automaticamente; o estudante não é afetado por essa regra.",
+      "dias_gracia_hint": "Dias úteis em que o facilitador mantém acesso completo ao programa depois que ele é marcado como finalizado. Ao vencer esse prazo (\"carência vencida\"), o facilitador passa a poder apenas consultar (sessões, presença, participantes) — perde automaticamente a capacidade de registrar ou modificar algo; o estudante não é afetado por essa regra.",
       "fecha_inicio": "Data de início",
       "fecha_fin": "Data de fim",
       "total_sesiones": "Sessões esperadas",

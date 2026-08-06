@@ -14,8 +14,9 @@ import { derivarConfigPublica } from '../../formularios/application/form-config'
 
 // Fase 3 (Plan 2 §3.1 — RF-37/RF-38): el facilitador ve las bitácoras y
 // plantillas de proyecto de TODOS los grupos de su programa, en SOLO LECTURA
-// (este controller no expone escrituras). Scoping §0.1 vía assertProgramaAccessible
-// (incluye la gracia RF-03 tras finalizar el programa).
+// (no edita el contenido; la única escritura es habilitar/deshabilitar la
+// bitácora, O-01). Scoping §0.1: lectura vía assertProgramaAccessible (sin
+// bloqueo de gracia), escritura vía assertProgramaEditable (RF-03/RN-03).
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('facilitador')
 @Controller('facilitador')
@@ -64,7 +65,7 @@ export class FacilitadorRetoController {
     @Body() body: { habilitar?: boolean },
     @CurrentUser() actor: AuthUser,
   ) {
-    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, programaId);
     const habilitar = body?.habilitar !== false;
     return this.prisma.programa.update({
       where: { id: programaId },

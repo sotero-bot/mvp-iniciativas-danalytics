@@ -179,7 +179,7 @@
       "estado": "Estado",
       "timezone": "Zona horaria",
       "dias_gracia": "Días de gracia",
-      "dias_gracia_hint": "Días hábiles que el facilitador conserva acceso al programa después de que se marque como finalizado. Al vencer ese plazo (\"gracia vencida\"), el facilitador pierde el acceso automáticamente; el estudiante no se ve afectado por esta regla.",
+      "dias_gracia_hint": "Días hábiles que el facilitador conserva acceso completo al programa después de que se marque como finalizado. Al vencer ese plazo (\"gracia vencida\"), el facilitador pasa a solo poder consultar (sesiones, asistencia, participantes) — pierde automáticamente la capacidad de registrar o modificar algo; el estudiante no se ve afectado por esta regla.",
       "fecha_inicio": "Fecha de inicio",
       "fecha_fin": "Fecha de fin",
       "total_sesiones": "Sesiones esperadas",

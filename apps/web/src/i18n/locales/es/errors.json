@@ -81,5 +81,6 @@
   "PORTAL_ACCESO_DENEGADO": "No tienes acceso a este programa.",
   "USUARIO_CLIENTE_DUPLICADO": "Ese usuario ya tiene acceso activo al portal de tu empresa.",
   "USUARIO_CLIENTE_NOT_FOUND": "El usuario del portal no existe o no pertenece a tu empresa.",
-  "CLIENTE_ADMIN_UNICO": "Ya existe un administrador de cliente activo para esta empresa. Desactívalo antes de asignar otro."
+  "CLIENTE_ADMIN_UNICO": "Ya existe un administrador de cliente activo para esta empresa. Desactívalo antes de asignar otro.",
+  "PROGRAMA_GRACIA_VENCIDA": "El plazo de gracia de este programa ya venció: puedes consultar sesiones, asistencia y participantes, pero ya no puedes registrar ni modificar nada."
 }

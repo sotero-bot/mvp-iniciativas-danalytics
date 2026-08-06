@@ -18,6 +18,7 @@ interface Programa {
   fechaInicio: string | null;
   fechaFin: string | null;
   empresa: { id: string; nombre: string } | null;
+  soloLectura?: boolean;
 }
 
 const ESTADO_VARIANT: Record<EstadoPrograma, StatusVariant> = {
@@ -36,7 +37,7 @@ function formatFecha(iso: string, locale?: string): string {
 }
 
 export function FacilitadorProgramasPage() {
-  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common', 'admin']);
+  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common', 'admin', 'errors']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -136,9 +137,16 @@ export function FacilitadorProgramasPage() {
                 <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-text-main)', lineHeight: 1.3 }}>
                   {p.nombre}
                 </div>
-                <StatusBadge variant={ESTADO_VARIANT[p.estado]}>
-                  {t(`facilitador:programas.estado.${p.estado}`)}
-                </StatusBadge>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <StatusBadge variant={ESTADO_VARIANT[p.estado]}>
+                    {t(`facilitador:programas.estado.${p.estado}`)}
+                  </StatusBadge>
+                  {p.soloLectura && (
+                    <span className="chip" title={t('errors:PROGRAMA_GRACIA_VENCIDA')}>
+                      👁️ {t('facilitador:programas.solo_lectura')}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {p.empresa && (

@@ -21,7 +21,7 @@ interface Registro {
 export function FacilitadorAsistenciaPage() {
   const { id: sesionId = '' } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation(['facilitador', 'common', 'admin']);
+  const { t } = useTranslation(['facilitador', 'common', 'admin', 'errors']);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [programaId, setProgramaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +32,8 @@ export function FacilitadorAsistenciaPage() {
   const [confirmarCorreo, setConfirmarCorreo] = useState(false);
   // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
   const [programaNombre, setProgramaNombre] = useState('');
+  // RF-03/RN-03: gracia vencida → el facilitador solo consulta, sin acciones de escritura.
+  const [soloLectura, setSoloLectura] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -54,9 +56,12 @@ export function FacilitadorAsistenciaPage() {
     if (!programaId) return;
     fetchWithErrorMapping(`${API_URL}/programas`)
       .then((res) => res.json())
-      .then((data: { id: string; nombre: string }[]) => {
+      .then((data: { id: string; nombre: string; soloLectura?: boolean }[]) => {
         const p = data.find((x) => x.id === programaId);
-        if (p) setProgramaNombre(p.nombre);
+        if (p) {
+          setProgramaNombre(p.nombre);
+          setSoloLectura(!!p.soloLectura);
+        }
       })
       .catch(() => {});
   }, [programaId]);
@@ -129,6 +134,7 @@ export function FacilitadorAsistenciaPage() {
           type="checkbox"
           className="checkbox-lg"
           checked={r.presente}
+          disabled={soloLectura}
           onChange={() => togglePresente(r.usuarioId)}
           aria-label={`${t('facilitador:asistencia.presente')} — ${r.nombre}`}
         />
@@ -141,6 +147,7 @@ export function FacilitadorAsistenciaPage() {
         <input
           className="input"
           value={r.nota ?? ''}
+          disabled={soloLectura}
           onChange={(e) => setNota(r.usuarioId, e.target.value)}
           aria-label={`${t('facilitador:asistencia.nota')} — ${r.nombre}`}
         />
@@ -162,6 +169,7 @@ export function FacilitadorAsistenciaPage() {
         eyebrow={programaNombre || undefined}
         title={t('facilitador:asistencia.title')}
       />
+      {soloLectura && <Alert variant="warning">{t('errors:PROGRAMA_GRACIA_VENCIDA')}</Alert>}
       {errorCode === 'SESION_FUTURA' && <Alert variant="warning">{t('facilitador:asistencia.future_banner')}</Alert>}
       {errorCode === 'ASISTENCIA_FUERA_DE_PLAZO' && <Alert variant="warning">{t('facilitador:asistencia.locked_banner')}</Alert>}
       {loading && <Loading label={t('common:loading')} />}
@@ -171,7 +179,7 @@ export function FacilitadorAsistenciaPage() {
         <DataTable columns={columns} rows={registros} rowKey={(r) => r.usuarioId} />
       )}
 
-      {!loading && !errorCode && (
+      {!loading && !errorCode && !soloLectura && (
         <div className="card" style={{ padding: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
           <Field label={t('facilitador:asistencia.obs_general_title')}>
             <textarea

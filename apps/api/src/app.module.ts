@@ -21,6 +21,7 @@ import { AdminGruposController } from './modules/grupos/interfaces/admin-grupos.
 import { FacilitadorGruposController } from './modules/grupos/interfaces/facilitador-grupos.controller';
 import { FacilitadorAsistenciaController } from './modules/asistencia/interfaces/facilitador-asistencia.controller';
 import { AdminAsistenciaController } from './modules/asistencia/interfaces/admin-asistencia.controller';
+import { AsistenciaResumenService } from './modules/asistencia/application/asistencia-resumen.service';
 import { FacilitadorObservacionesController } from './modules/observaciones/interfaces/facilitador-observaciones.controller';
 import { AdminObservacionesController } from './modules/observaciones/interfaces/admin-observaciones.controller';
 import { AdminNotificacionesController } from './modules/notificaciones/interfaces/admin-notificaciones.controller';
@@ -210,6 +211,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     TranslationService,
     SnapshotFormulariosService,
     ResultadosService,
+    AsistenciaResumenService,
     UsuarioClienteService,
     // RNF-13: bitácora de auditoría append-only, global (Plan 2 §4.1).
     { provide: APP_INTERCEPTOR, useClass: RegistroAccesoInterceptor },

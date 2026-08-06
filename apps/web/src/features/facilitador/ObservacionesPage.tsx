@@ -10,6 +10,7 @@ import {
   FormListLayout,
   DataTable,
   Loading,
+  Alert,
 } from '../../components/ui';
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
@@ -29,7 +30,7 @@ interface Observacion {
 
 export function FacilitadorObservacionesPage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['facilitador', 'common', 'admin']);
+  const { t } = useTranslation(['facilitador', 'common', 'admin', 'errors']);
   const [observaciones, setObservaciones] = useState<Observacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -38,6 +39,8 @@ export function FacilitadorObservacionesPage() {
   const [texto, setTexto] = useState('');
   // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
   const [programaNombre, setProgramaNombre] = useState('');
+  // RF-03/RN-03: gracia vencida → el facilitador solo consulta, sin acciones de escritura.
+  const [soloLectura, setSoloLectura] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -53,9 +56,12 @@ export function FacilitadorObservacionesPage() {
   useEffect(() => {
     fetchWithErrorMapping(`${API_URL}/programas`)
       .then((res) => res.json())
-      .then((data: { id: string; nombre: string }[]) => {
+      .then((data: { id: string; nombre: string; soloLectura?: boolean }[]) => {
         const p = data.find((x) => x.id === programaId);
-        if (p) setProgramaNombre(p.nombre);
+        if (p) {
+          setProgramaNombre(p.nombre);
+          setSoloLectura(!!p.soloLectura);
+        }
       })
       .catch(() => {});
   }, [programaId]);
@@ -103,6 +109,24 @@ export function FacilitadorObservacionesPage() {
     },
   ];
 
+  const historial = (
+    <div className="section-card">
+      <div className="section-card-header">
+        <span className="section-card-title">{t('facilitador:observaciones.history')}</span>
+        <span className="count-badge">{observaciones.length}</span>
+      </div>
+      {loading && <Loading label={t('common:loading')} />}
+      {!loading && (
+        <DataTable
+          columns={columns}
+          rows={observaciones}
+          rowKey={(o) => o.id}
+          emptyMessage={t('facilitador:observaciones.empty')}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div>
       <Breadcrumb
@@ -117,58 +141,45 @@ export function FacilitadorObservacionesPage() {
         eyebrow={programaNombre || undefined}
         title={t('facilitador:observaciones.title')}
       />
+      {soloLectura && <Alert variant="warning">{t('errors:PROGRAMA_GRACIA_VENCIDA')}</Alert>}
 
-      <FormListLayout
-        form={
-          <form onSubmit={enviar} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>{t('facilitador:observaciones.new')}</div>
-            <Field label={t('facilitador:observaciones.tipo')}>
-              <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                {TIPOS.map((tp) => (
-                  <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t('facilitador:observaciones.urgencia')}>
-              <select className="input" value={urgencia} onChange={(e) => setUrgencia(e.target.value)}>
-                {URGENCIAS.map((u) => (
-                  <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t('facilitador:observaciones.texto')}>
-              <textarea
-                className="textarea"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                rows={4}
-              />
-            </Field>
-            <div className="form-footer">
-              <Button type="submit" variant="primary" disabled={sending}>
-                {sending ? t('common:loading') : t('facilitador:observaciones.send')}
-              </Button>
-            </div>
-          </form>
-        }
-        list={
-          <div className="section-card">
-            <div className="section-card-header">
-              <span className="section-card-title">{t('facilitador:observaciones.history')}</span>
-              <span className="count-badge">{observaciones.length}</span>
-            </div>
-            {loading && <Loading label={t('common:loading')} />}
-            {!loading && (
-              <DataTable
-                columns={columns}
-                rows={observaciones}
-                rowKey={(o) => o.id}
-                emptyMessage={t('facilitador:observaciones.empty')}
-              />
-            )}
-          </div>
-        }
-      />
+      {soloLectura ? historial : (
+        <FormListLayout
+          form={
+            <form onSubmit={enviar} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>{t('facilitador:observaciones.new')}</div>
+              <Field label={t('facilitador:observaciones.tipo')}>
+                <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+                  {TIPOS.map((tp) => (
+                    <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('facilitador:observaciones.urgencia')}>
+                <select className="input" value={urgencia} onChange={(e) => setUrgencia(e.target.value)}>
+                  {URGENCIAS.map((u) => (
+                    <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('facilitador:observaciones.texto')}>
+                <textarea
+                  className="textarea"
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  rows={4}
+                />
+              </Field>
+              <div className="form-footer">
+                <Button type="submit" variant="primary" disabled={sending}>
+                  {sending ? t('common:loading') : t('facilitador:observaciones.send')}
+                </Button>
+              </div>
+            </form>
+          }
+          list={historial}
+        />
+      )}
     </div>
   );
 }

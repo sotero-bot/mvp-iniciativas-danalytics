@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { EstadoSesion } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
@@ -8,6 +9,7 @@ import { EmailService } from '../../email/email.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+import { AsistenciaResumenService } from '../application/asistencia-resumen.service';
 
 const EDICION_VENTANA_MS = 24 * 60 * 60 * 1000; // RF-19: 24 h desde el primer registro
 
@@ -27,6 +29,8 @@ interface ObservacionGeneralDto {
 }
 
 // RF-17/RF-18/RF-19/RF-10: el facilitador toma asistencia de sus sesiones.
+// RF-20/RF-21: y consulta/exporta el resumen (matriz sesión × participante) de
+// sus propios programas.
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('facilitador')
 @Controller('facilitador')
@@ -35,7 +39,34 @@ export class FacilitadorAsistenciaController {
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
     private readonly email: EmailService,
+    private readonly asistenciaResumen: AsistenciaResumenService,
   ) {}
+
+  // RF-20: mismo resumen (matriz sesión × participante) que ve el admin, pero
+  // acotado a los programas del facilitador. Lectura: disponible incluso con la
+  // gracia vencida (assertProgramaAccessible, no assertProgramaEditable).
+  @Get('programas/:id/asistencia/resumen')
+  async resumen(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    return this.asistenciaResumen.build(programaId);
+  }
+
+  // RF-21: export a Excel del mismo resumen; también disponible en solo-lectura.
+  @Get('programas/:id/asistencia/export')
+  async exportar(
+    @Param('id') programaId: string,
+    @CurrentUser() actor: AuthUser,
+    @Res() res: Response,
+  ) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    const workbook = await this.asistenciaResumen.buildWorkbook(programaId);
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="asistencia.xlsx"',
+    });
+    res.send(Buffer.from(buffer));
+  }
 
   @Get('sesiones/:id/asistencia')
   async listAsistencia(@Param('id') sesionId: string, @CurrentUser() actor: AuthUser) {
@@ -68,7 +99,7 @@ export class FacilitadorAsistenciaController {
     @CurrentUser() actor: AuthUser,
   ) {
     const sesion = await this.getSesionOrThrow(sesionId);
-    await this.scope.assertProgramaAccessible(this.prisma, actor, sesion.programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, sesion.programaId);
 
     // RF-18: solo sesión actual o anteriores.
     if (sesion.fechaProgramada.getTime() > Date.now()) {
@@ -141,7 +172,7 @@ export class FacilitadorAsistenciaController {
     @CurrentUser() actor: AuthUser,
   ) {
     const sesion = await this.getSesionOrThrow(sesionId);
-    await this.scope.assertProgramaAccessible(this.prisma, actor, sesion.programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, sesion.programaId);
 
     const texto = (body?.texto ?? '').trim();
     if (!texto) {

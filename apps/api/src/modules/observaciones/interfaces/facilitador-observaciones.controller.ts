@@ -44,7 +44,7 @@ export class FacilitadorObservacionesController {
     @Body() body: CreateObservacionDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, programaId);
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
 

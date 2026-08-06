@@ -71,7 +71,7 @@ export class FacilitadorGruposController {
     @Body() body: CreateGrupoDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, programaId);
     const last = await this.prisma.grupo.findFirst({
       where: { programaId },
       orderBy: { orden: 'desc' },
@@ -99,7 +99,7 @@ export class FacilitadorGruposController {
   ) {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
-    await this.scope.assertProgramaAccessible(this.prisma, actor, grupo.programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, grupo.programaId);
 
     // RN-04: el usuario debe ser participante activo del mismo programa.
     const participante = await this.prisma.participantePrograma.findFirst({

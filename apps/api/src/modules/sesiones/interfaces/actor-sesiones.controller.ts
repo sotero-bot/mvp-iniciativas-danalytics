@@ -44,7 +44,7 @@ export class ActorSesionesController {
   // conocido). Reutiliza el mismo fragmento WHERE que assertProgramaAccessible.
   @Get('programas')
   async listMisProgramas(@CurrentUser() actor: AuthUser) {
-    return this.prisma.programa.findMany({
+    const programas = await this.prisma.programa.findMany({
       where: this.scope.programaScope(actor),
       select: {
         id: true,
@@ -52,10 +52,14 @@ export class ActorSesionesController {
         estado: true,
         fechaInicio: true,
         fechaFin: true,
+        diasGracia: true,
         empresa: { select: { id: true, nombre: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+    // RF-03/RN-03: el facilitador con la gracia vencida sigue viendo el programa
+    // (lectura), pero el frontend usa este flag para ocultar las acciones de escritura.
+    return programas.map((p) => ({ ...p, soloLectura: this.scope.graciaVencida(actor, p) }));
   }
 
   // Confirmación de matrícula (RN nueva): el estudiante debe aceptar en la plataforma su
@@ -411,7 +415,7 @@ export class ActorSesionesController {
       select: { id: true, programaId: true, fechaProgramada: true },
     });
     if (!sesion) throw new AppError('SESION_NOT_FOUND');
-    await this.scope.assertProgramaAccessible(this.prisma, actor, sesion.programaId);
+    await this.scope.assertProgramaEditable(this.prisma, actor, sesion.programaId);
     if (sesion.fechaProgramada.getTime() > Date.now()) throw new AppError('SESION_FUTURA');
     const url = body?.urlGrabacion?.trim() || null;
     await this.prisma.sesion.update({ where: { id: sesionId }, data: { urlGrabacion: url } });

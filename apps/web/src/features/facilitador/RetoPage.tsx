@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo } from '../estudiante/FormularioResponderPage';
-import { Breadcrumb, PageHeader, Button, Loading, EmptyState } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState, Alert } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -37,7 +37,7 @@ type Pestana = 'bitacoras' | 'plantillas';
 // TODOS los grupos de su programa en SOLO lectura (sin edición ni export, RN-07).
 export function FacilitadorRetoPage() {
   const { id: programaId = '' } = useParams();
-  const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common', 'admin']);
+  const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common', 'admin', 'errors']);
   const [pestana, setPestana] = useState<Pestana>('bitacoras');
   const [data, setData] = useState<Record<Pestana, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
   const [loading, setLoading] = useState(false);
@@ -45,6 +45,8 @@ export function FacilitadorRetoPage() {
   const [bitacoraHabilitada, setBitacoraHabilitada] = useState<boolean | null>(null);
   // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
   const [programaNombre, setProgramaNombre] = useState('');
+  // RF-03/RN-03: gracia vencida → el facilitador solo consulta, sin acciones de escritura.
+  const [soloLectura, setSoloLectura] = useState(false);
 
   const cargarEstadoBitacora = () => {
     fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/bitacora/estado`)
@@ -58,9 +60,12 @@ export function FacilitadorRetoPage() {
   useEffect(() => {
     fetchWithErrorMapping(`${API_URL}/programas`)
       .then((res) => res.json())
-      .then((programas: { id: string; nombre: string }[]) => {
+      .then((programas: { id: string; nombre: string; soloLectura?: boolean }[]) => {
         const p = programas.find((x) => x.id === programaId);
-        if (p) setProgramaNombre(p.nombre);
+        if (p) {
+          setProgramaNombre(p.nombre);
+          setSoloLectura(!!p.soloLectura);
+        }
       })
       .catch(() => { /* no bloquea la vista */ });
   }, [programaId]);
@@ -116,6 +121,7 @@ export function FacilitadorRetoPage() {
         title={t('formularios:reto.title')}
         description={t('formularios:reto.solo_lectura')}
       />
+      {soloLectura && <Alert variant="warning">{t('errors:PROGRAMA_GRACIA_VENCIDA')}</Alert>}
 
       <div style={{ marginBottom: 'var(--space-5)' }}>
         <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>
@@ -133,9 +139,11 @@ export function FacilitadorRetoPage() {
             {bitacoraHabilitada ? '🟢 ' : '🔒 '}
             {bitacoraHabilitada ? t('formularios:reto.bitacora_habilitada') : t('formularios:reto.bitacora_no_habilitada')}
           </div>
-          <Button variant="primary" size="sm" onClick={toggleBitacora}>
-            {bitacoraHabilitada ? t('formularios:reto.bitacora_deshabilitar') : t('formularios:reto.bitacora_habilitar')}
-          </Button>
+          {!soloLectura && (
+            <Button variant="primary" size="sm" onClick={toggleBitacora}>
+              {bitacoraHabilitada ? t('formularios:reto.bitacora_deshabilitar') : t('formularios:reto.bitacora_habilitar')}
+            </Button>
+          )}
         </div>
       )}
 

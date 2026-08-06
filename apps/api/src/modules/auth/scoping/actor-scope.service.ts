@@ -71,29 +71,63 @@ export class ActorScopeService {
   }
 
   /**
-   * Verifica que el actor puede acceder a un `Programa` concreto; si no, 403.
-   * Resuelve el scope contra la BD (una sola query por `id` + filtro de actor).
-   *
-   * RF-03/RN-03: si el actor es `facilitador` y el programa está `finalizado` con
-   * el plazo de gracia (días hábiles) ya vencido, también es 403 — así se revoca
-   * el acceso del facilitador sin necesitar un cron.
+   * Verifica que el actor puede acceder (SOLO LECTURA) a un `Programa` concreto;
+   * si no, 403. Resuelve el scope contra la BD (una sola query por `id` + filtro
+   * de actor). No aplica la regla de gracia (RF-03/RN-03): un facilitador con la
+   * gracia vencida sigue viendo sesiones/asistencia/grupos — para bloquear
+   * escritura usa `assertProgramaEditable`.
    */
   async assertProgramaAccessible(
     prisma: { programa: { findFirst: (args: unknown) => Promise<ProgramaAccesoRow | null> } },
     actor: AuthUser,
     programaId: string,
   ): Promise<void> {
+    await this.findProgramaScoped(prisma, actor, programaId);
+  }
+
+  /**
+   * Verifica que el actor puede ESCRIBIR (crear/editar/registrar) sobre un
+   * `Programa` concreto; si no, 403.
+   *
+   * RF-03/RN-03: si el actor es `facilitador` y el programa está `finalizado` con
+   * el plazo de gracia (días hábiles) ya vencido, pierde la escritura (pero no la
+   * lectura, ver `assertProgramaAccessible`) — así se revoca sin necesitar un cron.
+   */
+  async assertProgramaEditable(
+    prisma: { programa: { findFirst: (args: unknown) => Promise<ProgramaAccesoRow | null> } },
+    actor: AuthUser,
+    programaId: string,
+  ): Promise<void> {
+    const found = await this.findProgramaScoped(prisma, actor, programaId);
+    if (this.graciaVencida(actor, found)) {
+      throw new AppError('PROGRAMA_GRACIA_VENCIDA');
+    }
+  }
+
+  /**
+   * ¿Perdió el facilitador la ventana de escritura de este programa? Expuesto
+   * para que los endpoints de lectura informen al frontend (modo solo-lectura)
+   * sin necesitar una query aparte.
+   */
+  graciaVencida(actor: AuthUser, programa: ProgramaAccesoRow): boolean {
+    if (actor.role !== 'facilitador' || programa.estado !== 'finalizado' || !programa.fechaFin) {
+      return false;
+    }
+    const vigenteHasta = addBusinessDays(programa.fechaFin, programa.diasGracia);
+    return vigenteHasta.getTime() < Date.now();
+  }
+
+  private async findProgramaScoped(
+    prisma: { programa: { findFirst: (args: unknown) => Promise<ProgramaAccesoRow | null> } },
+    actor: AuthUser,
+    programaId: string,
+  ): Promise<ProgramaAccesoRow> {
     const found = await prisma.programa.findFirst({
       where: { AND: [{ id: programaId }, this.programaScope(actor)] },
       select: { id: true, estado: true, fechaFin: true, diasGracia: true },
     });
     if (!found) throw new AppError('FORBIDDEN');
-    if (actor.role === 'facilitador' && found.estado === 'finalizado' && found.fechaFin) {
-      const vigenteHasta = addBusinessDays(found.fechaFin, found.diasGracia);
-      if (vigenteHasta.getTime() < Date.now()) {
-        throw new AppError('FORBIDDEN');
-      }
-    }
+    return found;
   }
 
   private requireEmpresa(actor: AuthUser): string {

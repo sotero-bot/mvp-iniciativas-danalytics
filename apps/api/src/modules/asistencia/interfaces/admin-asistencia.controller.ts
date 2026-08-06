@@ -1,30 +1,25 @@
 import { Body, Controller, Get, Param, Patch, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
-import ExcelJS from 'exceljs';
 
 import { PrismaService } from '../../../prisma.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import { CLIENTE_ROLE_SLUGS } from '../../auth/guards/auth-user';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+import { AsistenciaResumenService } from '../application/asistencia-resumen.service';
 
 interface PatchAsistenciaDto {
   presente?: boolean;
   nota?: string | null;
 }
 
-interface ResumenRow {
-  usuarioId: string;
-  nombre: string;
-  email: string;
-  porSesion: Record<string, boolean>;
-  porcentaje: number;
-}
-
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('admin')
 export class AdminAsistenciaController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly asistenciaResumen: AsistenciaResumenService,
+  ) {}
 
   // RF-19: el admin edita sin límite de 24 h (a diferencia del facilitador).
   @Roles('danalytics_admin')
@@ -41,14 +36,16 @@ export class AdminAsistenciaController {
     });
   }
 
-  // RF-20/RN-07: admin y roles cliente ven el resumen (el facilitador NO exporta ni ve esta vista).
+  // RF-20/RN-07: admin y roles cliente ven el resumen (el facilitador tiene su
+  // propio endpoint equivalente en FacilitadorAsistenciaController).
   @Roles('danalytics_admin', ...CLIENTE_ROLE_SLUGS)
   @Get('programas/:id/asistencia/resumen')
   async resumen(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
-    return this.buildResumen(programaId, actor);
+    await this.assertAccesible(programaId, actor);
+    return this.asistenciaResumen.build(programaId);
   }
 
-  // RF-21/RN-07: solo danalytics_admin exporta.
+  // RF-21/RN-07: solo danalytics_admin exporta desde esta vista.
   @Roles('danalytics_admin')
   @Get('programas/:id/asistencia/export')
   async exportar(
@@ -56,19 +53,8 @@ export class AdminAsistenciaController {
     @CurrentUser() actor: AuthUser,
     @Res() res: Response,
   ) {
-    const { sesiones, filas } = await this.buildResumen(programaId, actor);
-
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Asistencia');
-    sheet.addRow(['Participante', 'Email', ...sesiones.map(s => `S${s.numeroSesion} · ${s.titulo}`), '%']);
-    for (const fila of filas) {
-      sheet.addRow([
-        fila.nombre,
-        fila.email,
-        ...sesiones.map(s => (fila.porSesion[s.id] ? 'Sí' : 'No')),
-        `${Math.round(fila.porcentaje * 100)}%`,
-      ]);
-    }
+    await this.assertAccesible(programaId, actor);
+    const workbook = await this.asistenciaResumen.buildWorkbook(programaId);
     const buffer = await workbook.xlsx.writeBuffer();
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -77,10 +63,7 @@ export class AdminAsistenciaController {
     res.send(Buffer.from(buffer));
   }
 
-  private async buildResumen(
-    programaId: string,
-    actor: AuthUser,
-  ): Promise<{ sesiones: { id: string; numeroSesion: number; titulo: string; fechaProgramada: Date }[]; filas: ResumenRow[] }> {
+  private async assertAccesible(programaId: string, actor: AuthUser): Promise<void> {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
     if (
@@ -89,35 +72,5 @@ export class AdminAsistenciaController {
     ) {
       throw new AppError('FORBIDDEN');
     }
-
-    const [sesiones, participantes, asistencias] = await Promise.all([
-      this.prisma.sesion.findMany({
-        where: { programaId },
-        select: { id: true, numeroSesion: true, titulo: true, fechaProgramada: true },
-        orderBy: { numeroSesion: 'asc' },
-      }),
-      this.prisma.participantePrograma.findMany({
-        where: { programaId, activo: true },
-        select: { usuarioId: true, usuario: { select: { id: true, nombre: true, email: true } } },
-      }),
-      this.prisma.asistencia.findMany({ where: { sesion: { programaId } } }),
-    ]);
-
-    const totalSesiones = sesiones.length || 1;
-    const filas: ResumenRow[] = participantes.map(p => {
-      const propias = asistencias.filter(a => a.usuarioId === p.usuarioId);
-      const porSesion: Record<string, boolean> = {};
-      for (const a of propias) porSesion[a.sesionId] = a.presente;
-      const presentes = propias.filter(a => a.presente).length;
-      return {
-        usuarioId: p.usuarioId,
-        nombre: p.usuario.nombre,
-        email: p.usuario.email,
-        porSesion,
-        porcentaje: presentes / totalSesiones,
-      };
-    });
-
-    return { sesiones, filas };
   }
 }
