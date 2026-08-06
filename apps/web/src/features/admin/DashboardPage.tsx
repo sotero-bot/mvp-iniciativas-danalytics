@@ -106,12 +106,12 @@ export function DashboardPage() {
       )}
 
       {/* Flujo de trabajo */}
-      <div style={{ marginBottom: 'var(--space-5)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-          <h2 style={{ margin: 0, fontSize: '1rem' }}>{t('admin:dashboard_v2.workflow_title')}</h2>
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('admin:dashboard_v2.workflow_subtitle')}</span>
+      <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+        <div className="section-card-header">
+          <span className="section-card-title">{t('admin:dashboard_v2.workflow_title')}</span>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{t('admin:dashboard_v2.workflow_subtitle')}</span>
         </div>
-
+        <div className="section-card-body">
         <div className="card-grid">
           {steps.map(step => {
             const body = (
@@ -154,6 +154,7 @@ export function DashboardPage() {
               </Link>
             );
           })}
+        </div>
         </div>
       </div>
 

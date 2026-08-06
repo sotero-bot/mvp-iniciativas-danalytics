@@ -227,7 +227,6 @@ export function RunnerResultsPage() {
             <div style={{
                 position: 'sticky', top: 0, zIndex: 100,
                 background: 'var(--color-bg-card)',
-                borderBottom: '1px solid var(--color-border)',
                 padding: '0 var(--space-5)', height: 52,
                 display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
             }}>
@@ -341,7 +340,6 @@ export function RunnerResultsPage() {
                                 <div style={{
                                     padding: 'var(--space-4) var(--space-5)',
                                     background: 'var(--color-bg-subtle)',
-                                    borderBottom: '1px solid var(--color-border)',
                                     display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start',
                                 }}>
                                     <div style={{
@@ -377,7 +375,6 @@ export function RunnerResultsPage() {
                                                 return (
                                                     <div key={q.id} style={{
                                                         paddingBottom: qIdx < preguntas.length - 1 ? 'var(--space-4)' : 0,
-                                                        borderBottom: qIdx < preguntas.length - 1 ? '1px solid var(--color-border-soft)' : 'none',
                                                     }}>
                                                         {preguntas.length > 1 && (
                                                             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

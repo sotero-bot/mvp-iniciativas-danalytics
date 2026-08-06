@@ -389,7 +389,7 @@ export function ActividadesPage() {
 
             {/* Filtro por empresa */}
             {loaded && empresas.length > 1 && (
-              <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--color-bg-subtle)' }}>
                 <FilterToolbar>
                   <span aria-hidden="true">🏢</span>
                   <Field label={t('methodology:actividades.filter.empresa_label')} htmlFor="act-empresa-filtro">

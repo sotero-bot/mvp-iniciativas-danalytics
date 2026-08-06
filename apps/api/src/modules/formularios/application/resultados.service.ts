@@ -89,8 +89,8 @@ export class ResultadosService {
   // RF-34 (solo admin): individuales + comparativo inicial vs. final. Escala y
   // selección se comparan por separado — nunca se combinan (ver scoring.ts).
   async diagnosticoDetalle(programaId: string): Promise<{
-    inicial: DiagnosticoAgregado & { individuales: DiagnosticoIndividual[] };
-    final: DiagnosticoAgregado & { individuales: DiagnosticoIndividual[] };
+    inicial: DiagnosticoAgregado & { porCampo: CampoAgregado[]; individuales: DiagnosticoIndividual[] };
+    final: DiagnosticoAgregado & { porCampo: CampoAgregado[]; individuales: DiagnosticoIndividual[] };
     comparativo: DimensionesPorCategoria<ComparativoDimension>;
   }> {
     const [inicial, final] = await Promise.all([
@@ -166,6 +166,8 @@ export class ResultadosService {
     const respuestas = await this.prisma.respuestaFormulario.findMany({
       where: this.whereRespuestasDeTipo(programaId, tipo),
       select: {
+        plantillaId: true,
+        datosRespuestaJson: true,
         scoresPorDimensionJson: true,
         enviadoEn: true,
         usuarioRespondiente: { select: { id: true, nombre: true, email: true } },
@@ -173,11 +175,25 @@ export class ResultadosService {
       orderBy: { enviadoEn: 'asc' },
     });
 
+    // Solo los campos de las plantillas efectivamente respondidas (igual que
+    // diagnosticoInicialGlobal) — evita mostrar preguntas de versiones sin respuestas.
+    const plantillaIds = [...new Set(respuestas.map(r => r.plantillaId))];
+    const campos = plantillaIds.length
+      ? await this.prisma.campoFormulario.findMany({
+          where: { plantillaId: { in: plantillaIds } },
+          select: { id: true, campoPadreId: true, tipoCampo: true, etiqueta: true, orden: true, configJson: true },
+          orderBy: { orden: 'asc' },
+        })
+      : [];
+    const camposTop = campos.filter(c => !c.campoPadreId);
+    const datosList = respuestas.map(r => (r.datosRespuestaJson ?? {}) as Record<string, unknown>);
+
     return {
       totalRespuestas: respuestas.length,
       dimensiones: agregarScoresPorDimension(
         respuestas.map(r => r.scoresPorDimensionJson as unknown as ScoresPorDimension | null),
       ),
+      porCampo: agregarPorCampo(camposTop, datosList),
       individuales: respuestas
         .filter(r => r.usuarioRespondiente)
         .map(r => ({

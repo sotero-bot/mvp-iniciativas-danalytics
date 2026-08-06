@@ -127,6 +127,7 @@ export function FacilitadorAsistenciaPage() {
       render: (r) => (
         <input
           type="checkbox"
+          className="checkbox-lg"
           checked={r.presente}
           onChange={() => togglePresente(r.usuarioId)}
           aria-label={`${t('facilitador:asistencia.presente')} — ${r.nombre}`}

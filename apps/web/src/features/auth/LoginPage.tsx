@@ -132,7 +132,7 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         </form>
 
         {/* C-06: enlace de acceso por correo (magic link) */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem' }}>
           <Field label={t('auth:login_page.magic_label')} htmlFor="login-magic-email">
             <form onSubmit={handleMagicLink} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input

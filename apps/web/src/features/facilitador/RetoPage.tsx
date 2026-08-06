@@ -117,7 +117,7 @@ export function FacilitadorRetoPage() {
         description={t('formularios:reto.solo_lectura')}
       />
 
-      <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-5)' }}>
+      <div style={{ marginBottom: 'var(--space-5)' }}>
         <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>
           📓 {t('formularios:reto.bitacoras')}
         </button>

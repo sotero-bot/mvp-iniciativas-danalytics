@@ -496,8 +496,6 @@ select.input {
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .page-header h1 {
@@ -1630,6 +1628,41 @@ textarea.gform-input {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Desglose por pregunta/campo: 1 columna en móvil, 2 en tablet, máx. 3 en
+   pantallas grandes (no auto-fit — evita columnas demasiado anchas). */
+.campo-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .campo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .campo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Escala numérica / opción múltiple lado a lado en pantallas grandes; cada
+   columna es independiente en altura (no se estiran entre sí). */
+.categoria-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 1200px) {
+  .categoria-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ─── Field (label + control asociado) ─── */
 .field {
   display: block;
@@ -1962,6 +1995,30 @@ textarea.gform-input {
   font-size: 0.75rem;
   font-weight: 700;
   border-radius: var(--radius-pill);
+}
+
+/* Checkbox grande y clicable (tablas de selección, ej. asistencia). */
+.checkbox-lg {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Fila de acciones de una sesión (facilitador): columnas fijas para que
+   los botones se alineen entre sesiones aunque el texto (idioma) o la
+   presencia de cada acción varíe. */
+.sesion-actions-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(170px, 220px) minmax(140px, 180px);
+  gap: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .sesion-actions-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
 }
 
 /* ─── Chip (etiqueta de dato, p. ej. empresa) ─── */

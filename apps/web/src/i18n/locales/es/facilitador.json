@@ -1,6 +1,7 @@
 {
   "programas": {
     "title": "Mis programas",
+    "section_title": "Programas asignados",
     "empty": "No tienes programas asignados.",
     "sin_resultados": "Ningún programa coincide con los filtros.",
     "empresa": "Empresa",

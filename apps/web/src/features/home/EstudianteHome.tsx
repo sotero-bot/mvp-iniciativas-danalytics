@@ -124,9 +124,12 @@ export function EstudianteHome() {
       {/* Pendientes de acción: cada uno enlaza a su acción real (formulario concreto,
           confirmación del programa, reto del grupo) y muestra el programa al que pertenece. */}
       {data.pendientes.length > 0 && (
-        <div>
-          <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('pendientes_title')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+        <div className="section-card">
+          <div className="section-card-header">
+            <span className="section-card-title">{t('pendientes_title')}</span>
+            <span className="count-badge">{data.pendientes.length}</span>
+          </div>
+          <div className="section-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {data.pendientes.map((p, i) => (
               <Link
                 key={`${p.tipo}-${p.plantillaId ?? p.programaId ?? i}`}
@@ -148,27 +151,36 @@ export function EstudianteHome() {
       )}
 
       {/* Próxima sesión: la más cercana en el futuro, entre todos los programas. */}
-      <div>
-        <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('proxima_title')}</h3>
-        {data.proximaSesion ? (
-          <ProximaSesionCard sesion={data.proximaSesion} lang={i18n.language} t={t} />
-        ) : (
-          <EmptyState title={t('proxima_empty')} />
-        )}
+      <div className="section-card">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('proxima_title')}</span>
+        </div>
+        <div className="section-card-body">
+          {data.proximaSesion ? (
+            <ProximaSesionCard sesion={data.proximaSesion} lang={i18n.language} t={t} />
+          ) : (
+            <EmptyState title={t('proxima_empty')} />
+          )}
+        </div>
       </div>
 
       {/* Resumen por programa con progreso de sesiones, grupo y estado del reto. */}
-      <div>
-        <h3 style={{ margin: `0 0 var(--space-3)` }}>{t('programas_title')}</h3>
-        {data.programas.length === 0 ? (
-          <EmptyState title={t('programas_empty')} />
-        ) : (
-          <div className="card-grid">
-            {data.programas.map((prog) => (
-              <ProgramaCard key={prog.id} programa={prog} t={t} />
-            ))}
-          </div>
-        )}
+      <div className="section-card">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('programas_title')}</span>
+          <span className="count-badge">{data.programas.length}</span>
+        </div>
+        <div className="section-card-body">
+          {data.programas.length === 0 ? (
+            <EmptyState title={t('programas_empty')} />
+          ) : (
+            <div className="card-grid">
+              {data.programas.map((prog) => (
+                <ProgramaCard key={prog.id} programa={prog} t={t} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

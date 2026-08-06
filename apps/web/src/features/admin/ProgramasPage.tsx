@@ -539,7 +539,7 @@ function ProgramaFormModal({
       maxWidth={620}
     >
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 4 }}>
             <button type="button" onClick={() => setLangTab('es')} className="btn-link" style={tabStyle(langTab === 'es')}>
               🇪🇸 {t('admin:programas.lang.es')}
             </button>
@@ -904,12 +904,14 @@ function ProgramaDetailDrawer({
   // O-01: habilitar/deshabilitar la bitácora para los grupos del programa.
   const toggleBitacora = async () => {
     if (!programa) return;
+    const habilitar = !programa.bitacoraHabilitadaEn;
     try {
       await fetchWithErrorMapping(`${API_URL}/admin/programas/${programa.id}/bitacora/habilitar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ habilitar: !programa.bitacoraHabilitadaEn }),
+        body: JSON.stringify({ habilitar }),
       });
+      toast.success(t(habilitar ? 'admin:programas.bitacora.habilitada' : 'admin:programas.bitacora.no_habilitada'));
       load();
     } catch (err) {
       toast.error(translateError(err));
@@ -952,7 +954,7 @@ function ProgramaDetailDrawer({
           }}>×</button>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--color-border)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           <button onClick={() => setTab('sesiones')} className="btn-link" style={tabStyle(tab === 'sesiones')}>
             {t('admin:programas.tabs.sesiones')} ({programa?.sesiones.length ?? 0})
           </button>
@@ -1040,6 +1042,13 @@ function ProgramaDetailDrawer({
                         <StatusBadge variant={s.estado === 'completada' ? 'success' : 'neutral'}>
                           {t(`programa:sesion_estado.${s.estado}`)}
                         </StatusBadge>
+                        {s.estado === 'completada' && !s.urlGrabacion && (
+                          <div style={{ marginTop: 4 }}>
+                            <StatusBadge variant="warning">
+                              {t('admin:programas.sesiones.sin_grabacion')}
+                            </StatusBadge>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
@@ -1462,7 +1471,7 @@ function SesionFormModal({
       maxWidth={520}
     >
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 4 }}>
             <button type="button" onClick={() => setLangTab('es')} className="btn-link" style={tabStyle(langTab === 'es')}>
               🇪🇸 {t('admin:programas.lang.es')}
             </button>
@@ -1921,7 +1930,7 @@ function MatriculaModal({
       )}
       </>)}
 
-      <div style={sinDisponibles ? undefined : { borderTop: '1px solid var(--color-border)', marginTop: 14, paddingTop: 12 }}>
+      <div style={sinDisponibles ? undefined : { marginTop: 14, paddingTop: 12 }}>
         {!mostrarNuevo && !sinDisponibles ? (
           <button className="btn-link" onClick={() => setMostrarNuevo(true)}>
             {t('admin:programas.participantes.picker.nuevo_toggle')}

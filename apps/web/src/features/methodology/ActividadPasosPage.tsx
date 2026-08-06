@@ -341,7 +341,7 @@ export function ActividadPasosPage() {
 
             return (
               <div key={p.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: '1rem 1.25rem', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: '1rem 1.25rem', backgroundColor: 'var(--color-bg-subtle)' }}>
                   <span className="status-badge" style={{ background: 'var(--color-primary)', color: 'var(--color-bg-card)', fontWeight: 700, minWidth: 28, justifyContent: 'center' }}>
                     {p.orden}
                   </span>
@@ -376,7 +376,7 @@ export function ActividadPasosPage() {
                 </div>
 
                 {transOpenPasoId === p.id && (
-                  <div style={{ padding: '0 1.25rem 0.75rem', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ padding: '0 1.25rem 0.75rem' }}>
                     <TranslationPanel
                       fields={PASO_TRANS_FIELDS}
                       getUrl={(loc) => `${API_URL}/admin/actividades/${id}/pasos/${p.id}/translations?locale=${loc}`}
@@ -385,7 +385,7 @@ export function ActividadPasosPage() {
                   </div>
                 )}
 
-                <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ padding: '0.6rem 1.25rem', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{t('methodology:pasos.ejemplo.label')}</span>
                   {p.ejemploKey ? (
                     <>
@@ -587,7 +587,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
             </div>
           )}
 
-          <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+          <div style={{ gridColumn: 'span 2', paddingTop: '0.75rem' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t('methodology:preguntas.ia_config_title')}
             </div>

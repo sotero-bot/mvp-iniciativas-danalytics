@@ -93,7 +93,6 @@ function RunnerHeader({ nombreActividad, nombreEmpresa, logoEmpresa }: {
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
       height: 52,
       background: 'var(--color-bg-card)',
-      borderBottom: '1px solid var(--color-border)',
       display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
       padding: '0 1.5rem',
     }}>
@@ -182,7 +181,7 @@ function ActivityBranding({ nombreActividad, nombreEmpresa, logoEmpresa, border 
     <div style={{
       textAlign: 'center',
       marginBottom: 20,
-      ...(border ? { paddingBottom: 20, borderBottom: '1px solid var(--color-border)' } : {}),
+      ...(border ? { paddingBottom: 20 } : {}),
     }}>
       {logoEmpresa ? (
         <img src={logoEmpresa} alt={nombreEmpresa}
@@ -769,7 +768,7 @@ export function RunnerPage() {
           <div className="card runner-card">
 
             {/* Activity info */}
-            <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{ marginBottom: '2rem', paddingBottom: '2rem' }}>
 
               <ActivityBranding
                 nombreActividad={data.nombreActividad}
@@ -990,10 +989,7 @@ export function RunnerPage() {
                   {data.plantillaAnterior.respuestas.map((r, i) => {
                     const contenido = r.contenidoArchivo || r.respuestaUsuario || r.respuestaIa || r.contenido || '';
                     return (
-                      <div key={i} style={{
-                        borderBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? '1px solid var(--color-border-soft)' : 'none',
-                        paddingBottom: i < data.plantillaAnterior!.respuestas.length - 1 ? 14 : 0,
-                      }}>
+                      <div key={i} style={{ border: '1px solid var(--color-border)', padding: 14 }}>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-info)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           {t('execution:runner.plantilla_anterior.step_label', { orden: r.pasoOrden, titulo: r.pasoTitulo })}
                         </div>
@@ -1096,7 +1092,6 @@ export function RunnerPage() {
                   display: 'flex', alignItems: 'flex-start', gap: 10,
                   padding: '12px 20px',
                   background: 'var(--color-bg-page)',
-                  borderBottom: '1px solid var(--color-border)',
                 }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,

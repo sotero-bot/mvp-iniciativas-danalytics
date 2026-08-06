@@ -165,7 +165,7 @@
       "edit": "Editar",
       "details": "Ver detalle",
       "cancel": "Cancelar programa",
-      "diagnostico": "Diagnóstico",
+      "diagnostico": "Diagnóstico del programa",
       "asistencia": "Asistencia",
       "matricular": "Matricular"
     },
@@ -179,7 +179,7 @@
       "estado": "Estado",
       "timezone": "Zona horaria",
       "dias_gracia": "Días de gracia",
-      "dias_gracia_hint": "Días hábiles que el facilitador conserva acceso al programa después de que se marque como finalizado.",
+      "dias_gracia_hint": "Días hábiles que el facilitador conserva acceso al programa después de que se marque como finalizado. Al vencer ese plazo (\"gracia vencida\"), el facilitador pierde el acceso automáticamente; el estudiante no se ve afectado por esta regla.",
       "fecha_inicio": "Fecha de inicio",
       "fecha_fin": "Fecha de fin",
       "total_sesiones": "Sesiones esperadas",
@@ -225,6 +225,7 @@
     },
     "sesiones": {
       "empty": "Aún no hay sesiones. Añade la primera para arrancar.",
+      "sin_grabacion": "Sin grabación",
       "columns": {
         "titulo": "Título",
         "fecha": "Fecha programada",
@@ -462,8 +463,10 @@
     "empty": "Aún no hay datos de asistencia para este programa.",
     "participante": "Participante",
     "sesion_n": "S{{n}}",
-    "presente": "Presente",
-    "ausente": "Ausente"
+    "presente": "Asistió",
+    "ausente": "No asistió",
+    "no_registrado": "No registrado (aún sin tomar asistencia)",
+    "no_registrado_corto": "No registrado"
   },
   "observaciones": {
     "title": "Observaciones",

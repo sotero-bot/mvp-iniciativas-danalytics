@@ -70,6 +70,26 @@ export class AdminResultadosController {
       }
     }
 
+    // Por pregunta (opción múltiple → conteo; likert/número → promedio; texto →
+    // cada respuesta en su fila), una hoja por bloque (igual que el global).
+    for (const [nombre, bloque] of [
+      ['Por pregunta - Inicial', detalle.inicial],
+      ['Por pregunta - Final', detalle.final],
+    ] as const) {
+      const sheet = workbook.addWorksheet(nombre);
+      sheet.addRow(['Pregunta', 'Tipo', 'Detalle', 'Valor', 'N']);
+      for (const c of bloque.porCampo) {
+        if ('opciones' in c) {
+          for (const op of c.opciones) sheet.addRow([c.etiqueta, c.tipoCampo, op.etiqueta, op.conteo, c.n]);
+        } else if ('promedio' in c) {
+          sheet.addRow([c.etiqueta, c.tipoCampo, 'Promedio', c.promedio, c.n]);
+        } else {
+          if (c.textos.length === 0) sheet.addRow([c.etiqueta, c.tipoCampo, '', '', c.n]);
+          for (const texto of c.textos) sheet.addRow([c.etiqueta, c.tipoCampo, 'Respuesta', texto, c.n]);
+        }
+      }
+    }
+
     const buffer = await workbook.xlsx.writeBuffer();
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

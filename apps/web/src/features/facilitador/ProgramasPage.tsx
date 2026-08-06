@@ -102,6 +102,12 @@ export function FacilitadorProgramasPage() {
         </FilterToolbar>
       )}
 
+      <div className="section-card" style={{ marginTop: 'var(--space-4)' }}>
+        <div className="section-card-header">
+          <span className="section-card-title">{t('facilitador:programas.section_title')}</span>
+          <span className="count-badge">{programasFiltrados.length}</span>
+        </div>
+        <div className="section-card-body">
       {loading && <Loading label={t('common:loading')} />}
       {!loading && programas.length === 0 && <EmptyState title={t('facilitador:programas.empty')} />}
       {!loading && programas.length > 0 && programasFiltrados.length === 0 && (
@@ -112,7 +118,6 @@ export function FacilitadorProgramasPage() {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
         gap: 'var(--space-4)',
-        marginTop: 'var(--space-4)',
       }}>
         {programasFiltrados.map((p) => {
           const fechas = [p.fechaInicio, p.fechaFin]
@@ -149,7 +154,7 @@ export function FacilitadorProgramasPage() {
               )}
 
               {/* Acciones como botones */}
-              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+              <div style={{ paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                 {acciones.map((a) => (
                   <Link key={a.key} className="btn btn-secondary btn-sm" to={a.to}>
                     <span aria-hidden>{a.icon}</span> {a.label}
@@ -166,6 +171,8 @@ export function FacilitadorProgramasPage() {
             </div>
           );
         })}
+      </div>
+        </div>
       </div>
     </div>
   );

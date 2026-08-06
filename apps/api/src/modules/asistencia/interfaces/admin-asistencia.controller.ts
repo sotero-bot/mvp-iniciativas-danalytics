@@ -60,7 +60,7 @@ export class AdminAsistenciaController {
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Asistencia');
-    sheet.addRow(['Participante', 'Email', ...sesiones.map(s => `Sesión ${s.numeroSesion}`), '%']);
+    sheet.addRow(['Participante', 'Email', ...sesiones.map(s => `S${s.numeroSesion} · ${s.titulo}`), '%']);
     for (const fila of filas) {
       sheet.addRow([
         fila.nombre,
@@ -80,7 +80,7 @@ export class AdminAsistenciaController {
   private async buildResumen(
     programaId: string,
     actor: AuthUser,
-  ): Promise<{ sesiones: { id: string; numeroSesion: number }[]; filas: ResumenRow[] }> {
+  ): Promise<{ sesiones: { id: string; numeroSesion: number; titulo: string; fechaProgramada: Date }[]; filas: ResumenRow[] }> {
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
     if (
@@ -93,7 +93,7 @@ export class AdminAsistenciaController {
     const [sesiones, participantes, asistencias] = await Promise.all([
       this.prisma.sesion.findMany({
         where: { programaId },
-        select: { id: true, numeroSesion: true },
+        select: { id: true, numeroSesion: true, titulo: true, fechaProgramada: true },
         orderBy: { numeroSesion: 'asc' },
       }),
       this.prisma.participantePrograma.findMany({

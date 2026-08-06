@@ -290,9 +290,11 @@ async function main() {
   await ensureMiembro(g2.id, progA1.id, estA[2].id); // est.a3 → G2
   // est.a4 queda SIN grupo (para probar asignación); est.a1 ya en G1 (para probar RN-04)
 
-  // ── Programa A2: finalizado con gracia VENCIDA (RF-03) ──
+  // ── Programa A2: finalizado con gracia VENCIDA (RF-03). El nombre NO lleva
+  // el término "gracia vencida" porque también lo ve el estudiante matriculado
+  // (ensureParticipante abajo) y esa regla es exclusiva del acceso del facilitador.
   const progA2 = await ensurePrograma({
-    nombre: 'Acme · Programa Finalizado (gracia vencida)', empresaId: empA.id, facilitadorId: facA.id,
+    nombre: 'Acme · Programa Finalizado', empresaId: empA.id, facilitadorId: facA.id,
     estado: EstadoPrograma.finalizado, fechaInicio: daysFromNow(-60), fechaFin: daysFromNow(-30), diasGracia: 3,
   });
   await ensureSesion({ programaId: progA2.id, numeroSesion: 1, titulo: 'S1 · Sesión pasada', fechaProgramada: daysFromNow(-40), estado: EstadoSesion.completada, materialDesbloqueoEn: nextDayUnlock(daysFromNow(-40)) });

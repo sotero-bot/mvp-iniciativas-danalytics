@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { PageHeader, Breadcrumb, Button, StatusBadge, DataTable, Loading, Alert, InfoTooltip } from '../../components/ui';
+import { PageHeader, Breadcrumb, Button, StatusBadge, DataTable, Loading, Alert, InfoTooltip, ProgressBar } from '../../components/ui';
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { formatDimension } from '../../shared/formatDimension';
@@ -38,9 +38,21 @@ interface Individual {
   enviadoEn: string | null;
 }
 
+type CampoOpciones = { campoId: string; etiqueta: string; tipoCampo: string; opciones: { valor: string; etiqueta: string; conteo: number }[]; n: number };
+
+type CampoAgregado =
+  | { campoId: string; etiqueta: string; tipoCampo: string; promedio: number | null; n: number }
+  | CampoOpciones
+  | { campoId: string; etiqueta: string; tipoCampo: string; textos: string[]; n: number };
+
+// "Por pregunta" solo muestra preguntas de opción única/múltiple: las de texto
+// libre pueden traer respuestas muy largas y no encajan en esta cuadrícula.
+const esCampoOpciones = (c: CampoAgregado): c is CampoOpciones => 'opciones' in c;
+
 interface Bloque {
   totalRespuestas: number;
   dimensiones: DimensionesPorCategoria;
+  porCampo: CampoAgregado[];
   individuales: Individual[];
 }
 
@@ -196,14 +208,18 @@ export function AdminDiagnosticoPage() {
         items={[
           { label: t('admin:sidebar.programas'), to: '/admin/programas' },
           { label: programaNombre || '—' },
-          { label: t('formularios:resultados.diagnostico') },
+          { label: t('formularios:resultados.diagnostico_programa_title') },
         ]}
       />
       <PageHeader
         eyebrow={programaNombre || undefined}
-        title={t('formularios:resultados.diagnostico')}
+        title={t('formularios:resultados.diagnostico_programa_title')}
+        description={t('formularios:resultados.diagnostico_programa_desc')}
         actions={<Button variant="primary" onClick={exportar}>{t('formularios:resultados.export')}</Button>}
       />
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <StatusBadge variant="info">{t('formularios:resultados.diagnostico_programa_scope_badge')}</StatusBadge>
+      </div>
       {loading && <Loading label={t('common:loading')} />}
 
       {/* RF-49: snapshot por tipo */}
@@ -276,8 +292,9 @@ export function AdminDiagnosticoPage() {
                   {t('formularios:resultados.final_pendiente_desc')}
                 </Alert>
               )}
+              <div className="categoria-grid" style={{ marginTop: 'var(--space-4)' }}>
               {(['escala', 'seleccion'] as const).map(categoria => (
-                <div key={categoria} style={{ marginTop: 'var(--space-4)' }}>
+                <div key={categoria}>
                   <h4 style={{ marginBottom: 'var(--space-1)' }}>
                     {t(`formularios:resultados.categoria_${categoria}`)}
                   </h4>
@@ -288,10 +305,15 @@ export function AdminDiagnosticoPage() {
                     columns={comparativoColumns}
                     rows={detalle.comparativo[categoria]}
                     rowKey={fila => fila.dimension}
-                    emptyMessage={t('formularios:resultados.sin_datos')}
+                    emptyMessage={t(
+                      detalle.inicial.totalRespuestas > 0 || detalle.final.totalRespuestas > 0
+                        ? 'formularios:resultados.sin_dimensiones'
+                        : 'formularios:resultados.sin_datos',
+                    )}
                   />
                 </div>
               ))}
+              </div>
             </div>
           </div>
 
@@ -312,40 +334,98 @@ export function AdminDiagnosticoPage() {
                     {t('formularios:resultados.final_pendiente_desc')}
                   </Alert>
                 )}
-                {(['escala', 'seleccion'] as const).map(categoria => {
-                  const dims = bloque.dimensiones[categoria];
-                  if (dims.length === 0) return null;
-                  const individuales = bloque.individuales.filter(ind => ind.scores?.[categoria] && Object.keys(ind.scores[categoria]).length > 0);
-                  return (
-                    <div key={categoria} style={{ marginTop: 'var(--space-4)' }}>
-                      <h4 style={{ marginBottom: 'var(--space-1)' }}>
-                        {t(`formularios:resultados.categoria_${categoria}`)}
-                      </h4>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
-                        {t(`formularios:resultados.categoria_${categoria}_desc`)}
-                      </p>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
-                        {t('formularios:resultados.bloque_barras_hint')}
-                      </p>
-                      <BarrasDimensiones dimensiones={dims} />
-                      {individuales.length > 0 && (
-                        <div style={{ marginTop: 'var(--space-4)' }}>
-                          <h4 style={{ marginBottom: 'var(--space-2)' }}>
-                            {t('formularios:resultados.individuales')}
+                <div className="categoria-grid" style={{ marginTop: 'var(--space-4)' }}>
+                  {(['escala', 'seleccion'] as const).map(categoria => {
+                    const dims = bloque.dimensiones[categoria];
+                    if (dims.length === 0) {
+                      if (bloque.totalRespuestas === 0) return null;
+                      return (
+                        <div key={categoria}>
+                          <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                            {t(`formularios:resultados.categoria_${categoria}`)}
                           </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
-                            {t('formularios:resultados.bloque_individuales_hint')}
+                          <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                            {t('formularios:resultados.sin_dimensiones')}
                           </p>
-                          <DataTable
-                            columns={individualColumnsFor(categoria, dims)}
-                            rows={individuales}
-                            rowKey={ind => ind.usuario.id}
-                          />
                         </div>
-                      )}
+                      );
+                    }
+                    const individuales = bloque.individuales.filter(ind => ind.scores?.[categoria] && Object.keys(ind.scores[categoria]).length > 0);
+                    return (
+                      <div key={categoria}>
+                        <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                          {t(`formularios:resultados.categoria_${categoria}`)}
+                        </h4>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                          {t(`formularios:resultados.categoria_${categoria}_desc`)}
+                        </p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                          {t('formularios:resultados.bloque_barras_hint')}
+                        </p>
+                        <BarrasDimensiones dimensiones={dims} />
+                        {individuales.length > 0 && (
+                          <div style={{ marginTop: 'var(--space-4)' }}>
+                            <h4 style={{ marginBottom: 'var(--space-2)' }}>
+                              {t('formularios:resultados.individuales')}
+                            </h4>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+                              {t('formularios:resultados.bloque_individuales_hint')}
+                            </p>
+                            <DataTable
+                              columns={individualColumnsFor(categoria, dims)}
+                              rows={individuales}
+                              rowKey={ind => ind.usuario.id}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(() => {
+                  const camposOpciones = bloque.porCampo.filter(esCampoOpciones);
+                  if (camposOpciones.length === 0) return null;
+                  return (
+                    <div style={{ marginTop: 'var(--space-5)' }}>
+                      <h4 style={{ marginBottom: 'var(--space-1)' }}>
+                        {t('formularios:resultados.por_pregunta')}
+                      </h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: 'var(--space-2)' }}>
+                        {t('formularios:resultados.por_pregunta_hint')}
+                      </p>
+                      <div className="campo-grid">
+                        {camposOpciones.map(campo => (
+                          <div key={campo.campoId} style={{ border: '1px solid var(--color-border)', padding: 'var(--space-3)', minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{campo.etiqueta}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-2)' }}>
+                              {t(`formularios:tipos_campo.${campo.tipoCampo}`)} · {t('formularios:builder.respuestas', { count: campo.n })}
+                            </div>
+                            <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
+                              {campo.opciones.map(op => {
+                                const pct = campo.n > 0 ? Math.round((op.conteo / campo.n) * 100) : 0;
+                                return (
+                                  <div key={op.valor} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.78rem' }}>
+                                    <span
+                                      title={op.etiqueta}
+                                      style={{ minWidth: 0, flexBasis: '38%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                      {op.etiqueta}
+                                    </span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <ProgressBar value={pct} label={op.etiqueta} />
+                                    </div>
+                                    <span style={{ minWidth: 52, textAlign: 'right', flexShrink: 0 }}>{op.conteo} ({pct}%)</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             </div>
           ))}

@@ -196,21 +196,25 @@ export function PortalProgramaDetallePage() {
               {detalle.proyecto.length === 0 && (
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
               )}
-              {detalle.proyecto.map(g => (
-                <div key={g.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', padding: 'var(--space-2) 0', fontSize: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
-                  <span style={{ fontWeight: 600, minWidth: 160 }}>{g.nombre}</span>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>{g.miembros} {t('portal:detalle.integrantes')}</span>
-                  <span style={{ marginLeft: 'auto' }}>
-                    {g.presentacion.entregada ? (
-                      <span style={{ color: 'var(--color-success-strong)', fontWeight: 600 }}>
-                        ✓ {t('portal:detalle.presentacion_entregada')}{g.presentacion.entregadoEn ? ` · ${fecha(g.presentacion.entregadoEn)}` : ''}
+              {detalle.proyecto.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {detalle.proyecto.map(g => (
+                    <div key={g.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', border: '1px solid var(--color-border)', padding: 'var(--space-2) var(--space-3)', fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 600, minWidth: 160 }}>{g.nombre}</span>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>{g.miembros} {t('portal:detalle.integrantes')}</span>
+                      <span style={{ marginLeft: 'auto' }}>
+                        {g.presentacion.entregada ? (
+                          <span style={{ color: 'var(--color-success-strong)', fontWeight: 600 }}>
+                            ✓ {t('portal:detalle.presentacion_entregada')}{g.presentacion.entregadoEn ? ` · ${fecha(g.presentacion.entregadoEn)}` : ''}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-secondary)' }}>{t('portal:detalle.presentacion_pendiente')}</span>
+                        )}
                       </span>
-                    ) : (
-                      <span style={{ color: 'var(--color-text-secondary)' }}>{t('portal:detalle.presentacion_pendiente')}</span>
-                    )}
-                  </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

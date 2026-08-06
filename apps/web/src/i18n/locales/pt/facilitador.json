@@ -1,6 +1,7 @@
 {
   "programas": {
     "title": "Meus programas",
+    "section_title": "Programas atribuídos",
     "empty": "Você não tem programas atribuídos.",
     "sin_resultados": "Nenhum programa corresponde aos filtros.",
     "empresa": "Empresa",

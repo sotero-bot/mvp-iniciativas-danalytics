@@ -467,7 +467,7 @@ export function PlantillaPasosPage() {
             return (
               <div key={p.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 {/* Paso header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: 'var(--space-4) var(--space-5)', backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', padding: 'var(--space-4) var(--space-5)', backgroundColor: 'var(--color-bg-subtle)' }}>
                   <span className="status-badge" style={{ background: 'var(--color-primary)', color: 'var(--color-bg-card)', fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
                     {p.orden}
                   </span>
@@ -665,7 +665,7 @@ function PreguntaForm({ form, setForm, wasValidated, isEditing, onSave, onCancel
         )}
 
         {/* IA flags — TODO(IA-por-pregunta): revisar al implementar REQ-11 */}
-        <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+        <div style={{ gridColumn: 'span 2', paddingTop: '0.75rem' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {t('methodology:preguntas.ia_config_title')}
           </div>

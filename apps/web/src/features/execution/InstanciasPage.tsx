@@ -592,7 +592,7 @@ export function InstanciasPage() {
           {/* Toolbar */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap',
-            padding: 'var(--space-2) var(--space-4)', borderBottom: '1px solid var(--color-border)',
+            padding: 'var(--space-2) var(--space-4)',
             background: 'var(--color-bg-subtle)',
           }}>
             <input

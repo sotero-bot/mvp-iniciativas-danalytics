@@ -102,7 +102,13 @@ export function FacilitadorSesionesPage() {
               {s.bloqueada ? (
                 <span style={{ fontSize: '0.8rem' }}>🔒 {t('facilitador:sesiones.locked')}</span>
               ) : (
-                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <div className="sesion-actions-grid">
+                  {/* Acción principal de la sesión: registrar asistencia. Outline verde
+                      (no navy) para no repetir un botón sólido en cada fila de la lista;
+                      columna fija para que se alinee entre sesiones. */}
+                  <Link className="btn btn-success" to={`/facilitador/sesiones/${s.id}/asistencia`}>
+                    ✅ {t('facilitador:asistencia.title')}
+                  </Link>
                   {/* Prioridad: si hay archivo subido se ofrece la descarga; si no, el enlace. */}
                   {s.presentacionArchivoUrl ? (
                     <a className="btn btn-secondary" href={s.presentacionArchivoUrl} target="_blank" rel="noreferrer">
@@ -112,15 +118,16 @@ export function FacilitadorSesionesPage() {
                     <a className="btn btn-secondary" href={s.urlPresentacion} target="_blank" rel="noreferrer">
                       🖥️ {t('facilitador:sesiones.presentacion')}
                     </a>
-                  ) : null}
-                  {s.urlGrabacion && (
+                  ) : (
+                    <span />
+                  )}
+                  {s.urlGrabacion ? (
                     <a className="btn btn-secondary" href={s.urlGrabacion} target="_blank" rel="noreferrer">
                       🎥 {t('facilitador:sesiones.grabacion')}
                     </a>
+                  ) : (
+                    <span />
                   )}
-                  <Link className="btn btn-secondary" to={`/facilitador/sesiones/${s.id}/asistencia`}>
-                    ✅ {t('facilitador:asistencia.title')}
-                  </Link>
                 </div>
               )}
             </div>

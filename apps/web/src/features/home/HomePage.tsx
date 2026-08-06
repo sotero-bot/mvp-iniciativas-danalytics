@@ -80,41 +80,49 @@ export function HomePage({ user }: { user: HomeUser | null }) {
       {/* El estudiante ve un dashboard con su próxima sesión, pendientes y progreso
           por programa; el resto de roles conservan las tarjetas de navegación. */}
       {slug === 'estudiante' ? <EstudianteHome /> : (
-      <div className="card-grid">
-        {cards.map(card => {
-          const inner = (
-            <>
-              <div style={{
-                width: 40, height: 40, borderRadius: 0, marginBottom: 'var(--space-3)',
-                background: `${card.color}1f`, border: `1px solid ${card.color}55`,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.15rem',
-              }}>{card.icon}</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 'var(--space-1)', color: 'var(--color-text-main)' }}>
-                {t(`cards.${card.key}.title`)}
-              </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                {t(`cards.${card.key}.desc`)}
-              </div>
-              {!card.to && (
-                <span className="chip" style={{ marginTop: 'var(--space-3)' }}>{t('coming_soon')}</span>
-              )}
-            </>
-          );
-
-          const base: React.CSSProperties = { display: 'block', padding: 'var(--space-5)', textDecoration: 'none' };
-
-          return card.to ? (
-            <Link key={card.key} to={card.to} className="card" style={base}>{inner}</Link>
+      <div className="section-card">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('sections_title')}</span>
+          <span className="count-badge">{cards.length}</span>
+        </div>
+        <div className="section-card-body">
+          {cards.length === 0 ? (
+            <EmptyState title={t('no_sections')} />
           ) : (
-            <div key={card.key} className="card" style={{ ...base, opacity: 0.7, cursor: 'default' }}>{inner}</div>
-          );
-        })}
-      </div>
-      )}
+            <div className="card-grid">
+              {cards.map(card => {
+                const inner = (
+                  <>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 0, marginBottom: 'var(--space-3)',
+                      background: `${card.color}1f`, border: `1px solid ${card.color}55`,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '1.15rem',
+                    }}>{card.icon}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 'var(--space-1)', color: 'var(--color-text-main)' }}>
+                      {t(`cards.${card.key}.title`)}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                      {t(`cards.${card.key}.desc`)}
+                    </div>
+                    {!card.to && (
+                      <span className="chip" style={{ marginTop: 'var(--space-3)' }}>{t('coming_soon')}</span>
+                    )}
+                  </>
+                );
 
-      {slug !== 'estudiante' && cards.length === 0 && (
-        <EmptyState title={t('no_sections')} />
+                const base: React.CSSProperties = { display: 'block', padding: 'var(--space-5)', textDecoration: 'none' };
+
+                return card.to ? (
+                  <Link key={card.key} to={card.to} className="card" style={base}>{inner}</Link>
+                ) : (
+                  <div key={card.key} className="card" style={{ ...base, opacity: 0.7, cursor: 'default' }}>{inner}</div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
       )}
     </div>
   );

@@ -328,7 +328,7 @@ export function FormBuilderPage() {
               </div>
 
               {anteriores.length > 0 && (
-                <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-2)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ marginTop: 'var(--space-3)', paddingTop: 'var(--space-2)' }} onClick={e => e.stopPropagation()}>
                   <button
                     className="btn-link"
                     style={{ fontSize: '0.78rem' }}
@@ -457,7 +457,7 @@ export function FormBuilderPage() {
           </div>
 
           {campoForm && !inmutable && (
-            <div style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-4)', maxWidth: 640 }}>
+            <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', maxWidth: 640 }}>
               <Field label={t('formularios:builder.campos.tipo')}>
                 <select
                   className="input"
