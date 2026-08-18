@@ -136,50 +136,67 @@ export function EstudianteSesionesPage() {
             userSelect: gateActivo ? 'none' : 'auto',
           }}
         >
-          {/* Sesiones */}
-          <SectionTitle>{t('estudiante:programa.sesiones_title')}</SectionTitle>
-          {sesiones.length === 0 ? (
-            <EmptyState title={t('estudiante:sesiones.empty')} />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {sesiones.map((s) => (
-                <SesionCard key={s.id} sesion={s} lang={i18n.language} t={t} />
-              ))}
-            </div>
-          )}
-
-          {/* Mi grupo (incluye bitácora, plantilla y presentación del reto) */}
-          <SectionTitle>{t('estudiante:programa.grupo_title')}</SectionTitle>
-          {misGrupos.length === 0 ? (
-            <EmptyState title={t('estudiante:programa.sin_grupo')} />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {misGrupos.map((g) => (
-                <GrupoCard key={g.id} grupo={g} from={from} />
-              ))}
-            </div>
-          )}
-
-          {/* Formularios propios del programa (feedback / diagnóstico final).
-              Se oculta por completo si no hay ninguno. */}
-          {formulariosPrograma.length > 0 && (
-            <>
-              <SectionTitle>{t('estudiante:programa.formularios_title')}</SectionTitle>
-              <div className="card-grid">
-                {formulariosPrograma.map((f) => (
-                  <FormularioCard key={f.id} formulario={f} from={from} />
-                ))}
+          <div className="home-stack">
+            {/* Sesiones */}
+            <div className="section-card home-panel">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('estudiante:programa.sesiones_title')}</span>
+                <span className="count-badge">{sesiones.length}</span>
               </div>
-            </>
-          )}
+              <div className="section-card-body">
+                {sesiones.length === 0 ? (
+                  <EmptyState title={t('estudiante:sesiones.empty')} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    {sesiones.map((s) => (
+                      <SesionCard key={s.id} sesion={s} lang={i18n.language} t={t} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mi grupo (incluye bitácora, plantilla y presentación del reto) */}
+            <div className="section-card home-panel">
+              <div className="section-card-header">
+                <span className="section-card-title">{t('estudiante:programa.grupo_title')}</span>
+                <span className="count-badge">{misGrupos.length}</span>
+              </div>
+              <div className="section-card-body">
+                {misGrupos.length === 0 ? (
+                  <EmptyState title={t('estudiante:programa.sin_grupo')} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    {misGrupos.map((g) => (
+                      <GrupoCard key={g.id} grupo={g} from={from} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Formularios propios del programa (feedback / diagnóstico final).
+                Se oculta por completo si no hay ninguno. */}
+            {formulariosPrograma.length > 0 && (
+              <div className="section-card home-panel">
+                <div className="section-card-header">
+                  <span className="section-card-title">{t('estudiante:programa.formularios_title')}</span>
+                  <span className="count-badge">{formulariosPrograma.length}</span>
+                </div>
+                <div className="section-card-body">
+                  <div className="card-grid">
+                    {formulariosPrograma.map((f) => (
+                      <FormularioCard key={f.id} formulario={f} from={from} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>{children}</h3>;
 }
 
 // Gate: encuesta de inicio global. Si está pendiente/en progreso se resalta y

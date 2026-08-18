@@ -74,7 +74,8 @@
       "campo_saved": "Campo guardado",
       "campo_deleted": "Campo eliminado",
       "reordered": "Orden actualizado"
-    }
+    },
+    "list_title": "Plantillas"
   },
   "estudiante": {
     "title": "Mis formularios",
@@ -97,6 +98,9 @@
     "draft_save": "Guardar borrador",
     "submit": "Enviar respuestas",
     "submitting": "Enviando…",
+    "submit_confirm_title": "Confirma el envío",
+    "submit_confirm_message": "Una vez enviadas, no vas a poder editar tus respuestas. ¿Confirmas que quieres enviarlas?",
+    "submit_confirm_button": "Sí, enviar",
     "submitted_banner": "Este formulario ya fue enviado. ¡Gracias por responder!",
     "success": "Respuestas enviadas. ¡Gracias!",
     "missing_required": "Responde los campos obligatorios antes de enviar.",
@@ -141,6 +145,7 @@
   "reto": {
     "title": "Reto con IA",
     "solo_lectura": "Vista de solo lectura de los avances de cada grupo.",
+    "panel_title": "Grupos",
     "bitacoras": "Bitácoras",
     "plantillas": "Plantillas de proyecto",
     "sin_plantilla": "El programa no tiene una plantilla de este tipo en su snapshot.",

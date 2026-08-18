@@ -149,11 +149,18 @@ export function FacilitadorSesionesPage() {
           <Alert variant="warning">{t('errors:PROGRAMA_GRACIA_VENCIDA')}</Alert>
         </div>
       )}
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && sesiones.length === 0 && <EmptyState title={t('facilitador:sesiones.empty')} />}
+      <div className="home-stack">
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('facilitador:sesiones.list_title')}</span>
+          <span className="count-badge">{sesiones.length}</span>
+        </div>
+        <div className="section-card-body">
+          {loading && <Loading label={t('common:loading')} />}
+          {!loading && sesiones.length === 0 && <EmptyState title={t('facilitador:sesiones.empty')} />}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        {sesiones.map((s) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {sesiones.map((s) => {
           // La asistencia solo se puede tomar de la sesión en adelante (el backend
           // responde SESION_FUTURA si se intenta antes); acá se anticipa deshabilitando
           // el acceso en vez de dejar que el facilitador entre y se encuentre el bloqueo.
@@ -170,7 +177,7 @@ export function FacilitadorSesionesPage() {
                 </div>
               </div>
               {s.bloqueada ? (
-                <span style={{ fontSize: '0.8rem' }}>🔒 {t('facilitador:sesiones.locked')}</span>
+                <StatusBadge variant="neutral">{t('facilitador:sesiones.locked')}</StatusBadge>
               ) : (
                 <div className="sesion-actions-grid">
                   {/* Acción principal de la sesión: registrar asistencia. Outline verde
@@ -182,28 +189,28 @@ export function FacilitadorSesionesPage() {
                     <span />
                   ) : esFutura ? (
                     <span className="chip" title={t('facilitador:asistencia.future_banner')}>
-                      🕓 {t('facilitador:asistencia.title')}
+                      {t('facilitador:asistencia.title')}
                     </span>
                   ) : (
                     <Link className="btn btn-success" to={`/facilitador/sesiones/${s.id}/asistencia`}>
-                      ✅ {t('facilitador:asistencia.title')}
+                      {t('facilitador:asistencia.title')}
                     </Link>
                   )}
                   {/* Prioridad: si hay archivo subido se ofrece la descarga; si no, el enlace. */}
                   {s.presentacionArchivoUrl ? (
                     <a className="btn btn-secondary" href={s.presentacionArchivoUrl} target="_blank" rel="noreferrer">
-                      📎 {t('facilitador:sesiones.presentacion_archivo')}
+                      {t('facilitador:sesiones.presentacion_archivo')}
                     </a>
                   ) : s.urlPresentacion ? (
                     <a className="btn btn-secondary" href={s.urlPresentacion} target="_blank" rel="noreferrer">
-                      🖥️ {t('facilitador:sesiones.presentacion')}
+                      {t('facilitador:sesiones.presentacion')}
                     </a>
                   ) : (
                     <span />
                   )}
                   {s.urlGrabacion ? (
                     <a className="btn btn-secondary" href={s.urlGrabacion} target="_blank" rel="noreferrer">
-                      🎥 {t('facilitador:sesiones.grabacion')}
+                      {t('facilitador:sesiones.grabacion')}
                     </a>
                   ) : (
                     <span />
@@ -234,11 +241,13 @@ export function FacilitadorSesionesPage() {
           </div>
           );
         })}
+          </div>
+        </div>
       </div>
 
       {/* RF-20/RF-21: resumen de asistencia (matriz sesión × participante) al final
           de la vista de sesiones, con exportación a Excel. */}
-      <div className="section-card" style={{ marginTop: 'var(--space-5)' }}>
+      <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('admin:asistencia.title')}</span>
           <Button
@@ -306,6 +315,7 @@ export function FacilitadorSesionesPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

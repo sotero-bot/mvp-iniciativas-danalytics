@@ -74,7 +74,8 @@
       "campo_saved": "Campo salvo",
       "campo_deleted": "Campo excluído",
       "reordered": "Ordem atualizada"
-    }
+    },
+    "list_title": "Modelos"
   },
   "estudiante": {
     "title": "Meus formulários",
@@ -97,6 +98,9 @@
     "draft_save": "Salvar rascunho",
     "submit": "Enviar respostas",
     "submitting": "Enviando…",
+    "submit_confirm_title": "Confirme o envio",
+    "submit_confirm_message": "Depois de enviadas, você não vai poder editar suas respostas. Confirma que deseja enviá-las?",
+    "submit_confirm_button": "Sim, enviar",
     "submitted_banner": "Este formulário já foi enviado. Obrigado por responder!",
     "success": "Respostas enviadas. Obrigado!",
     "missing_required": "Responda os campos obrigatórios antes de enviar.",
@@ -141,6 +145,7 @@
   "reto": {
     "title": "Desafio com IA",
     "solo_lectura": "Visualização somente leitura do progresso de cada grupo.",
+    "panel_title": "Grupos",
     "bitacoras": "Diários de bordo",
     "plantillas": "Modelos de projeto",
     "sin_plantilla": "O programa não tem um modelo deste tipo no seu snapshot.",

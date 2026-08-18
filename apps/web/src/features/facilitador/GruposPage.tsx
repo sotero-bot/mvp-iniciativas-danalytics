@@ -108,55 +108,56 @@ export function FacilitadorGruposPage() {
   const sinGrupo = participantes.filter((p) => !asignados.has(p.usuarioId));
 
   const listaGrupos = (
-    <div className="section-card">
+    <div className="section-card home-panel">
       <div className="section-card-header">
-        <span className="section-card-title">{t('facilitador:grupos.title')}</span>
+        <span className="section-card-title">{t('facilitador:grupos.list_title')}</span>
         <span className="count-badge">{grupos.length}</span>
       </div>
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
-      {!loading && grupos.length > 0 && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 'var(--space-5)',
-            padding: 'var(--space-4)',
-          }}
-        >
-          {grupos.map((g) => (
-            <div key={g.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                {t('facilitador:grupos.miembros')} ({g.miembros.length})
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                {g.miembros.map((m) => (
-                  <li key={m.id}>{m.usuario.nombre}</li>
-                ))}
-              </ul>
-              {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
-                  Se oculta cuando ya no queda ningún participante sin grupo o en modo solo-lectura. */}
-              {!soloLectura && sinGrupo.length > 0 && (
-                <div style={{ marginTop: 'auto' }}>
-                  <Field label={t('facilitador:grupos.asignar_label')}>
-                    <select
-                      className="input"
-                      value=""
-                      onChange={(e) => asignar(g.id, e.target.value)}
-                    >
-                      <option value="">{t('facilitador:grupos.asignar')}</option>
-                      {sinGrupo.map((p) => (
-                        <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
-                      ))}
-                    </select>
-                  </Field>
+      <div className="section-card-body">
+        {loading && <Loading label={t('common:loading')} />}
+        {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
+        {!loading && grupos.length > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: 'var(--space-5)',
+            }}
+          >
+            {grupos.map((g) => (
+              <div key={g.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                  {t('facilitador:grupos.miembros')} ({g.miembros.length})
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  {g.miembros.map((m) => (
+                    <li key={m.id}>{m.usuario.nombre}</li>
+                  ))}
+                </ul>
+                {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
+                    Se oculta cuando ya no queda ningún participante sin grupo o en modo solo-lectura. */}
+                {!soloLectura && sinGrupo.length > 0 && (
+                  <div style={{ marginTop: 'auto' }}>
+                    <Field label={t('facilitador:grupos.asignar_label')}>
+                      <select
+                        className="input"
+                        value=""
+                        onChange={(e) => asignar(g.id, e.target.value)}
+                      >
+                        <option value="">{t('facilitador:grupos.asignar')}</option>
+                        {sinGrupo.map((p) => (
+                          <option key={p.usuarioId} value={p.usuarioId}>{p.usuario.nombre}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 

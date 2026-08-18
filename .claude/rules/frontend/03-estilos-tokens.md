@@ -34,6 +34,31 @@ para decorar.
 Estados: `--color-{success,warning,danger,info}` (+ `-bg`, `-border`, `-strong`).
 → [04](04-estados.md).
 
+**Excepción sancionada — acentos categóricos de sección.** `ROLE_CARDS`
+(`features/home/HomePage.tsx`) usa hex literales (no tokens) para darle un
+color distinto a cada sección del panel admin (empresas/programas/usuarios/
+actividades), reutilizado tal cual en los íconos del sidebar de `App.tsx`
+(el propio código comenta por qué). Es intencional — identifica la sección
+de un vistazo — y no debe normalizarse a la paleta navy/neutra. Ver
+DESIGN.md → Colors → "Acentos categóricos de sección".
+
+**Excepción sancionada — cabecera navy de los paneles (`.home-panel`).** Los
+paneles marcados con `.home-panel` (ver [02](02-componentes-ui.md)) pintan su
+`.section-card-header` con `--color-primary` (navy) y título blanco. Se usa en
+**el inicio de cada rol y en todas las vistas del administrador**. Es una
+desviación **deliberada** de la Sparse Navy Rule ("navy solo para
+acción/jerarquía, nunca como fondo decorativo"), pedida por el cliente para que
+los paneles se lean como grandes contenedores. Los botones/links/tooltip que
+vivan en una cabecera navy se **invierten** vía CSS (`.home-panel
+.section-card-header .btn-*` / `.info-tooltip-trigger`) para no perderse; por eso
+un botón primario en la cabecera se ve como botón blanco. Aun así, **no**
+conviertas `.section-card-header` en navy de forma global: los flujos que no son
+inicio ni admin conservan cabecera clara salvo petición explícita — ya aplicado
+en `facilitador/RetoPage.tsx`, `facilitador/SesionesPage.tsx`,
+`facilitador/GruposPage.tsx`, `facilitador/ObservacionesPage.tsx`,
+`facilitador/ResultadosPage.tsx` y `estudiante/SesionesPage.tsx` (ver
+[02](02-componentes-ui.md)). Ver DESIGN.md → Home.
+
 ## Tipografía
 - **`Poppins` es la tipografía de marca de la empresa: se usa SIEMPRE**, en
   cuerpo y en todos los títulos (h1–h4, `.section-card-title`, etc.) —
@@ -60,3 +85,15 @@ Estados: `--color-{success,warning,danger,info}` (+ `-bg`, `-border`, `-strong`)
 - `box-shadow` en cards.
 - Cualquier fuente que no sea Poppins (serif, Inter, system-ui como fuente
   principal, etc.) en título o cuerpo — Poppins es la fuente de marca, siempre.
+- **Un subsistema visual paralelo para un flujo específico** (paleta, sombra
+  o radio propios, aunque sea para imitar deliberadamente el look de un
+  producto externo — ej. "que se sienta como Google Forms"). Precedente real:
+  `.gform-*` (formulario del estudiante) había desarrollado un acento teal
+  (`#0D9488`) y sombras propias, distintos del resto de la app; se corrigió
+  reemplazándolos por los tokens del sistema (`--color-primary`,
+  `--shadow-focus`, sin `box-shadow` en reposo). Cualquier necesidad de
+  identidad visual distinta para un flujo puntual se resuelve dentro de los
+  tokens existentes, no inventando unos nuevos.
+- Emoji como sistema principal de jerarquía/iconografía en pantallas de alta
+  densidad (paneles de facilitador/admin) — compite con la jerarquía
+  tipográfica y renderiza distinto por sistema operativo.

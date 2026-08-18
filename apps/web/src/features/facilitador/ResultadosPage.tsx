@@ -96,8 +96,9 @@ export function FacilitadorResultadosPage() {
       />
       {loading && <Loading label={t('common:loading')} />}
 
+      <div className="home-stack">
       {diagnostico && (
-        <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('formularios:resultados.diagnostico')}</span>
           </div>
@@ -135,7 +136,7 @@ export function FacilitadorResultadosPage() {
       )}
 
       {feedback && (
-        <div className="section-card">
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('formularios:resultados.feedback')}</span>
             <span className="count-badge">{feedback.totalRespuestas}</span>
@@ -178,6 +179,7 @@ export function FacilitadorResultadosPage() {
           </div>
         </div>
       )}
+      </div>
     </>
   );
 }

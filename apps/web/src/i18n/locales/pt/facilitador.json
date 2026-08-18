@@ -19,10 +19,14 @@
       "activo": "Ativo",
       "finalizado": "Finalizado",
       "cancelado": "Cancelado"
-    }
+    },
+    "kpi_total": "Programas",
+    "kpi_activos": "Ativos",
+    "kpi_finalizados": "Finalizados"
   },
   "sesiones": {
     "title": "Sessões",
+    "list_title": "Sessões programadas",
     "back": "← Voltar aos meus programas",
     "numero": "Sessão {{numero}}",
     "locked": "Disponível uma semana antes da sessão",
@@ -57,6 +61,7 @@
   },
   "grupos": {
     "title": "Grupos",
+    "list_title": "Grupos criados",
     "empty": "Este programa ainda não tem grupos.",
     "miembros": "Membros",
     "nuevo_nombre": "Nome do grupo",

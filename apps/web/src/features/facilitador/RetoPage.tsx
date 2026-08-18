@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo } from '../estudiante/FormularioResponderPage';
-import { Breadcrumb, PageHeader, Button, Loading, EmptyState, Alert } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState, Alert, StatusBadge } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -123,65 +123,81 @@ export function FacilitadorRetoPage() {
       />
       {soloLectura && <Alert variant="warning">{t('errors:PROGRAMA_GRACIA_VENCIDA')}</Alert>}
 
-      <div style={{ marginBottom: 'var(--space-5)' }}>
-        <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>
-          📓 {t('formularios:reto.bitacoras')}
-        </button>
-        <button style={tabStyle(pestana === 'plantillas')} onClick={() => setPestana('plantillas')}>
-          📐 {t('formularios:reto.plantillas')}
-        </button>
-      </div>
-
-      {/* O-01: habilitación de la bitácora para los grupos (admin o facilitador). */}
-      {pestana === 'bitacoras' && bitacoraHabilitada !== null && (
-        <div className="card" style={{ padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '0.85rem' }}>
-            {bitacoraHabilitada ? '🟢 ' : '🔒 '}
-            {bitacoraHabilitada ? t('formularios:reto.bitacora_habilitada') : t('formularios:reto.bitacora_no_habilitada')}
-          </div>
-          {!soloLectura && (
-            <Button variant="primary" size="sm" onClick={toggleBitacora}>
-              {bitacoraHabilitada ? t('formularios:reto.bitacora_deshabilitar') : t('formularios:reto.bitacora_habilitar')}
-            </Button>
-          )}
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('formularios:reto.panel_title')}</span>
+          <span className="count-badge">{recurso?.grupos.length ?? 0}</span>
         </div>
-      )}
 
-      {loading && <Loading label={t('common:loading')} />}
+        <div
+          className="home-filter-strip"
+          style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            flexWrap: 'wrap', gap: 'var(--space-3)', paddingTop: 'var(--space-3)', paddingBottom: 'var(--space-3)',
+          }}
+        >
+          <div>
+            <button style={tabStyle(pestana === 'bitacoras')} onClick={() => setPestana('bitacoras')}>
+              {t('formularios:reto.bitacoras')}
+            </button>
+            <button style={tabStyle(pestana === 'plantillas')} onClick={() => setPestana('plantillas')}>
+              {t('formularios:reto.plantillas')}
+            </button>
+          </div>
 
-      {!loading && recurso && !recurso.plantilla && <EmptyState title={t('formularios:reto.sin_plantilla')} />}
-
-      {!loading && recurso?.plantilla && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          {recurso.grupos.map(g => (
-            <div key={g.id} className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                <div style={{ fontWeight: 600 }}>{g.nombre}</div>
-                {g.respuesta?.ultimoEditor && g.respuesta.ultimaEdicionEn && (
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                    {t('formularios:grupo.ultima_edicion', {
-                      nombre: g.respuesta.ultimoEditor.nombre,
-                      fecha: new Date(g.respuesta.ultimaEdicionEn).toLocaleString(),
-                    })}
-                  </div>
-                )}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
-                {t('formularios:grupo.miembros')}: {g.miembros.map(m => m.nombre).join(', ') || '—'}
-              </div>
-
-              {!g.respuesta ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-tertiary)', margin: 0 }}>
-                  {t('formularios:reto.sin_respuesta')}
-                </p>
-              ) : (
-                <RespuestaReadOnly campos={recurso.plantilla!.campos} datos={g.respuesta.datos} />
+          {/* O-01: habilitación de la bitácora para los grupos (admin o facilitador). */}
+          {pestana === 'bitacoras' && bitacoraHabilitada !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+              <StatusBadge variant={bitacoraHabilitada ? 'success' : 'neutral'}>
+                {bitacoraHabilitada ? t('formularios:reto.bitacora_habilitada') : t('formularios:reto.bitacora_no_habilitada')}
+              </StatusBadge>
+              {!soloLectura && (
+                <Button variant="primary" size="sm" onClick={toggleBitacora}>
+                  {bitacoraHabilitada ? t('formularios:reto.bitacora_deshabilitar') : t('formularios:reto.bitacora_habilitar')}
+                </Button>
               )}
             </div>
-          ))}
-          {recurso.grupos.length === 0 && <EmptyState title={t('formularios:reto.sin_grupos')} />}
+          )}
         </div>
-      )}
+
+        <div className="section-card-body">
+          {loading && <Loading label={t('common:loading')} />}
+
+          {!loading && recurso && !recurso.plantilla && <EmptyState title={t('formularios:reto.sin_plantilla')} />}
+
+          {!loading && recurso?.plantilla && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {recurso.grupos.map(g => (
+                <div key={g.id} className="card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                    <div style={{ fontWeight: 600 }}>{g.nombre}</div>
+                    {g.respuesta?.ultimoEditor && g.respuesta.ultimaEdicionEn && (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                        {t('formularios:grupo.ultima_edicion', {
+                          nombre: g.respuesta.ultimoEditor.nombre,
+                          fecha: new Date(g.respuesta.ultimaEdicionEn).toLocaleString(),
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
+                    {t('formularios:grupo.miembros')}: {g.miembros.map(m => m.nombre).join(', ') || '—'}
+                  </div>
+
+                  {!g.respuesta ? (
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-tertiary)', margin: 0 }}>
+                      {t('formularios:reto.sin_respuesta')}
+                    </p>
+                  ) : (
+                    <RespuestaReadOnly campos={recurso.plantilla!.campos} datos={g.respuesta.datos} />
+                  )}
+                </div>
+              ))}
+              {recurso.grupos.length === 0 && <EmptyState title={t('formularios:reto.sin_grupos')} />}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

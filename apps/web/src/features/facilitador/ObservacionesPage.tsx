@@ -110,7 +110,7 @@ export function FacilitadorObservacionesPage() {
   ];
 
   const historial = (
-    <div className="section-card">
+    <div className="section-card home-panel">
       <div className="section-card-header">
         <span className="section-card-title">{t('facilitador:observaciones.history')}</span>
         <span className="count-badge">{observaciones.length}</span>
