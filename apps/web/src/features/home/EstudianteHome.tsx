@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Loading, EmptyState, StatusBadge, ProgressBar } from '../../components/ui';
+import { Loading, EmptyState, StatusBadge, ProgressBar, StatCard } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
+import { SidebarIcon } from '../../components/SidebarIcon';
 import { formatFechaHora, formatDiasRelativos } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
 
@@ -51,16 +52,9 @@ interface Resumen {
 
 const HOME = '/inicio';
 
-// Icono y destino de cada pendiente según su tipo. Cada uno enlaza a su acción
-// real (el formulario concreto, la confirmación del programa, el reto del grupo),
+// Destino de cada pendiente según su tipo. Cada uno enlaza a su acción real
+// (el formulario concreto, la confirmación del programa, el reto del grupo),
 // no a un listado genérico.
-const PENDIENTE_ICON: Record<PendienteTipo, string> = {
-  encuesta_inicio: '📝',
-  matricula: '✋',
-  formulario: '📋',
-  entregable: '📓',
-};
-
 function pendienteTo(p: Pendiente): string {
   switch (p.tipo) {
     case 'encuesta_inicio':
@@ -84,8 +78,8 @@ const RETO_VARIANT: Record<RetoEstado, StatusVariant> = {
   entregado: 'success',
 };
 
-// Dashboard de inicio del estudiante: próxima sesión (entre todos sus programas),
-// pendientes de acción y resumen por programa. Todo llega pre-agregado de
+// Dashboard de inicio del estudiante: KPIs, pendientes de acción, próxima sesión
+// (entre todos sus programas) y resumen por programa. Todo llega pre-agregado de
 // GET /estudiante/resumen para no hacer N peticiones ni calcular fechas en cliente.
 export function EstudianteHome() {
   const { t, i18n } = useTranslation('estudiante', { keyPrefix: 'home' });
@@ -119,31 +113,62 @@ export function EstudianteHome() {
     }
   };
 
+  const sesionesHechas = data.programas.reduce((acc, p) => acc + p.sesionesRealizadas, 0);
+  const sesionesTotal = data.programas.reduce((acc, p) => acc + p.sesionesTotal, 0);
+  const retosEntregados = data.programas.filter((p) => p.reto === 'entregado').length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      {/* Pendientes de acción: cada uno enlaza a su acción real (formulario concreto,
-          confirmación del programa, reto del grupo) y muestra el programa al que pertenece. */}
+    <div className="home-stack">
+      {/* KPIs: lectura de un vistazo de programas, avance de sesiones y pendientes. */}
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('resumen_title')}</span>
+        </div>
+        <div className="section-card-body">
+          <div className="home-kpi-grid">
+            <StatCard
+              label={t('kpi_programas')}
+              value={data.programas.length}
+              hint={t('kpi_programas_hint', { count: retosEntregados })}
+              icon={<SidebarIcon name="programas" size={18} />}
+              accent="#38BDF8"
+              to="/estudiante/programas"
+            />
+            <StatCard
+              label={t('kpi_sesiones')}
+              value={`${sesionesHechas}/${sesionesTotal}`}
+              hint={t('kpi_sesiones_hint')}
+              icon={<SidebarIcon name="formularios" size={18} />}
+              accent="#155BA0"
+            />
+            <StatCard
+              label={t('kpi_pendientes')}
+              value={data.pendientes.length}
+              hint={t('kpi_pendientes_hint')}
+              icon={<SidebarIcon name="observaciones" size={18} />}
+              accent="#F59E0B"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Pendientes de acción: cada uno enlaza a su acción real y muestra el programa. */}
       {data.pendientes.length > 0 && (
-        <div className="section-card">
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('pendientes_title')}</span>
             <span className="count-badge">{data.pendientes.length}</span>
           </div>
-          <div className="section-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div className="home-list">
             {data.pendientes.map((p, i) => (
               <Link
                 key={`${p.tipo}-${p.plantillaId ?? p.programaId ?? i}`}
                 to={pendienteTo(p)}
-                className="card"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-3) var(--space-4)',
-                  textDecoration: 'none', color: 'var(--color-text-main)',
-                  borderLeft: '3px solid var(--color-warning)',
-                }}
+                className="home-list-row"
               >
-                <span style={{ fontSize: '1.1rem' }}>{PENDIENTE_ICON[p.tipo]}</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{etiquetaPendiente(p)}</span>
-                <span style={{ marginLeft: 'auto', color: 'var(--color-text-secondary)' }}>›</span>
+                <span className="home-list-row-dot" aria-hidden="true" />
+                <span className="home-list-row-text">{etiquetaPendiente(p)}</span>
+                <span className="home-list-row-arrow" aria-hidden="true">›</span>
               </Link>
             ))}
           </div>
@@ -151,7 +176,7 @@ export function EstudianteHome() {
       )}
 
       {/* Próxima sesión: la más cercana en el futuro, entre todos los programas. */}
-      <div className="section-card">
+      <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('proxima_title')}</span>
         </div>
@@ -165,7 +190,7 @@ export function EstudianteHome() {
       </div>
 
       {/* Resumen por programa con progreso de sesiones, grupo y estado del reto. */}
-      <div className="section-card">
+      <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('programas_title')}</span>
           <span className="count-badge">{data.programas.length}</span>
@@ -174,7 +199,7 @@ export function EstudianteHome() {
           {data.programas.length === 0 ? (
             <EmptyState title={t('programas_empty')} />
           ) : (
-            <div className="card-grid">
+            <div className="home-nav-grid">
               {data.programas.map((prog) => (
                 <ProgramaCard key={prog.id} programa={prog} t={t} />
               ))}
@@ -196,28 +221,19 @@ function ProximaSesionCard({
   t: ReturnType<typeof useTranslation>['t'];
 }) {
   return (
-    <Link
-      to={`/estudiante/programas/${s.programaId}/sesiones`}
-      className="card"
-      style={{
-        display: 'block', padding: '1.25rem', textDecoration: 'none',
-        color: 'var(--color-text-main)', borderLeft: '3px solid var(--color-info)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{s.programaNombre}</div>
+    <Link to={`/estudiante/programas/${s.programaId}/sesiones`} className="home-next">
+      <div className="home-next-top">
+        <span className="home-next-program">{s.programaNombre}</span>
         <StatusBadge variant="info">{capitalizar(formatDiasRelativos(s.fechaProgramada, lang))}</StatusBadge>
       </div>
-      <div style={{ fontWeight: 700, fontSize: '1.15rem', margin: 'var(--space-2) 0 var(--space-1)' }}>
+      <div className="home-next-title">
         {t('proxima_sesion_num', { numero: s.numeroSesion })} — {s.titulo}
       </div>
-      <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-        📅 {formatFechaHora(s.fechaProgramada, s.timezone, lang)}
-      </div>
-      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
+      <div className="home-next-meta">{formatFechaHora(s.fechaProgramada, s.timezone, lang)}</div>
+      <div className="home-next-meta">
         {!s.bloqueada && s.tieneRecursos
-          ? `🎥 ${t('proxima_recursos')}`
-          : `🔒 ${t('proxima_bloqueada', { fecha: formatFechaHora(s.desbloqueaEn, s.timezone, lang) })}`}
+          ? t('proxima_recursos')
+          : t('proxima_bloqueada', { fecha: formatFechaHora(s.desbloqueaEn, s.timezone, lang) })}
       </div>
     </Link>
   );
@@ -232,31 +248,30 @@ function ProgramaCard({
 }) {
   const pct = prog.sesionesTotal > 0 ? Math.round((prog.sesionesRealizadas / prog.sesionesTotal) * 100) : 0;
   return (
-    <Link
-      to={`/estudiante/programas/${prog.id}/sesiones`}
-      className="card"
-      style={{ display: 'block', padding: '1rem', textDecoration: 'none', color: 'var(--color-text-main)' }}
-    >
-      <div style={{ fontWeight: 600 }}>{prog.nombre}</div>
-      {prog.empresa && (
-        <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>{prog.empresa.nombre}</div>
-      )}
-
-      {/* Progreso de sesiones */}
-      <div style={{ margin: 'var(--space-3) 0 var(--space-1)', fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-        {t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
+    <Link to={`/estudiante/programas/${prog.id}/sesiones`} className="home-prog-card">
+      <div>
+        <div className="home-prog-name">{prog.nombre}</div>
+        {prog.empresa && <div className="home-prog-empresa">{prog.empresa.nombre}</div>}
       </div>
-      <ProgressBar
-        value={pct}
-        color="var(--color-accent)"
-        label={t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
-      />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+      <div>
+        <div className="home-prog-progress-label">
+          <span>{t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}</span>
+          <span>{pct}%</span>
+        </div>
+        <ProgressBar
+          value={pct}
+          color="var(--color-accent)"
+          label={t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
+        />
+      </div>
+
+      <div className="home-prog-foot">
         <StatusBadge variant={RETO_VARIANT[prog.reto]}>{t(`reto.${prog.reto}`)}</StatusBadge>
         {prog.grupo && (
-          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-            👥 {prog.grupo.nombre} · {prog.grupo.miembros}
+          <span className="home-prog-grupo">
+            <SidebarIcon name="usuarios" size={14} />
+            {prog.grupo.nombre} · {prog.grupo.miembros}
           </span>
         )}
       </div>

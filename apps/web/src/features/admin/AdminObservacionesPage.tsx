@@ -79,53 +79,65 @@ export function AdminObservacionesPage() {
         description={t('admin:observaciones.subtitle')}
       />
 
-      <FilterToolbar>
-        <Field label={t('admin:observaciones.programa')}>
-          <select className="input" value={programaId} onChange={e => setProgramaId(e.target.value)}>
-            <option value="">{t('admin:observaciones.todos')}</option>
-            {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:observaciones.urgencia')}>
-          <select className="input" value={urgencia} onChange={e => setUrgencia(e.target.value)}>
-            <option value="">{t('admin:observaciones.todos')}</option>
-            {URGENCIAS.map(u => <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:observaciones.tipo')}>
-          <select className="input" value={tipo} onChange={e => setTipo(e.target.value)}>
-            <option value="">{t('admin:observaciones.todos')}</option>
-            {TIPOS.map(tp => <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>)}
-          </select>
-        </Field>
-      </FilterToolbar>
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('admin:observaciones.list_title')}</span>
+          <span className="count-badge">{observaciones.length}</span>
+        </div>
 
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && observaciones.length === 0 && (
-        <EmptyState title={t('admin:observaciones.empty')} />
-      )}
+        <div className="home-filter-strip">
+          <FilterToolbar>
+            <Field label={t('admin:observaciones.programa')}>
+              <select className="input" value={programaId} onChange={e => setProgramaId(e.target.value)}>
+                <option value="">{t('admin:observaciones.todos')}</option>
+                {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:observaciones.urgencia')}>
+              <select className="input" value={urgencia} onChange={e => setUrgencia(e.target.value)}>
+                <option value="">{t('admin:observaciones.todos')}</option>
+                {URGENCIAS.map(u => <option key={u} value={u}>{t(`facilitador:observaciones.urgencias.${u}`)}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:observaciones.tipo')}>
+              <select className="input" value={tipo} onChange={e => setTipo(e.target.value)}>
+                <option value="">{t('admin:observaciones.todos')}</option>
+                {TIPOS.map(tp => <option key={tp} value={tp}>{t(`facilitador:observaciones.tipos.${tp}`)}</option>)}
+              </select>
+            </Field>
+          </FilterToolbar>
+        </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
-        {observaciones.map(o => (
-          <div key={o.id} className="card" style={{ padding: 'var(--space-3) var(--space-4)' }}>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}>
-              <StatusBadge variant={o.urgencia === 'urgente' ? 'danger' : 'neutral'}>
-                {o.urgencia === 'urgente' ? '⚠ ' : ''}{t(`facilitador:observaciones.urgencias.${o.urgencia}`)}
-              </StatusBadge>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t(`facilitador:observaciones.tipos.${o.tipo}`)}</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>· {nombrePrograma(o.programaId)}</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', marginLeft: 'auto' }}>
-                {new Date(o.createdAt).toLocaleString()}
-              </span>
+        <div className="section-card-body">
+          {loading && <Loading label={t('common:loading')} />}
+          {!loading && observaciones.length === 0 && (
+            <EmptyState title={t('admin:observaciones.empty')} />
+          )}
+          {!loading && observaciones.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              {observaciones.map(o => (
+                <div key={o.id} className="card" style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}>
+                    <StatusBadge variant={o.urgencia === 'urgente' ? 'danger' : 'neutral'}>
+                      {o.urgencia === 'urgente' ? '⚠ ' : ''}{t(`facilitador:observaciones.urgencias.${o.urgencia}`)}
+                    </StatusBadge>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t(`facilitador:observaciones.tipos.${o.tipo}`)}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>· {nombrePrograma(o.programaId)}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', marginLeft: 'auto' }}>
+                      {new Date(o.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem' }}>{o.texto}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 'var(--space-1)' }}>
+                    {o.notificadoEn
+                      ? t('admin:observaciones.notificado', { fecha: new Date(o.notificadoEn).toLocaleString() })
+                      : t('admin:observaciones.no_notificado')}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div style={{ fontSize: '0.9rem' }}>{o.texto}</div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', marginTop: 'var(--space-1)' }}>
-              {o.notificadoEn
-                ? t('admin:observaciones.notificado', { fecha: new Date(o.notificadoEn).toLocaleString() })
-                : t('admin:observaciones.no_notificado')}
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     </div>
   );

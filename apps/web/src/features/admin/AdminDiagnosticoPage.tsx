@@ -223,7 +223,7 @@ export function AdminDiagnosticoPage() {
       {loading && <Loading label={t('common:loading')} />}
 
       {/* RF-49: snapshot por tipo */}
-      <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+      <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
         <div className="section-card-header">
           <span className="section-card-title" style={{ flex: 1 }}>{t('formularios:resultados.snapshot.title')}</span>
           <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
@@ -276,7 +276,7 @@ export function AdminDiagnosticoPage() {
         <>
           {/* Comparativo (RF-34). Escala y selección van en secciones separadas:
               no son la misma escala de medición y nunca se combinan. */}
-          <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+          <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
             <div className="section-card-header">
               <span className="section-card-title">
                 {t('formularios:resultados.comparativo')}
@@ -320,7 +320,7 @@ export function AdminDiagnosticoPage() {
           {/* Agregados + individuales por momento, cada uno separado en dos
               secciones (escala / selección). */}
           {([['inicial', detalle.inicial], ['final', detalle.final]] as const).map(([key, bloque]) => (
-            <div key={key} className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div key={key} className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
               <div className="section-card-header">
                 <span className="section-card-title">
                   {t(`formularios:resultados.${key}`)}

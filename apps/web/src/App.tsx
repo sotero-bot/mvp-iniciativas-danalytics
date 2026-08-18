@@ -194,7 +194,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <nav>
           <NavLink to={inicioPath} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.07)',
               border: '1px solid rgba(255,255,255,0.1)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -210,11 +210,10 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             {roleCards.map(item => {
               const icono = (
                 <span style={{
-                  width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
-                  background: `${item.color}2e`, border: `1px solid ${item.color}55`,
+                  width: 20, height: 20, borderRadius: 0, flexShrink: 0,
+                  background: `${item.color}2e`, border: `1px solid ${item.color}55`, color: item.color,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.7rem',
-                }}>{item.icon}</span>
+                }}><SidebarIcon name={item.icon} size={11} /></span>
               );
               return item.to ? (
                 <NavLink key={item.key} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -242,7 +241,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           ].map(item => (
             <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <span style={{
-                width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+                width: 20, height: 20, borderRadius: 0, flexShrink: 0,
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid var(--sidebar-border)',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -254,7 +253,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           ))}
           <NavLink to="/admin/instancias" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -270,7 +269,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <nav>
           <NavLink to="/admin/plantillas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -279,7 +278,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
           <NavLink to="/admin/formularios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -293,7 +292,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <nav>
           <NavLink to="/admin/programas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -302,7 +301,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
           <NavLink to="/admin/observaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -316,7 +315,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <nav>
           <NavLink to="/admin/usuarios" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -325,7 +324,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
           <NavLink to="/admin/notificaciones" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -339,7 +338,7 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
         <nav>
           <NavLink to="/admin/registro-acceso" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span style={{
-              width: 20, height: 20, borderRadius: '6px', flexShrink: 0,
+              width: 20, height: 20, borderRadius: 0, flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid var(--sidebar-border)', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -354,9 +353,9 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.4rem 0.625rem' }}>
               <div style={{
                 width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(56,189,248,0.18)', border: '1px solid #38BDF840',
+                background: 'rgba(59,130,246,0.18)', border: '1px solid #3B82F640',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                color: '#38BDF8', fontWeight: 700, fontSize: '0.85rem',
+                color: '#3B82F6', fontWeight: 700, fontSize: '0.85rem',
               }}>
                 {(displayName || '?').charAt(0).toUpperCase()}
               </div>

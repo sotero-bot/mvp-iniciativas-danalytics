@@ -49,10 +49,10 @@ export const LanguageSwitcher: React.FC<Props> = ({ variant = 'sidebar', classNa
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '4px 10px 4px 8px',
-            border: '1px solid #CBD5E1',
+            border: '1px solid var(--color-border-strong)',
             borderRadius: 9999,
-            background: open ? '#F1F5F9' : '#F8FAFC',
-            fontSize: '0.78rem', fontWeight: 600, color: '#334155',
+            background: open ? 'var(--color-bg-subtle)' : 'var(--color-bg-card)',
+            fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text-main)',
             cursor: 'pointer',
             outline: 'none',
             transition: 'background 0.15s',
@@ -60,7 +60,7 @@ export const LanguageSwitcher: React.FC<Props> = ({ variant = 'sidebar', classNa
         >
           <span style={{ fontSize: '0.9rem' }}>🌐</span>
           <span>{LANGUAGE_LABELS[currentLng]}</span>
-          <span style={{ fontSize: '0.6rem', color: '#94A3B8', marginLeft: 2 }}>{open ? '▴' : '▾'}</span>
+          <span style={{ fontSize: '0.6rem', color: 'var(--color-text-tertiary)', marginLeft: 2 }}>{open ? '▴' : '▾'}</span>
         </button>
 
         {open && (
@@ -92,8 +92,8 @@ export const LanguageSwitcher: React.FC<Props> = ({ variant = 'sidebar', classNa
                     background: isActive ? '#F0F9FF' : 'transparent',
                     border: 'none', textAlign: 'left', cursor: 'pointer',
                     fontSize: '0.85rem', fontWeight: isActive ? 700 : 400,
-                    color: isActive ? '#0369A1' : '#334155',
-                    borderLeft: isActive ? '3px solid #0284C7' : '3px solid transparent',
+                    color: isActive ? 'var(--color-info)' : 'var(--color-text-main)',
+                    borderLeft: isActive ? '3px solid var(--color-info)' : '3px solid transparent',
                   }}
                 >
                   <span style={{ fontSize: '1.1rem' }}>{LOCALE_FLAGS[lng] ?? '🌐'}</span>

@@ -292,7 +292,14 @@ export function FormBuilderPage() {
       {loading && <Loading label={t('common:loading')} />}
       {!loading && plantillas.length === 0 && <EmptyState title={t('formularios:builder.empty')} />}
 
-      <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', marginTop: 'var(--space-4)' }}>
+      {!loading && plantillas.length > 0 && (
+      <div className="section-card home-panel" style={{ marginTop: 'var(--space-4)' }}>
+        <div className="section-card-header">
+          <span className="section-card-title">{t('formularios:builder.list_title')}</span>
+          <span className="count-badge">{gruposPorTipo.length}</span>
+        </div>
+        <div className="section-card-body">
+      <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
         {gruposPorTipo.map(({ tipo, actual, anteriores }) => {
           const abierto = historialAbierto[tipo] ?? false;
           return (
@@ -369,9 +376,12 @@ export function FormBuilderPage() {
           );
         })}
       </div>
+        </div>
+      </div>
+      )}
 
       {selected && (
-        <div className="section-card" style={{ marginTop: 'var(--space-5)' }}>
+        <div className="section-card home-panel" style={{ marginTop: 'var(--space-5)' }}>
           <div className="section-card-header">
             <span className="section-card-title">{t('formularios:builder.campos.title')} — {selected.nombre}</span>
             <span className="count-badge">{campos.length}</span>

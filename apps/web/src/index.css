@@ -118,6 +118,36 @@ body {
   line-height: 1.6;
 }
 
+/* Superficies del navegador tematizadas con la paleta navy: selección de
+   texto y scrollbars dejan de traer los defaults del sistema. */
+::selection {
+  background: var(--color-primary-muted);
+  color: var(--color-text-heading);
+}
+
+* {
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 3px solid var(--color-bg-page);
+  border-radius: var(--radius-pill);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Títulos: misma tipografía de marca (Poppins) que el cuerpo, solo cambia peso/tamaño. */
 h1,
 h2,
@@ -299,7 +329,7 @@ select.input:focus-visible {
 }
 
 /* Acción destructiva inline en tablas (desmatricular, eliminar). Reemplaza el
-   patrón repetido `className="btn-link" style={{ color:'#B91C1C' }}`. */
+   patrón repetido de hex inline por color de peligro en el propio JSX. */
 .btn-link-danger {
   color: var(--color-danger-strong);
 }
@@ -358,20 +388,20 @@ select.input {
 /* ─── Form Validation ─── */
 .was-validated .input:invalid,
 .was-validated .textarea:invalid {
-  border-color: #EF4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-border);
 }
 
 .required-label::after {
   content: " *";
-  color: #EF4444;
+  color: var(--color-danger);
 }
 
 .invalid-feedback {
   display: none;
   margin-top: 0.3rem;
   font-size: 0.8rem;
-  color: #EF4444;
+  color: var(--color-danger);
 }
 
 .was-validated .input:invalid~.invalid-feedback,
@@ -678,7 +708,7 @@ th:last-child,
 /* ─── Runner ─── */
 .runner-layout {
   min-height: 100vh;
-  background: linear-gradient(160deg, #F0F4FF 0%, #F8FAFC 50%, #FDF8FF 100%);
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -805,13 +835,12 @@ th:last-child,
   margin-bottom: 0.25rem;
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #EFF6FF, #F5F3FF);
-  border: 1px solid #DBEAFE;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-info-border);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
 .empty-state-title {
@@ -835,8 +864,8 @@ th:last-child,
   align-items: flex-start;
   gap: 12px;
   padding: 1rem 1.25rem;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-md);
   margin-bottom: 1.5rem;
 }
@@ -854,300 +883,20 @@ th:last-child,
 .prereq-banner-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #92400E;
+  color: var(--color-warning-strong);
   margin: 0 0 2px;
 }
 
 .prereq-banner-text {
   font-size: 0.8125rem;
-  color: #B45309;
+  color: var(--color-warning-strong);
   margin: 0;
 }
 
-/* ─── Sidebar Workflow Guide ─── */
-.workflow-guide {
-  padding: 0.875rem 0 1rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--sidebar-border);
-}
-
-.workflow-guide-label {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sidebar-text);
-  opacity: 0.4;
-  padding: 0 0.625rem;
-  margin-bottom: 0.625rem;
-  display: block;
-}
-
-.workflow-step {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0.35rem 0.625rem;
-  text-decoration: none;
-  border-radius: var(--radius-xs);
-  transition: var(--transition);
-  cursor: pointer;
-}
-
-.workflow-step:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.workflow-step-num {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: rgba(148, 163, 184, 0.8);
-  flex-shrink: 0;
-}
-
-.workflow-step-label {
-  font-size: 0.78rem;
-  color: rgba(148, 163, 184, 0.75);
-  font-weight: 500;
-  flex: 1;
-}
-
-.workflow-step-arrow {
-  font-size: 0.7rem;
-  color: rgba(148, 163, 184, 0.3);
-}
-
-/* ─── Dashboard ─── */
-.dashboard-hero {
-  background: linear-gradient(135deg, #0C1445 0%, #0F172A 45%, #1e3a5f 100%);
-  border-radius: var(--radius-lg);
-  padding: 2.25rem 2.5rem;
-  color: white;
-  margin-bottom: 1.75rem;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  box-shadow: 0 20px 40px -10px rgba(12, 20, 69, 0.3);
-}
-
-.dashboard-hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), rgba(99, 102, 241, 0.4), transparent);
-}
-
-.dashboard-hero::after {
-  content: '';
-  position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 340px;
-  height: 340px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%);
-  pointer-events: none;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.dashboard-step-card {
-  background: white;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.25rem 1.125rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  color: inherit;
-  position: relative;
-  overflow: hidden;
-}
-
-.dashboard-step-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--step-accent, var(--color-primary));
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
-}
-
-.dashboard-step-card:hover::before {
-  opacity: 1;
-}
-
-.dashboard-step-card:hover {
-  border-color: var(--step-accent, var(--color-primary));
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--step-accent, var(--color-primary)) inset;
-  transform: translateY(-3px);
-}
-
-.dashboard-step-card.step-done {
-  border-color: #86EFAC;
-  background: linear-gradient(135deg, #F0FDF4, #FAFFFD);
-}
-
-.dashboard-step-card.step-done::before {
-  opacity: 1;
-}
-
-.dashboard-step-card.step-locked {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.dashboard-step-card.step-locked::before {
-  background: #CBD5E1;
-}
-
-.dashboard-step-card.step-locked:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: var(--color-border);
-}
-
-/* Step-specific accent colors */
-.step-1 { --step-accent: #3B82F6; }
-.step-2 { --step-accent: #8B5CF6; }
-.step-3 { --step-accent: #F59E0B; }
-.step-4 { --step-accent: #22C55E; }
-
-.step-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
-}
-
-.step-card-num {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-}
-
-.step-card-done-badge {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #22C55E;
-  color: white;
-  font-size: 0.6rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.step-card-title {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--color-text-main);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.step-card-desc {
-  font-size: 0.78rem;
-  color: var(--color-text-secondary);
-  margin: 0;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.step-card-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: var(--color-bg-subtle);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  width: fit-content;
-  margin-top: 4px;
-}
-
-.step-done .step-card-count {
-  background: #DCFCE7;
-  color: #166534;
-  border-color: #86EFAC;
-}
-
-.step-card-locked-msg {
-  font-size: 0.7rem;
-  color: #D97706;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
-  border-radius: 9999px;
-  padding: 2px 8px;
-  width: fit-content;
-  margin-top: 4px;
-}
-
-/* ─── CTA Banner ─── */
-.cta-banner {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #EFF6FF, #F0F4FF);
-  border: 1px solid #BFDBFE;
-  border-radius: var(--radius-md);
-}
-
-.cta-banner-icon {
-  font-size: 1.75rem;
-  flex-shrink: 0;
-}
-
-.cta-banner-body {
-  flex: 1;
-}
-
-.cta-banner-title {
-  font-weight: 600;
-  color: #1E40AF;
-  margin: 0 0 2px;
-  font-size: 0.9375rem;
-}
-
-.cta-banner-text {
-  font-size: 0.8125rem;
-  color: #3B82F6;
-  margin: 0;
-}
-/* ─── Formulario respondiente (estilo Google Forms) — Fase 2 IA en Acción ─── */
+/* ─── Formulario respondiente — Fase 2 IA en Acción ─── */
 .gform-container {
-  --gform-accent: #0D9488;
-  --gform-accent-soft: rgba(13, 148, 136, 0.08);
+  --gform-accent: var(--color-primary);
+  --gform-accent-soft: var(--color-primary-light);
   max-width: 720px;
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
@@ -1156,9 +905,7 @@ th:last-child,
 .gform-header {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-top: 10px solid var(--gform-accent);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  border-top: 3px solid var(--gform-accent);
   padding: 1.5rem 1.75rem;
   margin-top: 0.75rem;
 }
@@ -1185,7 +932,7 @@ th:last-child,
 .gform-required-note {
   margin-top: 0.9rem;
   font-size: 0.8rem;
-  color: #DC2626;
+  color: var(--color-danger);
 }
 
 /* Una sección = un solo bloque conectado (encabezado + preguntas). Las tarjetas
@@ -1195,7 +942,6 @@ th:last-child,
   margin-top: 1.5rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -1236,7 +982,6 @@ th:last-child,
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
   padding: 1.25rem 1.5rem 1.4rem;
   margin-top: 1rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -1244,7 +989,7 @@ th:last-child,
 
 .gform-card:focus-within {
   border-color: var(--gform-accent);
-  box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.18);
+  box-shadow: var(--shadow-focus);
 }
 
 .gform-card--error {
@@ -1288,7 +1033,7 @@ th:last-child,
 }
 
 .gform-question .gform-req {
-  color: #DC2626;
+  color: var(--color-danger);
   margin-left: 0.25rem;
 }
 
@@ -1535,7 +1280,6 @@ textarea.gform-input {
 .gform-add:hover {
   background: var(--gform-accent);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px -2px rgba(13, 148, 136, 0.4);
 }
 
 /* Pie: enviar + autosave */
@@ -1571,15 +1315,13 @@ textarea.gform-input {
 
 .gform-autosave {
   font-size: 0.78rem;
-  color: #15803D;
+  color: var(--color-success-strong);
 }
 
 .gform-sent {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-top: 10px solid #22C55E;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  border-top: 3px solid var(--color-success);
   padding: 1.75rem;
   margin-top: 1rem;
   font-size: 0.95rem;
@@ -1828,34 +1570,78 @@ textarea.gform-input {
 
 /* ─── Stat card (KPI) ─── */
 .stat-card {
+  position: relative;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-  padding: 1rem 1.125rem;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2);
+}
+
+/* Variante navegable: todo el tile es un enlace (KPIs de inicio). */
+a.stat-card {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+a.stat-card:hover {
+  border-color: var(--color-primary);
+}
+
+a.stat-card:hover .stat-card-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.stat-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stat-card-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stat-card-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
 }
 
 .stat-card-value {
-  font-size: 1.35rem;
+  font-size: 1.9rem;
   font-weight: 700;
-  color: var(--color-text-main);
+  color: var(--color-text-heading);
   letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-card-hint {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--color-text-secondary);
+}
+
+.stat-card-arrow {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  color: var(--color-text-tertiary);
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 /* ─── Loading / spinner ─── */
@@ -1929,7 +1715,7 @@ textarea.gform-input {
 }
 
 .breadcrumb-sep {
-  color: #C3C8D0;
+  color: var(--color-text-tertiary);
   user-select: none;
 }
 
@@ -1952,9 +1738,20 @@ textarea.gform-input {
    ya registrado a la derecha (más ancho). Ver 06-formularios.md. */
 .form-list-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(320px, 0.85fr) minmax(420px, 1.15fr);
   gap: 1.5rem;
   align-items: start;
+}
+
+/* La proporción 0.85/1.15 solo respira en pantallas anchas: con sidebar
+   (240px) + padding de página, un monitor 1080p (1920px) deja ~1568px de
+   contenido — bastante menos que uno 2K (2560px, ~2208px de contenido) — y
+   ambas columnas quedan apenuscadas. Se apilan por debajo de 2100px de
+   viewport en vez de encogerse indefinidamente. */
+@media (max-width: 2100px) {
+  .form-list-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ─── Section card (panel con cabecera + contador) ─── */
@@ -1980,6 +1777,325 @@ textarea.gform-input {
 
 .section-card-body {
   padding: 1.75rem;
+}
+
+/* ─── Home / paneles de inicio por rol ───────────────────────────────
+   El Inicio es la única superficie donde el sistema se "eleva": en vez de
+   apilar tarjetas dentro de un panel (superficies anidadas), usamos
+   encabezados de sección sobre rejillas abiertas — KPIs arriba, accesos
+   debajo. Todo sigue plano, recto y hairline; la sensación moderna viene
+   del ritmo, la escala tipográfica de los números y un único gesto de hover
+   (borde → navy + flecha que avanza), no de sombras, gradientes ni radios. */
+.home-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Paneles del inicio/dashboard: la cabecera del panel lleva el navy de marca
+   (título en blanco) y sin la línea hairline inferior. Se limita a `.home-panel`
+   a propósito — el resto de la app conserva cabeceras claras, porque muchas
+   llevan botones primarios navy que se perderían sobre un fondo navy. */
+.home-panel .section-card-header {
+  background: var(--color-primary);
+  border-bottom: none;
+  /* Barra más delgada que la cabecera clara estándar: menos protagonismo. */
+  padding: var(--space-3) 1.75rem;
+}
+
+.home-panel .section-card-title {
+  color: #FFFFFF;
+  font-size: 1rem;
+}
+
+.home-panel .section-card-header .count-badge {
+  background: rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+}
+
+.home-panel .section-card-header .home-section-note {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Controles que viven DENTRO de una cabecera navy: se invierten para seguir
+   siendo visibles (un botón primario navy sobre fondo navy desaparecería). */
+.home-panel .section-card-header .btn-primary {
+  background: #FFFFFF;
+  color: var(--color-primary);
+  border-color: #FFFFFF;
+}
+
+.home-panel .section-card-header .btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-primary);
+}
+
+.home-panel .section-card-header .btn-secondary {
+  background: transparent;
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.home-panel .section-card-header .btn-link {
+  color: #FFFFFF;
+}
+
+.home-panel .section-card-header .btn-secondary:hover:not(:disabled),
+.home-panel .section-card-header .btn-link:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+
+.home-panel .section-card-header .info-tooltip-trigger {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
+}
+
+.home-panel .section-card-header .info-tooltip-trigger:hover,
+.home-panel .section-card-header .info-tooltip-trigger:focus-visible {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #FFFFFF;
+  color: #FFFFFF;
+}
+
+/* Nota secundaria en la cabecera de un panel (ej. "Sigue estos 4 pasos"). */
+.home-section-note {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+/* KPIs: rejilla abierta de tiles (sin panel contenedor → sin anidar). */
+.home-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Accesos: rejilla de tarjetas de navegación por rol. */
+.home-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: var(--space-4);
+}
+
+.home-nav-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-height: 152px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+a.home-nav-card:hover {
+  border-color: var(--color-primary);
+}
+
+.home-nav-card.is-disabled {
+  cursor: default;
+  background: var(--color-bg-page);
+  border-style: dashed;
+}
+
+.home-nav-card-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-nav-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.home-nav-card-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* Pie de la tarjeta: empuja la flecha/estado al fondo para alinear la rejilla. */
+.home-nav-card-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.home-nav-card-foot .chip {
+  font-weight: 600;
+}
+
+.home-nav-card-arrow {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+
+a.home-nav-card:hover .home-nav-card-arrow {
+  transform: translateX(4px);
+}
+
+/* Lista de pendientes del estudiante: filas hairline dentro de su panel
+   (`.section-card`), por eso la lista no lleva borde propio — lo pone el panel. */
+.home-list {
+  background: var(--color-bg-card);
+}
+
+.home-list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border-soft);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.home-list > :first-child {
+  border-top: none;
+}
+
+a.home-list-row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.home-list-row-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-warning);
+}
+
+.home-list-row-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-main);
+}
+
+.home-list-row-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  font-size: 1.1rem;
+  transition: transform 0.15s ease;
+}
+
+a.home-list-row:hover .home-list-row-arrow {
+  transform: translateX(3px);
+}
+
+/* Próxima sesión: bloque destacado, flush dentro del cuerpo de su panel. */
+.home-next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: inherit;
+}
+
+a.home-next:hover .home-next-title {
+  color: var(--color-primary);
+}
+
+.home-next-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.home-next-program {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.home-next-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.home-next-meta {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* Tarjetas de programa del estudiante (contenido + progreso). */
+.home-prog-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+a.home-prog-card:hover {
+  border-color: var(--color-primary);
+}
+
+.home-prog-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.home-prog-empresa {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.home-prog-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.home-prog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  /* Ancla el pie al fondo para que las tarjetas de la fila queden parejas
+     aunque el nombre/empresa ocupen distinto alto (grid las estira igual). */
+  margin-top: auto;
+}
+
+.home-prog-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
 }
 
 /* Contador junto a un título de sección. */
@@ -2049,6 +2165,14 @@ textarea.gform-input {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.625rem;
+}
+
+/* Filtros dentro de un panel: fondos blanco (heredado del panel), sin borde
+   ni relleno vertical propio para que no se separen del listado. Solo mantienen
+   el relleno horizontal para alinearse con la cabecera. Van entre la cabecera
+   del panel y su cuerpo. */
+.home-filter-strip {
+  padding: 0 1.75rem;
 }
 
 .filter-bar .input {
@@ -2284,20 +2408,10 @@ textarea.gform-input {
     grid-template-columns: 1fr;
   }
 
-  /* Form + listado → apilados (formulario arriba, listado debajo) */
-  .form-list-grid {
-    grid-template-columns: 1fr;
-  }
-
   /* Paginación → apila info y controles */
   .pagination {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  /* Dashboard de 4 columnas → 2 en móvil */
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   /* Modales a hoja inferior (bottom sheet) en móvil */
@@ -2324,10 +2438,6 @@ textarea.gform-input {
 }
 
 @media (max-width: 480px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
   .main-content {
     padding: 1rem 0.75rem;
   }

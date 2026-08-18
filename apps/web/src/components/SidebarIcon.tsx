@@ -1,11 +1,13 @@
-type SidebarIconName =
+export type SidebarIconName =
   | 'plantillas'
   | 'formularios'
   | 'programas'
   | 'observaciones'
   | 'usuarios'
   | 'notificaciones'
-  | 'registro-acceso';
+  | 'registro-acceso'
+  | 'empresas'
+  | 'actividades';
 
 interface SidebarIconProps {
   name: SidebarIconName;
@@ -56,6 +58,19 @@ const PATHS: Record<SidebarIconName, React.ReactNode> = {
     </>
   ),
   'registro-acceso': <path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5Z" />,
+  empresas: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="1" />
+      <path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4" />
+      <path d="M9 7h.01M9 11h.01M15 7h.01M15 11h.01" />
+    </>
+  ),
+  actividades: (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M4 6h.01M4 12h.01M4 18h.01" />
+    </>
+  ),
 };
 
 /** Icono monocromo (trazo, hereda `color` del contenedor) para ítems del sidebar. */

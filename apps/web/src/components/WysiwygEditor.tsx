@@ -127,10 +127,10 @@ const ToolbarButton = ({
         style={{
             padding: '3px 7px',
             fontSize: '0.8rem',
-            borderRadius: 4,
-            border: '1px solid #e2e8f0',
-            background: active ? '#e0e7ff' : '#f8fafc',
-            color: active ? '#3730a3' : '#475569',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--color-border-strong)',
+            background: active ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
+            color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)',
             cursor: 'pointer',
             fontWeight: active ? 700 : 400,
             lineHeight: 1.4
@@ -140,7 +140,7 @@ const ToolbarButton = ({
     </button>
 );
 
-export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(function WysiwygEditor({ value, onChange, placeholder, minHeight = 280, borderColor = '#e2e8f0' }, ref) {
+export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(function WysiwygEditor({ value, onChange, placeholder, minHeight = 280, borderColor = 'var(--color-border-strong)' }, ref) {
     const { t } = useTranslation('common');
     const isInternalChange = useRef(false);
     const resolvedPlaceholder = placeholder ?? t('editor.placeholder_default');
@@ -232,29 +232,29 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
     if (!editor) return null;
 
     return (
-        <div style={{ border: `1px solid ${borderColor}`, borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+        <div style={{ border: `1px solid ${borderColor}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: 'var(--color-bg-card)' }}>
             {/* Toolbar */}
             <div style={{
                 display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 10px',
-                borderBottom: `1px solid ${borderColor}`, background: '#f8fafc'
+                borderBottom: `1px solid ${borderColor}`, background: 'var(--color-bg-subtle)'
             }}>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} title={t('editor.toolbar.bold')} active={editor.isActive('bold')}><strong>B</strong></ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} title={t('editor.toolbar.italic')} active={editor.isActive('italic')}><em>I</em></ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} title={t('editor.toolbar.strike')} active={editor.isActive('strike')}><s>S</s></ToolbarButton>
-                <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
+                <span style={{ borderLeft: '1px solid var(--color-border-strong)', margin: '0 2px' }} />
                 <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title={t('editor.toolbar.h1')} active={editor.isActive('heading', { level: 1 })}>H1</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title={t('editor.toolbar.h2')} active={editor.isActive('heading', { level: 2 })}>H2</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title={t('editor.toolbar.h3')} active={editor.isActive('heading', { level: 3 })}>H3</ToolbarButton>
-                <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
+                <span style={{ borderLeft: '1px solid var(--color-border-strong)', margin: '0 2px' }} />
                 <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} title={t('editor.toolbar.bullet_list')} active={editor.isActive('bulletList')}>≡ {t('editor.toolbar.list_label')}</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} title={t('editor.toolbar.ordered_list')} active={editor.isActive('orderedList')}>{t('editor.toolbar.ordered_list_label')}</ToolbarButton>
-                <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
+                <span style={{ borderLeft: '1px solid var(--color-border-strong)', margin: '0 2px' }} />
                 <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} title={t('editor.toolbar.blockquote')} active={editor.isActive('blockquote')}>❝</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().toggleCode().run()} title={t('editor.toolbar.code')} active={editor.isActive('code')}>&lt;/&gt;</ToolbarButton>
-                <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
+                <span style={{ borderLeft: '1px solid var(--color-border-strong)', margin: '0 2px' }} />
                 <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title={t('editor.toolbar.undo')}>↩</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title={t('editor.toolbar.redo')}>↪</ToolbarButton>
-                <span style={{ borderLeft: '1px solid #e2e8f0', margin: '0 2px' }} />
+                <span style={{ borderLeft: '1px solid var(--color-border-strong)', margin: '0 2px' }} />
                 <ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title={t('editor.toolbar.insert_table')}>⊞ {t('editor.toolbar.table_label')}</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()} title={t('editor.toolbar.add_column')}>{t('editor.toolbar.col_label')}</ToolbarButton>
                 <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()} title={t('editor.toolbar.add_row')}>{t('editor.toolbar.row_label')}</ToolbarButton>
@@ -264,31 +264,31 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             {/* Editor area */}
             <EditorContent
                 editor={editor}
-                style={{ minHeight, padding: '12px 16px', fontSize: '0.95rem', color: '#1e293b', lineHeight: 1.7 }}
+                style={{ minHeight, padding: '12px 16px', fontSize: '0.95rem', color: 'var(--color-text-main)', lineHeight: 1.7 }}
             />
 
             <style>{`
         .tiptap p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
-          color: #94a3b8;
+          color: var(--color-text-tertiary);
           pointer-events: none;
           float: left;
           height: 0;
           font-style: italic;
         }
         .tiptap:focus { outline: none; }
-        .tiptap h1 { font-size: 1.6rem; font-weight: 700; margin: 0.8rem 0 0.4rem; }
-        .tiptap h2 { font-size: 1.3rem; font-weight: 600; margin: 0.8rem 0 0.4rem; }
+        .tiptap h1 { font-size: 1.625rem; font-weight: 700; margin: 0.8rem 0 0.4rem; }
+        .tiptap h2 { font-size: 1.25rem; font-weight: 600; margin: 0.8rem 0 0.4rem; }
         .tiptap h3 { font-size: 1.1rem; font-weight: 600; margin: 0.6rem 0 0.3rem; }
         .tiptap ul, .tiptap ol { padding-left: 1.5rem; margin: 0.4rem 0; }
         .tiptap li { margin: 0.2rem 0; }
-        .tiptap blockquote { border-left: 3px solid #c4b5fd; padding-left: 1rem; color: #64748b; margin: 0.5rem 0; }
-        .tiptap code { background: #f1f5f9; padding: 2px 5px; border-radius: 3px; font-family: monospace; font-size: 0.88em; }
-        .tiptap pre { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow-x: auto; }
+        .tiptap blockquote { border-left: 3px solid var(--color-primary); padding-left: 1rem; color: var(--color-text-secondary); margin: 0.5rem 0; }
+        .tiptap code { background: var(--color-bg-subtle); padding: 2px 5px; border-radius: var(--radius-chip); font-family: monospace; font-size: 0.88em; }
+        .tiptap pre { background: #1E293B; color: #E2E8F0; padding: 12px; border-radius: var(--radius-sm); overflow-x: auto; }
         .tiptap table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; }
-        .tiptap th { background: #f1f5f9; font-weight: 600; padding: 8px 12px; border: 1px solid #cbd5e1; text-align: left; }
-        .tiptap td { padding: 8px 12px; border: 1px solid #cbd5e1; }
-        .tiptap tr:nth-child(even) td { background: #f8fafc; }
+        .tiptap th { background: var(--color-bg-subtle); font-weight: 600; padding: 8px 12px; border: 1px solid var(--color-border-strong); text-align: left; }
+        .tiptap td { padding: 8px 12px; border: 1px solid var(--color-border-strong); }
+        .tiptap tr:nth-child(even) td { background: var(--color-bg-page); }
         .tiptap strong { font-weight: 700; }
       `}</style>
         </div>

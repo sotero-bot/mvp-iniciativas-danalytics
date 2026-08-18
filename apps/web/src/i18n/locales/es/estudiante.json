@@ -20,7 +20,14 @@
       "sin_iniciar": "Reto sin iniciar",
       "en_progreso": "Reto en progreso",
       "entregado": "Reto entregado"
-    }
+    },
+    "resumen_title": "Resumen",
+    "kpi_programas": "Programas",
+    "kpi_programas_hint": "{{count}} retos entregados",
+    "kpi_sesiones": "Sesiones",
+    "kpi_sesiones_hint": "Completadas",
+    "kpi_pendientes": "Pendientes",
+    "kpi_pendientes_hint": "Por resolver"
   },
   "programas": {
     "title": "Mis programas",

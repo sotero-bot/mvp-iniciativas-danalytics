@@ -61,7 +61,7 @@ export function MagicLinkConsumePage({ onLogin }: { onLogin: (token: string) => 
 
         {status === 'success' && (
           <>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: '2rem', marginBottom: 12 }}>✅</div>
             <h2 style={{ color: 'white', margin: 0, fontSize: '1.1rem' }}>{t('auth:magic_link.success')}</h2>
             <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.9rem', marginTop: 8 }}>{t('auth:magic_link.redirecting')}</p>
           </>
@@ -69,9 +69,9 @@ export function MagicLinkConsumePage({ onLogin }: { onLogin: (token: string) => 
 
         {status === 'error' && (
           <>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: '2rem', marginBottom: 12 }}>⚠️</div>
             <h2 style={{ color: 'white', margin: 0, fontSize: '1.1rem' }}>{t('auth:magic_link.error_title')}</h2>
-            <p style={{ color: '#FCA5A5', fontSize: '0.9rem', marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)' }}>
+            <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem', marginTop: 12, padding: '8px 12px', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: 'var(--radius-sm)' }}>
               {errorMsg}
             </p>
             <button

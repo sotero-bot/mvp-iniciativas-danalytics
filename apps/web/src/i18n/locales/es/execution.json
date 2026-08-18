@@ -266,7 +266,6 @@
       "email_confirm_button": "Confirmar y comenzar",
       "register_error_default": "Algo salió mal al iniciar la actividad",
       "register_failed": "Error al registrar identificación",
-      "start_failed_generic": "Algo salió mal al iniciar. Intentá de nuevo.",
       "welcome_back": "Bienvenido de vuelta, {{nombre}}",
       "register_success": "Registro exitoso",
       "title": "Identifícate para comenzar",
@@ -290,13 +289,8 @@
       "answer_all": "Respondé todas las preguntas antes de continuar.",
       "consult_ia_first": "Consultá al asistente para la pregunta \"{{enunciado}}...\" antes de continuar.",
       "attach_file_required": "Adjuntá el archivo requerido para continuar.",
-      "save_failed": "Error al guardar la respuesta. Por favor intentá de nuevo.",
       "ia_failed": "Error al consultar la IA",
-      "ia_connect_failed": "No pudimos conectar con el asistente. Intentá de nuevo.",
-      "ia_write_first": "Escribí tu respuesta para consultar al asistente.",
-      "download_example_failed": "No se pudo obtener el enlace de descarga",
-      "download_template_failed": "No se pudo generar la plantilla. Espera a que el asistente IA finalice.",
-      "download_template_retry": "Error al descargar la plantilla. Intentá de nuevo."
+      "ia_write_first": "Escribí tu respuesta para consultar al asistente."
     }
   },
   "enlace_runner": {

@@ -68,7 +68,7 @@ export function RestrictedPdfViewer({ url }: { url: string }) {
   if (loading) return <div style={{ padding: '1rem', color: 'var(--color-text-secondary)' }}>Cargando…</div>;
   if (error) {
     return (
-      <div style={{ padding: '1rem', color: 'var(--color-danger, #DC2626)' }}>
+      <div style={{ padding: '1rem', color: 'var(--color-danger)' }}>
         No se pudo cargar el material.
       </div>
     );

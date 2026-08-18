@@ -19,23 +19,21 @@ type SlotKey =
 
 interface SlotStyle {
     area: string;
-    bg: string;
-    border: string;
-    labelColor: string;
-    stickyBg: string;
 }
 
+// Todos los slots comparten el mismo tratamiento plano (tokens de marca): el
+// canvas se lee por posición/etiqueta, no por un color distinto por bloque.
 const SLOT_STYLES: Record<SlotKey, SlotStyle> = {
-    datos:        { area: 'datos',         bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
-    oportunidad:  { area: 'oportunidad',   bg: 'var(--color-primary-light)', border: 'var(--color-info-border)', labelColor: 'var(--color-primary-hover)', stickyBg: 'var(--color-primary-muted)' },
-    problema:     { area: 'problema',      bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
-    usuarios:     { area: 'usuarios',      bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
-    actores:      { area: 'actores',       bg: 'var(--color-primary-light)', border: 'var(--color-info-border)', labelColor: 'var(--color-primary-hover)', stickyBg: 'var(--color-primary-muted)' },
-    indicadores:  { area: 'indicadores',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    entregables:  { area: 'entregables',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    restricciones:{ area: 'restricciones', bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
-    recursos:     { area: 'recursos',      bg: 'var(--color-bg-page)', border: 'var(--color-border)', labelColor: 'var(--color-text-secondary)', stickyBg: 'var(--color-bg-subtle)' },
-    valor:        { area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    datos:         { area: 'datos' },
+    oportunidad:   { area: 'oportunidad' },
+    problema:      { area: 'problema' },
+    usuarios:      { area: 'usuarios' },
+    actores:       { area: 'actores' },
+    indicadores:   { area: 'indicadores' },
+    entregables:   { area: 'entregables' },
+    restricciones: { area: 'restricciones' },
+    recursos:      { area: 'recursos' },
+    valor:         { area: 'valor' },
 };
 
 const ORDEN_TO_SLOT: Record<number, SlotKey> = {
@@ -50,16 +48,16 @@ const ORDEN_TO_SLOT: Record<number, SlotKey> = {
     9: 'valor',
 };
 
-function StickyNote({ text, bg }: { text: string; bg: string }) {
+function StickyNote({ text }: { text: string }) {
     return (
         <div style={{
-            background: bg,
-            borderRadius: 6,
+            background: 'var(--color-bg-subtle)',
+            border: '1px solid var(--color-border-soft)',
+            borderRadius: 'var(--radius-chip)',
             padding: '0.45rem 0.6rem',
             fontSize: '0.78rem',
             color: 'var(--color-text-main)',
             lineHeight: 1.45,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         }}>
             {text}
         </div>
@@ -80,9 +78,9 @@ function CanvasBlock({
     return (
         <div style={{
             gridArea: slot.area,
-            background: slot.bg,
-            border: `1px solid ${slot.border}`,
-            borderRadius: 10,
+            background: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 0,
             padding: '0.75rem',
             display: 'flex',
             flexDirection: 'column',
@@ -92,7 +90,7 @@ function CanvasBlock({
             <div style={{
                 fontSize: '0.68rem',
                 fontWeight: 700,
-                color: slot.labelColor,
+                color: 'var(--color-text-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
                 marginBottom: 4,
@@ -103,15 +101,15 @@ function CanvasBlock({
             {isEmpty ? (
                 <div style={{
                     flex: 1,
-                    border: `1px dashed ${slot.border}`,
-                    borderRadius: 6,
+                    border: '1px dashed var(--color-border-strong)',
+                    borderRadius: 0,
                     minHeight: 48,
                     opacity: 0.5,
                 }} />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {lines.map((line, i) => (
-                        <StickyNote key={i} text={line} bg={slot.stickyBg} />
+                        <StickyNote key={i} text={line} />
                     ))}
                 </div>
             )}

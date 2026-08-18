@@ -113,35 +113,43 @@ export function RegistroAccesoPage() {
         description={t('admin:registro_acceso.subtitle')}
       />
 
-      <div className="toolbar">
-        <Field label={t('admin:registro_acceso.rol')}>
-          <select className="input" value={rol} onChange={e => { setRol(e.target.value); setPagina(0); }}>
-            <option value="">{t('admin:registro_acceso.todos')}</option>
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:registro_acceso.tipo_recurso')}>
-          <input className="input" value={tipoRecurso} onChange={e => { setTipoRecurso(e.target.value); setPagina(0); }} placeholder="programa, sesion, …" />
-        </Field>
-        <Field label={t('admin:registro_acceso.usuario_id')}>
-          <input className="input" value={usuarioId} onChange={e => { setUsuarioId(e.target.value); setPagina(0); }} style={{ minWidth: 280 }} />
-        </Field>
-        <Field label={t('admin:registro_acceso.desde')}>
-          <input type="datetime-local" className="input" value={desde} onChange={e => { setDesde(e.target.value); setPagina(0); }} />
-        </Field>
-        <Field label={t('admin:registro_acceso.hasta')}>
-          <input type="datetime-local" className="input" value={hasta} onChange={e => { setHasta(e.target.value); setPagina(0); }} />
-        </Field>
-      </div>
-      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 'var(--space-1) 0 var(--space-4)' }}>
-        {t('admin:registro_acceso.rango_hint')}
-      </p>
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('admin:registro_acceso.list_title')}</span>
+          {!loading && <span className="count-badge">{total}</span>}
+        </div>
 
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && filas.length === 0 && (
-        <EmptyState title={t('admin:registro_acceso.empty')} />
-      )}
-      {!loading && filas.length > 0 && (
+        <div className="home-filter-strip">
+          <div className="toolbar">
+            <Field label={t('admin:registro_acceso.rol')}>
+              <select className="input" value={rol} onChange={e => { setRol(e.target.value); setPagina(0); }}>
+                <option value="">{t('admin:registro_acceso.todos')}</option>
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:registro_acceso.tipo_recurso')}>
+              <input className="input" value={tipoRecurso} onChange={e => { setTipoRecurso(e.target.value); setPagina(0); }} placeholder="programa, sesion, …" />
+            </Field>
+            <Field label={t('admin:registro_acceso.usuario_id')}>
+              <input className="input" value={usuarioId} onChange={e => { setUsuarioId(e.target.value); setPagina(0); }} style={{ minWidth: 280 }} />
+            </Field>
+            <Field label={t('admin:registro_acceso.desde')}>
+              <input type="datetime-local" className="input" value={desde} onChange={e => { setDesde(e.target.value); setPagina(0); }} />
+            </Field>
+            <Field label={t('admin:registro_acceso.hasta')}>
+              <input type="datetime-local" className="input" value={hasta} onChange={e => { setHasta(e.target.value); setPagina(0); }} />
+            </Field>
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 'var(--space-2) 0 0' }}>
+            {t('admin:registro_acceso.rango_hint')}
+          </p>
+        </div>
+
+        {loading && <Loading label={t('common:loading')} />}
+        {!loading && filas.length === 0 && (
+          <EmptyState title={t('admin:registro_acceso.empty')} />
+        )}
+        {!loading && filas.length > 0 && (
         <>
           <DataTable columns={columns} rows={filas} rowKey={f => f.id} />
           <Pagination
@@ -153,7 +161,8 @@ export function RegistroAccesoPage() {
             nextLabel={t('common:next')}
           />
         </>
-      )}
+        )}
+      </div>
     </>
   );
 }

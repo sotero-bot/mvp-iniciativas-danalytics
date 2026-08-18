@@ -20,7 +20,14 @@
       "sin_iniciar": "Desafio não iniciado",
       "en_progreso": "Desafio em andamento",
       "entregado": "Desafio entregue"
-    }
+    },
+    "resumen_title": "Resumo",
+    "kpi_programas": "Programas",
+    "kpi_programas_hint": "{{count}} desafios entregues",
+    "kpi_sesiones": "Sessões",
+    "kpi_sesiones_hint": "Concluídas",
+    "kpi_pendientes": "Pendentes",
+    "kpi_pendientes_hint": "A resolver"
   },
   "programas": {
     "title": "Meus programas",

@@ -529,7 +529,7 @@ export function EmpresasPage() {
               />
             </div>
           ) : (
-            <div className="section-card">
+            <div className="section-card home-panel">
               <div className="section-card-header">
                 <span className="section-card-title">{t('organization:empresas.table.header_title')}</span>
                 <span className="count-badge">{empresas.length}</span>

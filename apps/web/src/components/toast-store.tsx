@@ -47,11 +47,11 @@ export const toast = {
   error: (message: string) => push(message, 'error'),
 };
 
-// Colores sólidos y saturados con texto blanco para que el aviso resalte y no
-// se pierda sobre el fondo de la app.
+// Fondo sólido (no el fondo apagado de badges/alerts) con texto blanco para
+// que el aviso resalte y no se pierda sobre el fondo de la app.
 const PALETTE: Record<ToastVariant, { bg: string; border: string; color: string; icon: string }> = {
-  success: { bg: '#16A34A', border: '#15803D', color: '#FFFFFF', icon: '✓' },
-  error: { bg: '#DC2626', border: '#B91C1C', color: '#FFFFFF', icon: '⚠' },
+  success: { bg: 'var(--color-success)', border: 'var(--color-success-strong)', color: '#FFFFFF', icon: '✓' },
+  error: { bg: 'var(--color-danger)', border: 'var(--color-danger-strong)', color: '#FFFFFF', icon: '⚠' },
 };
 
 // Se monta UNA sola vez (en App.tsx). Se suscribe al store y pinta la pila.

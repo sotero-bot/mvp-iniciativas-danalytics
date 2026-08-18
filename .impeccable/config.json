@@ -1,0 +1,51 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/index.css",
+          "apps/web/src/components/TranslationFields.tsx",
+          "apps/web/src/components/WysiwygEditor.tsx",
+          "apps/web/src/features/estudiante/GrupoPresentacionPage.tsx",
+          "apps/web/src/features/estudiante/SesionesPage.tsx",
+          "apps/web/src/features/execution/InstanciaDetallePage.tsx",
+          "apps/web/src/features/execution/buildCanvasHtml.ts",
+          "apps/web/src/features/home/EstudianteHome.tsx"
+        ],
+        "createdAt": "2026-08-09T15:46:40.635Z",
+        "reason": "Usuario confirmó: .card-accent, gform-card--error y dashboard-step-card::before son patrones de acento navy documentados/semánticos del proyecto, no AI slop. Auditoría 2026-08-09 (segunda pasada, apps/web/src completo): mismo patrón — border-left de 3-4px usando var(--color-primary/-info/-warning/-success) — en estos archivos; no son subsistemas de color propios."
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "apps/web/src/index.css"
+        ],
+        "createdAt": "2026-08-09T15:47:07.108Z",
+        "reason": "Usuario confirmó: transition:width en .runner-progress-fill/.progress-fill son barras de progreso finas de un solo elemento (costo de reflow insignificante); pasar a transform:scaleX() distorsionaría el extremo redondeado (border-radius:9999px) en porcentajes bajos"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.15)",
+        "createdAt": "2026-08-09T16:12:47.809Z",
+        "reason": "Sombra de elevación de la sidebar, documentada en DESIGN.md/design.json; negro translúcido estándar, no color de marca"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.2)",
+        "createdAt": "2026-08-09T16:12:47.897Z",
+        "reason": "Sombra de elevación del modal, documentada en DESIGN.md/design.json; negro translúcido estándar, no color de marca"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.45)",
+        "createdAt": "2026-08-09T16:12:47.978Z",
+        "reason": "Sombra del drawer móvil de la sidebar, documentada en DESIGN.md/design.json; negro translúcido estándar, no color de marca"
+      }
+    ]
+  }
+}

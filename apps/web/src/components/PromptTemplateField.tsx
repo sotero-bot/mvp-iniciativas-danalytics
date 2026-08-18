@@ -88,9 +88,9 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
       {s3Mode ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border-strong)', borderRadius: 'var(--radius-sm)' }}>
           <span style={{ fontSize: '0.85rem', flex: 1, wordBreak: 'break-all' }}>
-            <span style={{ color: '#16a34a', marginRight: 6 }}>{t('methodology:prompt_template.s3_badge')}</span>
+            <span style={{ color: 'var(--color-success)', marginRight: 6 }}>{t('methodology:prompt_template.s3_badge')}</span>
             <span style={{ fontWeight: 500 }}>{extractFilename(value)}</span>
           </span>
           <button type="button" className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
@@ -104,7 +104,7 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
               disabled={!apiBase || busy !== null}
               onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
           </label>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: '#dc2626' }}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--color-danger)' }}
             disabled={!apiBase || busy !== null}
             onClick={handleDelete}>
             {busy === 'delete' ? '…' : t('common:buttons.delete')}
@@ -125,7 +125,7 @@ export function PromptTemplateField({ value, onChange, apiBase }: Props) {
             </label>
           </div>
           {!apiBase && (
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
               {t('methodology:prompt_template.save_first_note')}
             </span>
           )}

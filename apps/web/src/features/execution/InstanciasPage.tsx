@@ -477,10 +477,10 @@ export function InstanciasPage() {
       {/* ── Sección 1 + 2: Generar enlace / Enlaces activos (lado a lado) ── */}
       <FormListLayout
         form={
-        <div className="section-card">
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('execution:instancias.generar_enlace.section_title')}</span>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{t('execution:instancias.generar_enlace.section_subtitle')}</span>
+            <span className="home-section-note">{t('execution:instancias.generar_enlace.section_subtitle')}</span>
           </div>
 
           <div className="section-card-body">
@@ -543,7 +543,7 @@ export function InstanciasPage() {
         }
         list={
           enlaces.length === 0 ? (
-        <div className="section-card">
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('execution:instancias.enlaces_activos.section_title')}</span>
             <span className="count-badge">0</span>
@@ -551,7 +551,7 @@ export function InstanciasPage() {
           <EmptyState title={t('common:no_data')} />
         </div>
           ) : (
-        <div className="section-card">
+        <div className="section-card home-panel">
           <div className="section-card-header">
             <span className="section-card-title">{t('execution:instancias.enlaces_activos.section_title')}</span>
             <span className="count-badge">{filteredEnlaces.length}</span>
@@ -581,7 +581,7 @@ export function InstanciasPage() {
       />
 
       {/* ── Sección 3: Ejecuciones individuales ── */}
-      <div className="section-card">
+      <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('execution:instancias.individuales.section_title')}</span>
           <span className="count-badge">{instancias.length}</span>

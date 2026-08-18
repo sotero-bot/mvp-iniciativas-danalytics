@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-09T00:00:00.000Z",
+  "title": "Design System: Gestor Actividades para Iniciativas — DAnalytics",
+  "extensions": {
+    "colorMeta": {
+      "azul-institucional": {
+        "role": "primary",
+        "displayName": "Azul Institucional",
+        "canonical": "#0F2A4A"
+      },
+      "azul-senal": {
+        "role": "secondary",
+        "displayName": "Azul Señal",
+        "canonical": "#155BA0"
+      },
+      "fondo-pagina": {
+        "role": "neutral",
+        "displayName": "Fondo de Página (papel cálido)",
+        "canonical": "#F7F6F3"
+      },
+      "fondo-tarjeta": {
+        "role": "neutral",
+        "displayName": "Fondo de Tarjeta",
+        "canonical": "#FFFFFF"
+      },
+      "exito": {
+        "role": "success",
+        "displayName": "Éxito",
+        "canonical": "#1F7A4D"
+      },
+      "peligro": {
+        "role": "danger",
+        "displayName": "Peligro",
+        "canonical": "#B23B3B"
+      },
+      "advertencia": {
+        "role": "warning",
+        "displayName": "Advertencia",
+        "canonical": "#B8791A"
+      },
+      "info": {
+        "role": "info",
+        "displayName": "Info (= Azul Señal)",
+        "canonical": "#155BA0"
+      },
+      "nav-fondo-oscuro": {
+        "role": "neutral",
+        "displayName": "Nav Fondo Oscuro (sidebar, gradiente 3 paradas)",
+        "canonical": "#0C1445",
+        "tonalRamp": [
+          "#0C1445",
+          "#0F172A",
+          "#1E293B"
+        ]
+      },
+      "nav-acento": {
+        "role": "secondary",
+        "displayName": "Nav Acento (ítem activo, foco sobre oscuro, progreso)",
+        "canonical": "#3B82F6",
+        "tonalRamp": [
+          "#2563EB",
+          "#3B82F6",
+          "#60A5FA"
+        ]
+      },
+      "nav-texto-secundario": {
+        "role": "neutral",
+        "displayName": "Nav Texto Secundario (sobre fondo oscuro)",
+        "canonical": "#475569"
+      },
+      "categoria-programas": {
+        "role": "categorical",
+        "displayName": "Acento categórico — Programas (ROLE_CARDS)",
+        "canonical": "#38BDF8"
+      },
+      "categoria-usuarios": {
+        "role": "categorical",
+        "displayName": "Acento categórico — Usuarios (ROLE_CARDS)",
+        "canonical": "#22C55E"
+      },
+      "categoria-actividades": {
+        "role": "categorical",
+        "displayName": "Acento categórico — Actividades (ROLE_CARDS)",
+        "canonical": "#F59E0B"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "h1, título de página vía PageHeader."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "h2, títulos de sección."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "h3, subtítulos de bloque."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto de cuerpo y UI general."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Labels de campo y eyebrows."
+      },
+      "micro": {
+        "displayName": "Micro / Overline / Meta / Caption / Subtitle / Display extendido",
+        "purpose": "Escala fina real (0.6rem–2rem) acumulada orgánicamente en badges, hints, cabeceras de tabla y banners — no diseñada, pero documentada para no inventar tamaños nuevos. Ver DESIGN.md § Typography > Hierarchy."
+      }
+    },
+    "shadows": [
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(21, 91, 160, 0.18)",
+        "purpose": "Anillo de foco en inputs; sustituye el outline nativo."
+      },
+      {
+        "name": "overlay",
+        "value": "0 24px 60px -20px rgba(15, 23, 32, 0.35)",
+        "purpose": "Única elevación real del sistema: modales y tooltips flotantes."
+      },
+      {
+        "name": "flat",
+        "value": "none",
+        "purpose": "Toda superficie en reposo (cards, tablas, badges, botones sin foco) es plana."
+      },
+      {
+        "name": "sidebar",
+        "value": "2px 0 20px rgba(0, 0, 0, 0.15)",
+        "purpose": "Separa la sidebar fija del contenido."
+      },
+      {
+        "name": "modal-box",
+        "value": "0 25px 50px -12px rgba(0, 0, 0, 0.2)",
+        "purpose": "Elevación del cuadro de diálogo sobre el overlay."
+      },
+      {
+        "name": "drawer-movil",
+        "value": "4px 0 28px rgba(0, 0, 0, 0.45)",
+        "purpose": "Sidebar en modo overlay sobre el contenido en móvil."
+      }
+    ],
+    "motion": [
+      {
+        "name": "transition-default",
+        "value": "all 0.15s ease",
+        "purpose": "Transición estándar de hover/foco en botones e inputs."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "768px"
+      },
+      {
+        "name": "two-column-stack",
+        "value": "2100px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de una vista/sección (confirmar, enviar, crear). Una sola por vista, alineada a la derecha.",
+      "html": "<button class=\"ds-btn-primary\">Guardar</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 0; font-family: var(--font-family); font-weight: 600; font-size: 0.875rem; color: #fff; background: var(--color-primary); border: 1px solid transparent; cursor: pointer; transition: var(--transition); } .ds-btn-primary:hover { background: var(--color-primary-hover); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción secundaria (cancelar, volver) junto a la primaria.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 0; font-family: var(--font-family); font-weight: 600; font-size: 0.875rem; color: var(--color-primary); background: #fff; border: 1px solid var(--color-border-strong); cursor: pointer; transition: var(--transition); } .ds-btn-secondary:hover { background: var(--color-bg-subtle); }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Acción destructiva (eliminar, desmatricular) — contorno rojo, nunca relleno.",
+      "html": "<button class=\"ds-btn-danger\">Eliminar</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 0; font-family: var(--font-family); font-weight: 600; font-size: 0.875rem; color: var(--color-danger); background: #fff; border: 1px solid var(--color-danger-border); cursor: pointer; transition: var(--transition); } .ds-btn-danger:hover { background: var(--color-danger-bg); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo de formulario con label siempre visible y anillo de foco navy.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Nombre<span class=\"ds-field-req\">*</span></label><input class=\"ds-input\" type=\"text\" placeholder=\"Ej: Empresa S.A.\" /></div>",
+      "css": ".ds-field { display: block; margin-bottom: 1rem; font-family: var(--font-family); } .ds-field-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.375rem; letter-spacing: 0.01em; } .ds-field-req { color: var(--color-danger); margin-left: 0.15rem; } .ds-input { display: block; width: 100%; box-sizing: border-box; padding: 0.75rem 0.875rem; border-radius: 0; border: 1px solid var(--color-border-strong); background: #fff; color: var(--color-text-main); font-size: 0.875rem; font-family: var(--font-family); transition: var(--transition); } .ds-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(21, 91, 160, 0.18); }"
+    },
+    {
+      "name": "Status Badge (success)",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Badge de estado en píldora, con punto marcador — exclusivo para estado de dominio, nunca decorativo.",
+      "html": "<span class=\"ds-status-badge ds-status-success\">Activo</span>",
+      "css": ".ds-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0.25rem 0.625rem; border-radius: 9999px; font-family: var(--font-family); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; } .ds-status-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; } .ds-status-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success-border); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Superficie plana estándar: hairline, sin sombra, esquinas rectas.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Título de la tarjeta</h3><p class=\"ds-card-body\">Contenido de ejemplo dentro de una superficie plana.</p></div>",
+      "css": ".ds-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 0; padding: 1.75rem; font-family: var(--font-family); } .ds-card-title { margin: 0 0 0.5rem; color: var(--color-text-heading); font-weight: 600; font-size: 1.1875rem; } .ds-card-body { margin: 0; color: var(--color-text-secondary); font-size: 0.9375rem; line-height: 1.6; }"
+    },
+    {
+      "name": "Card (acento)",
+      "kind": "card",
+      "refersTo": "card-accent",
+      "description": "Variante con borde izquierdo de 3px en navy institucional para destacar un panel puntual. Única forma sancionada de acento lateral fuera de la sidebar.",
+      "html": "<div class=\"ds-card ds-card-accent\"><h3 class=\"ds-card-title\">Panel destacado</h3><p class=\"ds-card-body\">Ej. bloque de \"Generar enlace\".</p></div>",
+      "css": ".ds-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 0; padding: 1.75rem; font-family: var(--font-family); } .ds-card-accent { border-left: 3px solid var(--color-primary); } .ds-card-title { margin: 0 0 0.5rem; color: var(--color-text-heading); font-weight: 600; font-size: 1.1875rem; } .ds-card-body { margin: 0; color: var(--color-text-secondary); font-size: 0.9375rem; line-height: 1.6; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Libro de Actas",
+    "overview": "Esta interfaz es la herramienta operativa de un servicio de consultoría, no un producto SaaS de autoservicio. Su modelo mental es el libro de actas de una consultoría ejecutiva: superficies planas y sobrias como papel corporativo, un único acento de marca (el navy institucional) reservado para jerarquía y acción — nunca decoración —, y una disciplina de trazabilidad (nombres de entidad siempre resueltos, nunca un UUID crudo; errores siempre mapeados a un código legible) que refleja el rigor de un documento formal, no la playfulness de una app de consumo.\n\nEl tono es corporativo ejecutivo, nunca playful: sin gradientes, sin ilustraciones, sin iconografía de emoji como sistema de jerarquía. El fondo cálido (#F7F6F3) suaviza el navy sin ablandar la disciplina. Los componentes son discretos pero firmes: sin adornos, pero cuando algo es la acción principal de la pantalla, no hay ambigüedad sobre cuál es.\n\nTres roles (admin, facilitador, estudiante) comparten el mismo sistema visual pero no la misma carga cognitiva: el admin opera un panel de control denso, el facilitador necesita escaneo rápido bajo presión en vivo, el estudiante ejecuta un flujo guiado paso a paso. El sistema no se dobla en tres estéticas distintas para eso — la disciplina visual es la misma; lo que cambia es la densidad de información por vista.",
+    "keyCharacteristics": [
+      "Plano por defecto: sin sombra en ninguna superficie de reposo (cards, tablas, badges).",
+      "Esquinas rectas en todo excepto píldoras (badges de estado, barras de progreso) y chips (2px).",
+      "Un solo acento cromático real: el navy institucional. El resto de la paleta es neutra o semántica.",
+      "Tipografía única: Poppins en cuerpo y títulos, siempre.",
+      "Nunca un UUID crudo visible; nunca el message crudo de un error del backend."
+    ],
+    "rules": [
+      {
+        "name": "The Sparse Navy Rule",
+        "body": "El azul institucional aparece en botones primarios, la sidebar y puntos de foco de teclado — nunca como fondo decorativo de una sección o card.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Typeface Rule",
+        "body": "Poppins en cuerpo y títulos, siempre. Cambiar de familia tipográfica para 'dar variedad' está prohibido; la variedad se logra con peso/tamaño/color.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Ninguna card, tabla, badge o botón en estado de reposo lleva box-shadow. Si algo necesita destacar, se destaca con borde, color semántico o posición — no con elevación falsa.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Straight-Edge Rule",
+        "body": "Un border-radius distinto de 0 solo se justifica si el elemento es una píldora o un chip de contenido. Todo lo demás es recto.",
+        "section": "shapes"
+      },
+      {
+        "name": "The One System Rule",
+        "body": "Ninguna vista o feature define su propia paleta, sombra o radio fuera de los tokens raíz — ni siquiera para imitar el look de un producto externo. Precedente real: el subsistema .gform-* del formulario de estudiante había desarrollado un acento teal (#0D9488) y sombras propias, distintos del resto de la app; se corrigió reemplazándolos por los tokens del sistema. Excepción ya sancionada: los acentos categóricos de ROLE_CARDS (features/home/HomePage.tsx) — ahí el objetivo es distinguir secciones del panel admin de un vistazo, no imitar un producto externo; ver colorMeta categoria-programas/usuarios/actividades.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do usar siempre los tokens var(--color-...) / var(--radius-...) / var(--space-...) — nunca un hex, rgb o px suelto.",
+      "Do resolver el nombre de una entidad seleccionada antes de mostrarla en breadcrumb/eyebrow; usar — como placeholder transitorio, nunca el id crudo.",
+      "Do confirmar con ConfirmModal antes de una acción destructiva o irreversible.",
+      "Do dar aria-label a todo botón de solo ícono.",
+      "Do mapear errores del backend a t('errors:CODE'); nunca mostrar el message crudo.",
+      "Do apilar layouts de dos columnas antes de que el ancho de contenido real (viewport − sidebar − padding) los apriete, no solo por debajo del breakpoint móvil.",
+      "Do borrar CSS muerto en vez de repintarlo — confirma con grep en apps/web/src/**/*.tsx que una clase tiene consumidor real antes de 'corregirla'."
+    ],
+    "donts": [
+      "Don't crear un subsistema visual paralelo con su propia paleta, sombra o radio para un flujo específico.",
+      "Don't usar box-shadow en una superficie en reposo.",
+      "Don't usar border-radius distinto de 0 fuera de píldoras y chips.",
+      "Don't usar emoji como sistema principal de jerarquía/iconografía en pantallas de alta densidad.",
+      "Don't dejar un layout de dos columnas con minmax(0, …) sin piso mínimo."
+    ]
+  }
+}

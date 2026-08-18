@@ -319,7 +319,7 @@ export function IniciativasPage() {
               />
             </div>
           ) : (
-            <div className="section-card">
+            <div className="section-card home-panel">
               <div className="section-card-header">
                 <span className="section-card-title">{t('organization:iniciativas.table.header_title')}</span>
                 <span className="count-badge">{iniciativas.length}</span>

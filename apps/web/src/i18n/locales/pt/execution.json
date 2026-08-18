@@ -266,7 +266,6 @@
       "email_confirm_button": "Confirmar e começar",
       "register_error_default": "Algo deu errado ao iniciar a atividade",
       "register_failed": "Erro ao registrar identificação",
-      "start_failed_generic": "Algo deu errado ao iniciar. Tente novamente.",
       "welcome_back": "Bem-vindo de volta, {{nombre}}",
       "register_success": "Registro realizado com sucesso",
       "title": "Identifique-se para começar",
@@ -290,13 +289,8 @@
       "answer_all": "Responda todas as perguntas antes de continuar.",
       "consult_ia_first": "Consulte o assistente para a pergunta \"{{enunciado}}...\" antes de continuar.",
       "attach_file_required": "Anexe o arquivo necessário para continuar.",
-      "save_failed": "Erro ao salvar a resposta. Por favor, tente novamente.",
       "ia_failed": "Erro ao consultar a IA",
-      "ia_connect_failed": "Não foi possível conectar com o assistente. Tente novamente.",
-      "ia_write_first": "Escreva sua resposta para consultar o assistente.",
-      "download_example_failed": "Não foi possível obter o link de download",
-      "download_template_failed": "Não foi possível gerar o modelo. Aguarde o assistente IA finalizar.",
-      "download_template_retry": "Erro ao baixar o modelo. Tente novamente."
+      "ia_write_first": "Escreva sua resposta para consultar o assistente."
     }
   },
   "enlace_runner": {

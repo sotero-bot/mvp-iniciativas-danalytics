@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, Field, FilterToolbar } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, StatCard, Field, FilterToolbar } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
+import { SidebarIcon } from '../../components/SidebarIcon';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -77,37 +78,71 @@ export function FacilitadorProgramasPage() {
       <Breadcrumb items={[{ label: t('admin:sidebar.home'), to: '/inicio' }, { label: t('facilitador:programas.title') }]} />
       <PageHeader title={t('facilitador:programas.title')} />
 
-      {/* Filtros: búsqueda por nombre, empresa y estado */}
+      {/* KPIs: lectura de un vistazo del portafolio del facilitador. */}
       {!loading && programas.length > 0 && (
-        <FilterToolbar>
-          <Field label={t('facilitador:programas.filtros.buscar')}>
-            <input
-              className="input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('facilitador:programas.filtros.buscar_placeholder')}
-            />
-          </Field>
-          <Field label={t('facilitador:programas.filtros.empresa')}>
-            <select className="input" value={filterEmpresa} onChange={(e) => setFilterEmpresa(e.target.value)}>
-              <option value="">{t('facilitador:programas.filtros.todas')}</option>
-              {empresaOptions.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select>
-          </Field>
-          <Field label={t('facilitador:programas.filtros.estado')}>
-            <select className="input" value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)}>
-              <option value="">{t('facilitador:programas.filtros.todos')}</option>
-              {ESTADOS.map((s) => <option key={s} value={s}>{t(`facilitador:programas.estado.${s}`)}</option>)}
-            </select>
-          </Field>
-        </FilterToolbar>
+        <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
+          <div className="section-card-header">
+            <span className="section-card-title">{t('common:home.resumen_title')}</span>
+          </div>
+          <div className="section-card-body">
+            <div className="home-kpi-grid">
+              <StatCard
+                label={t('facilitador:programas.kpi_total')}
+                value={programas.length}
+                icon={<SidebarIcon name="programas" size={18} />}
+                accent="#38BDF8"
+              />
+              <StatCard
+                label={t('facilitador:programas.kpi_activos')}
+                value={programas.filter((p) => p.estado === 'activo').length}
+                icon={<SidebarIcon name="programas" size={18} />}
+                accent="#22C55E"
+              />
+              <StatCard
+                label={t('facilitador:programas.kpi_finalizados')}
+                value={programas.filter((p) => p.estado === 'finalizado').length}
+                icon={<SidebarIcon name="formularios" size={18} />}
+                accent="#155BA0"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="section-card" style={{ marginTop: 'var(--space-4)' }}>
+      <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('facilitador:programas.section_title')}</span>
           <span className="count-badge">{programasFiltrados.length}</span>
         </div>
+
+        {/* Filtros dentro del panel (franja sutil): búsqueda, empresa y estado */}
+        {!loading && programas.length > 0 && (
+          <div className="home-filter-strip">
+            <FilterToolbar>
+              <Field label={t('facilitador:programas.filtros.buscar')}>
+                <input
+                  className="input"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('facilitador:programas.filtros.buscar_placeholder')}
+                />
+              </Field>
+              <Field label={t('facilitador:programas.filtros.empresa')}>
+                <select className="input" value={filterEmpresa} onChange={(e) => setFilterEmpresa(e.target.value)}>
+                  <option value="">{t('facilitador:programas.filtros.todas')}</option>
+                  {empresaOptions.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </select>
+              </Field>
+              <Field label={t('facilitador:programas.filtros.estado')}>
+                <select className="input" value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)}>
+                  <option value="">{t('facilitador:programas.filtros.todos')}</option>
+                  {ESTADOS.map((s) => <option key={s} value={s}>{t(`facilitador:programas.estado.${s}`)}</option>)}
+                </select>
+              </Field>
+            </FilterToolbar>
+          </div>
+        )}
+
         <div className="section-card-body">
       {loading && <Loading label={t('common:loading')} />}
       {!loading && programas.length === 0 && <EmptyState title={t('facilitador:programas.empty')} />}
@@ -125,10 +160,10 @@ export function FacilitadorProgramasPage() {
             .filter(Boolean)
             .map((f) => formatFecha(f as string, i18n.language));
           const acciones = [
-            { key: 'sesiones', icon: '📅', label: t('facilitador:sesiones.title'), to: `/facilitador/programas/${p.id}/sesiones` },
-            { key: 'grupos', icon: '👥', label: t('facilitador:grupos.title'), to: `/facilitador/programas/${p.id}/grupos` },
-            { key: 'observaciones', icon: '📝', label: t('facilitador:observaciones.title'), to: `/facilitador/programas/${p.id}/observaciones` },
-            { key: 'resultados', icon: '📊', label: t('formularios:resultados.title'), to: `/facilitador/programas/${p.id}/resultados` },
+            { key: 'sesiones', label: t('facilitador:sesiones.title'), to: `/facilitador/programas/${p.id}/sesiones` },
+            { key: 'grupos', label: t('facilitador:grupos.title'), to: `/facilitador/programas/${p.id}/grupos` },
+            { key: 'observaciones', label: t('facilitador:observaciones.title'), to: `/facilitador/programas/${p.id}/observaciones` },
+            { key: 'resultados', label: t('formularios:resultados.title'), to: `/facilitador/programas/${p.id}/resultados` },
           ];
           return (
             <div key={p.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -142,30 +177,33 @@ export function FacilitadorProgramasPage() {
                     {t(`facilitador:programas.estado.${p.estado}`)}
                   </StatusBadge>
                   {p.soloLectura && (
-                    <span className="chip" title={t('errors:PROGRAMA_GRACIA_VENCIDA')}>
-                      👁️ {t('facilitador:programas.solo_lectura')}
-                    </span>
+                    <StatusBadge variant="neutral" title={t('errors:PROGRAMA_GRACIA_VENCIDA')}>
+                      {t('facilitador:programas.solo_lectura')}
+                    </StatusBadge>
                   )}
                 </div>
               </div>
 
               {p.empresa && (
-                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                  🏢 {p.empresa.nombre}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                  <SidebarIcon name="empresas" size={14} />
+                  {p.empresa.nombre}
                 </div>
               )}
 
               {fechas.length > 0 && (
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                  🗓️ {fechas.join(' — ')}
+                  {fechas.join(' — ')}
                 </div>
               )}
 
-              {/* Acciones como botones */}
-              <div style={{ paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+              {/* Acciones como botones: ancladas al fondo (margin-top:auto) para
+                  que las tarjetas de la fila queden parejas aunque el nombre/fechas
+                  ocupen distinto alto. */}
+              <div style={{ marginTop: 'auto', paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                 {acciones.map((a) => (
                   <Link key={a.key} className="btn btn-secondary btn-sm" to={a.to}>
-                    <span aria-hidden>{a.icon}</span> {a.label}
+                    {a.label}
                   </Link>
                 ))}
                 <Link
@@ -173,7 +211,7 @@ export function FacilitadorProgramasPage() {
                   to={`/facilitador/programas/${p.id}/reto`}
                   style={{ gridColumn: '1 / -1' }}
                 >
-                  🤖 {t('formularios:reto.title')}
+                  {t('formularios:reto.title')}
                 </Link>
               </div>
             </div>

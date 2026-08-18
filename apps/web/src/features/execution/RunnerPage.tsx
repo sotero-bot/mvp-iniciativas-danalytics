@@ -351,8 +351,7 @@ export function RunnerPage() {
 
   const loadData = async () => {
     try {
-      const res = await fetch(`${API_URL}/execution/${token}?locale=${i18n.language}`);
-      if (!res.ok) throw new Error('No se pudo cargar la actividad');
+      const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}?locale=${i18n.language}`);
       const json = await res.json();
       await prefetchTemplates(json.pasos);
       setData(json);
@@ -410,8 +409,8 @@ export function RunnerPage() {
         }
       }
       setCustomPrompts(promptsMap);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -455,15 +454,14 @@ export function RunnerPage() {
           formData.append('respuesta', '');
           if (interpolado) formData.append('customPrompt', interpolado);
           formData.append('locale', i18n.language);
-          const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
-          if (!res.ok) throw new Error();
+          const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
           const json = await res.json();
           setRespuestasIa(prev => ({ ...prev, [q.id]: json.respuestaIa }));
           iaEditorRefs.current[q.id]?.replaceContent(json.respuestaIa);
 
           // Auto-save when question also requires file upload (for Excel prefill endpoint)
           if (q.soloArchivo || q.permitirArchivo) {
-            await fetch(`${API_URL}/execution/${token}/responder`, {
+            await fetchWithErrorMapping(`${API_URL}/execution/${token}/responder`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ pasoId: paso.id, preguntaId: q.id, contenido: json.respuestaIa, respuestaIa: json.respuestaIa }),
@@ -476,8 +474,9 @@ export function RunnerPage() {
               ],
             } : prev);
           }
-        } catch {
+        } catch (err) {
           autoIaRunRef.current.delete(q.id);
+          toast.error(translateError(err));
         } finally {
           setEnviandoIa(prev => ({ ...prev, [q.id]: false }));
         }
@@ -490,14 +489,10 @@ export function RunnerPage() {
   const handleIniciar = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
-      }
+      await fetchWithErrorMapping(`${API_URL}/execution/${token}/iniciar`, { method: 'POST' });
       await loadData();
-    } catch (err: any) {
-      toast.error(t('execution:runner.identification.start_failed_generic'));
+    } catch (err) {
+      toast.error(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -521,12 +516,11 @@ export function RunnerPage() {
     if (loading) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/execution/${token}/identificar`, {
+      const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/identificar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(idenForm)
       });
-      if (!res.ok) throw new Error('Error al registrar identificación');
       const result = await res.json();
 
       const activeToken: string = result.instanceToken ?? token;
@@ -536,18 +530,14 @@ export function RunnerPage() {
         return;
       }
 
-      const res2 = await fetch(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
-      if (!res2.ok) {
-        const errJson = await res2.json();
-        throw new Error(errJson.message || 'Algo salió mal al iniciar la actividad');
-      }
+      await fetchWithErrorMapping(`${API_URL}/execution/${activeToken}/iniciar`, { method: 'POST' });
       await loadData();
       if (result.reutilizado) {
         toast.success(t('execution:runner.identification.welcome_back', { nombre: result.nombre }));
       } else {
         toast.success(t('execution:runner.identification.register_success'));
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error(translateError(err));
     } finally {
       setLoading(false);
@@ -564,16 +554,11 @@ export function RunnerPage() {
   const handleDescargarPlantillaPrediligenciada = async (pasoId: string, preguntaId: string) => {
     setDescargandoExcel(true);
     try {
-      const res = await fetch(`${API_URL}/execution/${token}/plantilla-prefilled/${pasoId}`, {
+      const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/plantilla-prefilled/${pasoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ respuestaIa: respuestasIa[preguntaId] || undefined, locale: i18n.language }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error((err as any)?.message || t('execution:runner.errors.download_template_failed'));
-        return;
-      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -581,8 +566,8 @@ export function RunnerPage() {
       a.download = 'plantilla-priorizacion.xlsx';
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error(t('execution:runner.errors.download_template_retry'));
+    } catch (err) {
+      toast.error(translateError(err));
     } finally {
       setDescargandoExcel(false);
     }
@@ -608,70 +593,71 @@ export function RunnerPage() {
 
     setLoading(true);
 
-    // Save each question's answer
-    const newRespuestas = [...data!.respuestas];
-    for (const q of (paso.preguntas ?? [])) {
-      const textoRespuesta = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
-      const archivo = archivosRespuesta[q.id];
-      let responderRes: Response;
-      if (archivo) {
-        const formData = new FormData();
-        formData.append('pasoId', paso.id);
-        formData.append('preguntaId', q.id);
-        formData.append('contenido', textoRespuesta ?? '');
-        formData.append('archivo', archivo);
-        responderRes = await fetch(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
+    try {
+      // Save each question's answer
+      const newRespuestas = [...data!.respuestas];
+      for (const q of (paso.preguntas ?? [])) {
+        const textoRespuesta = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
+        const archivo = archivosRespuesta[q.id];
+        if (archivo) {
+          const formData = new FormData();
+          formData.append('pasoId', paso.id);
+          formData.append('preguntaId', q.id);
+          formData.append('contenido', textoRespuesta ?? '');
+          formData.append('archivo', archivo);
+          await fetchWithErrorMapping(`${API_URL}/execution/${token}/responder`, { method: 'POST', body: formData });
+        } else {
+          await fetchWithErrorMapping(`${API_URL}/execution/${token}/responder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pasoId: paso.id,
+              preguntaId: q.id,
+              contenido: textoRespuesta ?? '',
+              respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
+              respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
+            })
+          });
+        }
+        const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
+        const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
+        if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
+      }
+
+      setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
+
+      if (currentStepIndex < data!.pasos.length - 1) {
+        const sig = data!.pasos[currentStepIndex + 1];
+
+        // Build prompts for next step
+        const promptsMap: Record<string, string> = { ...customPrompts };
+        for (const q of (sig.preguntas ?? [])) {
+          const base = getBasePrompt(q);
+          if (base) promptsMap[q.id] = interpolarPrompt(base, data!.pasos, newRespuestas, { empresa: { nombre: data!.nombreEmpresa, sector: data!.sectorEmpresa, tipoOrganizacion: data!.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } }, sig.orden);
+        }
+        setCustomPrompts(promptsMap);
+
+        setCurrentStepIndex(currentStepIndex + 1);
+        setArchivosRespuesta({});
       } else {
-        responderRes = await fetch(`${API_URL}/execution/${token}/responder`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pasoId: paso.id,
-            preguntaId: q.id,
-            contenido: textoRespuesta ?? '',
-            respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
-            respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
-          })
-        });
+        await fetchWithErrorMapping(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
+        if (data?.esCanvas) {
+          setCanvasGenerando(true);
+          await fetchWithErrorMapping(`${API_URL}/execution/${token}/canvas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locale: i18n.language }),
+          });
+          setCanvasGenerando(false);
+        }
+        await loadData();
       }
-      if (!responderRes.ok) {
-        setLoading(false);
-        return toast.error(t('execution:runner.errors.save_failed'));
-      }
-      const entry = { preguntaId: q.id, contenido: textoRespuesta, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined, archivoNombre: archivo?.name };
-      const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
-      if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
+    } catch (err) {
+      setCanvasGenerando(false);
+      toast.error(translateError(err));
+    } finally {
+      setLoading(false);
     }
-
-    setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
-
-    if (currentStepIndex < data!.pasos.length - 1) {
-      const sig = data!.pasos[currentStepIndex + 1];
-
-      // Build prompts for next step
-      const promptsMap: Record<string, string> = { ...customPrompts };
-      for (const q of (sig.preguntas ?? [])) {
-        const base = getBasePrompt(q);
-        if (base) promptsMap[q.id] = interpolarPrompt(base, data!.pasos, newRespuestas, { empresa: { nombre: data!.nombreEmpresa, sector: data!.sectorEmpresa, tipoOrganizacion: data!.tipoOrganizacionEmpresa }, usuario: { area: idenForm.area, cargo: idenForm.cargo } }, sig.orden);
-      }
-      setCustomPrompts(promptsMap);
-
-      setCurrentStepIndex(currentStepIndex + 1);
-      setArchivosRespuesta({});
-    } else {
-      await fetch(`${API_URL}/execution/${token}/finalizar`, { method: 'POST' });
-      if (data?.esCanvas) {
-        setCanvasGenerando(true);
-        await fetch(`${API_URL}/execution/${token}/canvas`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ locale: i18n.language }),
-        });
-        setCanvasGenerando(false);
-      }
-      await loadData();
-    }
-    setLoading(false);
   };
 
   // TODO(IA-por-pregunta): revisar al implementar — enviar preguntaId junto a pasoId para que
@@ -692,14 +678,12 @@ export function RunnerPage() {
       if (prompt) formData.append('customPrompt', prompt);
       formData.append('locale', i18n.language);
 
-      const res = await fetch(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Error al consultar la IA');
-
+      const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/ia`, { method: 'POST', body: formData });
       const json = await res.json();
       setRespuestasIa(prev => ({ ...prev, [pregunta.id]: json.respuestaIa }));
       iaEditorRefs.current[pregunta.id]?.replaceContent(json.respuestaIa);
-    } catch {
-      toast.error(t('execution:runner.errors.ia_connect_failed'));
+    } catch (err) {
+      toast.error(translateError(err));
     } finally {
       setEnviandoIa(prev => ({ ...prev, [pregunta.id]: false }));
     }
@@ -711,27 +695,31 @@ export function RunnerPage() {
 
     setLoading(true);
 
-    // Auto-save any partial answers before going back
-    const newRespuestas = [...data!.respuestas];
-    for (const q of (pasoActual.preguntas ?? [])) {
-      const texto = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
-      if (!texto?.trim() && !archivosRespuesta[q.id]) continue;
-      await fetch(`${API_URL}/execution/${token}/responder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pasoId: pasoActual.id,
-          preguntaId: q.id,
-          contenido: texto ?? '',
-          respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
-          respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
-        })
-      });
-      const entry = { preguntaId: q.id, contenido: texto, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined };
-      const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
-      if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
+    try {
+      // Auto-save any partial answers before going back
+      const newRespuestas = [...data!.respuestas];
+      for (const q of (pasoActual.preguntas ?? [])) {
+        const texto = q.usarIa ? respuestasIa[q.id] : respuestas[q.id];
+        if (!texto?.trim() && !archivosRespuesta[q.id]) continue;
+        await fetchWithErrorMapping(`${API_URL}/execution/${token}/responder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pasoId: pasoActual.id,
+            preguntaId: q.id,
+            contenido: texto ?? '',
+            respuestaUsuario: q.usarIa ? (respuestas[q.id] ?? undefined) : undefined,
+            respuestaIa: q.usarIa ? (respuestasIa[q.id] ?? undefined) : undefined,
+          })
+        });
+        const entry = { preguntaId: q.id, contenido: texto, respuestaUsuario: q.usarIa ? respuestas[q.id] : undefined, respuestaIa: q.usarIa ? respuestasIa[q.id] : undefined };
+        const idx = newRespuestas.findIndex(r => r.preguntaId === q.id);
+        if (idx >= 0) newRespuestas[idx] = entry; else newRespuestas.push(entry);
+      }
+      setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
+    } catch (err) {
+      toast.error(translateError(err));
     }
-    setData(prev => prev ? { ...prev, respuestas: newRespuestas } : prev);
 
     const nuevoIndex = currentStepIndex - 1;
     setCurrentStepIndex(nuevoIndex);
@@ -808,11 +796,9 @@ export function RunnerPage() {
                         const email = e.target.value.trim();
                         if (!email || !/\S+@\S+\.\S+/.test(email)) return;
                         try {
-                          const res = await fetch(`${API_URL}/execution/${token}/usuario?email=${encodeURIComponent(email)}`);
-                          if (res.ok) {
-                            const u = await res.json();
-                            setIdenForm(f => ({ ...f, nombre: u.nombre, cargo: u.cargo ?? f.cargo, area: u.area ?? f.area }));
-                          }
+                          const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/usuario?email=${encodeURIComponent(email)}`);
+                          const u = await res.json();
+                          setIdenForm(f => ({ ...f, nombre: u.nombre, cargo: u.cargo ?? f.cargo, area: u.area ?? f.area }));
                         } catch { /* sin usuario previo, no hacer nada */ }
                       }}
                       placeholder={t('execution:runner.identification.email_placeholder')} />
@@ -1059,10 +1045,10 @@ export function RunnerPage() {
                     style={{ padding: '5px 14px', fontSize: '0.82rem', background: 'var(--color-success-strong)', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
                     onClick={async () => {
                       try {
-                        const res = await fetch(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
+                        const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/pasos/${currentPaso.id}/ejemplo-url`);
                         const json = await res.json();
                         if (json.url) window.open(json.url, '_blank');
-                      } catch { toast.error(t('execution:runner.errors.download_example_failed')); }
+                      } catch (err) { toast.error(translateError(err)); }
                     }}
                   >
                     {t('execution:runner.example_file.download')}
@@ -1258,10 +1244,10 @@ export function RunnerPage() {
                                     style={{ padding: '3px 10px', fontSize: '0.75rem' }}
                                     onClick={async () => {
                                       try {
-                                        const res = await fetch(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
+                                        const res = await fetchWithErrorMapping(`${API_URL}/execution/${token}/respuestas/${pregunta.id}/archivo-url`);
                                         const json = await res.json();
                                         if (json.url) window.open(json.url, '_blank');
-                                      } catch { toast.error(t('execution:runner.errors.download_example_failed')); }
+                                      } catch (err) { toast.error(translateError(err)); }
                                     }}
                                   >
                                     {t('execution:runner.upload_file.download')}

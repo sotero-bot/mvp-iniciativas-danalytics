@@ -44,3 +44,11 @@ de vista (`.tsx` / `.css`) bajo `apps/web/src/`.
 El CSS base vive en `apps/web/src/index.css`; los componentes en
 `apps/web/src/components/ui/`. Valida contra [10](10-checklist.md) antes de
 dar una vista por terminada.
+
+El `DESIGN.md` en la raíz del proyecto (generado con el skill `impeccable`)
+documenta el mismo sistema en formato narrativo — nombres descriptivos de
+color ("Azul Institucional", "Azul Señal"), el North Star ("El Libro de
+Actas") y las Named Rules que motivan estas reglas. Estos archivos de
+`.claude/rules/frontend/` son la fuente mecánica y normativa; `DESIGN.md` es
+el contexto de por qué. Si divergen, estas reglas ganan — actualiza `DESIGN.md`
+con `/impeccable document` cuando el sistema cambie.

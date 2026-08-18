@@ -124,19 +124,20 @@ export function AdminNotificacionesPage() {
         description={t('admin:notificaciones.subtitle')}
       />
 
-      <FilterToolbar>
-        <Field label={t('admin:notificaciones.estado')}>
-          <select className="input" value={estado} onChange={e => setEstado(e.target.value)}>
-            <option value="">{t('admin:notificaciones.todos')}</option>
-            {ESTADOS.map(es => <option key={es} value={es}>{t(`admin:notificaciones.estados.${es}`)}</option>)}
-          </select>
-        </Field>
-      </FilterToolbar>
-
-      <div className="section-card" style={{ marginTop: 'var(--space-4)' }}>
+      <div className="section-card home-panel" style={{ marginTop: 'var(--space-4)' }}>
         <div className="section-card-header">
           <span className="section-card-title">{t('admin:notificaciones.bitacora_title')}</span>
           <span className="count-badge">{notificaciones.length}</span>
+        </div>
+        <div className="home-filter-strip">
+          <FilterToolbar>
+            <Field label={t('admin:notificaciones.estado')}>
+              <select className="input" value={estado} onChange={e => setEstado(e.target.value)}>
+                <option value="">{t('admin:notificaciones.todos')}</option>
+                {ESTADOS.map(es => <option key={es} value={es}>{t(`admin:notificaciones.estados.${es}`)}</option>)}
+              </select>
+            </Field>
+          </FilterToolbar>
         </div>
         {loading && <Loading label={t('common:loading')} />}
         {!loading && notificaciones.length === 0 && (

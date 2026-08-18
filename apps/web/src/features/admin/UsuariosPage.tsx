@@ -544,49 +544,57 @@ export function UsuariosPage() {
         }
       />
 
-      <FilterToolbar>
-        <Field label={t('admin:usuarios.filters.role')}>
-          <select className="input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
-            <option value="">{t('admin:usuarios.filters.all')}</option>
-            {roles.map(r => <option key={r.id} value={r.slug}>{r.nombre}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:usuarios.filters.empresa')}>
-          <select className="input" value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}>
-            <option value="">{t('admin:usuarios.filters.all')}</option>
-            {empresaOptions.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:usuarios.filters.estado')}>
-          <select className="input" value={filterEstado} onChange={e => setFilterEstado(e.target.value as any)}>
-            <option value="activo">{t('admin:usuarios.filters.estado_activo')}</option>
-            <option value="inactivo">{t('admin:usuarios.filters.estado_inactivo')}</option>
-            <option value="todos">{t('admin:usuarios.filters.all')}</option>
-          </select>
-        </Field>
-        <Field label={t('admin:usuarios.filters.programa')}>
-          <select className="input" value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)}>
-            <option value="">{t('admin:usuarios.filters.all')}</option>
-            {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-          </select>
-        </Field>
-        <Field label={t('admin:usuarios.filters.search')}>
-          <input
-            className="input"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={onSearchKey}
-            onBlur={load}
-            placeholder={t('admin:usuarios.filters.search_placeholder')}
-          />
-        </Field>
-      </FilterToolbar>
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('admin:usuarios.list_title')}</span>
+          {!loading && <span className="count-badge">{total}</span>}
+        </div>
 
-      {loading && <Loading label={t('common:loading')} />}
-      {!loading && usuarios.length === 0 && (
-        <EmptyState title={t('admin:usuarios.empty')} />
-      )}
-      {!loading && usuarios.length > 0 && (
+        <div className="home-filter-strip">
+          <FilterToolbar>
+            <Field label={t('admin:usuarios.filters.role')}>
+              <select className="input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
+                <option value="">{t('admin:usuarios.filters.all')}</option>
+                {roles.map(r => <option key={r.id} value={r.slug}>{r.nombre}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:usuarios.filters.empresa')}>
+              <select className="input" value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}>
+                <option value="">{t('admin:usuarios.filters.all')}</option>
+                {empresaOptions.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:usuarios.filters.estado')}>
+              <select className="input" value={filterEstado} onChange={e => setFilterEstado(e.target.value as any)}>
+                <option value="activo">{t('admin:usuarios.filters.estado_activo')}</option>
+                <option value="inactivo">{t('admin:usuarios.filters.estado_inactivo')}</option>
+                <option value="todos">{t('admin:usuarios.filters.all')}</option>
+              </select>
+            </Field>
+            <Field label={t('admin:usuarios.filters.programa')}>
+              <select className="input" value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)}>
+                <option value="">{t('admin:usuarios.filters.all')}</option>
+                {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </Field>
+            <Field label={t('admin:usuarios.filters.search')}>
+              <input
+                className="input"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={onSearchKey}
+                onBlur={load}
+                placeholder={t('admin:usuarios.filters.search_placeholder')}
+              />
+            </Field>
+          </FilterToolbar>
+        </div>
+
+        {loading && <Loading label={t('common:loading')} />}
+        {!loading && usuarios.length === 0 && (
+          <EmptyState title={t('admin:usuarios.empty')} />
+        )}
+        {!loading && usuarios.length > 0 && (
         <>
           <DataTable columns={columns} rows={pageRows} rowKey={u => u.id} />
           <Pagination
@@ -621,7 +629,8 @@ export function UsuariosPage() {
             }
           />
         </>
-      )}
+        )}
+      </div>
 
       {/* Modal crear/editar */}
       <Modal

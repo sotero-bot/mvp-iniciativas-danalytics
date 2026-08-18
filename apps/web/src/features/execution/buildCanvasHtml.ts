@@ -25,20 +25,24 @@ interface SlotConfig {
     bg: string;
     border: string;
     labelColor: string;
-    stickyBg: string;
 }
 
+// Cada slot toma su bg/border/labelColor de una de las 5 familias semánticas
+// del sistema (neutral, info, warning, success, danger — ver DESIGN.md
+// Colors) en vez de una paleta pastel propia. Con 10 slots y 5 familias, cada
+// familia se reutiliza en dos slots no-adyacentes en el grid para que dos
+// secciones vecinas nunca compartan color.
 const SLOTS: Record<SlotKey, SlotConfig> = {
-    datos:        { labelEs: 'Datos y fuentes',        labelPt: 'Dados e fontes',          area: 'datos',         bg: '#F5F3FF', border: '#DDD6FE', labelColor: '#5B21B6', stickyBg: '#EDE9FE' },
-    oportunidad:  { labelEs: 'Oportunidad',            labelPt: 'Oportunidade',             area: 'oportunidad',   bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
-    problema:     { labelEs: 'Problema o reto actual', labelPt: 'Problema ou desafio atual',area: 'problema',      bg: '#FFF7ED', border: '#FDBA74', labelColor: '#C2410C', stickyBg: '#FED7AA' },
-    usuarios:     { labelEs: 'Usuarios',               labelPt: 'Usuários',                 area: 'usuarios',      bg: '#FDF2F8', border: '#F9A8D4', labelColor: '#9D174D', stickyBg: '#FCE7F3' },
-    actores:      { labelEs: 'Actores principales',    labelPt: 'Atores principais',        area: 'actores',       bg: '#EFF6FF', border: '#BFDBFE', labelColor: '#1D4ED8', stickyBg: '#DBEAFE' },
-    indicadores:  { labelEs: 'Indicadores de éxito',   labelPt: 'Indicadores de sucesso',   area: 'indicadores',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    entregables:  { labelEs: 'Entregables',            labelPt: 'Entregáveis',              area: 'entregables',   bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
-    restricciones:{ labelEs: 'Restricciones',          labelPt: 'Barreiras e riscos',       area: 'restricciones', bg: '#FFF1F2', border: '#FECDD3', labelColor: '#BE123C', stickyBg: '#FFE4E6' },
-    recursos:     { labelEs: 'Recursos requeridos',    labelPt: 'Recursos necessários',     area: 'recursos',      bg: '#F8FAFC', border: '#E2E8F0', labelColor: '#475569', stickyBg: '#F1F5F9' },
-    valor:        { labelEs: 'Potencial de valor',     labelPt: 'Potencial de valor',       area: 'valor',         bg: '#F0FDF4', border: '#A7F3D0', labelColor: '#065F46', stickyBg: '#D1FAE5' },
+    datos:        { labelEs: 'Datos y fuentes',        labelPt: 'Dados e fontes',          area: 'datos',         bg: '#EEF1F5', border: 'rgba(15,42,74,0.12)',  labelColor: '#5A606A' },
+    oportunidad:  { labelEs: 'Oportunidad',            labelPt: 'Oportunidade',             area: 'oportunidad',   bg: '#EEF4FB', border: 'rgba(21,91,160,0.2)',  labelColor: '#155BA0' },
+    problema:     { labelEs: 'Problema o reto actual', labelPt: 'Problema ou desafio atual',area: 'problema',      bg: '#FBF1E2', border: 'rgba(184,121,26,0.25)', labelColor: '#97640F' },
+    usuarios:     { labelEs: 'Usuarios',               labelPt: 'Usuários',                 area: 'usuarios',      bg: '#E8F3EC', border: 'rgba(31,122,77,0.22)', labelColor: '#1A6842' },
+    actores:      { labelEs: 'Actores principales',    labelPt: 'Atores principais',        area: 'actores',       bg: '#EEF1F5', border: 'rgba(15,42,74,0.12)',  labelColor: '#5A606A' },
+    indicadores:  { labelEs: 'Indicadores de éxito',   labelPt: 'Indicadores de sucesso',   area: 'indicadores',   bg: '#E8F3EC', border: 'rgba(31,122,77,0.22)', labelColor: '#1A6842' },
+    entregables:  { labelEs: 'Entregables',            labelPt: 'Entregáveis',              area: 'entregables',   bg: '#EEF4FB', border: 'rgba(21,91,160,0.2)',  labelColor: '#155BA0' },
+    restricciones:{ labelEs: 'Restricciones',          labelPt: 'Barreiras e riscos',       area: 'restricciones', bg: '#FBEDED', border: 'rgba(178,59,59,0.25)', labelColor: '#9E2F2F' },
+    recursos:     { labelEs: 'Recursos requeridos',    labelPt: 'Recursos necessários',     area: 'recursos',      bg: '#EEF1F5', border: 'rgba(15,42,74,0.12)',  labelColor: '#5A606A' },
+    valor:        { labelEs: 'Potencial de valor',     labelPt: 'Potencial de valor',       area: 'valor',         bg: '#E8F3EC', border: 'rgba(31,122,77,0.22)', labelColor: '#1A6842' },
 };
 
 const SLOT_ORDER: SlotKey[] = [
@@ -103,13 +107,13 @@ function renderSlotHtml(key: SlotKey, lines: string[], isPt: boolean, noSynth: s
     const isEmpty = lines.length === 0;
 
     const notesHtml = isEmpty
-        ? `<div style="flex:1;border:1px dashed ${cfg.border};border-radius:6px;min-height:48px;opacity:0.5;"></div>`
+        ? `<div style="flex:1;border:1px dashed ${cfg.border};min-height:48px;opacity:0.5;"></div>`
         : lines.map(line =>
-            `<div class="sticky-note" style="background:${cfg.stickyBg};border-radius:6px;padding:0.45rem 0.6rem;font-size:0.78rem;color:#1E293B;line-height:1.45;box-shadow:0 1px 3px rgba(0,0,0,0.08);">${escHtml(line)}</div>`
+            `<div class="sticky-note" style="background:#FFFFFF;border-left:3px solid ${cfg.labelColor};padding:0.45rem 0.6rem;font-size:0.78rem;color:#1C1F24;line-height:1.45;">${escHtml(line)}</div>`
         ).join('\n');
 
     return `
-<div class="canvas-slot" data-label="${escHtml(label)}" style="grid-area:${cfg.area};background:${cfg.bg};border:1px solid ${cfg.border};border-radius:10px;padding:0.75rem;display:flex;flex-direction:column;gap:6px;min-height:90px;">
+<div class="canvas-slot" data-label="${escHtml(label)}" style="grid-area:${cfg.area};background:${cfg.bg};border:1px solid ${cfg.border};padding:0.75rem;display:flex;flex-direction:column;gap:6px;min-height:90px;">
   <div style="font-size:0.68rem;font-weight:700;color:${cfg.labelColor};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${escHtml(label)}</div>
   <div style="display:flex;flex-direction:column;gap:5px;">
 ${notesHtml}
@@ -142,30 +146,31 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escHtml(ui.title)} — ${escHtml(proyecto)}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #F8FAFC;
-      color: #0F172A;
+      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      background: #F7F6F3;
+      color: #1C1F24;
       margin: 0;
       padding: 0 1rem 3rem;
     }
     .header {
       position: sticky; top: 0; z-index: 100;
       background: rgba(255,255,255,0.97); backdrop-filter: blur(12px);
-      border-bottom: 1px solid #E2E8F0;
+      border-bottom: 1px solid rgba(15,42,74,0.12);
       padding: 0.75rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
       gap: 1rem; flex-wrap: wrap;
     }
-    .header-meta { font-size: 0.8rem; color: #475569; display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .header-meta strong { color: #0F172A; }
+    .header-meta { font-size: 0.8rem; color: #5A606A; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .header-meta strong { color: #0F1720; }
     .header-actions { display: flex; gap: 8px; align-items: center; }
     .btn-action {
       padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
-      border-radius: 8px; cursor: pointer; border: none;
+      border-radius: 0; cursor: pointer; border: none;
     }
-    .btn-export { background: #2563EB; color: white; }
+    .btn-export { background: #0F2A4A; color: #FFFFFF; }
     .canvas-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr;
@@ -180,12 +185,12 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
     }
     .footer {
       text-align: center; margin-top: 2.5rem;
-      font-size: 0.75rem; color: #94A3B8;
+      font-size: 0.75rem; color: #9AA1AB;
     }
     .autosave-badge {
-      font-size: 0.7rem; color: #94A3B8; transition: color 0.3s;
+      font-size: 0.7rem; color: #9AA1AB; transition: color 0.3s;
     }
-    .autosave-badge.saved { color: #059669; }
+    .autosave-badge.saved { color: #1F7A4D; }
     @media print {
       .no-print, .header-actions { display: none !important; }
       body { background: white; padding: 0; }
@@ -215,7 +220,7 @@ export function buildCanvasHtml(params: BuildCanvasHtmlParams): string {
 <!-- Print header (visible only on print) -->
 <div style="display:none;" class="print-header">
   <h1 style="margin:0 0 0.25rem;font-size:1.25rem;">${escHtml(ui.title)}</h1>
-  <div style="font-size:0.8rem;color:#475569;">
+  <div style="font-size:0.8rem;color:#5A606A;">
     ${escHtml(ui.empresa)}: ${escHtml(empresa)} &bull; ${escHtml(ui.area)}: ${escHtml(area)} &bull; ${escHtml(ui.proyecto)}: ${escHtml(proyecto)} &bull; ${escHtml(ui.fecha)}: ${escHtml(fecha)}
   </div>
 </div>

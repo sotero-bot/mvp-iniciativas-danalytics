@@ -221,7 +221,7 @@ export function AdminDiagnosticoGlobalPage() {
 
       {detalle && (
         <>
-          <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+          <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
             <div className="section-card-header">
               <span className="section-card-title">{t('formularios:resultados.title')}</span>
               <span className="count-badge">{detalle.totalRespuestas}</span>
@@ -273,7 +273,7 @@ export function AdminDiagnosticoGlobalPage() {
             const camposOpciones = detalle.porCampo.filter(esCampoOpciones);
             if (camposOpciones.length === 0) return null;
             return (
-              <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
+              <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
                 <div className="section-card-header">
                   <span className="section-card-title">{t('formularios:resultados.por_pregunta')}</span>
                 </div>

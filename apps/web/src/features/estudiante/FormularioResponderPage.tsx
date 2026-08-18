@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
 import type { BreadcrumbItem } from '../../components/ui';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { toast } from '../../components/toast-store';
 import { formatFechaHora } from '../../shared/formatDate';
 
@@ -66,6 +67,7 @@ export function FormularioResponderPage() {
   const [enviando, setEnviando] = useState(false);
   const [autosaveInfo, setAutosaveInfo] = useState<string | null>(null);
   const [erroresIds, setErroresIds] = useState<Set<string>>(new Set());
+  const [showEnviarConfirm, setShowEnviarConfirm] = useState(false);
 
   // Autosave: refs para que el intervalo lea el estado vigente sin re-crearse.
   // Guard de StrictMode: solo useRef (bug conocido del proyecto), sin AbortController.
@@ -147,7 +149,7 @@ export function FormularioResponderPage() {
           (Array.isArray(datos[c.id]) && (datos[c.id] as unknown[]).length === 0)),
     );
 
-  const enviar = async () => {
+  const enviar = () => {
     const faltantes = camposFaltantes();
     if (faltantes.length > 0) {
       setErroresIds(new Set(faltantes.map(c => c.id)));
@@ -156,6 +158,11 @@ export function FormularioResponderPage() {
       return;
     }
     setErroresIds(new Set());
+    setShowEnviarConfirm(true);
+  };
+
+  const confirmarEnvio = async () => {
+    setShowEnviarConfirm(false);
     setEnviando(true);
     try {
       await fetchWithErrorMapping(`${API_URL}/formularios/${plantillaId}/submit`, {
@@ -222,6 +229,16 @@ export function FormularioResponderPage() {
           )}
         </>
       )}
+
+      <ConfirmModal
+        isOpen={showEnviarConfirm}
+        title={t('formularios:estudiante.submit_confirm_title')}
+        message={t('formularios:estudiante.submit_confirm_message')}
+        confirmLabel={t('formularios:estudiante.submit_confirm_button')}
+        onConfirm={confirmarEnvio}
+        onCancel={() => setShowEnviarConfirm(false)}
+        danger={false}
+      />
     </div>
   );
 }
@@ -438,6 +455,7 @@ function CampoInput({ campo, hijos, valor, onChange, t }: CampoRendererProps) {
                   <td>
                     <button
                       className="btn-link btn-link-danger"
+                      aria-label={t('formularios:estudiante.quitar')}
                       onClick={() => onChange(filas.filter((_, j) => j !== i))}
                     >
                       ✕

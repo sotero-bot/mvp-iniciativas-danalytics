@@ -37,12 +37,10 @@ export function ProgramasDashboardPanel() {
   if (!loading && items.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 'var(--space-5)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-        <h2 style={{ fontSize: '1.05rem', margin: 0 }}>{t('admin:dashboard_programas.title')}</h2>
-        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-          · {t('admin:dashboard_programas.activos', { count: items.length })}
-        </span>
+    <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
+      <div className="section-card-header">
+        <span className="section-card-title">{t('admin:dashboard_programas.title')}</span>
+        <span className="count-badge">{items.length}</span>
         <Button
           variant="link"
           size="sm"
@@ -53,6 +51,7 @@ export function ProgramasDashboardPanel() {
         </Button>
       </div>
       {open && (
+        <div className="section-card-body">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-3)' }}>
           {items.map(it => {
             const pctSesiones = it.totalSesiones > 0 ? Math.round((it.sesionesCompletadas / it.totalSesiones) * 100) : 0;
@@ -94,6 +93,7 @@ export function ProgramasDashboardPanel() {
               </Link>
             );
           })}
+        </div>
         </div>
       )}
     </div>

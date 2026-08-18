@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { Breadcrumb, PageHeader, Loading, StatCard, ProgressBar } from '../../components/ui';
-import { toast } from '../../components/toast-store';
+import { Breadcrumb, PageHeader, Loading, StatCard, ProgressBar, Alert, Button } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -52,10 +51,12 @@ export function PortalProgramaDetallePage() {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const cargarDatos = () => {
     let cancelled = false;
     setLoading(true);
+    setError('');
     Promise.all([
       fetchWithErrorMapping(`${API_URL}/portal/programas/${programaId}`).then(r => r.json()),
       // RF-20: la matriz detallada la sirve el endpoint de resumen (admite roles cliente).
@@ -68,36 +69,47 @@ export function PortalProgramaDetallePage() {
         setDetalle(det);
         setAsistencia(res);
       })
-      .catch(err => { if (!cancelled) toast.error(translateError(err)); })
+      .catch(err => { if (!cancelled) setError(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [programaId]);
+  };
+
+  useEffect(cargarDatos, [programaId]);
 
   const fecha = (v: string | null | undefined) => (v ? new Date(v).toLocaleDateString() : '—');
 
   return (
     <div className="page">
-      {loading && <Loading label={t('common:loading')} />}
-      {detalle && (
-        <>
-          <Breadcrumb
-            items={[
-              { label: t('admin:sidebar.home'), to: '/inicio' },
-              { label: t('portal:programas.title'), to: '/portal/programas' },
-              { label: detalle.programa.nombre },
-            ]}
-          />
-          <PageHeader
-            eyebrow={t('portal:programas.title')}
-            title={detalle.programa.nombre}
-            description={
-              <>
-                {t(`portal:programas.estado.${detalle.programa.estado}`)} · {fecha(detalle.programa.fechaInicio)} – {fecha(detalle.programa.fechaFin)}
-                {detalle.programa.facilitadores.length > 0 && <> · {t('portal:programas.facilitador')}: {detalle.programa.facilitadores.join(', ')}</>}
-              </>
-            }
-          />
+      <Breadcrumb
+        items={[
+          { label: t('admin:sidebar.home'), to: '/inicio' },
+          { label: t('portal:programas.title'), to: '/portal/programas' },
+          { label: detalle?.programa.nombre || '—' },
+        ]}
+      />
+      <PageHeader
+        eyebrow={t('portal:programas.title')}
+        title={detalle?.programa.nombre || '—'}
+        description={
+          detalle ? (
+            <>
+              {t(`portal:programas.estado.${detalle.programa.estado}`)} · {fecha(detalle.programa.fechaInicio)} – {fecha(detalle.programa.fechaFin)}
+              {detalle.programa.facilitadores.length > 0 && <> · {t('portal:programas.facilitador')}: {detalle.programa.facilitadores.join(', ')}</>}
+            </>
+          ) : undefined
+        }
+      />
 
+      {loading && <Loading label={t('common:loading')} />}
+
+      {!loading && error && (
+        <Alert variant="danger" title={error}>
+          <Button variant="secondary" size="sm" onClick={cargarDatos}>{t('common:retry')}</Button>
+        </Alert>
+      )}
+
+      {!loading && !error && detalle && (
+        <>
           {/* Avance */}
           <div className="stat-grid" style={{ marginBottom: 'var(--space-5)' }}>
             {[

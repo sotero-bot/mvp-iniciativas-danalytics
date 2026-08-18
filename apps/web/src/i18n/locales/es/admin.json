@@ -33,7 +33,8 @@
     "accion": "Acción",
     "recurso": "Recurso",
     "registros": "registros",
-    "empty": "No hay registros con esos filtros."
+    "empty": "No hay registros con esos filtros.",
+    "list_title": "Accesos registrados"
   },
   "usuarios": {
     "page_title": "Usuarios",
@@ -127,7 +128,8 @@
       "reactivated": "Usuario reactivado",
       "password_reset": "Contraseña actualizada",
       "invitation_sent": "Invitación enviada"
-    }
+    },
+    "list_title": "Usuarios registrados"
   },
   "programas": {
     "lang": {
@@ -374,7 +376,8 @@
         "title": "Eliminar grupo",
         "message": "¿Eliminar el grupo «{{nombre}}»? Sus integrantes quedarán sin grupo (siguen matriculados en el programa)."
       }
-    }
+    },
+    "list_title": "Programas registrados"
   },
   "dashboard": {
     "title": "Inicio",
@@ -444,7 +447,13 @@
         "desc": "Genera enlaces para distribuir actividades y monitorea el progreso en tiempo real.",
         "locked": "Primero necesitas agregar una actividad"
       }
-    }
+    },
+    "resumen_title": "Resumen",
+    "configured_badge": "Configurado",
+    "pending_badge": "Pendiente",
+    "kpi_ejecuciones_hint": "{{count}} finalizadas",
+    "ia_en_accion_section_title": "IA en Acción",
+    "usuarios_section_title": "Usuarios"
   },
   "dashboard_programas": {
     "title": "Programas activos",
@@ -477,7 +486,8 @@
     "todos": "Todos",
     "empty": "No hay observaciones con esos filtros.",
     "notificado": "Notificado: {{fecha}}",
-    "no_notificado": "Sin notificar"
+    "no_notificado": "Sin notificar",
+    "list_title": "Historial"
   },
   "notificaciones": {
     "title": "Notificaciones",

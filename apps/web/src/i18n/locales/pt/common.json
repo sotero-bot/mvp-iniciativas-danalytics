@@ -9,8 +9,8 @@
   },
   "home": {
     "brand": "Danalytics",
-    "greeting": "Olá, {{name}} 👋",
-    "greeting_no_name": "Olá 👋",
+    "greeting": "Olá, {{name}}",
+    "greeting_no_name": "Olá",
     "subtitle": "Este é o seu espaço na plataforma.",
     "coming_soon": "Em breve",
     "logout": "Sair",
@@ -69,6 +69,14 @@
         "title": "Usuários",
         "desc": "Gerencie os usuários da sua empresa."
       }
+    },
+    "resumen_title": "Resumo",
+    "open": "Abrir",
+    "kpi": {
+      "programas": "Programas",
+      "programas_hint": "{{count}} ativos",
+      "participantes": "Participantes",
+      "usuarios": "Usuários"
     }
   },
   "buttons": {
