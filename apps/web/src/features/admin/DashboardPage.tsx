@@ -189,7 +189,7 @@ export function DashboardPage() {
                       {num}
                       {body}
                       <div className="home-nav-card-foot">
-                        <StatusBadge variant="neutral">{step.lockedMsg}</StatusBadge>
+                        <span className="home-nav-card-lock">{step.lockedMsg}</span>
                       </div>
                     </div>
                   );

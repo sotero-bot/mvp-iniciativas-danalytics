@@ -1743,12 +1743,13 @@ a.stat-card:hover .stat-card-arrow {
   align-items: start;
 }
 
-/* La proporción 0.85/1.15 solo respira en pantallas anchas: con sidebar
-   (240px) + padding de página, un monitor 1080p (1920px) deja ~1568px de
-   contenido — bastante menos que uno 2K (2560px, ~2208px de contenido) — y
-   ambas columnas quedan apenuscadas. Se apilan por debajo de 2100px de
-   viewport en vez de encogerse indefinidamente. */
-@media (max-width: 2100px) {
+/* Las dos columnas respiran desde 1080p hacia arriba: con sidebar (240px) +
+   padding de página, un monitor 1080p (1920px) deja ~1568px de contenido —
+   de sobra para el formulario (~320px) + el listado (~420px) + gap. Por
+   debajo de 1280px de viewport (laptops angostas, tablet, móvil) el contenido
+   se estrecha y se apila a una sola columna en vez de encogerse
+   indefinidamente. */
+@media (max-width: 1279px) {
   .form-list-grid {
     grid-template-columns: 1fr;
   }
@@ -1938,6 +1939,18 @@ a.home-nav-card:hover {
 
 .home-nav-card-foot .chip {
   font-weight: 600;
+}
+
+/* Mensaje de prerrequisito en una tarjeta bloqueada: es una frase de ayuda,
+   no un estado — texto tenue que ajusta línea, sin píldora ni mayúsculas
+   (que se desbordaban de la tarjeta). */
+.home-nav-card-lock {
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-muted);
 }
 
 .home-nav-card-arrow {

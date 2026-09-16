@@ -51,9 +51,10 @@ ancho). Patrón de referencia: `/admin/iniciativas`.
 
 Usa `<FormListLayout form={...} list={...} />`. El listado suele ser un
 `.section-card` con `.section-card-header` (título + `count-badge`) y un
-`<DataTable>`. Se apila (formulario arriba, listado debajo) en móvil y
-también en desktop por debajo de ~2100px de viewport (1080p incluido) — ya
-lo resuelve el CSS. → [09](09-responsive-accesibilidad.md).
+`<DataTable>`. Muestra las dos columnas desde 1080p hacia arriba y se apila
+(formulario arriba, listado debajo) por debajo de ~1280px de viewport (laptops
+angostas, tablet, móvil) — ya lo resuelve el CSS.
+→ [09](09-responsive-accesibilidad.md).
 
 ```tsx
 <FormListLayout

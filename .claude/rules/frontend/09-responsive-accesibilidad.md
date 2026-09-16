@@ -11,15 +11,14 @@ paths:
 - **Layouts de dos columnas en desktop (`.form-list-grid` y similares) NO
   deben pensarse solo en términos de "móvil vs. desktop".** El ancho de
   contenido real es `viewport − 240px (sidebar) − 112px (padding de página)`:
-  un monitor 1080p (1920px) deja solo **~1568px** de contenido, mientras uno
-  2K (2560px) deja **~2208px**. Un ratio fijo tipo `0.85fr / 1.15fr` que se
-  ve bien en 2K queda apenuscado en 1080p — que es el monitor más común, no
-  el caso raro. Por eso `.form-list-grid` apila a **una columna por debajo de
-  2100px de viewport** (no solo por debajo de 768px): a esa proporción, 1080p
-  sin escalar también entra en el caso apilado. Si agregas un nuevo layout de
-  dos columnas en una vista con `.form-list-grid` o similar, replica este
-  mismo umbral (~2000–2100px) en vez de usar solo el breakpoint móvil de
-  768px.
+  un monitor 1080p (1920px) deja **~1568px** de contenido, de sobra para el
+  formulario (~320px) + el listado (~420px) + gap. Por eso `.form-list-grid`
+  muestra las **dos columnas desde 1080p hacia arriba** y solo apila a una
+  columna **por debajo de 1280px de viewport** (laptops angostas, tablet y
+  móvil), no solo por debajo del breakpoint móvil de 768px. Si agregas un
+  nuevo layout de dos columnas en una vista con `.form-list-grid` o similar,
+  replica este mismo umbral (~1280px) en vez de usar solo el breakpoint móvil
+  de 768px.
 - Usa grids con `fr` / `minmax(…)` con un piso razonable (ej.
   `minmax(320px, 0.85fr)`), no `minmax(0, …)` sin piso: sin piso, la columna
   se puede seguir encogiendo indefinidamente en vez de forzar el apilado.
