@@ -1,4 +1,4 @@
-// redeploy trigger: verificar conexión Supabase tras despausar proyecto (2026-09-16)
+// redeploy trigger: verificar conexión Supabase tras reset de contraseña del pooler (2026-09-16)
 generator client {
   provider = "prisma-client-js"
 }
