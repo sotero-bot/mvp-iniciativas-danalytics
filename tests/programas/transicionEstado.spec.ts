@@ -13,6 +13,7 @@ function buildController(estadoActual: string) {
       findUnique: vi.fn().mockResolvedValue({ id: 'p1', estado: estadoActual }),
       update: vi.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 'p1', ...data })),
     },
+    plantillaFormulario: { count: vi.fn().mockResolvedValue(0) },
     grupo: {
       findMany: vi.fn().mockResolvedValue([]),
     },

@@ -21,14 +21,28 @@ const CLIENTE = { sub: 'cli1', role: 'cliente_admin', empresaId: 'emp1' } as any
 describe('agregarScoresPorDimension (RF-33)', () => {
   it('promedia los promedios individuales por dimensión', () => {
     const agregado = agregarScoresPorDimension([
-      { adopcion: { total: 8, promedio: 4, respondidas: 2 } },
-      { adopcion: { total: 4, promedio: 2, respondidas: 2 }, uso: { total: 3, promedio: 3, respondidas: 1 } },
+      { escala: { adopcion: { total: 8, promedio: 4, respondidas: 2 } } },
+      { escala: { adopcion: { total: 4, promedio: 2, respondidas: 2 }, uso: { total: 3, promedio: 3, respondidas: 1 } } },
       null,
     ]);
-    expect(agregado).toEqual([
-      { dimension: 'adopcion', promedio: 3, n: 2 },
-      { dimension: 'uso', promedio: 3, n: 1 },
+    expect(agregado).toEqual({
+      escala: [
+        { dimension: 'adopcion', promedio: 3, n: 2, preguntas: 2 },
+        { dimension: 'uso', promedio: 3, n: 1, preguntas: 1 },
+      ],
+      seleccion: [],
+    });
+  });
+
+  it('escala y selección se agregan por separado, aunque compartan dimensión', () => {
+    const agregado = agregarScoresPorDimension([
+      {
+        escala: { adopcion: { total: 4, promedio: 4, respondidas: 1 } },
+        seleccion: { adopcion: { total: 2, promedio: 2, respondidas: 1 } },
+      },
     ]);
+    expect(agregado.escala).toEqual([{ dimension: 'adopcion', promedio: 4, n: 1, preguntas: 1 }]);
+    expect(agregado.seleccion).toEqual([{ dimension: 'adopcion', promedio: 2, n: 1, preguntas: 1 }]);
   });
 });
 
@@ -77,14 +91,14 @@ describe('ResultadosService (RF-34)', () => {
     const service = buildService({
       diagnostico_inicial: [
         {
-          scoresPorDimensionJson: { adopcion: { total: 2, promedio: 2, respondidas: 1 } },
+          scoresPorDimensionJson: { escala: { adopcion: { total: 2, promedio: 2, respondidas: 1 } } },
           enviadoEn: new Date('2026-01-01'),
           usuarioRespondiente: { id: 'u1', nombre: 'Ana', email: 'ana@x.co' },
         },
       ],
       diagnostico_final: [
         {
-          scoresPorDimensionJson: { adopcion: { total: 4, promedio: 4, respondidas: 1 } },
+          scoresPorDimensionJson: { escala: { adopcion: { total: 4, promedio: 4, respondidas: 1 } } },
           enviadoEn: new Date('2026-06-01'),
           usuarioRespondiente: { id: 'u1', nombre: 'Ana', email: 'ana@x.co' },
         },
@@ -93,18 +107,24 @@ describe('ResultadosService (RF-34)', () => {
 
     const detalle = await service.diagnosticoDetalle('prog1');
     expect(detalle.inicial.individuales[0].usuario.nombre).toBe('Ana');
-    expect(detalle.comparativo).toEqual([{ dimension: 'adopcion', inicial: 2, final: 4 }]);
+    expect(detalle.comparativo).toEqual({
+      escala: [{ dimension: 'adopcion', inicial: 2, final: 4, preguntas: 1 }],
+      seleccion: [],
+    });
   });
 
   it('diagnosticoAgregado NO incluye individuales ni usuarios (RF-33)', async () => {
     const service = buildService({
       diagnostico_inicial: [
-        { scoresPorDimensionJson: { adopcion: { total: 2, promedio: 2, respondidas: 1 } } },
+        { scoresPorDimensionJson: { escala: { adopcion: { total: 2, promedio: 2, respondidas: 1 } } } },
       ],
       diagnostico_final: [],
     });
     const agregado = await service.diagnosticoAgregado('prog1');
-    expect(agregado.inicial.dimensiones).toEqual([{ dimension: 'adopcion', promedio: 2, n: 1 }]);
+    expect(agregado.inicial.dimensiones).toEqual({
+      escala: [{ dimension: 'adopcion', promedio: 2, n: 1, preguntas: 1 }],
+      seleccion: [],
+    });
     const serializado = JSON.stringify(agregado);
     expect(serializado).not.toContain('usuario');
     expect(serializado).not.toContain('individuales');

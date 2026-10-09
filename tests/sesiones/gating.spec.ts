@@ -75,6 +75,7 @@ describe('ActorSesionesController.getMaterial', () => {
     expect(result).toEqual({
       url: 'https://signed-url',
       urlPresentacion: 'https://slides',
+      presentacionArchivoUrl: null, // la sesión del mock no tiene presentacionArchivoKey
       urlGrabacion: 'https://vid',
     });
     expect(s3Stub.getPresignedGetUrl).toHaveBeenCalledWith('k1', 3600);
@@ -128,10 +129,10 @@ describe('ActorSesionesController.listMisProgramas', () => {
       programa: { findMany: vi.fn().mockResolvedValue([{ id: 'p1' }]) },
     };
     const scope = { facilitadores: { some: { usuarioId: 'f1' } } };
-    const scopeStub = { programaScope: vi.fn().mockReturnValue(scope) };
+    const scopeStub = { programaScope: vi.fn().mockReturnValue(scope), graciaVencida: vi.fn().mockReturnValue(false) };
     const controller = new ActorSesionesController(prismaMock as any, scopeStub as any, {} as any);
     const result = await controller.listMisProgramas(FACILITADOR);
-    expect(result).toEqual([{ id: 'p1' }]);
+    expect(result).toEqual([{ id: 'p1', soloLectura: false }]);
     expect(scopeStub.programaScope).toHaveBeenCalledWith(FACILITADOR);
     expect(prismaMock.programa.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: scope }),

@@ -31,7 +31,10 @@ function buildController(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
-  const scopeStub = { assertProgramaAccessible: vi.fn().mockResolvedValue(undefined) };
+  const scopeStub = {
+    assertProgramaAccessible: vi.fn().mockResolvedValue(undefined),
+    assertProgramaEditable: vi.fn().mockResolvedValue(undefined),
+  };
   const emailStub = { sendObservacionGeneralSesion: vi.fn().mockResolvedValue(undefined) };
   const controller = new FacilitadorAsistenciaController(prismaMock as any, scopeStub as any, emailStub as any);
   return { controller, prismaMock, scopeStub, emailStub };
@@ -111,9 +114,9 @@ describe('FacilitadorAsistenciaController.putAsistencia', () => {
     expect(prismaMock.sesion.update).not.toHaveBeenCalled();
   });
 
-  it('propaga el 403 de ActorScopeService.assertProgramaAccessible (RF-03/scoping)', async () => {
+  it('propaga el 403 de ActorScopeService.assertProgramaEditable (RF-03/scoping)', async () => {
     const { controller, scopeStub } = buildController();
-    (scopeStub.assertProgramaAccessible as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (scopeStub.assertProgramaEditable as ReturnType<typeof vi.fn>).mockRejectedValue(
       new AppError('FORBIDDEN'),
     );
     await expect(

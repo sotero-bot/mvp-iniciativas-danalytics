@@ -74,9 +74,10 @@ describe('scoring server-side (RF-29/RF-26)', () => {
 
   it('agrega por dimensión con total/promedio/respondidas', () => {
     const scores = calcularScoresPorDimension(CAMPOS as any, { c1: 4, c2: ['a'], c3: 'texto' });
+    // Escala (likert/número) y selección (opción múltiple) se puntúan por separado.
     expect(scores).toEqual({
-      adopcion: { total: 4, promedio: 4, respondidas: 1 },
-      uso: { total: 2, promedio: 2, respondidas: 1 },
+      escala: { adopcion: { total: 4, promedio: 4, respondidas: 1 } },
+      seleccion: { uso: { total: 2, promedio: 2, respondidas: 1 } },
     });
   });
 });
@@ -160,8 +161,8 @@ describe('EstudianteFormulariosController.submit (RF-29)', () => {
     const creado = (prisma.respuestaFormulario.create as any).mock.calls[0][0].data;
     expect(creado.estado).toBe('submitted');
     expect(creado.scoresPorDimensionJson).toEqual({
-      adopcion: { total: 4, promedio: 4, respondidas: 1 },
-      uso: { total: 2, promedio: 2, respondidas: 1 },
+      escala: { adopcion: { total: 4, promedio: 4, respondidas: 1 } },
+      seleccion: { uso: { total: 2, promedio: 2, respondidas: 1 } },
     });
 
     // El estudiante nunca ve scores ni desglose (RNF-04/RN-02).
@@ -208,17 +209,34 @@ describe('EstudianteFormulariosController.submit (RF-29)', () => {
     await controller.submit('pl1', {}, ACTOR);
     const actualizado = (prisma.respuestaFormulario.update as any).mock.calls[0][0].data;
     expect(actualizado.scoresPorDimensionJson).toEqual({
-      adopcion: { total: 5, promedio: 5, respondidas: 1 },
+      escala: { adopcion: { total: 5, promedio: 5, respondidas: 1 } },
+      seleccion: {},
     });
   });
 });
 
 describe('EstudianteFormulariosController — acceso (§0.1)', () => {
-  it('plantilla global (sin programaId) no es respondible → PLANTILLA_NOT_FOUND', async () => {
-    const { controller } = buildController({
+  it('diagnóstico de inicio global (sin programaId) SÍ es respondible sin matrícula', async () => {
+    const { controller, prisma, scope } = buildController({
       prisma: {
         plantillaFormulario: {
           findUnique: vi.fn().mockResolvedValue({ ...PLANTILLA, programaId: null }),
+          findMany: vi.fn(),
+        },
+      },
+    });
+    await controller.saveDraft('pl1', { datos: {} }, ACTOR);
+    expect(scope.assertProgramaAccessible).not.toHaveBeenCalled();
+    expect(prisma.respuestaFormulario.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ programaId: null }) }),
+    );
+  });
+
+  it('plantilla global que no es de inicio (feedback) no es respondible → PLANTILLA_NOT_FOUND', async () => {
+    const { controller } = buildController({
+      prisma: {
+        plantillaFormulario: {
+          findUnique: vi.fn().mockResolvedValue({ ...PLANTILLA, programaId: null, tipoFormulario: 'feedback' }),
           findMany: vi.fn(),
         },
       },

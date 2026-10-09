@@ -70,8 +70,9 @@ describe('seed-formularios-reto — definiciones de campos', () => {
     expect(insumos?.configJson?.columnas).toHaveLength(4);
 
     const tablas = PLANTILLA_PROYECTO.campos.filter(c => c.tipoCampo === 'tabla');
-    expect(tablas.map(t => t.etiqueta)).toEqual(['Integrantes del equipo', 'Plan de próximos pasos']);
-    expect(tablas[1].configJson?.columnas).toEqual([
+    // Los integrantes ya no son una tabla del formulario: salen de los miembros del grupo.
+    expect(tablas.map(t => t.etiqueta)).toEqual(['Plan de próximos pasos']);
+    expect(tablas[0].configJson?.columnas).toEqual([
       'Paso',
       'Responsable',
       'Actividad',

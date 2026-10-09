@@ -27,7 +27,10 @@ function buildController(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
-  const scopeStub = { assertProgramaAccessible: vi.fn().mockResolvedValue(undefined) };
+  const scopeStub = {
+    assertProgramaAccessible: vi.fn().mockResolvedValue(undefined),
+    assertProgramaEditable: vi.fn().mockResolvedValue(undefined),
+  };
   const emailStub = { sendObservacion: vi.fn().mockResolvedValue(undefined) };
   const controller = new FacilitadorObservacionesController(
     prismaMock as any,

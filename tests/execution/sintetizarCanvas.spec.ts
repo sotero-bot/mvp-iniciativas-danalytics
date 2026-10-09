@@ -51,8 +51,8 @@ describe('SintetizarCanvasPorTokenUseCase', () => {
             { id: 'paso-2', titulo: 'Datos', orden: 2 },
         ];
         const bloquesMock = [
-            { pasoId: 'paso-1', resumen: 'Resumen Problema cacheado', instanciaId: 'inst-001' },
-            { pasoId: 'paso-2', resumen: 'Resumen Datos cacheado', instanciaId: 'inst-001' },
+            { pasoId: 'paso-1', resumen: 'Resumen Problema cacheado', instanciaId: 'inst-001', locale: 'es' },
+            { pasoId: 'paso-2', resumen: 'Resumen Datos cacheado', instanciaId: 'inst-001', locale: 'es' },
         ];
 
         const upsertSpy = vi.fn();
@@ -70,7 +70,7 @@ describe('SintetizarCanvasPorTokenUseCase', () => {
                 }),
             },
             canvasBloque: {
-                // caché completo: mismo número de bloques que pasos
+                // caché completo: mismo número de bloques que pasos, todos en el locale pedido (default 'es')
                 findMany: vi.fn().mockResolvedValue(bloquesMock),
                 upsert: upsertSpy,
             },
@@ -167,7 +167,7 @@ describe('buildCanvasHtml', () => {
         expect(html).toContain('2026-06-02');
     });
 
-    it('debe incluir botones "Copiar prompt" por cada bloque', async () => {
+    it('no debe incluir botones "Copiar prompt" (removidos en 0c38658); mantiene el botón de exportar', async () => {
         const { buildCanvasHtml } = await import(
             '../../apps/web/src/features/execution/buildCanvasHtml'
         );
@@ -181,8 +181,9 @@ describe('buildCanvasHtml', () => {
             fecha: '2026-06-02',
         });
 
-        expect(html).toContain('Copiar prompt');
-        expect(html).toContain('copiarPrompt(this)');
+        expect(html).not.toContain('Copiar prompt');
+        expect(html).not.toContain('copiarPrompt');
+        expect(html).toContain('exportarTxt()');
     });
 
     it('debe incluir script de autoguardado en localStorage', async () => {
@@ -244,7 +245,8 @@ describe('buildCanvasHtml', () => {
         });
 
         expect(html).toContain('Alto potencial estratégico para la empresa');
-        expect(html).toContain('Potencial valor estratégico');
+        // El título del paso ya no se renderiza: el paso 9 se muestra bajo el slot "Potencial de valor"
+        expect(html).toContain('Potencial de valor');
     });
 
     it('debe producir HTML que funciona offline (sin src externos)', async () => {

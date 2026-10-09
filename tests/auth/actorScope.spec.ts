@@ -29,7 +29,7 @@ describe('ActorScopeService.programaScope', () => {
 
   it('estudiante: filtra por participante activo', () => {
     expect(svc.programaScope(actor({ role: 'estudiante', sub: 's1' }))).toEqual({
-      participantes: { some: { usuarioId: 's1', activo: true } },
+      participantes: { some: { usuarioId: 's1', activo: true, confirmadoEn: { not: null } } },
     });
   });
 
@@ -81,7 +81,7 @@ describe('ActorScopeService.assertProgramaAccessible', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('RF-03: 403 para facilitador si el programa finalizó y ya venció la gracia', async () => {
+  it('RF-03: facilitador con gracia vencida conserva lectura pero pierde escritura', async () => {
     const fechaFin = new Date();
     fechaFin.setUTCDate(fechaFin.getUTCDate() - 30); // hace 30 días, sobra cualquier gracia
     const prisma = {
@@ -91,9 +91,14 @@ describe('ActorScopeService.assertProgramaAccessible', () => {
           .mockResolvedValue({ id: 'p1', estado: 'finalizado', fechaFin, diasGracia: 3 }),
       },
     };
+    // Lectura: la gracia vencida NO bloquea el acceso (modo solo-lectura).
     await expect(
       svc.assertProgramaAccessible(prisma, actor({ role: 'facilitador' }), 'p1'),
-    ).rejects.toThrowError(AppError);
+    ).resolves.toBeUndefined();
+    // Escritura: sí se bloquea con PROGRAMA_GRACIA_VENCIDA.
+    await expect(
+      svc.assertProgramaEditable(prisma, actor({ role: 'facilitador' }), 'p1'),
+    ).rejects.toMatchObject({ code: 'PROGRAMA_GRACIA_VENCIDA' });
   });
 
   it('RF-03: pasa para facilitador si el programa finalizó pero la gracia sigue vigente', async () => {

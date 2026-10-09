@@ -20,6 +20,7 @@ const GRUPO = {
     nombre: 'Programa IA',
     estado: 'activo',
     presentacionDesdeSesion: null,
+    bitacoraHabilitadaEn: new Date('2026-07-01'), // O-01: gate de toda la sección
     empresa: { nombre: 'Acme Corp' },
   },
 };
@@ -51,6 +52,7 @@ function buildController(overrides: Record<string, any> = {}) {
     miembroGrupo: { findFirst: vi.fn().mockResolvedValue({ id: 'm1' }) },
     plantillaFormulario: { findFirst: vi.fn().mockResolvedValue(PLANTILLA_PROYECTO) },
     campoFormulario: { findMany: vi.fn().mockResolvedValue(CAMPOS) },
+    presentacionFinal: { findUnique: vi.fn().mockResolvedValue(null) },
     respuestaFormulario: {
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockImplementation(({ data }: any) => Promise.resolve(data)),
