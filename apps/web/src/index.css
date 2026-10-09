@@ -2181,11 +2181,11 @@ a.home-prog-card:hover {
 }
 
 /* Filtros dentro de un panel: fondos blanco (heredado del panel), sin borde
-   ni relleno vertical propio para que no se separen del listado. Solo mantienen
-   el relleno horizontal para alinearse con la cabecera. Van entre la cabecera
-   del panel y su cuerpo. */
+   ni relleno inferior para que no se separen del listado. Mantienen el relleno
+   horizontal para alinearse con la cabecera y un margen superior para que no
+   queden pegados a ella. Van entre la cabecera del panel y su cuerpo. */
 .home-filter-strip {
-  padding: 0 1.75rem;
+  padding: var(--space-5) 1.75rem 0;
 }
 
 .filter-bar .input {
