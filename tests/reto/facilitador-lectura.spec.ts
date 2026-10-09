@@ -86,6 +86,7 @@ describe('Autorización (§0.1, RF-37/RF-38)', () => {
       'habilitarBitacora',
       'listBitacoras',
       'listPlantillas',
+      'listPresentaciones', // HU-03: presentaciones finales por grupo (lectura)
       'listRecurso',
     ]);
   });

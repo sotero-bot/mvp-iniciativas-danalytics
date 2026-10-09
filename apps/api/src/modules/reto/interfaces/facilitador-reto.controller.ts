@@ -14,6 +14,7 @@ import { derivarConfigPublica } from '../../formularios/application/form-config'
 import { S3Service } from '../../storage/S3Service';
 import { AppError } from '../../../shared/errors/AppError';
 import { ENTREGA_SELECT, entregaCompleta, faltanteEntrega } from '../../grupos/application/entrega-grupo';
+import { retosGrupoSelect, retosParaFacilitador } from '../../grupos/application/retos-entregados';
 
 // Misma regla que el controller del estudiante: `<slug>-<uuid>.<ext>` → nombre legible.
 const UUID_SUFFIX_RE = /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[^.]+)?$/i;
@@ -53,6 +54,19 @@ export class FacilitadorRetoController {
     @Query('locale') locale?: string,
   ) {
     return this.listRecurso(programaId, 'plantilla_proyecto', actor, locale);
+  }
+
+  // HU-03: presentaciones finales de todos los grupos del programa (lectura). Enlace y
+  // `conArchivo` solo para el facilitador; `archivoKey` nunca sale (ver retos-entregados.ts).
+  @Get('programas/:id/presentaciones')
+  async listPresentaciones(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    const grupos = await this.prisma.grupo.findMany({
+      where: { programaId },
+      select: retosGrupoSelect(actor.sub),
+      orderBy: { orden: 'asc' },
+    });
+    return retosParaFacilitador(grupos);
   }
 
   // O-01: estado de habilitación de la bitácora del programa.

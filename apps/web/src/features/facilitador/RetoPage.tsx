@@ -3,8 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo } from '../estudiante/FormularioResponderPage';
-import { Breadcrumb, PageHeader, Button, Loading, EmptyState, Alert, StatusBadge } from '../../components/ui';
+import { Breadcrumb, PageHeader, Button, Loading, EmptyState, Alert, StatusBadge, ProgressBar, DataTable } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import type { DataTableColumn } from '../../components/ui';
 import { RespuestaReadOnly } from './RespuestaReadOnly';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -32,7 +33,21 @@ interface RecursoPrograma {
   grupos: GrupoConRespuesta[];
 }
 
-type Pestana = 'bitacoras' | 'plantillas';
+type Pestana = 'bitacoras' | 'plantillas' | 'presentaciones';
+type PestanaRecurso = Exclude<Pestana, 'presentaciones'>;
+
+// HU-03: presentaciones finales por grupo. El facilitador ve el enlace y si hay archivo
+// (`conArchivo`); la key de S3 nunca viaja.
+interface PresentacionGrupo {
+  id: string;
+  nombre: string;
+  miembros: number;
+  entregada: boolean;
+  entregadoEn: string | null;
+  urlPresentacion: string | null;
+  conArchivo: boolean;
+}
+interface Presentaciones { totalGrupos: number; entregados: number; grupos: PresentacionGrupo[] }
 
 // Fase 3 (RF-37/RF-38): el facilitador ve bitácoras y plantillas de proyecto de
 // TODOS los grupos de su programa en SOLO lectura (sin edición ni export, RN-07).
@@ -40,8 +55,9 @@ export function FacilitadorRetoPage() {
   const { id: programaId = '' } = useParams();
   const { t, i18n } = useTranslation(['formularios', 'facilitador', 'common', 'admin', 'errors']);
   const [pestana, setPestana] = useState<Pestana>('bitacoras');
-  const [data, setData] = useState<Record<Pestana, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
+  const [data, setData] = useState<Record<PestanaRecurso, RecursoPrograma | null>>({ bitacoras: null, plantillas: null });
   const [loading, setLoading] = useState(false);
+  const [presentaciones, setPresentaciones] = useState<Presentaciones | null>(null);
   // O-01: estado de habilitación de la bitácora.
   const [bitacoraHabilitada, setBitacoraHabilitada] = useState<boolean | null>(null);
   // Nombre del programa para el breadcrumb/eyebrow (dónde está el usuario).
@@ -87,6 +103,19 @@ export function FacilitadorRetoPage() {
   };
 
   useEffect(() => {
+    if (pestana !== 'presentaciones') return;
+    let cancelled = false;
+    setLoading(true);
+    fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/presentaciones`)
+      .then((res) => res.json())
+      .then((d: Presentaciones) => { if (!cancelled) setPresentaciones(d); })
+      .catch((err) => { if (!cancelled) toast.error(translateError(err)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [programaId, pestana]);
+
+  useEffect(() => {
+    if (pestana === 'presentaciones') return;
     let cancelled = false;
     setLoading(true);
     fetchWithErrorMapping(`${API_URL}/facilitador/programas/${programaId}/${pestana}?locale=${i18n.language}`)
@@ -99,13 +128,48 @@ export function FacilitadorRetoPage() {
     return () => { cancelled = true; };
   }, [programaId, pestana, i18n.language]);
 
-  const recurso = data[pestana];
+  const recurso = pestana === 'presentaciones' ? null : data[pestana];
   const tabStyle = (activa: boolean): React.CSSProperties => ({
     padding: 'var(--space-2) var(--space-4)', border: 'none',
     borderBottom: activa ? '2px solid var(--color-primary)' : '2px solid transparent',
     background: 'none', cursor: 'pointer', fontWeight: activa ? 600 : 500,
     color: activa ? 'var(--color-primary)' : 'var(--color-text-secondary)', fontSize: '0.9rem',
   });
+
+  const presentacionColumns: DataTableColumn<PresentacionGrupo>[] = [
+    { key: 'grupo', header: t('facilitador:reto.presentaciones_col_grupo'), align: 'left', render: (g) => g.nombre },
+    { key: 'integrantes', header: t('facilitador:reto.presentaciones_col_integrantes'), align: 'left', render: (g) => g.miembros },
+    {
+      key: 'estado',
+      header: t('facilitador:reto.presentaciones_col_estado'),
+      align: 'left',
+      render: (g) => (
+        <StatusBadge variant={g.entregada ? 'success' : 'warning'}>
+          {g.entregada ? t('facilitador:reto.presentacion_entregada') : t('facilitador:reto.presentacion_pendiente')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'entrega',
+      header: t('facilitador:reto.presentaciones_col_entrega'),
+      align: 'left',
+      render: (g) => (
+        <span style={{ display: 'inline-flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          {g.urlPresentacion && (
+            <a href={g.urlPresentacion} target="_blank" rel="noreferrer">{t('facilitador:reto.presentacion_enlace')}</a>
+          )}
+          {g.conArchivo && <span>{t('facilitador:reto.presentacion_archivo')}</span>}
+          {!g.urlPresentacion && !g.conArchivo && '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'fecha',
+      header: t('facilitador:reto.presentaciones_col_fecha'),
+      align: 'left',
+      render: (g) => (g.entregadoEn ? new Date(g.entregadoEn).toLocaleString(i18n.language) : '—'),
+    },
+  ];
 
   return (
     <div>
@@ -127,7 +191,9 @@ export function FacilitadorRetoPage() {
       <div className="section-card home-panel">
         <div className="section-card-header">
           <span className="section-card-title">{t('formularios:reto.panel_title')}</span>
-          <span className="count-badge">{recurso?.grupos.length ?? 0}</span>
+          <span className="count-badge">
+            {pestana === 'presentaciones' ? presentaciones?.entregados ?? 0 : recurso?.grupos.length ?? 0}
+          </span>
         </div>
 
         <div
@@ -143,6 +209,9 @@ export function FacilitadorRetoPage() {
             </button>
             <button style={tabStyle(pestana === 'plantillas')} onClick={() => setPestana('plantillas')}>
               {t('formularios:reto.plantillas')}
+            </button>
+            <button style={tabStyle(pestana === 'presentaciones')} onClick={() => setPestana('presentaciones')}>
+              {t('facilitador:reto.presentaciones_tab')}
             </button>
           </div>
 
@@ -163,6 +232,28 @@ export function FacilitadorRetoPage() {
 
         <div className="section-card-body">
           {loading && <Loading label={t('common:loading')} />}
+
+          {!loading && pestana === 'presentaciones' && presentaciones && (
+            presentaciones.totalGrupos === 0 ? (
+              <EmptyState title={t('facilitador:reto.presentaciones_empty')} />
+            ) : (
+              <>
+                <div style={{ marginBottom: 'var(--space-3)' }}>
+                  <div style={{ fontSize: '0.85rem', marginBottom: 'var(--space-2)' }}>
+                    {t('facilitador:reto.presentaciones_contador', {
+                      entregados: presentaciones.entregados,
+                      total: presentaciones.totalGrupos,
+                    })}
+                  </div>
+                  <ProgressBar
+                    value={(presentaciones.entregados / presentaciones.totalGrupos) * 100}
+                    label={t('facilitador:reto.presentaciones_title')}
+                  />
+                </div>
+                <DataTable columns={presentacionColumns} rows={presentaciones.grupos} rowKey={(g) => g.id} />
+              </>
+            )
+          )}
 
           {!loading && recurso && !recurso.plantilla && <EmptyState title={t('formularios:reto.sin_plantilla')} />}
 

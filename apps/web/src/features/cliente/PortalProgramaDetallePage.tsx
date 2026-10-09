@@ -272,6 +272,18 @@ export function PortalProgramaDetallePage() {
               <span className="count-badge">{detalle.proyecto.length}</span>
             </div>
             <div className="section-card-body">
+              {/* HU-03: contador sobre el proyecto[] existente (sin cambios de backend). */}
+              {detalle.proyecto.length > 0 && (() => {
+                const entregados = detalle.proyecto.filter(g => g.presentacion.entregada).length;
+                return (
+                  <div style={{ marginBottom: 'var(--space-3)' }}>
+                    <div style={{ fontSize: '0.85rem', marginBottom: 'var(--space-2)' }}>
+                      {t('portal:detalle.retos_contador', { entregados, total: detalle.proyecto.length })}
+                    </div>
+                    <ProgressBar value={(entregados / detalle.proyecto.length) * 100} label={t('portal:detalle.proyecto')} />
+                  </div>
+                );
+              })()}
               {detalle.proyecto.length === 0 && (
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
               )}

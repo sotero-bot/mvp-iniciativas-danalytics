@@ -38,7 +38,8 @@
     "por_area_title": "Participantes por área",
     "col_area": "Área",
     "col_participantes": "Participantes",
-    "anonimato_oculto": "Há menos de {{min}} respostas nesta área: são ocultadas para proteger o anonimato."
+    "anonimato_oculto": "Há menos de {{min}} respostas nesta área: são ocultadas para proteger o anonimato.",
+    "retos_contador": "{{entregados}} de {{total}} grupos entregaram"
   },
   "usuarios": {
     "title": "Usuários da sua empresa",

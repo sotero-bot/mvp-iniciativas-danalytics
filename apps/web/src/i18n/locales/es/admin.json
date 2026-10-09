@@ -399,7 +399,10 @@
       "confirm_delete": {
         "title": "Eliminar grupo",
         "message": "¿Eliminar el grupo «{{nombre}}»? Sus integrantes quedarán sin grupo (siguen matriculados en el programa)."
-      }
+      },
+      "reto_entregado": "Reto entregado",
+      "reto_pendiente": "Reto pendiente",
+      "retos_contador": "{{entregados}} de {{total}} grupos han entregado el reto"
     },
     "list_title": "Programas registrados"
   },

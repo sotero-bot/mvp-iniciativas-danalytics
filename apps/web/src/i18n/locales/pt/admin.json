@@ -399,7 +399,10 @@
       "confirm_reopen": {
         "title": "Reabrir grupo",
         "message": "\"{{nombre}}\" voltará a ser editável por seus integrantes. Continuar?"
-      }
+      },
+      "reto_entregado": "Desafio entregue",
+      "reto_pendiente": "Desafio pendente",
+      "retos_contador": "{{entregados}} de {{total}} grupos entregaram o desafio"
     },
     "list_title": "Programas registrados"
   },

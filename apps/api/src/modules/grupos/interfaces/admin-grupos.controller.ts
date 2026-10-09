@@ -56,6 +56,9 @@ const GRUPO_SELECT = {
   updatedAt: true,
   finalizadoEn: true,
   finalizadoPor: { select: { id: true, nombre: true } },
+  // HU-03: basta `entregadoEn`; el enlace vive en facilitador/programas/:id/presentaciones.
+  presentacionFinal: { select: { entregadoEn: true } },
+  _count: { select: { miembros: true } },
   miembros: {
     select: {
       id: true,

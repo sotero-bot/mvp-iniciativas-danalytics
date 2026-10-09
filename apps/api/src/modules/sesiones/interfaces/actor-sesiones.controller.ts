@@ -8,6 +8,7 @@ import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
 import { ENTREGA_SELECT, entregaCompleta } from '../../grupos/application/entrega-grupo';
 import { derivarFasePrograma } from '../../programas/application/fase-programa';
+import { retosGrupoSelect, retosParaEstudiante, retosParaFacilitador } from '../../grupos/application/retos-entregados';
 
 // C-03: el facilitador ve la presentación desde 7 días calendario antes de la sesión.
 const FACILITADOR_ANTELACION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -140,7 +141,7 @@ export class ActorSesionesController {
 
   // HU-12: resumen del programa para la vista "Programa" (nombre, fase, docentes con correo).
   // Es lectura: assertProgramaAccessible (no Editable) para que el facilitador con la gracia
-  // vencida siga viendo el programa. El bloque `retos` lo añade HU-03.
+  // vencida siga viendo el programa. El bloque `retos` (HU-03) se recorta por rol.
   @Get('programas/:id/resumen')
   async resumenPrograma(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
     await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
@@ -167,6 +168,14 @@ export class ActorSesionesController {
       },
     });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+
+    // HU-03: contador de retos entregados; el recorte por rol vive en el shaper (RN-07).
+    const grupos = await this.prisma.grupo.findMany({
+      where: { programaId },
+      select: retosGrupoSelect(actor.sub),
+      orderBy: { orden: 'asc' },
+    });
+    const retos = actor.role === 'facilitador' ? retosParaFacilitador(grupos) : retosParaEstudiante(grupos);
 
     const now = new Date();
     const futuras = programa.sesiones.filter((s) => s.fechaProgramada.getTime() >= now.getTime());
@@ -201,6 +210,7 @@ export class ActorSesionesController {
       proximaSesion: proxima
         ? { numeroSesion: proxima.numeroSesion, titulo: proxima.titulo, fechaProgramada: proxima.fechaProgramada }
         : null,
+      retos,
     };
   }
 

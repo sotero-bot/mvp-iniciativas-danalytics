@@ -414,6 +414,15 @@ export function ProgramaDetailDrawer({
                 {participantesSinGrupo.length > 0
                   ? `${participantesSinGrupo.length} ${t('admin:programas.tabs.participantes').toLowerCase()} ${t('admin:programas.grupos.no_members').toLowerCase()}`
                   : t('admin:programas.grupos.all_assigned')}
+                {/* HU-03: contador de retos entregados */}
+                {grupos.length > 0 && (
+                  <span style={{ marginLeft: 12 }}>
+                    {t('admin:programas.grupos.retos_contador', {
+                      entregados: grupos.filter(x => x.presentacionFinal).length,
+                      total: grupos.length,
+                    })}
+                  </span>
+                )}
               </span>
               <button className="btn btn-primary" onClick={() => setGrupoModal({ editing: null })}>
                 + {t('admin:programas.grupos.actions.new')}
@@ -438,6 +447,11 @@ export function ProgramaDetailDrawer({
                           {t('admin:programas.grupos.finalized')}
                         </StatusBadge>
                       )}
+                      <StatusBadge variant={g.presentacionFinal ? 'success' : 'warning'}>
+                        {g.presentacionFinal
+                          ? t('admin:programas.grupos.reto_entregado')
+                          : t('admin:programas.grupos.reto_pendiente')}
+                      </StatusBadge>
                       {g.miembros.length < 2 && (
                         <span title={t('admin:programas.grupos.min_hint')}>
                           <StatusBadge variant="warning">⚠ {t('admin:programas.grupos.incomplete')}</StatusBadge>

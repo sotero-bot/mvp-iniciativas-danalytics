@@ -159,5 +159,20 @@
     "abrir_presentacion": "Abrir presentación",
     "no_finalizable": "No se puede finalizar: el grupo aún no entregó todo en la fase 3. Falta: {{faltan}}.",
     "volver": "Volver a grupos"
+  },
+  "reto": {
+    "presentaciones_title": "Presentaciones finales",
+    "presentaciones_empty": "Este programa aún no tiene grupos.",
+    "presentaciones_contador": "{{entregados}} de {{total}} grupos han entregado",
+    "presentaciones_tab": "Presentaciones",
+    "presentacion_enlace": "Abrir enlace",
+    "presentacion_archivo": "Archivo subido",
+    "presentacion_pendiente": "Pendiente",
+    "presentacion_entregada": "Entregado",
+    "presentaciones_col_grupo": "Grupo",
+    "presentaciones_col_integrantes": "Integrantes",
+    "presentaciones_col_estado": "Estado",
+    "presentaciones_col_entrega": "Entrega",
+    "presentaciones_col_fecha": "Fecha de entrega"
   }
 }

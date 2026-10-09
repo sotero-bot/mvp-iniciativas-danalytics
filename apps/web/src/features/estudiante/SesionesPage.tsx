@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, DataTable } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, DataTable, ProgressBar } from '../../components/ui';
 import type { StatusVariant, DataTableColumn } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
@@ -31,8 +31,20 @@ interface Docente {
   email: string | null;
 }
 
+// HU-03 (RN-07): el estudiante ve solo el ESTADO de entrega; el servidor no manda enlaces.
+interface RetoGrupo {
+  id: string;
+  nombre: string;
+  miembros: number;
+  entregada: boolean;
+  entregadoEn: string | null;
+  esMiGrupo: boolean;
+}
+
 interface ProgramaResumen {
   nombre: string;
+  retos: { totalGrupos: number; entregados: number; grupos: RetoGrupo[] };
+  timezone: string;
   facilitadores: Docente[];
   sesionesTotal: number;
   sesionesRealizadas: number;
@@ -153,6 +165,37 @@ export function EstudianteSesionesPage() {
     },
   ];
 
+  const retoColumns: DataTableColumn<RetoGrupo>[] = [
+    {
+      key: 'grupo',
+      header: t('estudiante:programa.retos_col_grupo'),
+      align: 'left',
+      render: (g) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {g.nombre}
+          {g.esMiGrupo && <StatusBadge variant="info">{t('estudiante:programa.mi_grupo')}</StatusBadge>}
+        </span>
+      ),
+    },
+    { key: 'integrantes', header: t('estudiante:programa.retos_col_integrantes'), align: 'left', render: (g) => g.miembros },
+    {
+      key: 'estado',
+      header: t('estudiante:programa.retos_col_estado'),
+      align: 'left',
+      render: (g) => (
+        <StatusBadge variant={g.entregada ? 'success' : 'warning'}>
+          {g.entregada ? t('estudiante:programa.reto_entregado') : t('estudiante:programa.reto_pendiente')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'fecha',
+      header: t('estudiante:programa.retos_col_fecha'),
+      align: 'left',
+      render: (g) => (g.entregadoEn ? formatFechaHora(g.entregadoEn, resumenPrograma?.timezone ?? 'UTC', i18n.language) : '—'),
+    },
+  ];
+
   return (
     <div>
       <Breadcrumb
@@ -191,6 +234,37 @@ export function EstudianteSesionesPage() {
               <EmptyState title={t('estudiante:programa.docentes_empty')} />
             ) : (
               <DataTable columns={docenteColumns} rows={resumenPrograma.facilitadores} rowKey={(d) => d.id} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* HU-03: contador de retos entregados. Sin enlaces a presentaciones ajenas (RN-07). */}
+      {!loading && resumenPrograma && (
+        <div className="section-card home-panel" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="section-card-header">
+            <span className="section-card-title">{t('estudiante:programa.retos_title')}</span>
+            <span className="count-badge">{resumenPrograma.retos.entregados}</span>
+          </div>
+          <div className="section-card-body">
+            {resumenPrograma.retos.totalGrupos === 0 ? (
+              <EmptyState title={t('estudiante:programa.retos_empty')} />
+            ) : (
+              <>
+                <div style={{ marginBottom: 'var(--space-3)' }}>
+                  <div style={{ fontSize: '0.85rem', marginBottom: 'var(--space-2)' }}>
+                    {t('estudiante:programa.retos_progreso', {
+                      entregados: resumenPrograma.retos.entregados,
+                      total: resumenPrograma.retos.totalGrupos,
+                    })}
+                  </div>
+                  <ProgressBar
+                    value={(resumenPrograma.retos.entregados / resumenPrograma.retos.totalGrupos) * 100}
+                    label={t('estudiante:programa.retos_title')}
+                  />
+                </div>
+                <DataTable columns={retoColumns} rows={resumenPrograma.retos.grupos} rowKey={(g) => g.id} />
+              </>
             )}
           </div>
         </div>

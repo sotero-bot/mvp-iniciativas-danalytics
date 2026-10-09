@@ -18,7 +18,8 @@ const GRUPO_SELECT = {
   orden: true,
   finalizadoEn: true,
   finalizadoPor: { select: { id: true, nombre: true } },
-  ...ENTREGA_SELECT, // HU-23: ¿entregó todo en la fase 3? (se calcula en listGrupos)
+  ...ENTREGA_SELECT, // HU-23: ¿entregó todo en la fase 3? (se calcula en listGrupos); incluye presentacionFinal.entregadoEn (HU-03)
+  _count: { select: { miembros: true } }, // HU-03
   miembros: {
     select: {
       id: true,

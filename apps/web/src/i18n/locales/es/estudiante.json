@@ -69,6 +69,17 @@
     "docente_nombre": "Nombre",
     "docente_correo": "Correo",
     "sin_correo": "Sin correo registrado",
-    "sesiones_avance": "{{hechas}} de {{total}} sesiones"
+    "sesiones_avance": "{{hechas}} de {{total}} sesiones",
+    "retos_title": "Retos entregados",
+    "retos_progreso": "{{entregados}} de {{total}} grupos han entregado",
+    "reto_entregado": "Entregado",
+    "reto_pendiente": "Pendiente",
+    "mi_grupo": "Tu grupo",
+    "retos_empty": "Este programa aún no tiene grupos.",
+    "entregado_el": "Entregado el {{fecha}}",
+    "retos_col_grupo": "Grupo",
+    "retos_col_integrantes": "Integrantes",
+    "retos_col_estado": "Estado",
+    "retos_col_fecha": "Fecha de entrega"
   }
 }

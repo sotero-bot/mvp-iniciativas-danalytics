@@ -86,5 +86,7 @@ export interface Grupo {
   orden: number;
   finalizadoEn: string | null;
   finalizadoPor: { id: string; nombre: string } | null;
+  // HU-03: null = el grupo aún no entregó el reto.
+  presentacionFinal?: { entregadoEn: string | null } | null;
   miembros: GrupoMiembro[];
 }
