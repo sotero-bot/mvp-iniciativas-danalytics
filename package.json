@@ -35,7 +35,8 @@
     "seed:dev": "npx tsx scripts/seed-dev.ts",
     "db:cleanup-duplicates": "npx tsx prisma/scripts/cleanup-duplicate-users.ts",
     "reset-data": "npx tsx scripts/reset-data.ts",
-    "vercel-build": "prisma generate && prisma db push --accept-data-loss && tsc -p tsconfig.json && vite build && npm run seed:diagnostico-inicial && npm run seed:formularios-reto && npm run seed:dev"
+    "db:sync": "prisma db push --accept-data-loss && npm run seed:diagnostico-inicial && npm run seed:formularios-reto && npm run seed:dev",
+    "vercel-build": "prisma generate && bash scripts/vercel-db-sync.sh && tsc -p tsconfig.json && vite build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",
