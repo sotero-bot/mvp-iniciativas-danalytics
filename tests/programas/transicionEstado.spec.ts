@@ -105,14 +105,12 @@ describe('AdminProgramasController.updatePrograma — transición de estado (RF-
     expect(snapshotsMock.snapshotPrograma).not.toHaveBeenCalled();
   });
 
-  it('GRUPO_MIN_INTEGRANTES: no se activa con un grupo de menos de 2 miembros', async () => {
+  it('HU-21/22: se activa aunque haya grupos de menos de 2 miembros (ya no hay mínimo)', async () => {
     const { controller, snapshotsMock } = buildController('borrador');
-    (controller as any).prisma.grupo.findMany = vi
-      .fn()
-      .mockResolvedValue([{ _count: { miembros: 1 } }]);
-    await expect(
-      controller.updatePrograma('p1', { estado: 'activo' as any }),
-    ).rejects.toMatchObject({ code: 'GRUPO_MIN_INTEGRANTES' });
-    expect(snapshotsMock.snapshotPrograma).not.toHaveBeenCalled();
+    const findMany = vi.fn().mockResolvedValue([{ _count: { miembros: 1 } }, { _count: { miembros: 0 } }]);
+    (controller as any).prisma.grupo.findMany = findMany;
+    await expect(controller.updatePrograma('p1', { estado: 'activo' as any })).resolves.toBeDefined();
+    expect(snapshotsMock.snapshotPrograma).toHaveBeenCalledTimes(1);
+    expect(findMany).not.toHaveBeenCalled();
   });
 });

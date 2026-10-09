@@ -11,14 +11,21 @@ import {
   Loading,
   EmptyState,
   Alert,
+  StatusBadge,
 } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { MoverMiembroModal } from '../../components/MoverMiembroModal';
+import { ReemplazarMiembroModal } from '../../components/ReemplazarMiembroModal';
+import { GrupoFormModal } from '../admin/GrupoFormModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface Grupo {
   id: string;
+  programaId: string;
   nombre: string;
+  orden: number;
   miembros: { id: string; usuarioId: string; usuario: { id: string; nombre: string; email: string } }[];
 }
 
@@ -27,8 +34,8 @@ interface Participante {
   usuario: { id: string; nombre: string; email: string };
 }
 
-// RF-15 + C-02: el facilitador ve los grupos y además puede crear grupos y asignar
-// integrantes (sin quitar/renombrar/eliminar — eso es del admin).
+// RF-15 + C-02: el facilitador ve los grupos y puede crear grupos y asignar integrantes.
+// HU-21/22: además renombra grupos y quita/reemplaza integrantes (eliminar sigue siendo del admin).
 export function FacilitadorGruposPage() {
   const { id: programaId = '' } = useParams();
   const { t } = useTranslation(['facilitador', 'common', 'admin', 'errors']);
@@ -41,6 +48,10 @@ export function FacilitadorGruposPage() {
   const [programaNombre, setProgramaNombre] = useState('');
   // RF-03/RN-03: gracia vencida → el facilitador solo consulta, sin acciones de escritura.
   const [soloLectura, setSoloLectura] = useState(false);
+  const [renombrando, setRenombrando] = useState<Grupo | null>(null);
+  const [quitando, setQuitando] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
+  const [moviendo, setMoviendo] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
+  const [reemplazando, setReemplazando] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
 
   const cargar = () => {
     setLoading(true);
@@ -103,6 +114,16 @@ export function FacilitadorGruposPage() {
     }
   };
 
+  const quitar = async (grupoId: string, usuarioId: string) => {
+    try {
+      await fetchWithErrorMapping(`${API_URL}/facilitador/grupos/${grupoId}/miembros/${usuarioId}`, { method: 'DELETE' });
+      toast.success(t('facilitador:grupos.integrante_quitado'));
+      cargar();
+    } catch (err) {
+      toast.error(translateError(err));
+    }
+  };
+
   // RN-04: participantes que aún no están en ningún grupo (candidatos a asignar).
   const asignados = new Set(grupos.flatMap((g) => g.miembros.map((m) => m.usuarioId)));
   const sinGrupo = participantes.filter((p) => !asignados.has(p.usuarioId));
@@ -126,17 +147,46 @@ export function FacilitadorGruposPage() {
           >
             {grupos.map((g) => (
               <div key={g.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <span style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</span>
+                  {!soloLectura && (
+                    <button type="button" className="btn-link" onClick={() => setRenombrando(g)}>
+                      {t('facilitador:grupos.renombrar')}
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                   {t('facilitador:grupos.miembros')} ({g.miembros.length})
+                  {/* HU-21/22: sin mínimo; un grupo con menos de 2 solo muestra advertencia. */}
+                  {g.miembros.length < 2 && (
+                    <StatusBadge variant="warning">⚠ {t('facilitador:grupos.incompleto')}</StatusBadge>
+                  )}
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                   {g.miembros.map((m) => (
-                    <li key={m.id}>{m.usuario.nombre}</li>
+                    <li key={m.id}>
+                      {m.usuario.nombre}
+                      {!soloLectura && (
+                        <span style={{ marginLeft: 'var(--space-3)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <button type="button" className="btn-link" onClick={() => setReemplazando({ grupo: g, miembro: m })}>
+                            {t('facilitador:grupos.reemplazar')}
+                          </button>
+                          <button type="button" className="btn-link" onClick={() => setMoviendo({ grupo: g, miembro: m })}>
+                            {t('facilitador:grupos.mover')}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-link btn-link-danger"
+                            onClick={() => setQuitando({ grupo: g, miembro: m })}
+                          >
+                            {t('facilitador:grupos.quitar_integrante')}
+                          </button>
+                        </span>
+                      )}
+                    </li>
                   ))}
                 </ul>
-                {/* C-02: asignar integrante (no se puede quitar — eso es del admin).
-                    Se oculta cuando ya no queda ningún participante sin grupo o en modo solo-lectura. */}
+                {/* C-02: asignar integrante. Se oculta cuando ya no queda ningún participante sin grupo o en modo solo-lectura. */}
                 {!soloLectura && sinGrupo.length > 0 && (
                   <div style={{ marginTop: 'auto' }}>
                     <Field label={t('facilitador:grupos.asignar_label')}>
@@ -163,6 +213,45 @@ export function FacilitadorGruposPage() {
 
   return (
     <div>
+      {renombrando && (
+        <GrupoFormModal
+          apiBase="facilitador"
+          programaId={programaId}
+          editing={renombrando}
+          onClose={() => setRenombrando(null)}
+          onSaved={() => { setRenombrando(null); cargar(); }}
+        />
+      )}
+      {moviendo && (
+        <MoverMiembroModal
+          endpointBase="facilitador"
+          grupoId={moviendo.grupo.id}
+          grupoNombre={moviendo.grupo.nombre}
+          miembro={{ usuarioId: moviendo.miembro.usuarioId, nombre: moviendo.miembro.usuario.nombre }}
+          grupos={grupos}
+          onClose={() => setMoviendo(null)}
+          onSaved={() => { setMoviendo(null); cargar(); }}
+        />
+      )}
+      {reemplazando && (
+        <ReemplazarMiembroModal
+          endpointBase="facilitador"
+          grupoId={reemplazando.grupo.id}
+          grupoNombre={reemplazando.grupo.nombre}
+          saliente={{ usuarioId: reemplazando.miembro.usuarioId, nombre: reemplazando.miembro.usuario.nombre }}
+          candidatos={sinGrupo.map((p) => ({ usuarioId: p.usuarioId, nombre: p.usuario.nombre }))}
+          onClose={() => setReemplazando(null)}
+          onSaved={() => { setReemplazando(null); cargar(); }}
+        />
+      )}
+      <ConfirmModal
+        isOpen={!!quitando}
+        title={t('facilitador:grupos.quitar_integrante')}
+        message={t('facilitador:grupos.quitar_confirm', { nombre: quitando?.miembro.usuario.nombre ?? '', grupo: quitando?.grupo.nombre ?? '' })}
+        confirmLabel={t('facilitador:grupos.quitar_integrante')}
+        onConfirm={() => { if (quitando) { quitar(quitando.grupo.id, quitando.miembro.usuarioId); setQuitando(null); } }}
+        onCancel={() => setQuitando(null)}
+      />
       <Breadcrumb
         items={[
           { label: t('admin:sidebar.home'), to: '/inicio' },

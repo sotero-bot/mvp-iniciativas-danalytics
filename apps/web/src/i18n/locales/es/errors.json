@@ -63,7 +63,7 @@
   "MIEMBRO_NO_PARTICIPA": "Este usuario no está matriculado como participante activo del programa.",
   "MIEMBRO_NO_CONFIRMADO": "Este estudiante aún no ha confirmado su registro al programa; no puede añadirse a un grupo hasta que lo confirme.",
   "GRUPO_NOT_FOUND": "El grupo no existe.",
-  "GRUPO_MIN_INTEGRANTES": "Cada grupo debe tener al menos 2 integrantes.",
+  "GRUPO_MOVER_INVALIDO": "No se puede mover o intercambiar al integrante: el origen y el destino deben ser grupos distintos del mismo programa.",
   "GRUPO_REEMPLAZO_INVALIDO": "El integrante entrante y el saliente son la misma persona.",
   "FACILITADOR_YA_ASIGNADO": "Este facilitador ya está asignado al programa.",
   "BITACORA_NO_HABILITADA": "La bitácora aún no está habilitada. Tu facilitador la activará cuando corresponda.",

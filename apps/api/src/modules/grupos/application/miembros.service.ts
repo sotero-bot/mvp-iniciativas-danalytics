@@ -54,16 +54,12 @@ export class MiembrosGrupoService {
     const miembro = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
     if (!miembro) throw new AppError('MIEMBRO_NO_PARTICIPA');
 
-    // Regla: mínimo 2 integrantes por grupo. No se puede dejar el grupo en 1;
-    // si tiene exactamente 2, para quitar a alguien hay que eliminar el grupo.
-    const total = await this.prisma.miembroGrupo.count({ where: { grupoId } });
-    if (total === 2) throw new AppError('GRUPO_MIN_INTEGRANTES');
-
+    // HU-21/22: sin mínimo de integrantes. Un grupo puede quedar con 1 (o 0) mientras se
+    // reorganiza; la UI solo avisa con una advertencia.
     await this.prisma.miembroGrupo.delete({ where: { id: miembro.id } });
   }
 
-  /** "Quita a A, pon a B" atómico. NO evalúa GRUPO_MIN_INTEGRANTES: el conteo no baja,
-   *  así que funciona también en un grupo de exactamente 2 integrantes. */
+  /** "Quita a A, pon a B" atómico: el conteo del grupo no cambia. */
   async reemplazar(grupoId: string, salienteId: string, entranteId: string): Promise<void> {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
@@ -102,5 +98,44 @@ export class MiembrosGrupoService {
       }
       throw e;
     }
+  }
+
+  /** Pasa a un integrante a otro grupo del MISMO programa. Sin mínimo de integrantes:
+   *  el grupo de origen puede quedar con 1 o 0. El programaId (RN-04) no cambia. */
+  async mover(grupoId: string, usuarioId: string, destinoGrupoId: string): Promise<void> {
+    const [origen, destino] = await Promise.all([
+      this.prisma.grupo.findUnique({ where: { id: grupoId } }),
+      this.prisma.grupo.findUnique({ where: { id: destinoGrupoId } }),
+    ]);
+    if (!origen || !destino) throw new AppError('GRUPO_NOT_FOUND');
+    if (origen.id === destino.id || origen.programaId !== destino.programaId) {
+      throw new AppError('GRUPO_MOVER_INVALIDO');
+    }
+
+    const miembro = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
+    if (!miembro) throw new AppError('MIEMBRO_NO_PARTICIPA');
+
+    await this.prisma.miembroGrupo.update({ where: { id: miembro.id }, data: { grupoId: destinoGrupoId } });
+  }
+
+  /** Intercambia a dos integrantes de dos grupos distintos del mismo programa, en una
+   *  transacción. `usuarioId` está en `grupoId`; `conUsuarioId` en otro grupo del programa. */
+  async intercambiar(grupoId: string, usuarioId: string, conUsuarioId: string): Promise<void> {
+    const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
+    if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    if (usuarioId === conUsuarioId) throw new AppError('GRUPO_MOVER_INVALIDO');
+
+    const a = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
+    if (!a) throw new AppError('MIEMBRO_NO_PARTICIPA');
+    const b = await this.prisma.miembroGrupo.findFirst({
+      where: { programaId: grupo.programaId, usuarioId: conUsuarioId },
+    });
+    if (!b) throw new AppError('MIEMBRO_NO_PARTICIPA');
+    if (b.grupoId === grupoId) throw new AppError('GRUPO_MOVER_INVALIDO');
+
+    await this.prisma.$transaction([
+      this.prisma.miembroGrupo.update({ where: { id: a.id }, data: { grupoId: b.grupoId } }),
+      this.prisma.miembroGrupo.update({ where: { id: b.id }, data: { grupoId } }),
+    ]);
   }
 }

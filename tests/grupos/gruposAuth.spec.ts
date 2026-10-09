@@ -17,4 +17,11 @@ describe('Autorización de Grupos', () => {
   it('FacilitadorGruposController declara @Roles(facilitador)', () => {
     expect(Reflect.getMetadata(ROLES_KEY, FacilitadorGruposController)).toEqual(['facilitador']);
   });
+
+  it('AdminGruposController expone reemplazar, mover e intercambiar', () => {
+    const proto: any = AdminGruposController.prototype;
+    expect(proto.reemplazarMiembro).toBeTypeOf('function');
+    expect(proto.moverMiembro).toBeTypeOf('function');
+    expect(proto.intercambiarMiembro).toBeTypeOf('function');
+  });
 });

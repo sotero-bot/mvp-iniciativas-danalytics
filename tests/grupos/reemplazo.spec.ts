@@ -1,7 +1,7 @@
 /**
  * HU-21/22 · MiembrosGrupoService.reemplazar: "quita a A, pon a B" atómico.
- * Orden de validación fijado por el plan; GRUPO_MIN_INTEGRANTES NO se evalúa
- * (el conteo no baja), incluso con un grupo de exactamente 2 integrantes.
+ * Orden de validación fijado por el plan; el conteo del grupo no cambia, incluso
+ * con un grupo de exactamente 2 integrantes (el mínimo de integrantes ya no existe).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -78,7 +78,7 @@ describe('MiembrosGrupoService.reemplazar', () => {
     await expect(service.reemplazar('g1', 'A', 'B')).rejects.toMatchObject({ code: 'MIEMBRO_YA_EN_GRUPO' });
   });
 
-  it('grupo con exactamente 2 integrantes → OK, NO lanza GRUPO_MIN_INTEGRANTES', async () => {
+  it('grupo con exactamente 2 integrantes → OK (el reemplazo no consulta el conteo)', async () => {
     const { service, prisma } = build();
     prisma.miembroGrupo.count.mockResolvedValue(2);
     await expect(service.reemplazar('g1', 'A', 'B')).resolves.toBeUndefined();

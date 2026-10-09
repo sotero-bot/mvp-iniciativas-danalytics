@@ -8,17 +8,19 @@ import type { Grupo } from './programas.types';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // ─────────────────────────────────────────────────────────────
-// Modal para crear / renombrar grupo (RF-14, solo danalytics_admin)
+// Modal para crear / renombrar grupo (RF-14 admin; HU-22 renombrar también facilitador)
 // ─────────────────────────────────────────────────────────────
 export function GrupoFormModal({
-  programaId, editing, onClose, onSaved,
+  programaId, editing, onClose, onSaved, apiBase = 'admin',
 }: {
   programaId: string;
   editing: Grupo | null;
   onClose: () => void;
   onSaved: () => void;
+  /** Prefijo de la API: el facilitador renombra con su propia ruta (HU-22). */
+  apiBase?: 'admin' | 'facilitador';
 }) {
-  const { t } = useTranslation(['admin', 'common']);
+  const { t } = useTranslation(['admin', 'facilitador', 'common']);
   const [saving, setSaving] = useState(false);
   const [nombre, setNombre] = useState(editing?.nombre ?? '');
 
@@ -27,14 +29,14 @@ export function GrupoFormModal({
     setSaving(true);
     try {
       if (editing) {
-        await fetchWithErrorMapping(`${API_URL}/admin/grupos/${editing.id}`, {
+        await fetchWithErrorMapping(`${API_URL}/${apiBase}/grupos/${editing.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre }),
         });
-        toast.success(t('admin:programas.toast.group_updated'));
+        toast.success(apiBase === 'facilitador' ? t('facilitador:grupos.renombrado') : t('admin:programas.toast.group_updated'));
       } else {
-        await fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/grupos`, {
+        await fetchWithErrorMapping(`${API_URL}/${apiBase}/programas/${programaId}/grupos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre }),

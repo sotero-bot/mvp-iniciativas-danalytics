@@ -31,6 +31,19 @@ interface AddMiembroDto {
   usuarioId: string;
 }
 
+interface MoverMiembroDto {
+  usuarioId: string;
+  destinoGrupoId: string;
+}
+interface IntercambiarMiembroDto {
+  usuarioId: string;
+  conUsuarioId: string;
+}
+interface ReemplazarMiembroDto {
+  salienteId: string;
+  entranteId: string;
+}
+
 const GRUPO_SELECT = {
   id: true,
   programaId: true,
@@ -114,5 +127,23 @@ export class AdminGruposController {
   @HttpCode(HttpStatus.NO_CONTENT)
   removeMiembro(@Param('id') grupoId: string, @Param('usuarioId') usuarioId: string) {
     return this.miembros.quitar(grupoId, usuarioId);
+  }
+
+  @Post('grupos/:id/miembros/reemplazar')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  reemplazarMiembro(@Param('id') grupoId: string, @Body() body: ReemplazarMiembroDto) {
+    return this.miembros.reemplazar(grupoId, body.salienteId, body.entranteId);
+  }
+
+  @Post('grupos/:id/miembros/mover')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  moverMiembro(@Param('id') grupoId: string, @Body() body: MoverMiembroDto) {
+    return this.miembros.mover(grupoId, body.usuarioId, body.destinoGrupoId);
+  }
+
+  @Post('grupos/:id/miembros/intercambiar')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  intercambiarMiembro(@Param('id') grupoId: string, @Body() body: IntercambiarMiembroDto) {
+    return this.miembros.intercambiar(grupoId, body.usuarioId, body.conUsuarioId);
   }
 }

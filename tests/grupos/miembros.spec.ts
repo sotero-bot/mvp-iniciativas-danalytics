@@ -1,5 +1,6 @@
 /**
- * Lógica de negocio de `AdminGruposController.addMiembro` (RF-14, RN-04).
+ * Lógica de negocio de `AdminGruposController.addMiembro` (RF-14, RN-04) y de `quitar`
+ * (HU-21/22: ya NO hay mínimo de integrantes; un grupo puede quedar con 1 o 0).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -19,6 +20,8 @@ function buildController(overrides: Record<string, unknown> = {}) {
     miembroGrupo: {
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: 'm1', grupoId: 'g1', usuarioId: 'u1' }),
+      count: vi.fn().mockResolvedValue(2),
+      delete: vi.fn().mockResolvedValue({}),
     },
     ...overrides,
   };
@@ -95,5 +98,27 @@ describe('AdminGruposController.addMiembro', () => {
     await expect(controller.addMiembro('g1', { usuarioId: 'u1' })).rejects.toMatchObject({
       code: 'MIEMBRO_YA_EN_GRUPO',
     });
+  });
+});
+
+describe('MiembrosGrupoService.quitar (sin mínimo de integrantes)', () => {
+  it.each([[3], [2], [1]])('quita al integrante aunque el grupo tenga %i → sin GRUPO_MIN_INTEGRANTES', async (total) => {
+    const { controller, prismaMock } = buildController({
+      miembroGrupo: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'm1' }),
+        count: vi.fn().mockResolvedValue(total),
+        delete: vi.fn().mockResolvedValue({}),
+      },
+    });
+    await expect(controller.removeMiembro('g1', 'u1')).resolves.toBeUndefined();
+    expect(prismaMock.miembroGrupo.delete).toHaveBeenCalledWith({ where: { id: 'm1' } });
+  });
+
+  it('MIEMBRO_NO_PARTICIPA si el usuario no es miembro de ese grupo', async () => {
+    const { controller, prismaMock } = buildController({
+      miembroGrupo: { findFirst: vi.fn().mockResolvedValue(null), delete: vi.fn() },
+    });
+    await expect(controller.removeMiembro('g1', 'u1')).rejects.toMatchObject({ code: 'MIEMBRO_NO_PARTICIPA' });
+    expect(prismaMock.miembroGrupo.delete).not.toHaveBeenCalled();
   });
 });

@@ -460,10 +460,6 @@ export class AdminProgramasController {
     }
     if (body.estado !== undefined && body.estado !== existing.estado) {
       this.assertTransicionValida(existing.estado, body.estado);
-      // Al activar: todo grupo existente debe tener ≥2 integrantes (regla min-2).
-      if (body.estado === EstadoPrograma.activo) {
-        await this.assertGruposCompletos(id);
-      }
     }
     // RF-01/RF-32: valida config de sesiones con los valores EFECTIVOS (lo que
     // venga en el body, o lo ya guardado) contra las sesiones ya registradas.
@@ -1069,19 +1065,6 @@ export class AdminProgramasController {
       throw new AppError('PROGRAMA_TRANSICION_INVALIDA', {
         message: `No se puede pasar de "${desde}" a "${hacia}"`,
       });
-    }
-  }
-
-  // Regla min-2: al activar el programa, ningún grupo existente puede tener
-  // menos de 2 integrantes (los grupos vacíos/incompletos deben completarse o
-  // eliminarse antes de activar).
-  private async assertGruposCompletos(programaId: string) {
-    const grupos = await this.prisma.grupo.findMany({
-      where: { programaId },
-      select: { _count: { select: { miembros: true } } },
-    });
-    if (grupos.some((g) => g._count.miembros < 2)) {
-      throw new AppError('GRUPO_MIN_INTEGRANTES');
     }
   }
 

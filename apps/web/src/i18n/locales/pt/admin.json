@@ -358,12 +358,14 @@
       "add_member": "Adicionar integrante…",
       "all_assigned": "Todos os participantes já estão atribuídos a um grupo.",
       "remove_member": "Remover",
-      "incomplete": "Mínimo 2 integrantes",
-      "min_hint": "Cada grupo deve ter pelo menos 2 integrantes. O programa não pode ser ativado com grupos incompletos.",
+      "incomplete": "Menos de 2 integrantes",
+      "min_hint": "Recomenda-se que cada grupo tenha pelo menos 2 integrantes. É apenas um aviso: não impede remover, mover nem ativar o programa.",
       "actions": {
         "new": "Novo grupo",
         "rename": "Renomear",
-        "delete": "Excluir"
+        "delete": "Excluir",
+        "replace": "Substituir",
+        "move": "Mover"
       },
       "fields": {
         "nombre": "Nome do grupo"

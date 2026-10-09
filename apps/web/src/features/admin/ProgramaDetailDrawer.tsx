@@ -7,6 +7,8 @@ import { toast } from '../../components/toast-store';
 import type { Programa, Sesion, Grupo } from './programas.types';
 import { SesionFormModal } from './SesionFormModal';
 import { GrupoFormModal } from './GrupoFormModal';
+import { MoverMiembroModal } from '../../components/MoverMiembroModal';
+import { ReemplazarMiembroModal } from '../../components/ReemplazarMiembroModal';
 import { MatriculaModal } from './MatriculaModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -48,6 +50,8 @@ export function ProgramaDetailDrawer({
   const [matriculaModo, setMatriculaModo] = useState<'individual' | 'masiva' | null>(null);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [grupoModal, setGrupoModal] = useState<{ editing: Grupo | null } | null>(null);
+  const [moverModal, setMoverModal] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
+  const [reemplazoModal, setReemplazoModal] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
   const [deleteGrupoModal, setDeleteGrupoModal] = useState<Grupo | null>(null);
   const [deleteSesionModal, setDeleteSesionModal] = useState<Sesion | null>(null);
   const [desmatricularModal, setDesmatricularModal] = useState<Participante | null>(null);
@@ -447,6 +451,18 @@ export function ProgramaDetailDrawer({
                       }}>
                         {m.usuario.nombre}
                         <button
+                          className="btn-link"
+                          title={t('admin:programas.grupos.actions.replace')}
+                          style={{ fontSize: '0.8rem', lineHeight: 1 }}
+                          onClick={() => setReemplazoModal({ grupo: g, miembro: m })}
+                        >{t('admin:programas.grupos.actions.replace')}</button>
+                        <button
+                          className="btn-link"
+                          title={t('admin:programas.grupos.actions.move')}
+                          style={{ fontSize: '0.8rem', lineHeight: 1 }}
+                          onClick={() => setMoverModal({ grupo: g, miembro: m })}
+                        >{t('admin:programas.grupos.actions.move')}</button>
+                        <button
                           className="btn-link btn-link-danger"
                           title={t('admin:programas.grupos.remove_member')}
                           style={{ fontSize: '0.9rem', lineHeight: 1 }}
@@ -498,6 +514,30 @@ export function ProgramaDetailDrawer({
             editing={grupoModal.editing}
             onClose={() => setGrupoModal(null)}
             onSaved={() => { setGrupoModal(null); loadGrupos(); }}
+          />
+        )}
+
+        {moverModal && (
+          <MoverMiembroModal
+            endpointBase="admin"
+            grupoId={moverModal.grupo.id}
+            grupoNombre={moverModal.grupo.nombre}
+            miembro={{ usuarioId: moverModal.miembro.usuarioId, nombre: moverModal.miembro.usuario.nombre }}
+            grupos={grupos}
+            onClose={() => setMoverModal(null)}
+            onSaved={() => { setMoverModal(null); loadGrupos(); }}
+          />
+        )}
+
+        {reemplazoModal && (
+          <ReemplazarMiembroModal
+            endpointBase="admin"
+            grupoId={reemplazoModal.grupo.id}
+            grupoNombre={reemplazoModal.grupo.nombre}
+            saliente={{ usuarioId: reemplazoModal.miembro.usuarioId, nombre: reemplazoModal.miembro.usuario.nombre }}
+            candidatos={participantesSinGrupo.map(p => ({ usuarioId: p.usuarioId, nombre: p.usuario.nombre, email: p.usuario.email }))}
+            onClose={() => setReemplazoModal(null)}
+            onSaved={() => { setReemplazoModal(null); loadGrupos(); }}
           />
         )}
 
