@@ -1,5 +1,8 @@
 {
   "empresas": {
+    "mostrar_inactivas": "Mostrar inactivas",
+    "estado_activa": "Activa",
+    "estado_inactiva": "Inactiva",
     "page_title": "Empresas",
     "page_description": "Paso 1 de 4 — Registra las organizaciones cliente. Cada empresa agrupa sus propias iniciativas y actividades.",
     "next_iniciativas": "Siguiente: Iniciativas →",

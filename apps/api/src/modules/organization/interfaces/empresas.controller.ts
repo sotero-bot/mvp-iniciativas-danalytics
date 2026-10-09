@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
@@ -18,9 +18,9 @@ export class EmpresasController {
   constructor(private readonly prisma: PrismaService) { }
 
   @Get()
-  async findAll() {
+  async findAll(@Query('incluirInactivas') incluirInactivas?: string) {
     return this.prisma.empresa.findMany({
-      where: { activo: true },
+      where: incluirInactivas === '1' ? {} : { activo: true },
       select: {
         id: true,
         nombre: true,
@@ -34,6 +34,18 @@ export class EmpresasController {
         contextoPdfActualizadoEn: true,
       }
     });
+  }
+
+  // HU-17: declarar ANTES de cualquier @Get(':id') para que no se resuelva como id.
+  @Get('metricas')
+  async metricas(): Promise<{ total: number; activas: number; inactivas: number }> {
+    const filas = await this.prisma.empresa.groupBy({
+      by: ['activo'],
+      _count: { _all: true },
+    });
+    const activas = filas.find(f => f.activo === true)?._count._all ?? 0;
+    const inactivas = filas.find(f => f.activo === false)?._count._all ?? 0;
+    return { total: activas + inactivas, activas, inactivas };
   }
 
   @Post()

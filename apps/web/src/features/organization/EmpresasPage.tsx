@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import {
   Modal, Field, StatusBadge, EmptyState,
-  Breadcrumb, PageHeader, Button, FormListLayout, DataTable, Pagination,
+  Breadcrumb, PageHeader, Button, FormListLayout, DataTable, Pagination, FilterToolbar,
 } from '../../components/ui';
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
@@ -20,6 +20,7 @@ interface Empresa {
   sector?: string | null;
   tipoOrganizacion?: string | null;
   logoUrl?: string | null;
+  activo: boolean;
   createdAt: string;
   contextoPdfNombre?: string | null;
   contextoPdfActualizadoEn?: string | null;
@@ -150,6 +151,7 @@ export function EmpresasPage() {
   const [editPdfRemove, setEditPdfRemove] = useState(false);
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
+  const [incluirInactivas, setIncluirInactivas] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(empresas.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -160,14 +162,16 @@ export function EmpresasPage() {
 
   const load = async () => {
     try {
-      const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas`);
+      const res = await fetchWithErrorMapping(
+        `${API_URL}/organization/empresas${incluirInactivas ? '?incluirInactivas=1' : ''}`,
+      );
       setEmpresas(await res.json());
     } catch (err) {
       toast.error(translateError(err));
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); setPage(1); }, [incluirInactivas]);
 
   const create = async () => {
     if (!nombre) return;
@@ -282,6 +286,15 @@ export function EmpresasPage() {
       ),
     },
     {
+      key: 'estado',
+      header: t('common:labels.status'),
+      render: (emp) => (
+        <StatusBadge variant={emp.activo ? 'success' : 'neutral'}>
+          {t(emp.activo ? 'organization:empresas.estado_activa' : 'organization:empresas.estado_inactiva')}
+        </StatusBadge>
+      ),
+    },
+    {
       key: 'created',
       header: t('organization:empresas.table.created'),
       render: (emp) => (
@@ -299,6 +312,7 @@ export function EmpresasPage() {
           <Button variant="secondary" size="sm" onClick={() => openEdit(emp)}>
             {t('common:buttons.edit')}
           </Button>
+          {emp.activo && (
           <Button
             variant="danger"
             size="sm"
@@ -308,6 +322,7 @@ export function EmpresasPage() {
           >
             🗑️
           </Button>
+          )}
         </div>
       ),
     },
@@ -520,7 +535,7 @@ export function EmpresasPage() {
           </div>
         }
         list={
-          empresas.length === 0 ? (
+          empresas.length === 0 && !incluirInactivas ? (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <EmptyState
                 icon="🏢"
@@ -533,6 +548,18 @@ export function EmpresasPage() {
               <div className="section-card-header">
                 <span className="section-card-title">{t('organization:empresas.table.header_title')}</span>
                 <span className="count-badge">{empresas.length}</span>
+              </div>
+              <div className="home-filter-strip">
+                <FilterToolbar>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.85rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={incluirInactivas}
+                      onChange={(e) => setIncluirInactivas(e.target.checked)}
+                    />
+                    <span>{t('organization:empresas.mostrar_inactivas')}</span>
+                  </label>
+                </FilterToolbar>
               </div>
               <DataTable columns={columns} rows={pageRows} rowKey={emp => emp.id} />
               <Pagination

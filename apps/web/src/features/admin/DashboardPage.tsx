@@ -8,12 +8,14 @@ import { SidebarIcon } from '../../components/SidebarIcon';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface Stats {
-  empresas: number;
+  empresasActivas: number;
+  empresasTotal: number;
   iniciativas: number;
   actividades: number;
   instancias: number;
   finalizadas: number;
   programas: number;
+  programasActivos: number;
   formularios: number;
   usuarios: number;
   notificaciones: number;
@@ -23,14 +25,15 @@ interface Stats {
 export function DashboardPage() {
   const { t } = useTranslation(['admin']);
   const [stats, setStats] = useState<Stats>({
-    empresas: 0, iniciativas: 0, actividades: 0, instancias: 0, finalizadas: 0,
-    programas: 0, formularios: 0, usuarios: 0, notificaciones: 0, registroAcceso: 0,
+    empresasActivas: 0, empresasTotal: 0, iniciativas: 0, actividades: 0, instancias: 0, finalizadas: 0,
+    programas: 0, programasActivos: 0, formularios: 0, usuarios: 0, notificaciones: 0, registroAcceso: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/organization/empresas`, withAuth()).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/organization/empresas/metricas`, withAuth())
+        .then(r => r.ok ? r.json() : { total: 0, activas: 0, inactivas: 0 }),
       fetch(`${API_URL}/organization/iniciativas`, withAuth()).then(r => r.ok ? r.json() : []),
       fetch(`${API_URL}/methodology/actividades`, withAuth()).then(r => r.ok ? r.json() : []),
       fetch(`${API_URL}/admin/instancias`, withAuth()).then(r => r.ok ? r.json() : []),
@@ -39,14 +42,16 @@ export function DashboardPage() {
       fetch(`${API_URL}/admin/usuarios`, withAuth()).then(r => r.ok ? r.json() : []),
       fetch(`${API_URL}/admin/notificaciones`, withAuth()).then(r => r.ok ? r.json() : []),
       fetch(`${API_URL}/admin/registro-acceso?take=1`, withAuth()).then(r => r.ok ? r.json() : { total: 0 }),
-    ]).then(([e, i, a, inst, prog, formu, usu, notif, acceso]) => {
+    ]).then(([metricas, i, a, inst, prog, formu, usu, notif, acceso]) => {
       setStats({
-        empresas: Array.isArray(e) ? e.length : 0,
+        empresasActivas: metricas.activas,
+        empresasTotal: metricas.total,
         iniciativas: Array.isArray(i) ? i.length : 0,
         actividades: Array.isArray(a) ? a.length : 0,
         instancias: Array.isArray(inst) ? inst.length : 0,
         finalizadas: Array.isArray(inst) ? inst.filter((x: any) => x.estado === 'finalizado').length : 0,
         programas: Array.isArray(prog) ? prog.length : 0,
+        programasActivos: Array.isArray(prog) ? prog.filter((p: any) => p.estado === 'activo').length : 0,
         formularios: Array.isArray(formu) ? formu.length : 0,
         usuarios: Array.isArray(usu) ? usu.length : 0,
         notificaciones: Array.isArray(notif) ? notif.length : 0,
@@ -58,14 +63,14 @@ export function DashboardPage() {
   // KPIs navegables: cuenta + acceso directo a cada sección. Los colores son los
   // acentos categóricos de sección (mismos hex que el sidebar / ROLE_CARDS).
   const kpis = [
-    { key: 'empresas', label: t('admin:sidebar.empresas'), value: stats.empresas, icon: 'empresas' as const, color: '#3B82F6', to: '/admin/empresas', hint: undefined as string | undefined },
+    { key: 'empresas', label: t('admin:dashboard_v2.kpi_empresas_label'), value: stats.empresasActivas, icon: 'empresas' as const, color: '#3B82F6', to: '/admin/empresas', hint: t('admin:dashboard_v2.kpi_empresas_hint', { total: stats.empresasTotal }) as string | undefined },
     { key: 'iniciativas', label: t('admin:sidebar.iniciativas'), value: stats.iniciativas, icon: 'programas' as const, color: '#38BDF8', to: '/admin/iniciativas', hint: undefined },
     { key: 'actividades', label: t('admin:sidebar.actividades'), value: stats.actividades, icon: 'actividades' as const, color: '#F59E0B', to: '/admin/actividades', hint: undefined },
     { key: 'ejecuciones', label: t('admin:sidebar.ejecuciones'), value: stats.instancias, icon: 'formularios' as const, color: '#22C55E', to: '/admin/instancias', hint: t('admin:dashboard_v2.kpi_ejecuciones_hint', { count: stats.finalizadas }) },
   ];
 
   const iaAccionKpis = [
-    { key: 'programas', label: t('admin:sidebar.programas'), value: stats.programas, icon: 'programas' as const, color: '#38BDF8', to: '/admin/programas' },
+    { key: 'programas', label: t('admin:dashboard_v2.kpi_programas_label'), value: stats.programasActivos, icon: 'programas' as const, color: '#38BDF8', to: '/admin/programas', hint: t('admin:dashboard_v2.kpi_programas_hint', { total: stats.programas }) as string | undefined },
     { key: 'formularios', label: t('admin:sidebar.formularios'), value: stats.formularios, icon: 'formularios' as const, color: '#8B5CF6', to: '/admin/formularios' },
   ];
 
@@ -81,7 +86,7 @@ export function DashboardPage() {
       num: 1,
       title: t('admin:dashboard_v2.steps.empresas.title'),
       desc: t('admin:dashboard_v2.steps.empresas.desc'),
-      count: stats.empresas,
+      count: stats.empresasActivas,
       link: '/admin/empresas',
       locked: false,
       lockedMsg: null as string | null,
@@ -93,7 +98,7 @@ export function DashboardPage() {
       desc: t('admin:dashboard_v2.steps.iniciativas.desc'),
       count: stats.iniciativas,
       link: '/admin/iniciativas',
-      locked: stats.empresas === 0,
+      locked: stats.empresasActivas === 0,
       lockedMsg: t('admin:dashboard_v2.steps.iniciativas.locked'),
     },
     {
@@ -256,6 +261,7 @@ export function DashboardPage() {
                     key={k.key}
                     label={k.label}
                     value={k.value}
+                    hint={k.hint}
                     icon={<SidebarIcon name={k.icon} size={18} />}
                     accent={k.color}
                     to={k.to}

@@ -452,6 +452,10 @@
     "configured_badge": "Configurado",
     "pending_badge": "Pendiente",
     "kpi_ejecuciones_hint": "{{count}} finalizadas",
+    "kpi_empresas_label": "Empresas activas",
+    "kpi_empresas_hint": "{{total}} registradas en total",
+    "kpi_programas_label": "Programas activos",
+    "kpi_programas_hint": "{{total}} en total",
     "ia_en_accion_section_title": "IA en Acción",
     "usuarios_section_title": "Usuarios"
   },
