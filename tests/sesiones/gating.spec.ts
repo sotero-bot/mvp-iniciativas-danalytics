@@ -184,6 +184,18 @@ describe('ActorSesionesController.listSesiones', () => {
     });
   });
 
+  it('HU-12: el select de facilitadores incluye email (contacto del docente)', async () => {
+    const { controller, prismaMock } = buildController();
+    await controller.listSesiones('p1', ESTUDIANTE);
+    expect(prismaMock.programa.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          facilitadores: { select: { usuario: { select: { id: true, nombre: true, email: true } } } },
+        }),
+      }),
+    );
+  });
+
   it('oculta presentación y grabación de las sesiones bloqueadas (gating servidor)', async () => {
     const { controller, prismaMock } = buildController();
     prismaMock.sesion.findMany.mockResolvedValue([

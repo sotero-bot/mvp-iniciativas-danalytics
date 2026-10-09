@@ -138,6 +138,72 @@ export class ActorSesionesController {
     return { programaId, confirmado: true };
   }
 
+  // HU-12: resumen del programa para la vista "Programa" (nombre, fase, docentes con correo).
+  // Es lectura: assertProgramaAccessible (no Editable) para que el facilitador con la gracia
+  // vencida siga viendo el programa. El bloque `retos` lo añade HU-03.
+  @Get('programas/:id/resumen')
+  async resumenPrograma(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    const programa = await this.prisma.programa.findUnique({
+      where: { id: programaId },
+      select: {
+        id: true,
+        nombre: true,
+        descripcion: true,
+        estado: true,
+        timezone: true,
+        fechaInicio: true,
+        fechaFin: true,
+        totalSesionesEsperadas: true,
+        bitacoraHabilitadaEn: true,
+        presentacionDesdeSesion: true,
+        empresa: { select: { id: true, nombre: true } },
+        // Usuario.email es nullable: el frontend debe tratarlo como tal.
+        facilitadores: { select: { usuario: { select: { id: true, nombre: true, email: true } } } },
+        sesiones: {
+          select: { numeroSesion: true, titulo: true, fechaProgramada: true },
+          orderBy: { numeroSesion: 'asc' },
+        },
+      },
+    });
+    if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+
+    const now = new Date();
+    const futuras = programa.sesiones.filter((s) => s.fechaProgramada.getTime() >= now.getTime());
+    const proxima = futuras.reduce<(typeof futuras)[number] | null>(
+      (min, s) => (!min || s.fechaProgramada.getTime() < min.fechaProgramada.getTime() ? s : min),
+      null,
+    );
+
+    return {
+      id: programa.id,
+      nombre: programa.nombre,
+      descripcion: programa.descripcion,
+      empresa: programa.empresa,
+      estado: programa.estado,
+      timezone: programa.timezone,
+      fechaInicio: programa.fechaInicio,
+      fechaFin: programa.fechaFin,
+      // Vista de programa: hayPresentacionEntregada es false a propósito (ver listMisProgramas).
+      fase: derivarFasePrograma(
+        {
+          bitacoraHabilitadaEn: programa.bitacoraHabilitadaEn,
+          presentacionDesdeSesion: programa.presentacionDesdeSesion,
+          sesiones: programa.sesiones,
+          hayPresentacionEntregada: false,
+        },
+        now,
+      ),
+      facilitadores: programa.facilitadores.map((f) => f.usuario),
+      // Mismo criterio que resumenEstudiante, para que los números no se contradigan.
+      sesionesTotal: programa.totalSesionesEsperadas ?? programa.sesiones.length,
+      sesionesRealizadas: programa.sesiones.length - futuras.length,
+      proximaSesion: proxima
+        ? { numeroSesion: proxima.numeroSesion, titulo: proxima.titulo, fechaProgramada: proxima.fechaProgramada }
+        : null,
+    };
+  }
+
   @Get('programas/:id/sesiones')
   async listSesiones(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
     await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
@@ -154,7 +220,7 @@ export class ActorSesionesController {
         where: { id: programaId },
         select: {
           timezone: true,
-          facilitadores: { select: { usuario: { select: { id: true, nombre: true } } } },
+          facilitadores: { select: { usuario: { select: { id: true, nombre: true, email: true } } } },
         },
       }),
     ]);

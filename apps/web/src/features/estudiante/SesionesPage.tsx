@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge } from '../../components/ui';
-import type { StatusVariant } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, DataTable } from '../../components/ui';
+import type { StatusVariant, DataTableColumn } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
 import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
@@ -22,6 +22,20 @@ interface Sesion {
   timezone: string;
   bloqueada: boolean;
   desbloqueaEn: string;
+}
+
+interface Docente {
+  id: string;
+  nombre: string;
+  // Usuario.email es nullable en BD.
+  email: string | null;
+}
+
+interface ProgramaResumen {
+  nombre: string;
+  facilitadores: Docente[];
+  sesionesTotal: number;
+  sesionesRealizadas: number;
 }
 
 interface FormularioDisponible {
@@ -78,6 +92,7 @@ export function EstudianteSesionesPage() {
   const [formularios, setFormularios] = useState<FormularioDisponible[]>([]);
   const [grupos, setGrupos] = useState<MiGrupo[]>([]);
   const [fase, setFase] = useState<FasePrograma | null>(null);
+  const [resumenPrograma, setResumenPrograma] = useState<ProgramaResumen | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -89,9 +104,12 @@ export function EstudianteSesionesPage() {
       fetchWithErrorMapping(`${API_URL}/grupos/mios`).then((r) => r.json()),
       // La fase del estudiante sale de /estudiante/resumen (considera la entrega de SU grupo).
       fetchWithErrorMapping(`${API_URL}/estudiante/resumen`).then((r) => r.json()),
+      // HU-12: el nombre del programa llega resuelto del servidor, no se deduce por rebote.
+      fetchWithErrorMapping(`${API_URL}/programas/${programaId}/resumen`).then((r) => r.json()),
     ])
-      .then(([ses, forms, grps, resumen]: [Sesion[], FormularioDisponible[], MiGrupo[], { programas: { id: string; fase: FasePrograma }[] }]) => {
+      .then(([ses, forms, grps, resumen, prog]: [Sesion[], FormularioDisponible[], MiGrupo[], { programas: { id: string; fase: FasePrograma }[] }, ProgramaResumen]) => {
         if (cancelled) return;
+        setResumenPrograma(prog);
         setFase(resumen.programas.find((p) => p.id === programaId)?.fase ?? null);
         setSesiones(ses);
         setFormularios(forms);
@@ -116,11 +134,24 @@ export function EstudianteSesionesPage() {
     (f) => f.programaId === programaId && f.tipoFormulario !== 'diagnostico_inicial',
   );
   const programaNombre =
+    resumenPrograma?.nombre ??
     formulariosPrograma[0]?.programa?.nombre ??
     misGrupos[0]?.programa.nombre ??
     t('estudiante:sesiones.title');
 
   const from = `/estudiante/programas/${programaId}/sesiones`;
+
+  const docenteColumns: DataTableColumn<Docente>[] = [
+    { key: 'nombre', header: t('estudiante:programa.docente_nombre'), render: (d) => d.nombre, align: 'left', width: '280px' },
+    {
+      key: 'correo',
+      header: t('estudiante:programa.docente_correo'),
+      align: 'left',
+      // Texto plano (sin mailto:); sin correo, texto de respaldo.
+      render: (d) => (d.email
+        ?? <span style={{ color: 'var(--color-text-tertiary)' }}>{t('estudiante:programa.sin_correo')}</span>),
+    },
+  ];
 
   return (
     <div>
@@ -140,6 +171,30 @@ export function EstudianteSesionesPage() {
 
       {/* Fuera del contenedor atenuado por gateActivo: saber en qué fase estás no se bloquea. */}
       {!loading && fase && <ProgramaFaseStepper fase={fase.fase} clave={fase.clave} completada={!!fase.completada} />}
+
+      {/* HU-12: contacto de los docentes. Fuera del contenedor atenuado: poder escribirles
+          no se bloquea por la encuesta de inicio. */}
+      {!loading && resumenPrograma && (
+        <div className="section-card home-panel" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="section-card-header">
+            <span className="section-card-title">{t('estudiante:programa.docentes_title')}</span>
+            <span className="count-badge">{resumenPrograma.facilitadores.length}</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.85rem' }}>
+              {t('estudiante:programa.sesiones_avance', {
+                hechas: resumenPrograma.sesionesRealizadas,
+                total: resumenPrograma.sesionesTotal,
+              })}
+            </span>
+          </div>
+          <div className="section-card-body">
+            {resumenPrograma.facilitadores.length === 0 ? (
+              <EmptyState title={t('estudiante:programa.docentes_empty')} />
+            ) : (
+              <DataTable columns={docenteColumns} rows={resumenPrograma.facilitadores} rowKey={(d) => d.id} />
+            )}
+          </div>
+        </div>
+      )}
 
       {!loading && (
         <div

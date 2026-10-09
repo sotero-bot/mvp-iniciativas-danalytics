@@ -63,6 +63,12 @@
     "formularios_title": "Formulários do programa",
     "sesiones_title": "Sessões",
     "sin_grupo": "Você ainda não pertence a um grupo neste programa.",
-    "sin_formularios": "Não há formulários do programa por enquanto."
+    "sin_formularios": "Não há formulários do programa por enquanto.",
+    "docentes_title": "Professores",
+    "docentes_empty": "Este programa ainda não tem professores atribuídos.",
+    "docente_nombre": "Nome",
+    "docente_correo": "E-mail",
+    "sin_correo": "Sem e-mail registrado",
+    "sesiones_avance": "{{hechas}} de {{total}} sessões"
   }
 }
