@@ -19,7 +19,8 @@
       "bloqueado": "Desafio não habilitado",
       "sin_iniciar": "Desafio não iniciado",
       "en_progreso": "Desafio em andamento",
-      "entregado": "Desafio entregue"
+      "entregado": "Desafio entregue",
+      "finalizado": "Desafio finalizado"
     },
     "resumen_title": "Resumo",
     "kpi_programas": "Programas",

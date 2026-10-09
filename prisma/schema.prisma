@@ -287,6 +287,7 @@ model Usuario {
   asistencias            Asistencia[]             @relation("AsistenciaParticipante")
   asistenciasRegistradas Asistencia[]             @relation("AsistenciaRegistrador")
   gruposCreados          Grupo[]                  @relation("GrupoCreador")
+  gruposFinalizados      Grupo[]                  @relation("GrupoFinalizador")
   observacionesRecibidas ObservacionFacilitador[] @relation("ObservacionSobreUsuario")
   observacionesCreadas   ObservacionFacilitador[] @relation("ObservacionAutor")
   magicLinks             MagicLink[]
@@ -448,6 +449,10 @@ model Grupo {
   observaciones        ObservacionFacilitador[]
   respuestasFormulario RespuestaFormulario[]    @relation("RespuestaGrupo")
   presentacionFinal    PresentacionFinal?
+  // HU-23: cierre por el revisor (facilitador/admin). Reabrir lo pone en null.
+  finalizadoEn         DateTime?
+  finalizadoPorId      String?
+  finalizadoPor        Usuario?                 @relation("GrupoFinalizador", fields: [finalizadoPorId], references: [id])
 
   @@unique([programaId, orden])
   @@index([programaId])

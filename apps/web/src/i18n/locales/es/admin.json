@@ -212,6 +212,8 @@
       "group_created": "Grupo creado",
       "group_updated": "Grupo actualizado",
       "group_removed": "Grupo eliminado",
+      "group_finalized": "Grupo finalizado",
+      "group_reopened": "Grupo reabierto",
       "member_added": "Integrante agregado al grupo",
       "member_removed": "Integrante quitado del grupo",
       "participant_added": "Estudiante matriculado"
@@ -367,12 +369,25 @@
       "remove_member": "Quitar",
       "incomplete": "Menos de 2 integrantes",
       "min_hint": "Se recomienda que cada grupo tenga al menos 2 integrantes. Es solo una advertencia: no impide quitar, mover ni activar el programa.",
+      "finalized": "Finalizado",
+      "finalized_by": "Finalizado por {{nombre}}",
+      "finalized_hint": "Grupo finalizado: para cambiar integrantes hay que reabrirlo.",
+      "confirm_finalize": {
+        "title": "Finalizar grupo",
+        "message": "Al finalizar \"{{nombre}}\", el grupo ya no podrá modificar su bitácora, plantilla ni presentación, y no se podrán cambiar sus integrantes. ¿Continuar?"
+      },
+      "confirm_reopen": {
+        "title": "Reabrir grupo",
+        "message": "\"{{nombre}}\" volverá a ser editable por sus integrantes. ¿Continuar?"
+      },
       "actions": {
         "new": "Nuevo grupo",
         "rename": "Renombrar",
         "delete": "Eliminar",
         "replace": "Reemplazar",
-        "move": "Mover"
+        "move": "Mover",
+        "finalize": "Finalizar grupo",
+        "reopen": "Reabrir grupo"
       },
       "fields": {
         "nombre": "Nombre del grupo"

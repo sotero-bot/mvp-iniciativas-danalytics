@@ -11,6 +11,13 @@ import {
   PLANTILLA_FORM_TRANS_FIELDS,
 } from '../../../shared/i18n/translatable-locales';
 import { derivarConfigPublica } from '../../formularios/application/form-config';
+import { S3Service } from '../../storage/S3Service';
+import { AppError } from '../../../shared/errors/AppError';
+import { ENTREGA_SELECT, entregaCompleta, faltanteEntrega } from '../../grupos/application/entrega-grupo';
+
+// Misma regla que el controller del estudiante: `<slug>-<uuid>.<ext>` → nombre legible.
+const UUID_SUFFIX_RE = /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[^.]+)?$/i;
+const nombreArchivoLegible = (key: string) => (key.split('/').pop() ?? key).replace(UUID_SUFFIX_RE, '$1');
 
 // Fase 3 (Plan 2 §3.1 — RF-37/RF-38): el facilitador ve las bitácoras y
 // plantillas de proyecto de TODOS los grupos de su programa, en SOLO LECTURA
@@ -25,6 +32,7 @@ export class FacilitadorRetoController {
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
     private readonly translations: TranslationService,
+    private readonly s3: S3Service,
   ) {}
 
   // RF-37: bitácoras de todos los grupos del programa (lectura).
@@ -74,17 +82,87 @@ export class FacilitadorRetoController {
     });
   }
 
-  private async listRecurso(programaId: string, tipo: TipoFormulario, actor: AuthUser, locale?: string) {
-    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+  // HU-23: lo que el grupo entregó en la fase 3, en SOLO lectura, para que el facilitador lo revise
+  // y decida finalizar. Lectura: assertProgramaAccessible (sin gracia); sin configJson (RNF-04).
+  @Get('grupos/:id/revision')
+  async getRevisionGrupo(
+    @Param('id') grupoId: string,
+    @CurrentUser() actor: AuthUser,
+    @Query('locale') locale?: string,
+  ) {
+    const grupo = await this.prisma.grupo.findUnique({
+      where: { id: grupoId },
+      select: {
+        id: true,
+        programaId: true,
+        nombre: true,
+        orden: true,
+        finalizadoEn: true,
+        finalizadoPor: { select: { id: true, nombre: true } },
+        miembros: { select: { usuario: { select: { id: true, nombre: true } } } },
+        presentacionFinal: { select: { archivoKey: true, entregadoEn: true, entregadoPor: { select: { id: true, nombre: true } } } },
+        respuestasFormulario: {
+          where: ENTREGA_SELECT.respuestasFormulario.where,
+          select: {
+            datosRespuestaJson: true,
+            ultimaEdicionEn: true,
+            ultimoEditor: { select: { id: true, nombre: true } },
+            plantilla: { select: { tipoFormulario: true } },
+          },
+        },
+      },
+    });
+    if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    await this.scope.assertProgramaAccessible(this.prisma, actor, grupo.programaId);
 
+    const recurso = async (tipo: TipoFormulario) => {
+      const cargada = await this.cargarPlantilla(grupo.programaId, tipo, locale);
+      const r = grupo.respuestasFormulario.find((x) => x.plantilla.tipoFormulario === tipo) ?? null;
+      return {
+        plantilla: cargada?.plantilla ?? null,
+        respuesta: r ? { datos: r.datosRespuestaJson, ultimaEdicionEn: r.ultimaEdicionEn, ultimoEditor: r.ultimoEditor } : null,
+      };
+    };
+    const [bitacora, plantillaProyecto] = await Promise.all([recurso('bitacora'), recurso('plantilla_proyecto')]);
+
+    const entrega = grupo.presentacionFinal;
+    const presentacion =
+      entrega?.entregadoEn && entrega.archivoKey
+        ? {
+            archivoNombre: nombreArchivoLegible(entrega.archivoKey),
+            entregadoEn: entrega.entregadoEn,
+            entregadoPor: entrega.entregadoPor,
+            url: await this.s3.getPresignedGetUrl(entrega.archivoKey, 3600),
+          }
+        : null;
+
+    return {
+      grupo: {
+        id: grupo.id,
+        nombre: grupo.nombre,
+        orden: grupo.orden,
+        programaId: grupo.programaId,
+        finalizadoEn: grupo.finalizadoEn,
+        finalizadoPor: grupo.finalizadoPor,
+        miembros: grupo.miembros.map((m) => m.usuario),
+      },
+      bitacora,
+      plantillaProyecto,
+      presentacion,
+      // Finalizar solo se habilita con la fase 3 entregada completa y el grupo aún abierto.
+      faltante: faltanteEntrega(grupo),
+      puedeFinalizar: !grupo.finalizadoEn && entregaCompleta(grupo),
+    };
+  }
+
+  /** Plantilla activa del programa + campos sanitizados (sin configJson) y traducidos. */
+  private async cargarPlantilla(programaId: string, tipo: TipoFormulario, locale?: string) {
     const plantilla = await this.prisma.plantillaFormulario.findFirst({
       where: { programaId, tipoFormulario: tipo, activa: true },
       select: { id: true, tipoFormulario: true, nombre: true, descripcion: true },
       orderBy: { createdAt: 'desc' },
     });
-    // Programa sin snapshot de este tipo: respuesta vacía, no error (el
-    // snapshot es opcional por tipo).
-    if (!plantilla) return { plantilla: null, grupos: [] };
+    if (!plantilla) return null;
 
     const campos = await this.prisma.campoFormulario.findMany({
       where: { plantillaId: plantilla.id },
@@ -97,25 +175,6 @@ export class FacilitadorRetoController {
         esObligatorio: true,
         orden: true,
         configJson: true,
-      },
-      orderBy: { orden: 'asc' },
-    });
-
-    const grupos = await this.prisma.grupo.findMany({
-      where: { programaId },
-      select: {
-        id: true,
-        nombre: true,
-        orden: true,
-        miembros: { select: { usuario: { select: { id: true, nombre: true } } } },
-        respuestasFormulario: {
-          where: { plantillaId: plantilla.id },
-          select: {
-            datosRespuestaJson: true,
-            ultimaEdicionEn: true,
-            ultimoEditor: { select: { id: true, nombre: true } },
-          },
-        },
       },
       orderBy: { orden: 'asc' },
     });
@@ -147,6 +206,39 @@ export class FacilitadorRetoController {
           };
         }),
       },
+    };
+  }
+
+  private async listRecurso(programaId: string, tipo: TipoFormulario, actor: AuthUser, locale?: string) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+
+    const cargada = await this.cargarPlantilla(programaId, tipo, locale);
+    // Programa sin snapshot de este tipo: respuesta vacía, no error (el
+    // snapshot es opcional por tipo).
+    if (!cargada) return { plantilla: null, grupos: [] };
+    const { plantilla } = cargada;
+
+    const grupos = await this.prisma.grupo.findMany({
+      where: { programaId },
+      select: {
+        id: true,
+        nombre: true,
+        orden: true,
+        miembros: { select: { usuario: { select: { id: true, nombre: true } } } },
+        respuestasFormulario: {
+          where: { plantillaId: plantilla.id },
+          select: {
+            datosRespuestaJson: true,
+            ultimaEdicionEn: true,
+            ultimoEditor: { select: { id: true, nombre: true } },
+          },
+        },
+      },
+      orderBy: { orden: 'asc' },
+    });
+
+    return {
+      plantilla,
       grupos: grupos.map(g => {
         const r = g.respuestasFormulario[0] ?? null;
         return {

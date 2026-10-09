@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Campo, CamposSecciones } from './FormularioResponderPage';
@@ -12,6 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 interface RecursoGrupo {
   grupo: { id: string; nombre: string; programaId: string };
   bloqueada?: boolean;
+  finalizado?: boolean;
   plantillaId: string;
   tipoFormulario: string;
   nombre: string;
@@ -35,6 +36,7 @@ const AUTOSAVE_MS = 30_000; // RNF-09
 // renderer de campos del formulario individual (Fase 2).
 export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla-proyecto' }) {
   const { grupoId = '' } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // Al abrirse desde la vista de programa (?from=), "volver" regresa ahí.
   const backTo = searchParams.get('from') || '/estudiante/programas';
@@ -46,6 +48,8 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
   const [ultimaEdicion, setUltimaEdicion] = useState<{ nombre: string; fecha: string } | null>(null);
   // Bloqueado (solo lectura) cuando el grupo ya entregó la presentación final.
   const [bloqueada, setBloqueada] = useState(false);
+  // HU-23: cerrado por el revisor (distinto de haber entregado la presentación).
+  const [finalizado, setFinalizado] = useState(false);
 
   // Autosave: refs para que el intervalo lea el estado vigente sin re-crearse.
   // Guard de StrictMode: solo useRef (bug conocido del proyecto), sin AbortController.
@@ -66,6 +70,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
         if (cancelled) return;
         setFormulario(data);
         setBloqueada(!!data.bloqueada);
+        setFinalizado(!!data.finalizado);
         if (data.respuesta) {
           setDatos((data.respuesta.datos as Datos) ?? {});
           if (data.respuesta.ultimoEditor && data.respuesta.ultimaEdicionEn) {
@@ -81,8 +86,8 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
     return () => { cancelled = true; };
   }, [grupoId, recurso, i18n.language]);
 
-  const guardarDraft = useCallback(async () => {
-    if (savingRef.current) return;
+  const guardarDraft = useCallback(async (): Promise<boolean> => {
+    if (savingRef.current) return false;
     savingRef.current = true;
     try {
       await fetchWithErrorMapping(`${API_URL}/grupos/${grupoId}/${recurso}/draft`, {
@@ -93,12 +98,23 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
       dirtyRef.current = false;
       setAutosaveInfo(t('formularios:estudiante.autosave_saved'));
       setTimeout(() => setAutosaveInfo(null), 3000);
+      return true;
     } catch (err) {
       toast.error(translateError(err));
+      return false;
     } finally {
       savingRef.current = false;
     }
   }, [grupoId, recurso, t]);
+
+  // Guardado manual: aviso global visible y regreso a la vista del programa.
+  // (El autosave sigue siendo silencioso y no navega.)
+  const guardarYVolver = async () => {
+    if (await guardarDraft()) {
+      toast.success(t('formularios:grupo.guardado_ok'));
+      navigate(backTo);
+    }
+  };
 
   // RNF-09: guardar draft cada 30 s si hay cambios sin persistir.
   useEffect(() => {
@@ -146,7 +162,9 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
           )}
 
           {bloqueada && (
-            <Alert variant="info">{t('formularios:grupo.cerrado_banner')}</Alert>
+            <Alert variant="info">
+              {t(finalizado ? 'formularios:grupo.finalizado_banner' : 'formularios:grupo.cerrado_banner')}
+            </Alert>
           )}
 
           {/* fieldset disabled deshabilita TODOS los controles internos en solo lectura. */}
@@ -157,7 +175,7 @@ export function GrupoRecursoPage({ recurso }: { recurso: 'bitacora' | 'plantilla
           {!bloqueada && (
             <div className="form-footer">
               {autosaveInfo && <span className="gform-autosave">✓ {autosaveInfo}</span>}
-              <Button variant="primary" onClick={guardarDraft}>
+              <Button variant="primary" onClick={guardarYVolver}>
                 {t('formularios:grupo.guardar')}
               </Button>
             </div>

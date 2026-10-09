@@ -14,9 +14,11 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../../../prisma.service';
-import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
+import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
+import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
 import { MiembrosGrupoService } from '../application/miembros.service';
+import { GrupoCierreService } from '../application/grupo-cierre.service';
 
 interface CreateGrupoDto {
   nombre: string;
@@ -52,6 +54,8 @@ const GRUPO_SELECT = {
   creadoPorId: true,
   createdAt: true,
   updatedAt: true,
+  finalizadoEn: true,
+  finalizadoPor: { select: { id: true, nombre: true } },
   miembros: {
     select: {
       id: true,
@@ -69,6 +73,7 @@ export class AdminGruposController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miembros: MiembrosGrupoService,
+    private readonly cierre: GrupoCierreService,
   ) {}
 
   @Get('programas/:id/grupos')
@@ -116,6 +121,17 @@ export class AdminGruposController {
     const existing = await this.prisma.grupo.findUnique({ where: { id } });
     if (!existing) throw new AppError('GRUPO_NOT_FOUND');
     await this.prisma.grupo.delete({ where: { id } });
+  }
+
+  // HU-23: finalizar y, solo aquí, reabrir (corrección de errores del revisor).
+  @Post('grupos/:id/finalizar')
+  async finalizarGrupo(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.cierre.finalizar(id, actor.sub);
+  }
+
+  @Post('grupos/:id/reabrir')
+  async reabrirGrupo(@Param('id') id: string) {
+    return this.cierre.reabrir(id);
   }
 
   @Post('grupos/:id/miembros')

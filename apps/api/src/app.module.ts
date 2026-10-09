@@ -19,6 +19,7 @@ import { AdminImportController } from './modules/organization/interfaces/admin-i
 import { AdminUsersController } from './modules/users/interfaces/admin-users.controller';
 import { AdminProgramasController } from './modules/programas/interfaces/admin-programas.controller';
 import { MiembrosGrupoService } from './modules/grupos/application/miembros.service';
+import { GrupoCierreService } from './modules/grupos/application/grupo-cierre.service';
 import { AdminGruposController } from './modules/grupos/interfaces/admin-grupos.controller';
 import { FacilitadorGruposController } from './modules/grupos/interfaces/facilitador-grupos.controller';
 import { FacilitadorAsistenciaController } from './modules/asistencia/interfaces/facilitador-asistencia.controller';
@@ -218,6 +219,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     ResultadosService,
     AsistenciaResumenService,
     MiembrosGrupoService,
+    GrupoCierreService,
     UsuarioClienteService,
     // RNF-13: bitácora de auditoría append-only, global (Plan 2 §4.1).
     { provide: APP_INTERCEPTOR, useClass: RegistroAccesoInterceptor },

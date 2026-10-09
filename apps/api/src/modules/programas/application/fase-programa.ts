@@ -15,11 +15,15 @@ export interface ProgramaParaFase {
   presentacionDesdeSesion: number | null;
   sesiones: { numeroSesion: number; fechaProgramada: Date }[];
   hayPresentacionEntregada?: boolean;
+  /** HU-23: el grupo del estudiante fue finalizado por el revisor (solo vista de grupo). */
+  grupoFinalizado?: boolean;
 }
 
 export interface FaseResultado {
   fase: 1 | 2 | 3;
   clave: FaseClave;
+  /** HU-23: presente (true) solo cuando el grupo está finalizado: la fase 3 está cumplida. */
+  completada?: true;
 }
 
 /** Gate de la entrega final (RF-32 + O-01). Versión pura del helper que vivía
@@ -34,6 +38,7 @@ export function presentacionHabilitada(p: ProgramaParaFase, now: Date): boolean 
 }
 
 export function derivarFasePrograma(p: ProgramaParaFase, now: Date = new Date()): FaseResultado {
+  if (p.grupoFinalizado === true) return { fase: 3, clave: 'presentacion_final', completada: true };
   const ultima = p.sesiones.reduce<number | null>(
     (max, s) => (max === null || s.fechaProgramada.getTime() > max ? s.fechaProgramada.getTime() : max),
     null,

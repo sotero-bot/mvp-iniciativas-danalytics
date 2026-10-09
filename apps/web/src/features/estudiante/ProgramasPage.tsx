@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { PageHeader, Breadcrumb, Button, Loading, EmptyState } from '../../components/ui';
 import { toast } from '../../components/toast-store';
+import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -12,10 +13,17 @@ interface Programa {
   nombre: string;
 }
 
+interface FasePrograma {
+  fase: 1 | 2 | 3;
+  clave: 'entendimiento' | 'sesiones' | 'presentacion_final';
+  completada?: true;
+}
+
 export function EstudianteProgramasPage() {
   const { t } = useTranslation(['estudiante', 'common', 'admin']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [pendientes, setPendientes] = useState<Programa[]>([]);
+  const [fases, setFases] = useState<Record<string, FasePrograma>>({});
   const [aceptado, setAceptado] = useState<Record<string, boolean>>({});
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,10 +33,15 @@ export function EstudianteProgramasPage() {
     Promise.all([
       fetchWithErrorMapping(`${API_URL}/programas`).then((res) => res.json()),
       fetchWithErrorMapping(`${API_URL}/programas/pendientes`).then((res) => res.json()),
+      // La fase del estudiante sale de /estudiante/resumen (considera la entrega de SU grupo).
+      fetchWithErrorMapping(`${API_URL}/estudiante/resumen`).then((res) => res.json()),
     ])
-      .then(([confirmados, sinConfirmar]) => {
+      .then(([confirmados, sinConfirmar, resumen]) => {
         setProgramas(confirmados);
         setPendientes(sinConfirmar);
+        setFases(Object.fromEntries(
+          (resumen.programas as (Programa & { fase: FasePrograma })[]).map((p) => [p.id, p.fase]),
+        ));
       })
       .catch((err) => toast.error(translateError(err)))
       .finally(() => setLoading(false));
@@ -102,6 +115,7 @@ export function EstudianteProgramasPage() {
             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>
               {t('estudiante:sesiones.title')}
             </div>
+            {fases[p.id] && <ProgramaFaseStepper compact fase={fases[p.id].fase} clave={fases[p.id].clave} completada={!!fases[p.id].completada} />}
           </Link>
         ))}
       </div>

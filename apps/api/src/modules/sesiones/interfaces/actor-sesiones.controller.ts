@@ -6,6 +6,8 @@ import { ActorScopeService } from '../../auth/scoping/actor-scope.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+import { ENTREGA_SELECT, entregaCompleta } from '../../grupos/application/entrega-grupo';
+import { derivarFasePrograma } from '../../programas/application/fase-programa';
 
 // C-03: el facilitador ve la presentación desde 7 días calendario antes de la sesión.
 const FACILITADOR_ANTELACION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -53,13 +55,45 @@ export class ActorSesionesController {
         fechaInicio: true,
         fechaFin: true,
         diasGracia: true,
+        bitacoraHabilitadaEn: true,
+        presentacionDesdeSesion: true,
+        sesiones: { select: { numeroSesion: true, fechaProgramada: true } },
+        // HU-23: solo para contar (revisión por programa del facilitador/admin).
+        grupos: { select: { finalizadoEn: true, ...ENTREGA_SELECT } },
         empresa: { select: { id: true, nombre: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+    const now = new Date();
     // RF-03/RN-03: el facilitador con la gracia vencida sigue viendo el programa
     // (lectura), pero el frontend usa este flag para ocultar las acciones de escritura.
-    return programas.map((p) => ({ ...p, soloLectura: this.scope.graciaVencida(actor, p) }));
+    return programas.map(({ grupos, ...p }) => ({
+      ...p,
+      // HU-23: el estudiante no ve el estado de los demás grupos. "Listo para revisar" = entregó
+      // todo en la fase 3 (presentación + bitácora + plantilla) y aún no se finalizó.
+      ...(actor.role === 'estudiante'
+        ? {}
+        : {
+            gruposResumen: {
+              total: grupos.length,
+              listos: grupos.filter((g) => !g.finalizadoEn && entregaCompleta(g)).length,
+              finalizados: grupos.filter((g) => g.finalizadoEn).length,
+            },
+          }),
+      soloLectura: this.scope.graciaVencida(actor, p),
+      // Vista de PROGRAMA (la consumen facilitador y estudiante): hayPresentacionEntregada
+      // es false a propósito. La fase sale del gate del programa, no de la entrega de un
+      // grupo. La vista de grupo del estudiante está en /estudiante/resumen.
+      fase: derivarFasePrograma(
+        {
+          bitacoraHabilitadaEn: p.bitacoraHabilitadaEn,
+          presentacionDesdeSesion: p.presentacionDesdeSesion,
+          sesiones: p.sesiones,
+          hayPresentacionEntregada: false,
+        },
+        now,
+      ),
+    }));
   }
 
   // Confirmación de matrícula (RN nueva): el estudiante debe aceptar en la plataforma su
@@ -170,6 +204,7 @@ export class ActorSesionesController {
           timezone: true,
           totalSesionesEsperadas: true,
           bitacoraHabilitadaEn: true,
+          presentacionDesdeSesion: true,
           empresa: { select: { id: true, nombre: true } },
           sesiones: {
             select: {
@@ -192,6 +227,7 @@ export class ActorSesionesController {
                 select: { id: true },
               },
               presentacionFinal: { select: { entregadoEn: true } },
+              finalizadoEn: true,
             },
           },
         },
@@ -273,14 +309,15 @@ export class ActorSesionesController {
       const sesionesTotal = p.totalSesionesEsperadas ?? p.sesiones.length;
       const grupo = p.grupos[0] ?? null;
 
-      let reto: 'sin_grupo' | 'bloqueado' | 'entregado' | 'en_progreso' | 'sin_iniciar';
+      let reto: 'sin_grupo' | 'bloqueado' | 'entregado' | 'finalizado' | 'en_progreso' | 'sin_iniciar';
       if (!grupo) reto = 'sin_grupo';
+      else if (grupo.finalizadoEn) reto = 'finalizado'; // HU-23: cerrado por el revisor
       else if (grupo.presentacionFinal) reto = 'entregado';
       else if (!p.bitacoraHabilitadaEn) reto = 'bloqueado';
       else if (grupo.respuestasFormulario.length > 0) reto = 'en_progreso';
       else reto = 'sin_iniciar';
 
-      if (grupo && p.bitacoraHabilitadaEn && !grupo.presentacionFinal) {
+      if (grupo && p.bitacoraHabilitadaEn && !grupo.presentacionFinal && !grupo.finalizadoEn) {
         entregableItems.push({
           tipo: 'entregable',
           plantillaId: null,
@@ -298,6 +335,20 @@ export class ActorSesionesController {
         sesionesRealizadas,
         grupo: grupo ? { nombre: grupo.nombre, miembros: grupo._count.miembros } : null,
         reto,
+        // Vista de GRUPO: aquí hayPresentacionEntregada refleja la entrega del grupo del
+        // estudiante, no del programa entero. Para el estudiante el programa está en fase 3
+        // en cuanto SU grupo entregó. Facilitador/cliente (HU-12, HU-15) pasan false y la
+        // fase sale del gate del programa, que es la lectura correcta al mirar todos los grupos.
+        fase: derivarFasePrograma(
+          {
+            bitacoraHabilitadaEn: p.bitacoraHabilitadaEn,
+            presentacionDesdeSesion: p.presentacionDesdeSesion,
+            sesiones: p.sesiones,
+            hayPresentacionEntregada: !!grupo?.presentacionFinal,
+            grupoFinalizado: !!grupo?.finalizadoEn,
+          },
+          new Date(now),
+        ),
       };
     });
 

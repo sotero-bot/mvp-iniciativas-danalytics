@@ -3,6 +3,14 @@
     "title": "Meus programas",
     "section_title": "Programas atribuídos",
     "solo_lectura": "Somente leitura",
+    "grupos_resumen": {
+      "titulo": "Grupos",
+      "progreso": "{{finalizados}} de {{total}} finalizados",
+      "finalizados": "Finalizados",
+      "listos": "Prontos para revisar",
+      "en_curso": "Em andamento",
+      "ninguno": "Sem grupos criados"
+    },
     "empty": "Você não tem programas atribuídos.",
     "sin_resultados": "Nenhum programa corresponde aos filtros.",
     "empresa": "Empresa",
@@ -66,6 +74,11 @@
     "miembros": "Membros",
     "nuevo_nombre": "Nome do grupo",
     "crear": "Criar grupo",
+    "finalizar": "Finalizar grupo",
+    "finalizar_confirm": "Ao finalizar \"{{grupo}}\", o grupo não poderá mais modificar o diário de bordo, o modelo nem a apresentação, e seus integrantes não poderão ser alterados. Somente um administrador pode reabri-lo. Continuar?",
+    "finalizado": "Finalizado",
+    "finalizado_por": "Finalizado por {{nombre}}",
+    "finalizado_ok": "Grupo finalizado",
     "creado": "Grupo criado",
     "asignar": "Adicionar integrante…",
     "asignar_label": "Adicionar integrante ao grupo",
@@ -94,7 +107,22 @@
     "intercambiar": "Trocar",
     "movido": "Integrante movido",
     "intercambiado": "Integrantes trocados",
-    "sin_destinos": "Não há outros grupos neste programa."
+    "sin_destinos": "Não há outros grupos neste programa.",
+    "listo_revisar": "Pronto para revisar",
+    "en_curso": "Em andamento",
+    "resumen_listos": "{{count}} de {{total}} grupos prontos para revisar",
+    "revisar_entrega": "Revisar entrega",
+    "ver_avance": "Ver andamento",
+    "ver_entrega": "Ver entrega",
+    "entregables": {
+      "titulo": "Entregáveis",
+      "progreso": "{{hechos}} de {{total}}",
+      "bitacora": "Diário de bordo",
+      "plantillaProyecto": "Modelo do projeto",
+      "presentacion": "Apresentação final",
+      "entregado": "Entregue",
+      "pendiente": "Pendente"
+    }
   },
   "observaciones": {
     "title": "Observações",
@@ -117,5 +145,19 @@
       "normal": "Normal",
       "urgente": "Urgente"
     }
+  },
+  "revision": {
+    "title": "Revisão de {{grupo}}",
+    "descripcion": "O que o grupo entregou na fase 3, somente leitura. Finalize o grupo quando o aprovar.",
+    "resumen": "Estado da entrega",
+    "presentacion": "Apresentação final",
+    "pendiente": "Pendente",
+    "entregado": "Entregue",
+    "sin_presentacion": "O grupo ainda não entregou a apresentação final.",
+    "sin_contenido": "O grupo não registrou conteúdo.",
+    "entregado_por": "Entregue por {{nombre}} — {{fecha}}",
+    "abrir_presentacion": "Abrir apresentação",
+    "no_finalizable": "Não é possível finalizar: o grupo ainda não entregou tudo na fase 3. Falta: {{faltan}}.",
+    "volver": "Voltar aos grupos"
   }
 }

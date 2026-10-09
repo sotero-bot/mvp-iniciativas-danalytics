@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
@@ -23,6 +23,7 @@ interface EstadoPresentacion {
 // (a partir de la sesión configurada en el programa). Reentrega = reemplazo.
 export function GrupoPresentacionPage() {
   const { grupoId = '' } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // Al abrirse desde la vista de programa (?from=), "volver" regresa ahí.
   const backTo = searchParams.get('from') || '/estudiante/programas';
@@ -87,7 +88,8 @@ export function GrupoPresentacionPage() {
       setArchivo(null);
       if (fileRef.current) fileRef.current.value = '';
       toast.success(t('formularios:presentacion.entregada'));
-      await cargar();
+      // Entrega hecha: regresa a la vista del programa (el toast es global y sobrevive).
+      navigate(backTo);
     } catch (err) {
       toast.error(translateError(err));
     } finally {

@@ -7,6 +7,8 @@ import { ActorScopeService } from '../../auth/scoping/actor-scope.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
 import { MiembrosGrupoService } from '../application/miembros.service';
+import { GrupoCierreService } from '../application/grupo-cierre.service';
+import { ENTREGA_SELECT, entregaCompleta, faltanteEntrega } from '../application/entrega-grupo';
 import { AppError } from '../../../shared/errors/AppError';
 
 const GRUPO_SELECT = {
@@ -14,6 +16,9 @@ const GRUPO_SELECT = {
   programaId: true,
   nombre: true,
   orden: true,
+  finalizadoEn: true,
+  finalizadoPor: { select: { id: true, nombre: true } },
+  ...ENTREGA_SELECT, // HU-23: ¿entregó todo en la fase 3? (se calcula en listGrupos)
   miembros: {
     select: {
       id: true,
@@ -61,15 +66,21 @@ export class FacilitadorGruposController {
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
     private readonly miembros: MiembrosGrupoService,
+    private readonly cierre: GrupoCierreService,
   ) {}
 
   @Get('programas/:id/grupos')
   async listGrupos(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
     await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
-    return this.prisma.grupo.findMany({
+    const grupos = await this.prisma.grupo.findMany({
       where: { programaId },
       select: GRUPO_SELECT,
       orderBy: { orden: 'asc' },
+    });
+    // No se exponen las respuestas: solo el booleano ya calculado.
+    return grupos.map(({ respuestasFormulario, ...g }) => {
+      const entrega = { ...g, respuestasFormulario };
+      return { ...g, entregaCompleta: entregaCompleta(entrega), faltante: faltanteEntrega(entrega) };
     });
   }
 
@@ -134,6 +145,13 @@ export class FacilitadorGruposController {
       data: { nombre: body.nombre },
       select: GRUPO_SELECT,
     });
+  }
+
+  // HU-23: el revisor aprueba y cierra el grupo. Reabrir es solo del admin.
+  @Post('grupos/:id/finalizar')
+  async finalizarGrupo(@Param('id') grupoId: string, @CurrentUser() actor: AuthUser) {
+    await this.assertGrupoEditable(grupoId, actor);
+    return this.cierre.finalizar(grupoId, actor.sub);
   }
 
   // HU-21: quitar integrante (sin mínimo de integrantes por grupo).

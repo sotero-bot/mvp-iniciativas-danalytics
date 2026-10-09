@@ -46,6 +46,7 @@ const GRUPO_SELECT = {
   programaId: true,
   nombre: true,
   orden: true,
+  finalizadoEn: true, // HU-23
   programa: {
     select: {
       id: true,
@@ -102,11 +103,14 @@ export class GrupoRecursosController {
       const bitacora = porTipo('bitacora');
       const plantilla = porTipo('plantilla_proyecto');
       // La entrega de la presentación final "entrega" y cierra bitácora + plantilla.
-      const entregada = !!g.presentacionFinal;
+      const finalizado = !!g.finalizadoEn;
+      const entregada = !!g.presentacionFinal || finalizado;
       return {
         id: g.id,
         nombre: g.nombre,
         orden: g.orden,
+        finalizado,
+        finalizadoEn: g.finalizadoEn,
         programa: { id: g.programa.id, nombre: g.programa.nombre, estado: g.programa.estado },
         miembros: g.miembros.map(m => m.usuario),
         recursos: {
@@ -202,6 +206,7 @@ export class GrupoRecursosController {
     if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const grupo = await this.assertMiembro(grupoId, actor);
     this.assertPresentacionHabilitada(grupo.programa);
+    if (grupo.finalizadoEn) throw new AppError('GRUPO_FINALIZADO');
     if (!body?.filename || !PRESENTACION_EXT_RE.test(body.filename)) {
       throw new AppError('PRESENTACION_FORMATO_INVALIDO');
     }
@@ -228,6 +233,7 @@ export class GrupoRecursosController {
   ) {
     const grupo = await this.assertMiembro(grupoId, actor);
     this.assertPresentacionHabilitada(grupo.programa);
+    if (grupo.finalizadoEn) throw new AppError('GRUPO_FINALIZADO');
 
     const archivoKey = body?.archivoKey?.trim() || null;
     if (!archivoKey) {
@@ -335,7 +341,8 @@ export class GrupoRecursosController {
       where: { grupoId },
       select: { entregadoEn: true },
     });
-    const bloqueada = !!presentacion?.entregadoEn;
+    const finalizado = !!grupo.finalizadoEn;
+    const bloqueada = !!presentacion?.entregadoEn || finalizado;
 
     // Contenido dinámico: overlay vía TranslationService (Plan 2 §0.4), no t().
     const [plantillaOverlay, campoOverlay] =
@@ -350,6 +357,7 @@ export class GrupoRecursosController {
     return {
       grupo: { id: grupo.id, nombre: grupo.nombre, programaId: grupo.programaId },
       bloqueada,
+      finalizado,
       plantillaId: plantilla.id,
       tipoFormulario: plantilla.tipoFormulario,
       nombre: pt.nombre ?? plantilla.nombre,
@@ -377,7 +385,10 @@ export class GrupoRecursosController {
 
   // La entrega de la presentación final CIERRA el trabajo del grupo: a partir de
   // ahí, bitácora y plantilla del proyecto quedan inmodificables (RF-30/RF-31).
-  private async assertGrupoAbierto(grupoId: string): Promise<void> {
+  // HU-23: la finalización por el revisor (GRUPO_FINALIZADO) cierra igual y aplica también a la
+  // (re)entrega de la presentación, que antes del cierre es un upsert sin protección.
+  private async assertGrupoAbierto(grupoId: string, grupo?: { finalizadoEn: Date | null }): Promise<void> {
+    if (grupo?.finalizadoEn) throw new AppError('GRUPO_FINALIZADO');
     const cerrado = await this.prisma.presentacionFinal.findUnique({
       where: { grupoId },
       select: { entregadoEn: true },
@@ -392,7 +403,7 @@ export class GrupoRecursosController {
     // O-01: la habilitación de la bitácora gatea toda la sección (bitácora Y
     // plantilla del proyecto).
     this.assertBitacoraHabilitada(grupo.programa);
-    await this.assertGrupoAbierto(grupoId);
+    await this.assertGrupoAbierto(grupoId, grupo);
     const plantilla = await this.getPlantillaGrupal(grupo.programaId, tipo);
     const datos = (body?.datos ?? {}) as Prisma.InputJsonValue;
 

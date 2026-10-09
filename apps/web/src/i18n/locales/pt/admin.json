@@ -212,6 +212,8 @@
       "group_created": "Grupo criado",
       "group_updated": "Grupo atualizado",
       "group_removed": "Grupo excluído",
+      "group_finalized": "Grupo finalizado",
+      "group_reopened": "Grupo reaberto",
       "member_added": "Integrante adicionado ao grupo",
       "member_removed": "Integrante removido do grupo",
       "participant_added": "Estudante matriculado"
@@ -372,7 +374,9 @@
         "rename": "Renomear",
         "delete": "Excluir",
         "replace": "Substituir",
-        "move": "Mover"
+        "move": "Mover",
+        "finalize": "Finalizar grupo",
+        "reopen": "Reabrir grupo"
       },
       "fields": {
         "nombre": "Nome do grupo"
@@ -384,6 +388,17 @@
       "confirm_delete": {
         "title": "Excluir grupo",
         "message": "Excluir o grupo «{{nombre}}»? Seus integrantes ficarão sem grupo (continuam matriculados no programa)."
+      },
+      "finalized": "Finalizado",
+      "finalized_by": "Finalizado por {{nombre}}",
+      "finalized_hint": "Grupo finalizado: para alterar integrantes é preciso reabri-lo.",
+      "confirm_finalize": {
+        "title": "Finalizar grupo",
+        "message": "Ao finalizar \"{{nombre}}\", o grupo não poderá mais modificar o diário de bordo, o modelo nem a apresentação, e seus integrantes não poderão ser alterados. Continuar?"
+      },
+      "confirm_reopen": {
+        "title": "Reabrir grupo",
+        "message": "\"{{nombre}}\" voltará a ser editável por seus integrantes. Continuar?"
       }
     },
     "list_title": "Programas registrados"

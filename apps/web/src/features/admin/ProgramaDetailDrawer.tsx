@@ -53,6 +53,7 @@ export function ProgramaDetailDrawer({
   const [moverModal, setMoverModal] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
   const [reemplazoModal, setReemplazoModal] = useState<{ grupo: Grupo; miembro: Grupo['miembros'][number] } | null>(null);
   const [deleteGrupoModal, setDeleteGrupoModal] = useState<Grupo | null>(null);
+  const [cierreModal, setCierreModal] = useState<{ grupo: Grupo; accion: 'finalizar' | 'reabrir' } | null>(null);
   const [deleteSesionModal, setDeleteSesionModal] = useState<Sesion | null>(null);
   const [desmatricularModal, setDesmatricularModal] = useState<Participante | null>(null);
 
@@ -112,6 +113,17 @@ export function ProgramaDetailDrawer({
       await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${sesionId}`, { method: 'DELETE' });
       toast.success(t('admin:programas.toast.session_removed'));
       load();
+    } catch (err) {
+      toast.error(translateError(err));
+    }
+  };
+
+  // HU-23: finalizar (admin o facilitador) y reabrir (solo admin).
+  const cerrarGrupo = async (grupoId: string, accion: 'finalizar' | 'reabrir') => {
+    try {
+      await fetchWithErrorMapping(`${API_URL}/admin/grupos/${grupoId}/${accion}`, { method: 'POST' });
+      toast.success(t(accion === 'finalizar' ? 'admin:programas.toast.group_finalized' : 'admin:programas.toast.group_reopened'));
+      loadGrupos();
     } catch (err) {
       toast.error(translateError(err));
     }
@@ -418,6 +430,14 @@ export function ProgramaDetailDrawer({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <strong style={{ fontSize: '0.95rem' }}>{g.nombre}</strong>
+                      {g.finalizadoEn && (
+                        <StatusBadge
+                          variant="success"
+                          title={g.finalizadoPor ? t('admin:programas.grupos.finalized_by', { nombre: g.finalizadoPor.nombre }) : undefined}
+                        >
+                          {t('admin:programas.grupos.finalized')}
+                        </StatusBadge>
+                      )}
                       {g.miembros.length < 2 && (
                         <span title={t('admin:programas.grupos.min_hint')}>
                           <StatusBadge variant="warning">⚠ {t('admin:programas.grupos.incomplete')}</StatusBadge>
@@ -425,6 +445,13 @@ export function ProgramaDetailDrawer({
                       )}
                     </span>
                     <div>
+                      <button
+                        className="btn-link"
+                        onClick={() => setCierreModal({ grupo: g, accion: g.finalizadoEn ? 'reabrir' : 'finalizar' })}
+                      >
+                        {t(g.finalizadoEn ? 'admin:programas.grupos.actions.reopen' : 'admin:programas.grupos.actions.finalize')}
+                      </button>
+                      {' · '}
                       <button className="btn-link" onClick={() => setGrupoModal({ editing: g })}>
                         {t('admin:programas.grupos.actions.rename')}
                       </button>
@@ -450,6 +477,7 @@ export function ProgramaDetailDrawer({
                         background: 'var(--color-bg-subtle)', borderRadius: 999, padding: '3px 6px 3px 10px', fontSize: '0.82rem',
                       }}>
                         {m.usuario.nombre}
+                        {!g.finalizadoEn && (<>
                         <button
                           className="btn-link"
                           title={t('admin:programas.grupos.actions.replace')}
@@ -468,10 +496,17 @@ export function ProgramaDetailDrawer({
                           style={{ fontSize: '0.9rem', lineHeight: 1 }}
                           onClick={() => quitarMiembro(g.id, m.usuarioId)}
                         >×</button>
+                        </>)}
                       </span>
                     ))}
                   </div>
 
+                  {g.finalizadoEn && (
+                    <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                      {t('admin:programas.grupos.finalized_hint')}
+                    </div>
+                  )}
+                  {!g.finalizadoEn && (
                   <select
                     className="input"
                     value=""
@@ -490,6 +525,7 @@ export function ProgramaDetailDrawer({
                       </option>
                     ))}
                   </select>
+                  )}
                 </div>
               ))}
             </div>
@@ -507,6 +543,16 @@ export function ProgramaDetailDrawer({
             onSaved={() => { setSesionModalOpen(false); load(); }}
           />
         )}
+
+        <ConfirmModal
+          isOpen={!!cierreModal}
+          title={t(cierreModal?.accion === 'reabrir' ? 'admin:programas.grupos.confirm_reopen.title' : 'admin:programas.grupos.confirm_finalize.title')}
+          message={t(cierreModal?.accion === 'reabrir' ? 'admin:programas.grupos.confirm_reopen.message' : 'admin:programas.grupos.confirm_finalize.message', { nombre: cierreModal?.grupo.nombre ?? '' })}
+          confirmLabel={t(cierreModal?.accion === 'reabrir' ? 'admin:programas.grupos.actions.reopen' : 'admin:programas.grupos.actions.finalize')}
+          danger={false}
+          onConfirm={() => { if (cierreModal) { cerrarGrupo(cierreModal.grupo.id, cierreModal.accion); setCierreModal(null); } }}
+          onCancel={() => setCierreModal(null)}
+        />
 
         {grupoModal && programa && (
           <GrupoFormModal

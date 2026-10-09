@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import {
@@ -18,6 +18,9 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { MoverMiembroModal } from '../../components/MoverMiembroModal';
 import { ReemplazarMiembroModal } from '../../components/ReemplazarMiembroModal';
 import { GrupoFormModal } from '../admin/GrupoFormModal';
+import { estadoRevision, ordenarPorRevision, contarListos } from './revisionGrupos';
+import type { FaltanteEntrega } from './revisionGrupos';
+import { GrupoEntregaProgreso } from '../../components/GrupoEntregaProgreso';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -26,6 +29,10 @@ interface Grupo {
   programaId: string;
   nombre: string;
   orden: number;
+  finalizadoEn: string | null;
+  finalizadoPor: { id: string; nombre: string } | null;
+  entregaCompleta: boolean;
+  faltante?: FaltanteEntrega;
   miembros: { id: string; usuarioId: string; usuario: { id: string; nombre: string; email: string } }[];
 }
 
@@ -124,6 +131,10 @@ export function FacilitadorGruposPage() {
     }
   };
 
+  // HU-23: revisión más fácil — listos para revisar primero, finalizados al final.
+  const gruposOrdenados = ordenarPorRevision(grupos);
+  const gruposListos = contarListos(grupos);
+
   // RN-04: participantes que aún no están en ningún grupo (candidatos a asignar).
   const asignados = new Set(grupos.flatMap((g) => g.miembros.map((m) => m.usuarioId)));
   const sinGrupo = participantes.filter((p) => !asignados.has(p.usuarioId));
@@ -137,6 +148,12 @@ export function FacilitadorGruposPage() {
       <div className="section-card-body">
         {loading && <Loading label={t('common:loading')} />}
         {!loading && grupos.length === 0 && <EmptyState title={t('facilitador:grupos.empty')} />}
+        {/* HU-23: cuántos grupos ya entregaron todo y esperan tu revisión. */}
+        {!loading && gruposListos > 0 && (
+          <Alert variant="info">
+            {t('facilitador:grupos.resumen_listos', { count: gruposListos, total: grupos.length })}
+          </Alert>
+        )}
         {!loading && grupos.length > 0 && (
           <div
             style={{
@@ -145,28 +162,49 @@ export function FacilitadorGruposPage() {
               gap: 'var(--space-5)',
             }}
           >
-            {grupos.map((g) => (
+            {gruposOrdenados.map((g) => (
               <div key={g.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)' }}>
-                  <span style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-heading)' }}>{g.nombre}</span>
+                {/* Fila 1: nombre (reserva 2 líneas para que las tarjetas queden alineadas) + renombrar. */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+                  <span style={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.3, minHeight: '2.6em', color: 'var(--color-text-heading)' }}>
+                    {g.nombre}
+                  </span>
                   {!soloLectura && (
                     <button type="button" className="btn-link" onClick={() => setRenombrando(g)}>
                       {t('facilitador:grupos.renombrar')}
                     </button>
                   )}
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  {t('facilitador:grupos.miembros')} ({g.miembros.length})
+                {/* Fila 2: estado de revisión + advertencias, siempre en la misma línea. */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)', minHeight: 24 }}>
+                  {estadoRevision(g) === 'listo' && (
+                    <StatusBadge variant="warning">{t('facilitador:grupos.listo_revisar')}</StatusBadge>
+                  )}
+                  {estadoRevision(g) === 'en_curso' && (
+                    <StatusBadge variant="neutral">{t('facilitador:grupos.en_curso')}</StatusBadge>
+                  )}
+                  {g.finalizadoEn && (
+                    <StatusBadge
+                      variant="success"
+                      title={g.finalizadoPor ? t('facilitador:grupos.finalizado_por', { nombre: g.finalizadoPor.nombre }) : undefined}
+                    >
+                      {t('facilitador:grupos.finalizado')}
+                    </StatusBadge>
+                  )}
                   {/* HU-21/22: sin mínimo; un grupo con menos de 2 solo muestra advertencia. */}
                   {g.miembros.length < 2 && (
                     <StatusBadge variant="warning">⚠ {t('facilitador:grupos.incompleto')}</StatusBadge>
                   )}
                 </div>
+                {/* Fila 3: cantidad de integrantes. */}
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                  {t('facilitador:grupos.miembros')} ({g.miembros.length})
+                </div>
                 <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                   {g.miembros.map((m) => (
                     <li key={m.id}>
                       {m.usuario.nombre}
-                      {!soloLectura && (
+                      {!soloLectura && !g.finalizadoEn && (
                         <span style={{ marginLeft: 'var(--space-3)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                           <button type="button" className="btn-link" onClick={() => setReemplazando({ grupo: g, miembro: m })}>
                             {t('facilitador:grupos.reemplazar')}
@@ -186,9 +224,29 @@ export function FacilitadorGruposPage() {
                     </li>
                   ))}
                 </ul>
+                {/* Zona inferior anclada al fondo (margin-top:auto): entregables, acción y asignar quedan
+                    alineados entre las tarjetas de una fila aunque los integrantes/título varíen. */}
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {/* HU-23: qué entregó ya el grupo (barra + lista), sin entrar a revisarlo. */}
+                <GrupoEntregaProgreso faltante={g.faltante} />
+                {/* HU-23: revisar lo entregado; finalizar se hace desde la pantalla de revisión. */}
+                <div>
+                  <Link
+                    className={`btn btn-sm ${estadoRevision(g) === 'listo' ? 'btn-primary' : 'btn-secondary'}`}
+                    to={`/facilitador/programas/${programaId}/grupos/${g.id}/revision`}
+                  >
+                    {t(
+                      estadoRevision(g) === 'listo'
+                        ? 'facilitador:grupos.revisar_entrega'
+                        : estadoRevision(g) === 'finalizado'
+                          ? 'facilitador:grupos.ver_entrega'
+                          : 'facilitador:grupos.ver_avance',
+                    )}
+                  </Link>
+                </div>
                 {/* C-02: asignar integrante. Se oculta cuando ya no queda ningún participante sin grupo o en modo solo-lectura. */}
-                {!soloLectura && sinGrupo.length > 0 && (
-                  <div style={{ marginTop: 'auto' }}>
+                {!soloLectura && !g.finalizadoEn && sinGrupo.length > 0 && (
+                  <div>
                     <Field label={t('facilitador:grupos.asignar_label')}>
                       <select
                         className="input"
@@ -203,6 +261,7 @@ export function FacilitadorGruposPage() {
                     </Field>
                   </div>
                 )}
+                </div>
               </div>
             ))}
           </div>

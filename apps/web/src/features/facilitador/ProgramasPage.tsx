@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { GruposProgramaResumen } from '../../components/GruposProgramaResumen';
 import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge, StatCard, Field, FilterToolbar } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui';
 import { SidebarIcon } from '../../components/SidebarIcon';
@@ -20,6 +21,7 @@ interface Programa {
   fechaFin: string | null;
   empresa: { id: string; nombre: string } | null;
   soloLectura?: boolean;
+  gruposResumen?: { total: number; listos: number; finalizados: number };
 }
 
 const ESTADO_VARIANT: Record<EstadoPrograma, StatusVariant> = {
@@ -197,13 +199,23 @@ export function FacilitadorProgramasPage() {
                 </div>
               )}
 
+              {/* HU-23: mini-sección de grupos: qué está finalizado, listo para revisar o en curso. */}
+              {p.gruposResumen && (
+                <div style={{ marginTop: 'auto' }}>
+                  <GruposProgramaResumen resumen={p.gruposResumen} />
+                </div>
+              )}
+
               {/* Acciones como botones: ancladas al fondo (margin-top:auto) para
                   que las tarjetas de la fila queden parejas aunque el nombre/fechas
                   ocupen distinto alto. */}
-              <div style={{ marginTop: 'auto', paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+              <div style={{ marginTop: p.gruposResumen ? 0 : 'auto', paddingTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                 {acciones.map((a) => (
                   <Link key={a.key} className="btn btn-secondary btn-sm" to={a.to}>
                     {a.label}
+                    {a.key === 'grupos' && (p.gruposResumen?.listos ?? 0) > 0 && (
+                      <span className="count-badge" style={{ marginLeft: 'var(--space-2)' }}>{p.gruposResumen!.listos}</span>
+                    )}
                   </Link>
                 ))}
                 <Link

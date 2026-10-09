@@ -8,5 +8,15 @@
   "sesion_estado": {
     "pendiente": "Pendiente",
     "completada": "Completada"
+  },
+  "fase": {
+    "label": "Fase del programa",
+    "paso": "Fase {{n}} de 3",
+    "entendimiento": "Reuniones de entendimiento",
+    "sesiones": "Clases con los profesores",
+    "presentacion_final": "Presentación final",
+    "entendimiento_desc": "Aún no comienzan las sesiones.",
+    "sesiones_desc": "El programa está en curso.",
+    "presentacion_final_desc": "Es momento de preparar y entregar el reto."
   }
 }

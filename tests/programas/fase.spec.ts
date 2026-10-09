@@ -92,6 +92,25 @@ describe('derivarFasePrograma', () => {
   });
 });
 
+describe('derivarFasePrograma · grupo finalizado (HU-23)', () => {
+  it('grupoFinalizado → fase 3 completada aunque no haya sesiones ni bitácora', () => {
+    expect(derivarFasePrograma(programa({ grupoFinalizado: true }), NOW)).toEqual({
+      fase: 3,
+      clave: 'presentacion_final',
+      completada: true,
+    });
+  });
+
+  it('sin el flag el resultado NO trae `completada` (cambio aditivo)', () => {
+    const p = programa({ hayPresentacionEntregada: true });
+    expect(derivarFasePrograma(p, NOW)).toEqual({ fase: 3, clave: 'presentacion_final' });
+  });
+
+  it('grupoFinalizado=false no altera la derivación', () => {
+    expect(derivarFasePrograma(programa({ grupoFinalizado: false }), NOW)).toEqual({ fase: 1, clave: 'entendimiento' });
+  });
+});
+
 describe('presentacionHabilitada (RF-32 + O-01)', () => {
   it('bitácora no habilitada → false', () => {
     expect(presentacionHabilitada(programa(), NOW)).toBe(false);

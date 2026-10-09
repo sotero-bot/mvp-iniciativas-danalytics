@@ -6,6 +6,7 @@ import { Breadcrumb, PageHeader, Loading, EmptyState, StatusBadge } from '../../
 import type { StatusVariant } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
+import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -34,6 +35,12 @@ interface FormularioDisponible {
   enviadoEn: string | null;
 }
 
+interface FasePrograma {
+  fase: 1 | 2 | 3;
+  clave: 'entendimiento' | 'sesiones' | 'presentacion_final';
+  completada?: true;
+}
+
 interface RecursoEstado {
   iniciada: boolean;
   entregada: boolean;
@@ -44,6 +51,7 @@ interface MiGrupo {
   id: string;
   nombre: string;
   orden: number;
+  finalizado: boolean;
   programa: { id: string; nombre: string; estado: string };
   miembros: { id: string; nombre: string }[];
   recursos: {
@@ -69,6 +77,7 @@ export function EstudianteSesionesPage() {
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
   const [formularios, setFormularios] = useState<FormularioDisponible[]>([]);
   const [grupos, setGrupos] = useState<MiGrupo[]>([]);
+  const [fase, setFase] = useState<FasePrograma | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -78,9 +87,12 @@ export function EstudianteSesionesPage() {
       fetchWithErrorMapping(`${API_URL}/programas/${programaId}/sesiones`).then((r) => r.json()),
       fetchWithErrorMapping(`${API_URL}/formularios/disponibles`).then((r) => r.json()),
       fetchWithErrorMapping(`${API_URL}/grupos/mios`).then((r) => r.json()),
+      // La fase del estudiante sale de /estudiante/resumen (considera la entrega de SU grupo).
+      fetchWithErrorMapping(`${API_URL}/estudiante/resumen`).then((r) => r.json()),
     ])
-      .then(([ses, forms, grps]: [Sesion[], FormularioDisponible[], MiGrupo[]]) => {
+      .then(([ses, forms, grps, resumen]: [Sesion[], FormularioDisponible[], MiGrupo[], { programas: { id: string; fase: FasePrograma }[] }]) => {
         if (cancelled) return;
+        setFase(resumen.programas.find((p) => p.id === programaId)?.fase ?? null);
         setSesiones(ses);
         setFormularios(forms);
         setGrupos(grps);
@@ -125,6 +137,9 @@ export function EstudianteSesionesPage() {
       {!loading && encuestaInicio && (
         <EncuestaInicioCard encuesta={encuestaInicio} gateActivo={gateActivo} from={from} />
       )}
+
+      {/* Fuera del contenedor atenuado por gateActivo: saber en qué fase estás no se bloquea. */}
+      {!loading && fase && <ProgramaFaseStepper fase={fase.fase} clave={fase.clave} completada={!!fase.completada} />}
 
       {!loading && (
         <div
@@ -290,7 +305,11 @@ function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
           marginBottom: 'var(--space-4)',
         }}
       >
-        <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{g.nombre}</div>
+        <div style={{ fontWeight: 600, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          {g.nombre}
+          {/* HU-23: el revisor finalizó el grupo; sus recursos quedan de solo lectura. */}
+          {g.finalizado && <StatusBadge variant="success">{t('formularios:grupo.finalizado')}</StatusBadge>}
+        </div>
         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
           {t('formularios:grupo.miembros')}: {g.miembros.map((m) => m.nombre).join(', ') || '—'}
         </div>

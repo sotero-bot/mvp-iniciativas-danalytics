@@ -56,6 +56,7 @@
   --color-info: #155BA0;
   --color-info-bg: #EEF4FB;
   --color-info-border: rgba(21, 91, 160, 0.2);
+  --color-info-soft: #5B9BD5; /* azul claro: fase actual (HU-02) */
 
   /* Spacing scale */
   --space-1: 0.25rem;
@@ -2092,12 +2093,17 @@ a.home-prog-card:hover {
   color: var(--color-text-secondary);
 }
 
+.home-prog-card .fase-compact {
+  margin-top: 0; /* el gap de la tarjeta ya separa los bloques */
+}
+
 .home-prog-foot {
+  /* En columna: estado del reto arriba y grupo debajo, igual en todas las tarjetas
+     (en fila el grupo saltaba de línea solo cuando su nombre era largo). */
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-2);
-  flex-wrap: wrap;
   /* Ancla el pie al fondo para que las tarjetas de la fila queden parejas
      aunque el nombre/empresa ocupen distinto alto (grid las estira igual). */
   margin-top: auto;
@@ -2521,4 +2527,183 @@ a.home-prog-card:hover {
   .auth-panel {
     padding: 2rem 1.25rem;
   }
+}
+
+/* ─── Fase del programa (HU-02): barra segmentada en 3 ───
+   pasada = verde · actual = azul claro · futura = gris */
+.fase-stepper-wrap {
+  margin-bottom: var(--space-5);
+}
+
+.fase-stepper,
+.fase-bar {
+  display: flex;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fase-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 4px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+.fase-step-n {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fase-step-nombre {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fase-step--pasada {
+  border-top-color: var(--color-success);
+  color: var(--color-text-main);
+}
+
+.fase-step--activa {
+  border-top-color: var(--color-info-soft);
+  color: var(--color-primary);
+}
+
+.fase-stepper-desc {
+  margin: var(--space-3) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+/* Versión compacta (tarjetas de listado) */
+.fase-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.fase-seg {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border-strong);
+}
+
+.fase-seg--pasada { background: var(--color-success); }
+.fase-seg--activa { background: var(--color-info-soft); }
+
+.fase-compact-texto {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .fase-stepper {
+    flex-direction: column;
+  }
+
+  .fase-step {
+    border-top: 0;
+    border-left: 4px solid var(--color-border-strong);
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .fase-step--pasada { border-left-color: var(--color-success); }
+  .fase-step--activa { border-left-color: var(--color-info-soft); }
+}
+
+/* ─── Resumen de grupos por programa (HU-23): finalizado verde · listo ámbar · en curso gris ─── */
+.grupos-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.grupos-resumen-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.grupos-resumen-titulo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.grupos-resumen-progreso {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.grupos-resumen-vacio {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.grupos-resumen-barra {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+}
+
+.grupos-resumen-seg--finalizado { background: var(--color-success); }
+.grupos-resumen-seg--listo { background: var(--color-warning); }
+.grupos-resumen-seg--en-curso { background: var(--color-border-strong); }
+
+.grupos-resumen-leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.grupos-resumen-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-main);
+}
+
+.grupos-resumen-fila--cero {
+  color: var(--color-text-muted);
+}
+
+.grupos-resumen-punto {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.grupos-resumen-etiqueta {
+  flex: 1;
+}
+
+.grupos-resumen-n {
+  font-weight: 600;
+}
+
+/* Entregables de un grupo (HU-23): reutiliza la barra y la leyenda de .grupos-resumen-* */
+.grupo-entrega {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
 }

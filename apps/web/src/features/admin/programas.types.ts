@@ -84,5 +84,7 @@ export interface Grupo {
   programaId: string;
   nombre: string;
   orden: number;
+  finalizadoEn: string | null;
+  finalizadoPor: { id: string; nombre: string } | null;
   miembros: GrupoMiembro[];
 }

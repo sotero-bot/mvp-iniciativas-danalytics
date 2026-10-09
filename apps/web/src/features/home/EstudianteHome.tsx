@@ -7,10 +7,11 @@ import type { StatusVariant } from '../../components/ui';
 import { SidebarIcon } from '../../components/SidebarIcon';
 import { formatFechaHora, formatDiasRelativos } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
+import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-type RetoEstado = 'sin_grupo' | 'bloqueado' | 'entregado' | 'en_progreso' | 'sin_iniciar';
+type RetoEstado = 'sin_grupo' | 'bloqueado' | 'entregado' | 'finalizado' | 'en_progreso' | 'sin_iniciar';
 
 interface ProximaSesion {
   programaId: string;
@@ -32,6 +33,8 @@ interface ProgramaResumen {
   sesionesRealizadas: number;
   grupo: { nombre: string; miembros: number } | null;
   reto: RetoEstado;
+  // HU-02 / HU-23: fase pedagógica del programa (considera la entrega/finalización del grupo del estudiante).
+  fase: { fase: 1 | 2 | 3; clave: 'entendimiento' | 'sesiones' | 'presentacion_final'; completada?: true };
 }
 
 type PendienteTipo = 'encuesta_inicio' | 'matricula' | 'entregable' | 'formulario';
@@ -76,6 +79,7 @@ const RETO_VARIANT: Record<RetoEstado, StatusVariant> = {
   sin_iniciar: 'warning',
   en_progreso: 'info',
   entregado: 'success',
+  finalizado: 'success',
 };
 
 // Dashboard de inicio del estudiante: KPIs, pendientes de acción, próxima sesión
@@ -265,6 +269,8 @@ function ProgramaCard({
           label={t('sesiones_progreso', { hechas: prog.sesionesRealizadas, total: prog.sesionesTotal })}
         />
       </div>
+
+      <ProgramaFaseStepper compact fase={prog.fase.fase} clave={prog.fase.clave} completada={!!prog.fase.completada} />
 
       <div className="home-prog-foot">
         <StatusBadge variant={RETO_VARIANT[prog.reto]}>{t(`reto.${prog.reto}`)}</StatusBadge>

@@ -12,9 +12,15 @@ import { AppError } from '../../../shared/errors/AppError';
 export class MiembrosGrupoService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** HU-23 (D6): un grupo finalizado es un registro cerrado; para corregir hay que reabrirlo. */
+  private assertNoFinalizado(grupo: { finalizadoEn?: Date | null }): void {
+    if (grupo.finalizadoEn) throw new AppError('GRUPO_FINALIZADO');
+  }
+
   async agregar(grupoId: string, usuarioId: string): Promise<MiembroGrupo> {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    this.assertNoFinalizado(grupo);
 
     // RN-04: el usuario debe ser participante activo del mismo programa.
     const participante = await this.prisma.participantePrograma.findFirst({
@@ -51,6 +57,9 @@ export class MiembrosGrupoService {
   }
 
   async quitar(grupoId: string, usuarioId: string): Promise<void> {
+    const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
+    if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    this.assertNoFinalizado(grupo);
     const miembro = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
     if (!miembro) throw new AppError('MIEMBRO_NO_PARTICIPA');
 
@@ -63,6 +72,7 @@ export class MiembrosGrupoService {
   async reemplazar(grupoId: string, salienteId: string, entranteId: string): Promise<void> {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    this.assertNoFinalizado(grupo);
     if (salienteId === entranteId) throw new AppError('GRUPO_REEMPLAZO_INVALIDO');
 
     const saliente = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId: salienteId } });
@@ -108,6 +118,8 @@ export class MiembrosGrupoService {
       this.prisma.grupo.findUnique({ where: { id: destinoGrupoId } }),
     ]);
     if (!origen || !destino) throw new AppError('GRUPO_NOT_FOUND');
+    this.assertNoFinalizado(origen);
+    this.assertNoFinalizado(destino);
     if (origen.id === destino.id || origen.programaId !== destino.programaId) {
       throw new AppError('GRUPO_MOVER_INVALIDO');
     }
@@ -123,6 +135,7 @@ export class MiembrosGrupoService {
   async intercambiar(grupoId: string, usuarioId: string, conUsuarioId: string): Promise<void> {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
+    this.assertNoFinalizado(grupo);
     if (usuarioId === conUsuarioId) throw new AppError('GRUPO_MOVER_INVALIDO');
 
     const a = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
@@ -132,6 +145,8 @@ export class MiembrosGrupoService {
     });
     if (!b) throw new AppError('MIEMBRO_NO_PARTICIPA');
     if (b.grupoId === grupoId) throw new AppError('GRUPO_MOVER_INVALIDO');
+    const grupoB = await this.prisma.grupo.findUnique({ where: { id: b.grupoId } });
+    if (grupoB) this.assertNoFinalizado(grupoB);
 
     await this.prisma.$transaction([
       this.prisma.miembroGrupo.update({ where: { id: a.id }, data: { grupoId: b.grupoId } }),

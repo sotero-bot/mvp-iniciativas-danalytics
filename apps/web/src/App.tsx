@@ -26,6 +26,7 @@ import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
 import { FacilitadorSesionesPage } from './features/facilitador/SesionesPage';
 import { FacilitadorAsistenciaPage } from './features/facilitador/AsistenciaPage';
 import { FacilitadorGruposPage } from './features/facilitador/GruposPage';
+import { FacilitadorRevisionGrupoPage } from './features/facilitador/RevisionGrupoPage';
 import { FacilitadorObservacionesPage } from './features/facilitador/ObservacionesPage';
 import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
 import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
@@ -532,6 +533,7 @@ function App() {
         <Route path="/facilitador/programas" element={<PortalRoute allow="facilitador"><FacilitadorProgramasPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/sesiones" element={<PortalRoute allow="facilitador"><FacilitadorSesionesPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/grupos" element={<PortalRoute allow="facilitador"><FacilitadorGruposPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/grupos/:grupoId/revision" element={<PortalRoute allow="facilitador"><FacilitadorRevisionGrupoPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/observaciones" element={<PortalRoute allow="facilitador"><FacilitadorObservacionesPage /></PortalRoute>} />
         <Route path="/facilitador/sesiones/:id/asistencia" element={<PortalRoute allow="facilitador"><FacilitadorAsistenciaPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/resultados" element={<PortalRoute allow="facilitador"><FacilitadorResultadosPage /></PortalRoute>} />

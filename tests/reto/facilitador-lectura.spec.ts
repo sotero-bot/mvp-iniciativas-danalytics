@@ -62,7 +62,7 @@ function buildController(overrides: Record<string, any> = {}) {
   };
   const translations = { applyOverlay: vi.fn().mockResolvedValue({}) };
   return {
-    controller: new FacilitadorRetoController(prisma as any, scope as any, translations as any),
+    controller: new FacilitadorRetoController(prisma as any, scope as any, translations as any, {} as any),
     prisma,
     scope,
   };
@@ -80,7 +80,9 @@ describe('Autorización (§0.1, RF-37/RF-38)', () => {
     // RF-37/38 siguen siendo solo lectura; estadoBitacora (GET) + habilitarBitacora (POST)
     // son el toggle de visibilidad de la bitácora que el cliente pidió (O-01).
     expect(handlers.sort()).toEqual([
+      'cargarPlantilla',
       'estadoBitacora',
+      'getRevisionGrupo',
       'habilitarBitacora',
       'listBitacoras',
       'listPlantillas',

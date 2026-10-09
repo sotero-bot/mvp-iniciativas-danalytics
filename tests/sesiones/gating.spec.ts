@@ -126,13 +126,28 @@ describe('ActorSesionesController.getMaterial', () => {
 describe('ActorSesionesController.listMisProgramas', () => {
   it('usa el fragmento WHERE de ActorScopeService.programaScope', async () => {
     const prismaMock = {
-      programa: { findMany: vi.fn().mockResolvedValue([{ id: 'p1' }]) },
+      // HU-02: el select incluye los campos que necesita derivarFasePrograma.
+      programa: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 'p1', bitacoraHabilitadaEn: null, presentacionDesdeSesion: null, sesiones: [], grupos: [] }]),
+      },
     };
     const scope = { facilitadores: { some: { usuarioId: 'f1' } } };
     const scopeStub = { programaScope: vi.fn().mockReturnValue(scope), graciaVencida: vi.fn().mockReturnValue(false) };
     const controller = new ActorSesionesController(prismaMock as any, scopeStub as any, {} as any);
     const result = await controller.listMisProgramas(FACILITADOR);
-    expect(result).toEqual([{ id: 'p1', soloLectura: false }]);
+    expect(result).toEqual([
+      {
+        id: 'p1',
+        bitacoraHabilitadaEn: null,
+        presentacionDesdeSesion: null,
+        sesiones: [],
+        gruposResumen: { total: 0, listos: 0, finalizados: 0 },
+        soloLectura: false,
+        fase: { fase: 1, clave: 'entendimiento' },
+      },
+    ]);
     expect(scopeStub.programaScope).toHaveBeenCalledWith(FACILITADOR);
     expect(prismaMock.programa.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: scope }),

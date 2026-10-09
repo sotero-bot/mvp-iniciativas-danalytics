@@ -122,6 +122,9 @@
     "estado_en_progreso": "En progreso",
     "estado_entregado": "Entregado",
     "guardar": "Guardar cambios",
+    "guardado_ok": "Cambios guardados",
+    "finalizado": "Finalizado",
+    "finalizado_banner": "El facilitador finalizó el grupo: este recurso ya no se puede modificar.",
     "cerrado_banner": "El grupo entregó la presentación final: este recurso quedó cerrado y ya no se puede modificar.",
     "ultima_edicion": "Última edición: {{nombre}} — {{fecha}}"
   },
