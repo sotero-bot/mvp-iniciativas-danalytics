@@ -7,6 +7,7 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi } from 'vitest';
 
+import { MiembrosGrupoService } from '../../apps/api/src/modules/grupos/application/miembros.service';
 import { FacilitadorGruposController } from '../../apps/api/src/modules/grupos/interfaces/facilitador-grupos.controller';
 
 const ACTOR = { sub: 'f1', role: 'facilitador', empresaId: null } as any;
@@ -19,12 +20,12 @@ function build(overrides: Record<string, any> = {}) {
       create: vi.fn().mockResolvedValue({ id: 'g2', nombre: 'G' }),
       findMany: vi.fn().mockResolvedValue([]),
     },
-    participantePrograma: { findFirst: vi.fn().mockResolvedValue({ id: 'pp1' }), findMany: vi.fn().mockResolvedValue([]) },
+    participantePrograma: { findFirst: vi.fn().mockResolvedValue({ id: 'pp1', confirmadoEn: new Date('2026-01-01') }), findMany: vi.fn().mockResolvedValue([]) },
     miembroGrupo: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 'm1' }) },
     ...overrides.prisma,
   };
-  const scope: any = { assertProgramaAccessible: vi.fn().mockResolvedValue(undefined) };
-  return { controller: new FacilitadorGruposController(prisma as any, scope as any), prisma, scope };
+  const scope: any = { assertProgramaEditable: vi.fn().mockResolvedValue(undefined) };
+  return { controller: new FacilitadorGruposController(prisma as any, scope as any, new MiembrosGrupoService(prisma as any)), prisma, scope };
 }
 
 describe('C-02 · facilitador crea grupos y asigna integrantes', () => {
@@ -33,10 +34,10 @@ describe('C-02 · facilitador crea grupos y asigna integrantes', () => {
     expect(handlers.sort()).toEqual(['addMiembro', 'createGrupo', 'listGrupos', 'listParticipantes']);
   });
 
-  it('crear grupo valida acceso al programa y asigna orden', async () => {
+  it('crear grupo valida que el programa sea editable por el actor y asigna orden', async () => {
     const { controller, scope, prisma } = build();
     await controller.createGrupo('p1', { nombre: 'Equipo A' }, ACTOR);
-    expect(scope.assertProgramaAccessible).toHaveBeenCalled();
+    expect(scope.assertProgramaEditable).toHaveBeenCalled();
     expect(prisma.grupo.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ programaId: 'p1', nombre: 'Equipo A', orden: 2, creadoPorId: 'f1' }) }),
     );
@@ -55,11 +56,25 @@ describe('C-02 · facilitador crea grupos y asigna integrantes', () => {
     });
   });
 
+  it('asignar participante sin confirmar → MIEMBRO_NO_CONFIRMADO', async () => {
+    const { controller, prisma } = build({
+      prisma: {
+        grupo: { findUnique: vi.fn().mockResolvedValue({ id: 'g1', programaId: 'p1' }) },
+        participantePrograma: { findFirst: vi.fn().mockResolvedValue({ id: 'pp1', confirmadoEn: null }) },
+        miembroGrupo: { findFirst: vi.fn(), create: vi.fn() },
+      },
+    });
+    await expect(controller.addMiembro('g1', { usuarioId: 'u2' }, ACTOR)).rejects.toMatchObject({
+      code: 'MIEMBRO_NO_CONFIRMADO',
+    });
+    expect(prisma.miembroGrupo.create).not.toHaveBeenCalled();
+  });
+
   it('asignar a alguien ya en un grupo → MIEMBRO_YA_EN_GRUPO (RN-04)', async () => {
     const { controller } = build({
       prisma: {
         grupo: { findUnique: vi.fn().mockResolvedValue({ id: 'g1', programaId: 'p1' }) },
-        participantePrograma: { findFirst: vi.fn().mockResolvedValue({ id: 'pp1' }) },
+        participantePrograma: { findFirst: vi.fn().mockResolvedValue({ id: 'pp1', confirmadoEn: new Date('2026-01-01') }) },
         miembroGrupo: { findFirst: vi.fn().mockResolvedValue({ id: 'm0' }), create: vi.fn() },
       },
     });

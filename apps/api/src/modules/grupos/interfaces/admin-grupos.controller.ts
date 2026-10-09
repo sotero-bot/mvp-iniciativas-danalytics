@@ -16,6 +16,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../prisma.service';
 import { JwtAuthGuard, RolesGuard, Roles } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+import { MiembrosGrupoService } from '../application/miembros.service';
 
 interface CreateGrupoDto {
   nombre: string;
@@ -52,7 +53,10 @@ const GRUPO_SELECT = {
 @Roles('danalytics_admin')
 @Controller('admin')
 export class AdminGruposController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly miembros: MiembrosGrupoService,
+  ) {}
 
   @Get('programas/:id/grupos')
   async listGrupos(@Param('id') programaId: string) {
@@ -102,54 +106,13 @@ export class AdminGruposController {
   }
 
   @Post('grupos/:id/miembros')
-  async addMiembro(@Param('id') grupoId: string, @Body() body: AddMiembroDto) {
-    const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
-    if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
-
-    // RN-04: el usuario debe ser participante activo del mismo programa.
-    const participante = await this.prisma.participantePrograma.findFirst({
-      where: { programaId: grupo.programaId, usuarioId: body.usuarioId, activo: true },
-      select: { id: true, confirmadoEn: true },
-    });
-    if (!participante) throw new AppError('MIEMBRO_NO_PARTICIPA');
-    // El estudiante debe haber confirmado su registro al programa antes de entrar a un grupo.
-    if (!participante.confirmadoEn) throw new AppError('MIEMBRO_NO_CONFIRMADO');
-
-    // RN-04: un estudiante en un solo grupo por programa (chequeo explícito +
-    // el índice único @@unique([programaId, usuarioId]) como red de seguridad).
-    const yaEnGrupo = await this.prisma.miembroGrupo.findFirst({
-      where: { programaId: grupo.programaId, usuarioId: body.usuarioId },
-    });
-    if (yaEnGrupo) throw new AppError('MIEMBRO_YA_EN_GRUPO');
-
-    try {
-      return await this.prisma.miembroGrupo.create({
-        data: {
-          id: randomUUID(),
-          grupoId,
-          programaId: grupo.programaId,
-          usuarioId: body.usuarioId,
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new AppError('MIEMBRO_YA_EN_GRUPO');
-      }
-      throw e;
-    }
+  addMiembro(@Param('id') grupoId: string, @Body() body: AddMiembroDto) {
+    return this.miembros.agregar(grupoId, body.usuarioId);
   }
 
   @Delete('grupos/:id/miembros/:usuarioId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeMiembro(@Param('id') grupoId: string, @Param('usuarioId') usuarioId: string) {
-    const miembro = await this.prisma.miembroGrupo.findFirst({ where: { grupoId, usuarioId } });
-    if (!miembro) throw new AppError('MIEMBRO_NO_PARTICIPA');
-
-    // Regla: mínimo 2 integrantes por grupo. No se puede dejar el grupo en 1;
-    // si tiene exactamente 2, para quitar a alguien hay que eliminar el grupo.
-    const total = await this.prisma.miembroGrupo.count({ where: { grupoId } });
-    if (total === 2) throw new AppError('GRUPO_MIN_INTEGRANTES');
-
-    await this.prisma.miembroGrupo.delete({ where: { id: miembro.id } });
+  removeMiembro(@Param('id') grupoId: string, @Param('usuarioId') usuarioId: string) {
+    return this.miembros.quitar(grupoId, usuarioId);
   }
 }

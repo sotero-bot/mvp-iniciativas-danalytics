@@ -1,5 +1,4 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../prisma.service';
 import { AppError } from '../../../shared/errors/AppError';
@@ -7,6 +6,7 @@ import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards'
 import { CLIENTE_ROLE_SLUGS } from '../../auth/guards/auth-user';
 import type { AuthUser } from '../../auth/guards';
 import { ResultadosService } from '../../formularios/application/resultados.service';
+import { programasClienteScope } from '../application/cliente-scope';
 
 // Fase 4 (Plan 2 §4.1 — RF-42/RF-43/RN-09): portal del cliente, SOLO LECTURA.
 // Todo endpoint acota por `empresaId = jwt.empresaId`; forjar el id de un
@@ -30,7 +30,7 @@ export class PortalProgramasController {
     const [programas, iniciativas] = await Promise.all([
       this.prisma.programa.findMany({
         // C-07: usuario_cliente ve solo asignados; cliente_admin, todos los de su empresa.
-        where: this.filtroProgramas(actor),
+        where: programasClienteScope(actor),
         select: {
           id: true,
           nombre: true,
@@ -97,7 +97,7 @@ export class PortalProgramasController {
 
     const programa = await this.prisma.programa.findFirst({
       // C-07: usuario_cliente solo abre programas asignados; el resto → 403 (igual que otra empresa).
-      where: { AND: [{ id: programaId }, this.filtroProgramas(actor)] },
+      where: { AND: [{ id: programaId }, programasClienteScope(actor)] },
       select: {
         id: true,
         nombre: true,
@@ -178,17 +178,6 @@ export class PortalProgramasController {
       diagnostico,
       feedback,
     };
-  }
-
-  // C-07: filtro de programas IA en Acción para roles cliente.
-  //  - cliente_admin  → todos los de su empresa (RN-09).
-  //  - usuario_cliente → además, solo los explícitamente asignados (UsuarioClientePrograma).
-  private filtroProgramas(actor: AuthUser): Prisma.ProgramaWhereInput {
-    const empresaId = this.requireEmpresa(actor);
-    if (actor.role === 'usuario_cliente') {
-      return { empresaId, asignacionesCliente: { some: { usuarioId: actor.sub } } };
-    }
-    return { empresaId };
   }
 
   private requireEmpresa(actor: AuthUser): string {

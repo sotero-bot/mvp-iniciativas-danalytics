@@ -64,6 +64,7 @@
   "MIEMBRO_NO_CONFIRMADO": "Este estudante ainda não confirmou seu registro no programa; não pode ser adicionado a um grupo até confirmar.",
   "GRUPO_NOT_FOUND": "O grupo não existe.",
   "GRUPO_MIN_INTEGRANTES": "Cada grupo deve ter pelo menos 2 integrantes.",
+  "GRUPO_REEMPLAZO_INVALIDO": "O integrante que entra e o que sai são a mesma pessoa.",
   "FACILITADOR_YA_ASIGNADO": "Este facilitador já está atribuído ao programa.",
   "BITACORA_NO_HABILITADA": "O diário de bordo ainda não está habilitado. Seu facilitador o ativará quando for o caso.",
   "OBSERVACION_NOT_FOUND": "A observação não existe.",

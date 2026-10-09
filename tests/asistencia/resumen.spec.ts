@@ -6,6 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { AdminAsistenciaController } from '../../apps/api/src/modules/asistencia/interfaces/admin-asistencia.controller';
+import { AsistenciaResumenService } from '../../apps/api/src/modules/asistencia/application/asistencia-resumen.service';
 
 const ADMIN = { sub: 'a1', userId: 'a1', role: 'danalytics_admin' as const, empresaId: null };
 const CLIENTE_OTRA_EMPRESA = {
@@ -23,7 +24,16 @@ const CLIENTE_MISMA_EMPRESA = {
 
 function buildController() {
   const prismaMock = {
-    programa: { findUnique: vi.fn().mockResolvedValue({ id: 'p1', empresaId: 'empresa-1' }) },
+    programa: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'p1', empresaId: 'empresa-1' }),
+      // C-07: los roles cliente pasan por assertProgramaCliente (findFirst con el scope).
+      // El mock evalúa la empresa del scope; la asignación de usuario_cliente se cubre en
+      // tests/portal/scoping.spec.ts.
+      findFirst: vi.fn(async ({ where }: any) => {
+        const empresaId = where.AND.find((c: any) => c.empresaId)?.empresaId;
+        return empresaId === 'empresa-1' ? { id: 'p1' } : null;
+      }),
+    },
     asistencia: {
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([
@@ -43,7 +53,7 @@ function buildController() {
       ]),
     },
   };
-  return { controller: new AdminAsistenciaController(prismaMock as any), prismaMock };
+  return { controller: new AdminAsistenciaController(prismaMock as any, new AsistenciaResumenService(prismaMock as any)), prismaMock };
 }
 
 describe('AdminAsistenciaController.updateAsistencia', () => {
@@ -56,10 +66,10 @@ describe('AdminAsistenciaController.updateAsistencia', () => {
 });
 
 describe('AdminAsistenciaController.resumen (RN-09)', () => {
-  it('FORBIDDEN si el cliente pide un programa de otra empresa', async () => {
+  it('PORTAL_ACCESO_DENEGADO si el cliente pide un programa de otra empresa (C-07/RN-09)', async () => {
     const { controller } = buildController();
     await expect(controller.resumen('p1', CLIENTE_OTRA_EMPRESA)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
+      code: 'PORTAL_ACCESO_DENEGADO',
     });
   });
 

@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
+import { MiembrosGrupoService } from '../../apps/api/src/modules/grupos/application/miembros.service';
 import { AdminGruposController } from '../../apps/api/src/modules/grupos/interfaces/admin-grupos.controller';
 import { AppError } from '../../apps/api/src/shared/errors/AppError';
 
@@ -13,7 +14,7 @@ function buildController(overrides: Record<string, unknown> = {}) {
       findUnique: vi.fn().mockResolvedValue({ id: 'g1', programaId: 'p1' }),
     },
     participantePrograma: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'part1', activo: true }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'part1', activo: true, confirmadoEn: new Date('2026-01-01') }),
     },
     miembroGrupo: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -21,7 +22,7 @@ function buildController(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
-  return { controller: new AdminGruposController(prismaMock as any), prismaMock };
+  return { controller: new AdminGruposController(prismaMock as any, new MiembrosGrupoService(prismaMock as any)), prismaMock };
 }
 
 describe('AdminGruposController.addMiembro', () => {
@@ -42,6 +43,18 @@ describe('AdminGruposController.addMiembro', () => {
     await expect(controller.addMiembro('g1', { usuarioId: 'u1' })).rejects.toMatchObject({
       code: 'MIEMBRO_NO_PARTICIPA',
     });
+  });
+
+  it('MIEMBRO_NO_CONFIRMADO si el participante aún no confirmó su registro al programa', async () => {
+    const { controller, prismaMock } = buildController({
+      participantePrograma: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'part1', activo: true, confirmadoEn: null }),
+      },
+    });
+    await expect(controller.addMiembro('g1', { usuarioId: 'u1' })).rejects.toMatchObject({
+      code: 'MIEMBRO_NO_CONFIRMADO',
+    });
+    expect(prismaMock.miembroGrupo.create).not.toHaveBeenCalled();
   });
 
   it('MIEMBRO_YA_EN_GRUPO si ya pertenece a un grupo del programa', async () => {

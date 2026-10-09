@@ -11,7 +11,16 @@ import { GrupoRecursosController } from '../../apps/api/src/modules/reto/interfa
 
 const ACTOR = { sub: 'est1', role: 'estudiante', empresaId: null } as any;
 
-function grupoConGating(presentacionDesdeSesion: number | null) {
+const PASADA = new Date('2026-07-02T00:00:00Z');
+const FUTURA = new Date('2999-01-01T00:00:00Z');
+
+// Plan 0 §1: el gate se evalúa sobre las sesiones cargadas con el grupo (helper puro
+// fase-programa.presentacionHabilitada), ya no con una query propia a `sesion`.
+function grupoConGating(
+  presentacionDesdeSesion: number | null,
+  bitacoraHabilitadaEn: Date | null = new Date('2026-07-01'),
+  sesiones: { numeroSesion: number; fechaProgramada: Date }[] = [],
+) {
   return {
     id: 'g1',
     programaId: 'prog1',
@@ -22,7 +31,9 @@ function grupoConGating(presentacionDesdeSesion: number | null) {
       nombre: 'Programa IA en Acción',
       estado: 'activo',
       presentacionDesdeSesion,
+      bitacoraHabilitadaEn,
       empresa: { nombre: 'Acme Córp' },
+      sesiones,
     },
   };
 }
@@ -31,7 +42,6 @@ function buildController(overrides: Record<string, any> = {}) {
   const prisma = {
     grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(null)), findMany: vi.fn() },
     miembroGrupo: { findFirst: vi.fn().mockResolvedValue({ id: 'm1' }) },
-    sesion: { findFirst: vi.fn().mockResolvedValue(null) },
     presentacionFinal: {
       findUnique: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockImplementation(({ create }: any) => Promise.resolve(create)),
@@ -67,12 +77,11 @@ describe('Gating por sesión (RF-32)', () => {
   it('bloqueada antes del cierre → PRESENTACION_NO_HABILITADA en la entrega', async () => {
     const { controller } = buildController({
       prisma: {
-        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4)), findMany: vi.fn() },
-        sesion: { findFirst: vi.fn().mockResolvedValue(null) }, // la sesión 4 no ha ocurrido
+        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4, undefined, [{ numeroSesion: 4, fechaProgramada: FUTURA }])), findMany: vi.fn() }, // la sesión 4 no ha ocurrido
       },
     });
     await expect(
-      controller.entregarPresentacion('g1', { urlPresentacion: 'https://slides.com/x' }, ACTOR),
+      controller.entregarPresentacion('g1', { archivoKey: 'x/pres.pdf' }, ACTOR),
     ).rejects.toMatchObject({ code: 'PRESENTACION_NO_HABILITADA' });
     // El GET informa el estado sin lanzar error (para que la UI muestre el candado).
     const estado = await controller.getPresentacion('g1', ACTOR);
@@ -83,35 +92,37 @@ describe('Gating por sesión (RF-32)', () => {
   it('habilitada cuando la sesión N ya ocurrió (numeroSesion ≥ N y fecha pasada)', async () => {
     const { controller, prisma } = buildController({
       prisma: {
-        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4)), findMany: vi.fn() },
-        sesion: { findFirst: vi.fn().mockResolvedValue({ id: 's4' }) },
+        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4, undefined, [{ numeroSesion: 4, fechaProgramada: PASADA }])), findMany: vi.fn() },
       },
     });
-    await controller.entregarPresentacion('g1', { urlPresentacion: 'https://slides.com/x' }, ACTOR);
-    expect(prisma.sesion.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          programaId: 'prog1',
-          numeroSesion: { gte: 4 },
-          fechaProgramada: { lte: expect.any(Date) },
-        }),
-      }),
-    );
+    await controller.entregarPresentacion('g1', { archivoKey: 'x/pres.pdf' }, ACTOR);
     expect(prisma.presentacionFinal.upsert).toHaveBeenCalled();
   });
 });
 
-describe('Entrega link O archivo (RF-32)', () => {
-  it('link válido → upsert con entregadoPorId/entregadoEn', async () => {
+describe('Gate de bitácora sobre la presentación (O-01)', () => {
+  it('bitácora NO habilitada → habilitada=false en el GET y PRESENTACION_NO_HABILITADA al entregar', async () => {
+    const { controller } = buildController({
+      prisma: { grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(null, null)), findMany: vi.fn() } },
+    });
+    expect((await controller.getPresentacion('g1', ACTOR)).habilitada).toBe(false);
+    await expect(
+      controller.entregarPresentacion('g1', { archivoKey: 'x/pres.pdf' }, ACTOR),
+    ).rejects.toMatchObject({ code: 'PRESENTACION_NO_HABILITADA' });
+  });
+});
+
+describe('Entrega de archivo (RF-32)', () => {
+  it('archivo válido → upsert con entregadoPorId/entregadoEn (sin link)', async () => {
     const { controller, prisma } = buildController();
-    await controller.entregarPresentacion('g1', { urlPresentacion: 'https://slides.com/demo' }, ACTOR);
+    await controller.entregarPresentacion('g1', { archivoKey: 'acme/prog/grupo_2/presentacion_final/1-a.pdf' }, ACTOR);
     const args = (prisma.presentacionFinal.upsert as any).mock.calls[0][0];
     expect(args.where).toEqual({ grupoId: 'g1' });
     expect(args.create).toMatchObject({
       grupoId: 'g1',
       programaId: 'prog1',
-      urlPresentacion: 'https://slides.com/demo',
-      archivoKey: null,
+      urlPresentacion: null,
+      archivoKey: 'acme/prog/grupo_2/presentacion_final/1-a.pdf',
       entregadoPorId: 'est1',
       entregadoEn: expect.any(Date),
     });
@@ -132,11 +143,12 @@ describe('Entrega link O archivo (RF-32)', () => {
     });
   });
 
-  it('link que no es http(s) → PRESENTACION_FORMATO_INVALIDO', async () => {
-    const { controller } = buildController();
+  it('entregar solo un link (ya no se acepta) → VALIDATION_ERROR y no persiste', async () => {
+    const { controller, prisma } = buildController();
     await expect(
-      controller.entregarPresentacion('g1', { urlPresentacion: 'ftp://x/pres.pdf' }, ACTOR),
-    ).rejects.toMatchObject({ code: 'PRESENTACION_FORMATO_INVALIDO' });
+      controller.entregarPresentacion('g1', { urlPresentacion: 'https://slides.com/demo' } as any, ACTOR),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(prisma.presentacionFinal.upsert).not.toHaveBeenCalled();
   });
 
   it('archivo con extensión no permitida (.docx) → PRESENTACION_FORMATO_INVALIDO', async () => {
@@ -151,7 +163,7 @@ describe('Entrega link O archivo (RF-32)', () => {
       prisma: { miembroGrupo: { findFirst: vi.fn().mockResolvedValue(null) } },
     });
     await expect(
-      controller.entregarPresentacion('g1', { urlPresentacion: 'https://x.com' }, ACTOR),
+      controller.entregarPresentacion('g1', { archivoKey: 'x/pres.pdf' }, ACTOR),
     ).rejects.toMatchObject({ code: 'GRUPO_RECURSO_NO_MIEMBRO' });
   });
 });
@@ -183,8 +195,7 @@ describe('Presign de subida (RF-32 + convención s3-key-naming)', () => {
   it('bloqueada antes del cierre → PRESENTACION_NO_HABILITADA (no firma)', async () => {
     const { controller, s3 } = buildController({
       prisma: {
-        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4)), findMany: vi.fn() },
-        sesion: { findFirst: vi.fn().mockResolvedValue(null) },
+        grupo: { findUnique: vi.fn().mockResolvedValue(grupoConGating(4, undefined, [{ numeroSesion: 4, fechaProgramada: FUTURA }])), findMany: vi.fn() },
       },
     });
     await expect(

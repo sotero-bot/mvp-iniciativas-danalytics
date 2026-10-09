@@ -13,6 +13,7 @@ import {
   CAMPO_FORM_TRANS_FIELDS,
   PLANTILLA_FORM_TRANS_FIELDS,
 } from '../../../shared/i18n/translatable-locales';
+import { presentacionHabilitada } from '../../programas/application/fase-programa';
 import { derivarConfigPublica } from '../../formularios/application/form-config';
 
 // Fase 3 (Plan 2 §3.1 — RF-16/RF-30/RF-31/RF-32): recursos de GRUPO. Bitácora y
@@ -53,6 +54,7 @@ const GRUPO_SELECT = {
       presentacionDesdeSesion: true,
       bitacoraHabilitadaEn: true, // O-01: gate de visibilidad de la bitácora
       empresa: { select: { nombre: true } },
+      sesiones: { select: { numeroSesion: true, fechaProgramada: true } }, // gate de presentación
     },
   },
 } satisfies Prisma.GrupoSelect;
@@ -171,7 +173,7 @@ export class GrupoRecursosController {
   @Get(':id/presentacion-final')
   async getPresentacion(@Param('id') grupoId: string, @CurrentUser() actor: AuthUser) {
     const grupo = await this.assertMiembro(grupoId, actor);
-    const habilitada = await this.presentacionHabilitada(grupo.programa);
+    const habilitada = presentacionHabilitada(grupo.programa, new Date());
     const entrega = await this.prisma.presentacionFinal.findUnique({
       where: { grupoId },
       select: {
@@ -199,7 +201,7 @@ export class GrupoRecursosController {
   ): Promise<{ uploadUrl: string; key: string }> {
     if (!this.s3.isConfigured) throw new AppError('S3_NOT_CONFIGURED');
     const grupo = await this.assertMiembro(grupoId, actor);
-    await this.assertPresentacionHabilitada(grupo.programa);
+    this.assertPresentacionHabilitada(grupo.programa);
     if (!body?.filename || !PRESENTACION_EXT_RE.test(body.filename)) {
       throw new AppError('PRESENTACION_FORMATO_INVALIDO');
     }
@@ -225,7 +227,7 @@ export class GrupoRecursosController {
     @CurrentUser() actor: AuthUser,
   ) {
     const grupo = await this.assertMiembro(grupoId, actor);
-    await this.assertPresentacionHabilitada(grupo.programa);
+    this.assertPresentacionHabilitada(grupo.programa);
 
     const archivoKey = body?.archivoKey?.trim() || null;
     if (!archivoKey) {
@@ -434,32 +436,13 @@ export class GrupoRecursosController {
     }
   }
 
-  // RF-32 + O-01: la entrega se habilita con DOS gates combinados (AND):
-  //   1) la bitácora del programa debe estar habilitada (gate de sección), y
-  //   2) "a partir de la sesión N" (presentacionDesdeSesion, configurable). Sin N
-  //      → basta con el gate de bitácora; con N → debe existir una sesión
-  //      numeroSesion ≥ N ya ocurrida (fechaProgramada <= ahora).
-  private async presentacionHabilitada(programa: {
-    id: string;
+  // RF-32 + O-01: ver presentacionHabilitada en programas/application/fase-programa.
+  private assertPresentacionHabilitada(programa: {
     presentacionDesdeSesion: number | null;
     bitacoraHabilitadaEn: Date | null;
-  }): Promise<boolean> {
-    if (!programa.bitacoraHabilitadaEn) return false;
-    const desde = programa.presentacionDesdeSesion;
-    if (desde === null || desde === undefined) return true;
-    const sesion = await this.prisma.sesion.findFirst({
-      where: { programaId: programa.id, numeroSesion: { gte: desde }, fechaProgramada: { lte: new Date() } },
-      select: { id: true },
-    });
-    return !!sesion;
-  }
-
-  private async assertPresentacionHabilitada(programa: {
-    id: string;
-    presentacionDesdeSesion: number | null;
-    bitacoraHabilitadaEn: Date | null;
-  }): Promise<void> {
-    if (!(await this.presentacionHabilitada(programa))) {
+    sesiones: { numeroSesion: number; fechaProgramada: Date }[];
+  }): void {
+    if (!presentacionHabilitada(programa, new Date())) {
       throw new AppError('PRESENTACION_NO_HABILITADA');
     }
   }

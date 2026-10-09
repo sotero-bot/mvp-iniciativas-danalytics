@@ -10,6 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { ROLES_KEY } from '../../apps/api/src/modules/auth/guards';
 import { CLIENTE_ROLE_SLUGS } from '../../apps/api/src/modules/auth/guards/auth-user';
 import { PortalProgramasController } from '../../apps/api/src/modules/portal/interfaces/portal-programas.controller';
+import { AdminAsistenciaController } from '../../apps/api/src/modules/asistencia/interfaces/admin-asistencia.controller';
 import { PortalUsuariosClienteController } from '../../apps/api/src/modules/portal/interfaces/portal-usuarios-cliente.controller';
 
 const ACTOR_CLIENTE = { sub: 'cli1', role: 'cliente_admin', empresaId: 'emp1' } as any;
@@ -56,8 +57,9 @@ describe('Autorización (§0.1, RF-42/RF-43)', () => {
     const handlers = Object.getOwnPropertyNames(PortalProgramasController.prototype).filter(
       n => n !== 'constructor',
     );
-    // detalle/listPrograms son los únicos GET; filtroProgramas/requireEmpresa son helpers privados.
-    expect(handlers.sort()).toEqual(['detalle', 'filtroProgramas', 'listPrograms', 'requireEmpresa']);
+    // detalle/listPrograms son los únicos GET; requireEmpresa es un helper privado
+    // (el filtro C-07 vive ahora en portal/application/cliente-scope.ts).
+    expect(handlers.sort()).toEqual(['detalle', 'listPrograms', 'requireEmpresa']);
   });
 
   it('la gestión de usuarios-cliente es EXCLUSIVA de cliente_admin', () => {
@@ -184,5 +186,70 @@ describe('GET /portal/programas/:id (RF-43, RN-09)', () => {
     const result = await controller.detalle('prog1', ACTOR_CLIENTE);
     expect(JSON.stringify(result)).not.toContain('archivoKey');
     expect(result.proyecto[0].presentacion).toMatchObject({ entregada: true, conArchivo: true });
+  });
+});
+
+// Plan 0 §2 (C-07): GET admin/programas/:id/asistencia/resumen debe aplicar el mismo scope
+// que el portal. El prisma falso EVALÚA el `where` (empresa + asignaciones): un mock que lo
+// ignorara no podría cazar el defecto original, que solo comparaba empresaId.
+describe('AdminAsistenciaController.resumen — scoping C-07', () => {
+  const ASIGNADOS = new Set(['uc-asignado']);
+  const DANALYTICS_ADMIN = { sub: 'adm', role: 'danalytics_admin', empresaId: null } as any;
+  const UC_ASIGNADO = { sub: 'uc-asignado', role: 'usuario_cliente', empresaId: 'emp1' } as any;
+  const UC_SIN_ASIGNAR = { sub: 'uc-libre', role: 'usuario_cliente', empresaId: 'emp1' } as any;
+  const CLIENTE_ADMIN = { sub: 'cli1', role: 'cliente_admin', empresaId: 'emp1' } as any;
+  const CLIENTE_OTRA = { sub: 'cli2', role: 'cliente_admin', empresaId: 'emp2' } as any;
+  const FILA = { id: 'prog1', empresaId: 'emp1' };
+
+  const coincide = (where: any): boolean => {
+    if (!where) return true;
+    if (where.AND) return where.AND.every(coincide);
+    if (where.id !== undefined && where.id !== FILA.id) return false;
+    if (where.empresaId !== undefined && where.empresaId !== FILA.empresaId) return false;
+    const some = where.asignacionesCliente?.some;
+    if (some && !ASIGNADOS.has(some.usuarioId)) return false;
+    return true;
+  };
+
+  function build() {
+    const prisma = {
+      programa: {
+        findUnique: vi.fn().mockResolvedValue(FILA),
+        findFirst: vi.fn(async ({ where }: any) => (coincide(where) ? FILA : null)),
+      },
+    };
+    const resumen = { build: vi.fn().mockResolvedValue({ filas: [] }) };
+    return { controller: new AdminAsistenciaController(prisma as any, resumen as any), resumen };
+  }
+
+  it('usuario_cliente CON asignación → 200', async () => {
+    const { controller, resumen } = build();
+    await expect(controller.resumen('prog1', UC_ASIGNADO)).resolves.toEqual({ filas: [] });
+    expect(resumen.build).toHaveBeenCalledWith('prog1');
+  });
+
+  it('usuario_cliente SIN asignación, programa de su empresa → PORTAL_ACCESO_DENEGADO (regresión C-07)', async () => {
+    const { controller, resumen } = build();
+    await expect(controller.resumen('prog1', UC_SIN_ASIGNAR)).rejects.toMatchObject({
+      code: 'PORTAL_ACCESO_DENEGADO',
+    });
+    expect(resumen.build).not.toHaveBeenCalled(); // no se filtran nombres ni correos
+  });
+
+  it('cliente_admin, programa de su empresa → 200', async () => {
+    const { controller } = build();
+    await expect(controller.resumen('prog1', CLIENTE_ADMIN)).resolves.toEqual({ filas: [] });
+  });
+
+  it('cliente_admin, programa de otra empresa → PORTAL_ACCESO_DENEGADO', async () => {
+    const { controller } = build();
+    await expect(controller.resumen('prog1', CLIENTE_OTRA)).rejects.toMatchObject({
+      code: 'PORTAL_ACCESO_DENEGADO',
+    });
+  });
+
+  it('danalytics_admin, cualquier programa → 200', async () => {
+    const { controller } = build();
+    await expect(controller.resumen('prog1', DANALYTICS_ADMIN)).resolves.toEqual({ filas: [] });
   });
 });

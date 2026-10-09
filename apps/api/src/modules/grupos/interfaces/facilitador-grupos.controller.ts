@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma.service';
 import { ActorScopeService } from '../../auth/scoping/actor-scope.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards';
 import type { AuthUser } from '../../auth/guards';
+import { MiembrosGrupoService } from '../application/miembros.service';
 import { AppError } from '../../../shared/errors/AppError';
 
 const GRUPO_SELECT = {
@@ -40,6 +41,7 @@ export class FacilitadorGruposController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
+    private readonly miembros: MiembrosGrupoService,
   ) {}
 
   @Get('programas/:id/grupos')
@@ -100,36 +102,6 @@ export class FacilitadorGruposController {
     const grupo = await this.prisma.grupo.findUnique({ where: { id: grupoId } });
     if (!grupo) throw new AppError('GRUPO_NOT_FOUND');
     await this.scope.assertProgramaEditable(this.prisma, actor, grupo.programaId);
-
-    // RN-04: el usuario debe ser participante activo del mismo programa.
-    const participante = await this.prisma.participantePrograma.findFirst({
-      where: { programaId: grupo.programaId, usuarioId: body.usuarioId, activo: true },
-      select: { id: true, confirmadoEn: true },
-    });
-    if (!participante) throw new AppError('MIEMBRO_NO_PARTICIPA');
-    // El estudiante debe haber confirmado su registro al programa antes de entrar a un grupo.
-    if (!participante.confirmadoEn) throw new AppError('MIEMBRO_NO_CONFIRMADO');
-
-    // RN-04: un estudiante en un solo grupo por programa.
-    const yaEnGrupo = await this.prisma.miembroGrupo.findFirst({
-      where: { programaId: grupo.programaId, usuarioId: body.usuarioId },
-    });
-    if (yaEnGrupo) throw new AppError('MIEMBRO_YA_EN_GRUPO');
-
-    try {
-      return await this.prisma.miembroGrupo.create({
-        data: {
-          id: randomUUID(),
-          grupoId,
-          programaId: grupo.programaId,
-          usuarioId: body.usuarioId,
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new AppError('MIEMBRO_YA_EN_GRUPO');
-      }
-      throw e;
-    }
+    return this.miembros.agregar(grupoId, body.usuarioId);
   }
 }

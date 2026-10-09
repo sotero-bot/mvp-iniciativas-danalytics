@@ -6,6 +6,7 @@ import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../../auth/guards'
 import { CLIENTE_ROLE_SLUGS } from '../../auth/guards/auth-user';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
+import { assertProgramaCliente } from '../../portal/application/cliente-scope';
 import { AsistenciaResumenService } from '../application/asistencia-resumen.service';
 
 interface PatchAsistenciaDto {
@@ -63,14 +64,14 @@ export class AdminAsistenciaController {
     res.send(Buffer.from(buffer));
   }
 
+  // C-07 / RN-09: los roles cliente pasan por el scope compartido del portal (empresa +
+  // asignación); danalytics_admin mantiene acceso total.
   private async assertAccesible(programaId: string, actor: AuthUser): Promise<void> {
+    if (CLIENTE_ROLE_SLUGS.includes(actor.role as (typeof CLIENTE_ROLE_SLUGS)[number])) {
+      await assertProgramaCliente(this.prisma, actor, programaId);
+      return;
+    }
     const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
     if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
-    if (
-      (actor.role === 'cliente_admin' || actor.role === 'usuario_cliente') &&
-      programa.empresaId !== actor.empresaId
-    ) {
-      throw new AppError('FORBIDDEN');
-    }
   }
 }
