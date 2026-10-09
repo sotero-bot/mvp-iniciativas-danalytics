@@ -57,12 +57,43 @@ export class UsuarioClienteService {
     return targetStr.includes(CLIENTE_ADMIN_INDEX) || e.message.includes(CLIENTE_ADMIN_INDEX);
   }
 
-  /** Miembros del portal de una empresa (glue para la UI de gestión, RF-44). */
+  /**
+   * Usuarios de una empresa para la UI de gestión del `cliente_admin`: TODOS los `Usuario`
+   * de la empresa, invitados o no. No parte de la tabla puente `UsuarioCliente` (los usuarios
+   * creados por admin/seed/matrícula no tienen fila). `membresiaId` solo existe si hubo
+   * invitación/sincronización; es el id que usa `revocar`.
+   */
   async listar(empresaId: string) {
-    return this.prisma.usuarioCliente.findMany({
+    const usuarios = await this.prisma.usuario.findMany({
       where: { empresaId },
-      select: MIEMBRO_SELECT,
-      orderBy: [{ activo: 'desc' }, { invitadoEn: 'desc' }],
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        activo: true,
+        puedeIniciarSesion: true,
+        role: { select: { slug: true, nombre: true } },
+        membresiasCliente: {
+          where: { empresaId },
+          select: {
+            id: true,
+            activo: true,
+            invitadoEn: true,
+            invitadoPor: { select: { id: true, nombre: true } },
+          },
+        },
+      },
+      orderBy: [{ activo: 'desc' }, { nombre: 'asc' }],
+    });
+    return usuarios.map(({ membresiasCliente, ...usuario }) => {
+      const m = membresiasCliente[0] ?? null;
+      return {
+        membresiaId: m?.id ?? null,
+        activo: m ? m.activo : usuario.activo,
+        invitadoEn: m?.invitadoEn ?? null,
+        invitadoPor: m?.invitadoPor ?? null,
+        usuario,
+      };
     });
   }
 

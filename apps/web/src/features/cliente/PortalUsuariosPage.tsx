@@ -7,10 +7,11 @@ import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Todos los usuarios de la empresa; `membresiaId` solo existe si fue invitado/sincronizado.
 interface MiembroPortal {
-  id: string;
+  membresiaId: string | null;
   activo: boolean;
-  invitadoEn: string;
+  invitadoEn: string | null;
   invitadoPor: { id: string; nombre: string } | null;
   usuario: {
     id: string;
@@ -120,10 +121,10 @@ export function PortalUsuariosPage() {
 
   const confirmarRevocar = async () => {
     const m = revocarTarget;
-    if (!m) return;
+    if (!m?.membresiaId) return;
     setRevocarTarget(null);
     try {
-      await fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente/${m.id}`, { method: 'DELETE' });
+      await fetchWithErrorMapping(`${API_URL}/portal/usuarios-cliente/${m.membresiaId}`, { method: 'DELETE' });
       toast.success(t('portal:usuarios.revocado_ok'));
       cargar();
     } catch (err) {
@@ -173,6 +174,7 @@ export function PortalUsuariosPage() {
                     <tr>
                       <th>{t('portal:usuarios.nombre')}</th>
                       <th>{t('portal:usuarios.email')}</th>
+                      <th>{t('portal:usuarios.rol')}</th>
                       <th>{t('portal:usuarios.estado')}</th>
                       <th>{t('portal:usuarios.invitado')}</th>
                       <th />
@@ -180,17 +182,18 @@ export function PortalUsuariosPage() {
                   </thead>
                   <tbody>
                     {miembros.map(m => (
-                      <React.Fragment key={m.id}>
+                      <React.Fragment key={m.usuario.id}>
                         <tr style={{ opacity: m.activo ? 1 : 0.55 }}>
                           <td style={{ fontWeight: 600 }}>{m.usuario.nombre}</td>
                           <td>{m.usuario.email ?? '—'}</td>
+                          <td>{m.usuario.role?.nombre ?? '—'}</td>
                           <td>
                             <StatusBadge variant={m.activo ? 'success' : 'neutral'}>
                               {m.activo ? t('portal:usuarios.activo') : t('portal:usuarios.revocado')}
                             </StatusBadge>
                           </td>
                           <td style={{ color: 'var(--color-text-secondary)' }}>
-                            {new Date(m.invitadoEn).toLocaleDateString()}{m.invitadoPor ? ` · ${m.invitadoPor.nombre}` : ''}
+                            {m.invitadoEn ? `${new Date(m.invitadoEn).toLocaleDateString()}${m.invitadoPor ? ` · ${m.invitadoPor.nombre}` : ''}` : '—'}
                           </td>
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {m.activo && m.usuario.role?.slug === 'usuario_cliente' && (
@@ -198,17 +201,21 @@ export function PortalUsuariosPage() {
                                 <Button variant="link" onClick={() => toggleProgramas(m.usuario.id)}>
                                   {t('portal:usuarios.programas')}
                                 </Button>
-                                {' · '}
-                                <Button variant="link" className="btn-link-danger" onClick={() => setRevocarTarget(m)}>
-                                  {t('portal:usuarios.revocar')}
-                                </Button>
+                                {m.membresiaId && (
+                                  <>
+                                    {' · '}
+                                    <Button variant="link" className="btn-link-danger" onClick={() => setRevocarTarget(m)}>
+                                      {t('portal:usuarios.revocar')}
+                                    </Button>
+                                  </>
+                                )}
                               </>
                             )}
                           </td>
                         </tr>
                         {programasOpen === m.usuario.id && (
                           <tr>
-                            <td colSpan={5} style={{ background: 'var(--color-bg-subtle)' }}>
+                            <td colSpan={6} style={{ background: 'var(--color-bg-subtle)' }}>
                               <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: 'var(--space-1)' }}>
                                 {t('portal:usuarios.programas_asignados')}
                               </div>

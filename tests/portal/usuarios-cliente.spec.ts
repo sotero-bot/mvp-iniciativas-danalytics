@@ -255,3 +255,60 @@ describe('sincronización de la tabla puente desde admin (§4.2)', () => {
     );
   });
 });
+
+// FIX HU-14-bis: el cliente_admin ve a TODOS los usuarios de su empresa, invitados o no.
+// El listado no puede depender de la tabla puente `UsuarioCliente` (los usuarios creados
+// por seed/admin/matrícula no tienen fila).
+describe('listar — todos los usuarios de la empresa', () => {
+  const uc = (over: any = {}) => ({
+    id: 'u1', nombre: 'Ana', email: 'ana@acme.co', activo: true, puedeIniciarSesion: true,
+    role: { slug: 'estudiante', nombre: 'Estudiante' }, membresiasCliente: [], ...over,
+  });
+
+  it('consulta Usuario acotado por la empresa del actor (no la tabla puente)', async () => {
+    const { service, prisma } = buildService({ prisma: { usuario: { findMany: vi.fn().mockResolvedValue([]) } } });
+    await service.listar(EMPRESA);
+    expect(prisma.usuario.findMany.mock.calls[0][0].where).toEqual({ empresaId: EMPRESA });
+    expect(prisma.usuarioCliente.findMany).not.toHaveBeenCalled();
+  });
+
+  it('incluye usuarios SIN membresía (estudiantes, seed) con membresiaId null', async () => {
+    const { service } = buildService({ prisma: { usuario: { findMany: vi.fn().mockResolvedValue([uc()]) } } });
+    const [fila] = await service.listar(EMPRESA);
+    expect(fila).toMatchObject({
+      membresiaId: null, activo: true, invitadoEn: null, invitadoPor: null,
+      usuario: { id: 'u1', nombre: 'Ana', role: { slug: 'estudiante' } },
+    });
+  });
+
+  it('usuario invitado: expone membresiaId, fecha e invitador; revocado se refleja en `activo`', async () => {
+    const invitadoEn = new Date('2026-10-01');
+    const { service } = buildService({
+      prisma: {
+        usuario: {
+          findMany: vi.fn().mockResolvedValue([
+            uc({
+              id: 'u2', role: { slug: 'usuario_cliente', nombre: 'Usuario cliente' },
+              membresiasCliente: [{ id: 'm1', activo: false, invitadoEn, invitadoPor: { id: 'adm', nombre: 'Jefe' } }],
+            }),
+          ]),
+        },
+      },
+    });
+    const [fila] = await service.listar(EMPRESA);
+    expect(fila).toMatchObject({ membresiaId: 'm1', activo: false, invitadoEn, invitadoPor: { id: 'adm', nombre: 'Jefe' } });
+  });
+
+  it('sin membresía, `activo` sigue al usuario (un usuario desactivado sale inactivo)', async () => {
+    const { service } = buildService({ prisma: { usuario: { findMany: vi.fn().mockResolvedValue([uc({ activo: false })]) } } });
+    expect((await service.listar(EMPRESA))[0].activo).toBe(false);
+  });
+
+  it('no expone campos sensibles (password, googleId…)', async () => {
+    const { service, prisma } = buildService({ prisma: { usuario: { findMany: vi.fn().mockResolvedValue([]) } } });
+    await service.listar(EMPRESA);
+    const select = prisma.usuario.findMany.mock.calls[0][0].select;
+    expect(select).not.toHaveProperty('password');
+    expect(select).not.toHaveProperty('googleId');
+  });
+});
