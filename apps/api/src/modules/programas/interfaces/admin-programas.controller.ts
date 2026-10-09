@@ -36,6 +36,7 @@ import {
 } from '../../../shared/i18n/translatable-locales';
 import { startOfNextDayInTimeZone, dayNumberInTimeZone } from '../../../shared/utils/timezone';
 import { SnapshotFormulariosService } from '../../formularios/application/snapshot-formularios.service';
+import { agruparAreas, claveArea, normalizarNombreArea } from '../../organization/application/areas';
 
 const FACILITADOR_SLUG = 'facilitador';
 const ESTUDIANTE_SLUG = 'estudiante';
@@ -100,6 +101,7 @@ interface MatricularDto {
   nombre?: string;
   cargo?: string | null;
   area?: string | null;
+  areaId?: string | null; // HU-14: catálogo por empresa; `area` (texto) se mantiene sincronizado
   enviarInvitacion?: boolean;
   locale?: 'es' | 'pt';
 }
@@ -195,6 +197,7 @@ const PARTICIPANTE_SELECT = {
       email: true,
       cargo: true,
       area: true,
+      areaCatalogo: { select: { id: true, nombre: true } }, // HU-14
       puedeIniciarSesion: true,
       role: { select: { id: true, slug: true, nombre: true } },
     },
@@ -737,7 +740,20 @@ export class AdminProgramasController {
   // Plantilla Excel para la carga masiva. Ruta sin `:id` (es genérica); se declara
   // antes de las rutas con `:id` por claridad, aunque no colisiona (3 segmentos distintos).
   @Get('programas/participantes/plantilla')
-  async descargarPlantillaParticipantes(@Res() res: Response) {
+  async descargarPlantillaParticipantes(@Res() res: Response, @Query('programaId') programaId?: string) {
+    // HU-14: con ?programaId= se añade la hoja `Areas` con el catálogo de la empresa.
+    let areas: { nombre: string }[] = [];
+    if (programaId) {
+      const programa = await this.prisma.programa.findUnique({ where: { id: programaId } });
+      if (!programa) throw new AppError('PROGRAMA_NOT_FOUND');
+      if (programa.empresaId) {
+        areas = await this.prisma.areaEmpresa.findMany({
+          where: { empresaId: programa.empresaId, activo: true },
+          select: { nombre: true },
+          orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
+        });
+      }
+    }
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const ExcelJS = require('exceljs');
@@ -756,6 +772,22 @@ export class AdminProgramasController {
         cargo: 'Analista',
         area: 'Operaciones',
       });
+      if (areas.length > 0) {
+        const wsAreas = wb.addWorksheet('Areas');
+        wsAreas.columns = [{ header: 'area', key: 'area', width: 30 }];
+        wsAreas.getRow(1).font = { bold: true };
+        areas.forEach((a) => wsAreas.addRow({ area: a.nombre }));
+        // `warning`: permite escribir un área nueva (la importación la crea y la reporta).
+        for (let r = 2; r <= 501; r++) {
+          ws.getCell(`D${r}`).dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            formulae: [`Areas!$A$2:$A$${areas.length + 1}`],
+            showErrorMessage: true,
+            errorStyle: 'warning',
+          };
+        }
+      }
       const buffer = await wb.xlsx.writeBuffer();
       res.setHeader(
         'Content-Type',
@@ -816,6 +848,8 @@ export class AdminProgramasController {
       }
 
       const reporte = await this.validarFilasMatricula(programa, filas);
+      // HU-14: top-level (NO un aviso por fila: los avisos bloquean el "todo o nada").
+      const areasNuevas = await this.detectarAreasNuevas(programa, reporte);
       const resumen = {
         total: reporte.length,
         ok: reporte.filter((f) => f.estado === 'ok').length,
@@ -825,7 +859,7 @@ export class AdminProgramasController {
       const validarSolo = body.validarSolo === '1' || body.validarSolo === 'true';
       // No registrar si es dry-run, si hay filas problemáticas, o si no hay nada válido.
       if (validarSolo || resumen.error > 0 || resumen.ok === 0) {
-        return { registrado: false, resumen, filas: reporte };
+        return { registrado: false, resumen, filas: reporte, areasNuevas };
       }
 
       // Todo-o-nada: crea usuarios faltantes + participaciones en una sola transacción.
@@ -863,7 +897,7 @@ export class AdminProgramasController {
         }
       }
 
-      return { registrado: true, resumen, filas: reporte, matriculados: usuarioIds.length };
+      return { registrado: true, resumen, filas: reporte, matriculados: usuarioIds.length, areasNuevas };
     } finally {
       try {
         fs.unlinkSync(file.path);
@@ -886,6 +920,7 @@ export class AdminProgramasController {
         nombre: body.nombre,
         cargo: body.cargo,
         area: body.area,
+        areaId: body.areaId,
       });
     } else {
       const existente = await this.prisma.usuario.findUnique({
@@ -1157,12 +1192,20 @@ export class AdminProgramasController {
   private async resolverUsuarioPorEmail(
     db: Prisma.TransactionClient,
     programa: { empresaId: string | null },
-    datos: { email?: string; nombre?: string; cargo?: string | null; area?: string | null },
+    datos: {
+      email?: string;
+      nombre?: string;
+      cargo?: string | null;
+      area?: string | null;
+      areaId?: string | null;
+    },
   ): Promise<string> {
     const email = datos.email?.toLowerCase().trim();
     if (!email) {
       throw new AppError('VALIDATION_ERROR', { message: 'Debes enviar usuarioId o email' });
     }
+    // HU-14: valida el `areaId` antes de cualquier escritura.
+    const areaElegida = datos.areaId ? await this.assertAreaDeEmpresa(db, programa.empresaId, datos.areaId) : null;
     // Unicidad del estudiante por email: el email es único por empresa
     // (@@unique([empresaId, email])), así que se busca en TODAS las empresas.
     // Si ya existe en la MISMA empresa se reutiliza; si existe en OTRA empresa se bloquea.
@@ -1189,6 +1232,8 @@ export class AdminProgramasController {
       });
     }
     const estudianteRole = await db.role.findUniqueOrThrow({ where: { slug: ESTUDIANTE_SLUG } });
+    // Área: `areaId` validado, o find-or-create a partir del texto (importación). Se setean AMBOS campos.
+    const area = areaElegida ?? (await this.resolverAreaPorNombre(db, programa.empresaId, datos.area));
     const nuevo = await db.usuario.create({
       data: {
         id: randomUUID(),
@@ -1196,12 +1241,86 @@ export class AdminProgramasController {
         email,
         empresaId: programa.empresaId,
         cargo: datos.cargo ?? null,
-        area: datos.area ?? null,
+        area: area?.nombre ?? datos.area ?? null,
+        areaId: area?.id ?? null,
         roleId: estudianteRole.id,
         puedeIniciarSesion: true,
       },
     });
     return nuevo.id;
+  }
+
+  // --------- Áreas por empresa (HU-14) ---------
+
+  /** El área debe existir y pertenecer a la empresa del programa; si no → AREA_EMPRESA_INVALIDA. */
+  private async assertAreaDeEmpresa(
+    db: Prisma.TransactionClient,
+    empresaId: string | null,
+    areaId: string,
+  ): Promise<{ id: string; nombre: string }> {
+    const area = await db.areaEmpresa.findUnique({ where: { id: areaId } });
+    if (!area || !empresaId || area.empresaId !== empresaId) {
+      throw new AppError('AREA_EMPRESA_INVALIDA');
+    }
+    return { id: area.id, nombre: area.nombre };
+  }
+
+  /**
+   * Find-or-create del área de una empresa a partir de un texto libre (comparación sin
+   * mayúsculas ni acentos). Si solo existe una versión inactiva, se reactiva.
+   */
+  private async resolverAreaPorNombre(
+    db: Prisma.TransactionClient,
+    empresaId: string | null,
+    texto: string | null | undefined,
+  ): Promise<{ id: string; nombre: string } | null> {
+    const nombre = normalizarNombreArea(texto ?? '');
+    if (!nombre || !empresaId) return null;
+    const clave = claveArea(nombre);
+    const existentes = await db.areaEmpresa.findMany({ where: { empresaId } });
+    const coincidentes = existentes.filter((a) => claveArea(a.nombre) === clave);
+    const encontrada = coincidentes.find((a) => a.activo) ?? coincidentes[0];
+    if (encontrada) {
+      if (!encontrada.activo) {
+        await db.areaEmpresa.update({ where: { id: encontrada.id }, data: { activo: true } });
+      }
+      return { id: encontrada.id, nombre: encontrada.nombre };
+    }
+    const creada = await db.areaEmpresa.create({ data: { empresaId, nombre } });
+    return { id: creada.id, nombre: creada.nombre };
+  }
+
+  /**
+   * Nombres de área que la importación CREARÁ (sin escribir): filas `ok` que darán de alta un
+   * usuario nuevo y cuya área no está en el catálogo de la empresa (en ningún estado).
+   */
+  private async detectarAreasNuevas(
+    programa: { empresaId: string | null },
+    reporte: FilaReporte[],
+  ): Promise<string[]> {
+    const empresaId = programa.empresaId;
+    if (!empresaId) return [];
+    const candidatas = reporte.filter((f) => f.estado === 'ok' && f.area);
+    if (candidatas.length === 0) return [];
+
+    const emails = candidatas.map((f) => f.email.toLowerCase().trim());
+    const [existentes, usuariosEnEmpresa] = await Promise.all([
+      this.prisma.areaEmpresa.findMany({ where: { empresaId }, select: { nombre: true } }),
+      this.prisma.usuario.findMany({
+        where: { empresaId, email: { in: emails } },
+        select: { email: true },
+      }),
+    ]);
+    const clavesCatalogo = new Set(existentes.map((a) => claveArea(a.nombre)));
+    const yaExisten = new Set(usuariosEnEmpresa.map((u) => (u.email ?? '').toLowerCase().trim()));
+
+    return agruparAreas(
+      candidatas
+        .filter((f) => !yaExisten.has(f.email.toLowerCase().trim()))
+        .map((f) => ({ empresaId, area: f.area })),
+    )
+      .filter((g) => !clavesCatalogo.has(claveArea(g.nombre)))
+      .map((g) => g.nombre);
   }
 
   // --------- Carga masiva de participantes (Excel) ---------

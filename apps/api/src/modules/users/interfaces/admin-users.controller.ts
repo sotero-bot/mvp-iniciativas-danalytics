@@ -35,7 +35,8 @@ interface CreateUsuarioDto {
   password?: string | null;
   empresaId?: string | null;
   cargo?: string | null;
-  area?: string | null;
+  area?: string | null; // DEPRECADO (HU-14): usar areaId
+  areaId?: string | null;
   puedeIniciarSesion?: boolean;
 }
 
@@ -47,7 +48,8 @@ interface UpdateUsuarioDto {
   password?: string | null;
   empresaId?: string | null;
   cargo?: string | null;
-  area?: string | null;
+  area?: string | null; // DEPRECADO (HU-14): usar areaId
+  areaId?: string | null;
   puedeIniciarSesion?: boolean;
   activo?: boolean;
 }
@@ -66,6 +68,8 @@ const SELECT_PUBLIC = {
   googleEmailVerificado: true,
   cargo: true,
   area: true,
+  areaId: true,
+  areaCatalogo: { select: { id: true, nombre: true } },
   estado: true,
   activo: true,
   empresaId: true,
@@ -255,6 +259,9 @@ export class AdminUsersController {
       throw new AppError('VALIDATION_ERROR', { message: 'empresaId requerido para este rol' });
     }
 
+    // HU-14: el área del catálogo debe ser de la empresa del usuario; `area` (texto) queda sincronizada.
+    const areaCatalogo = body.areaId ? await this.assertAreaDeEmpresa(body.areaId, empresaId) : null;
+
     const passwordHash = body.password ? await bcrypt.hash(body.password, 10) : null;
 
     try {
@@ -268,7 +275,8 @@ export class AdminUsersController {
           roleId,
           puedeIniciarSesion: body.puedeIniciarSesion ?? (roleSlug !== 'participante_legacy'),
           cargo: body.cargo ?? null,
-          area: body.area ?? null,
+          area: areaCatalogo?.nombre ?? body.area ?? null,
+          areaId: areaCatalogo?.id ?? null,
           empresaId,
         },
         select: SELECT_PUBLIC,
@@ -339,6 +347,18 @@ export class AdminUsersController {
         : { disconnect: true };
     }
 
+    // HU-14: área del catálogo. Se valida contra la empresa resultante de este PATCH.
+    const empresaFinal = body.empresaId !== undefined ? body.empresaId || null : existing.empresaId;
+    if (body.areaId) {
+      const area = await this.assertAreaDeEmpresa(body.areaId, empresaFinal);
+      data.areaCatalogo = { connect: { id: area.id } };
+      data.area = area.nombre;
+    } else if (body.areaId === null || (body.empresaId !== undefined && empresaFinal !== existing.empresaId)) {
+      // Quitar el área, o cambiar de empresa sin elegir otra: no puede quedar un área de otra empresa.
+      data.areaCatalogo = { disconnect: true };
+      data.area = null;
+    }
+
     try {
       const updated = await this.prisma.usuario.update({
         where: { id },
@@ -403,6 +423,14 @@ export class AdminUsersController {
       { id, empresaId: existing.empresaId, activo: false, role: null },
       null,
     );
+  }
+
+  private async assertAreaDeEmpresa(areaId: string, empresaId: string | null) {
+    const area = await this.prisma.areaEmpresa.findUnique({ where: { id: areaId } });
+    if (!area || !empresaId || area.empresaId !== empresaId) {
+      throw new AppError('AREA_EMPRESA_INVALIDA');
+    }
+    return area;
   }
 
   private async resolveRoleId(slug: string): Promise<string> {

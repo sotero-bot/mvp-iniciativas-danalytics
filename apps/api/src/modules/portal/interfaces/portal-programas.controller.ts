@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 
 import { PrismaService } from '../../../prisma.service';
 import { AppError } from '../../../shared/errors/AppError';
@@ -7,6 +7,8 @@ import { CLIENTE_ROLE_SLUGS } from '../../auth/guards/auth-user';
 import type { AuthUser } from '../../auth/guards';
 import { ResultadosService } from '../../formularios/application/resultados.service';
 import { programasClienteScope } from '../application/cliente-scope';
+import { contarParticipantesPorArea } from '../application/participantes-por-area';
+import { filtroUsuarioPorArea, protegerAnonimato, MIN_RESPUESTAS_ANONIMAS } from '../application/filtro-area';
 
 // Fase 4 (Plan 2 §4.1 — RF-42/RF-43/RN-09): portal del cliente, SOLO LECTURA.
 // Todo endpoint acota por `empresaId = jwt.empresaId`; forjar el id de un
@@ -92,7 +94,13 @@ export class PortalProgramasController {
   // (La matriz de asistencia detallada la sirve GET /admin/programas/:id/
   // asistencia/resumen, que ya admite roles cliente — RF-20.)
   @Get('programas/:id')
-  async detalle(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+  // `areaId` (HU-14): filtra participantes, asistencia, grupos, diagnóstico y feedback por área
+  // (`sin_area` = sin área). Los agregados anónimos con pocas respuestas se ocultan.
+  async detalle(
+    @Param('id') programaId: string,
+    @CurrentUser() actor: AuthUser,
+    @Query('areaId') areaId?: string,
+  ) {
     const empresaId = this.requireEmpresa(actor);
 
     const programa = await this.prisma.programa.findFirst({
@@ -116,33 +124,41 @@ export class PortalProgramasController {
       facilitadores: programa.facilitadores.map(f => f.usuario.nombre),
     };
 
-    const [sesiones, participantesActivos, asistencias, grupos, diagnostico, feedback] =
+    const filtro = filtroUsuarioPorArea(areaId);
+    const usuarioWhere = filtro ? { usuario: filtro } : {};
+
+    const [sesiones, participantesActivos, participantes, asistencias, grupos, diagnostico, feedback] =
       await Promise.all([
         this.prisma.sesion.findMany({
           where: { programaId },
           select: { id: true, numeroSesion: true, titulo: true, fechaProgramada: true, estado: true },
           orderBy: { numeroSesion: 'asc' },
         }),
-        this.prisma.participantePrograma.count({ where: { programaId, activo: true } }),
+        this.prisma.participantePrograma.count({ where: { programaId, activo: true, ...usuarioWhere } }),
+        // HU-14: solo el área de cada participante activo; sin datos personales.
+        this.prisma.participantePrograma.findMany({
+          where: { programaId, activo: true },
+          select: { usuario: { select: { areaCatalogo: { select: { id: true, nombre: true } } } } },
+        }),
         this.prisma.asistencia.findMany({
-          where: { sesion: { programaId } },
+          where: { sesion: { programaId }, ...usuarioWhere },
           select: { presente: true },
         }),
         this.prisma.grupo.findMany({
-          where: { programaId },
+          where: { programaId, ...(filtro ? { miembros: { some: { usuario: filtro } } } : {}) },
           select: {
             id: true,
             nombre: true,
             orden: true,
-            _count: { select: { miembros: true } },
+            _count: { select: { miembros: filtro ? { where: { usuario: filtro } } : true } },
             presentacionFinal: {
               select: { urlPresentacion: true, archivoKey: true, entregadoEn: true },
             },
           },
           orderBy: { orden: 'asc' },
         }),
-        this.resultados.diagnosticoAgregado(programaId),
-        this.resultados.feedbackAgregado(programaId),
+        filtro ? this.resultados.diagnosticoAgregado(programaId, filtro) : this.resultados.diagnosticoAgregado(programaId),
+        filtro ? this.resultados.feedbackAgregado(programaId, filtro) : this.resultados.feedbackAgregado(programaId),
       ]);
 
     const totalRegistros = asistencias.length;
@@ -153,6 +169,7 @@ export class PortalProgramasController {
         sesionesTotales: programa.totalSesionesEsperadas ?? sesiones.length,
         participantesActivos,
       },
+      participantesPorArea: contarParticipantesPorArea(participantes),
       sesiones,
       asistencia: {
         registros: totalRegistros,
@@ -175,8 +192,13 @@ export class PortalProgramasController {
             }
           : { entregada: false },
       })),
-      diagnostico,
-      feedback,
+      // RF-33/RN-06: con filtro, los agregados con pocas respuestas se ocultan.
+      diagnostico: {
+        inicial: protegerAnonimato(diagnostico.inicial, !!filtro, { dimensiones: { escala: [], seleccion: [] } }),
+        final: protegerAnonimato(diagnostico.final, !!filtro, { dimensiones: { escala: [], seleccion: [] } }),
+      },
+      feedback: protegerAnonimato(feedback, !!filtro, { campos: [] }),
+      minimoAnonimato: MIN_RESPUESTAS_ANONIMAS,
     };
   }
 

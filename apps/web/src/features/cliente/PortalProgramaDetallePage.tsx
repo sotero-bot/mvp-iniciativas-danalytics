@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
-import { Breadcrumb, PageHeader, Loading, StatCard, ProgressBar, Alert, Button } from '../../components/ui';
+import { Breadcrumb, PageHeader, Loading, StatCard, ProgressBar, Alert, Button, DataTable, FilterToolbar, EmptyState } from '../../components/ui';
+import type { DataTableColumn } from '../../components/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -11,7 +12,7 @@ interface DimensionAgregada { dimension: string; promedio: number; n: number; pr
 // Escala (likert/número) y selección (opción múltiple) nunca se mezclan en un
 // mismo promedio: son dos secciones separadas.
 interface DimensionesPorCategoria { escala: DimensionAgregada[]; seleccion: DimensionAgregada[] }
-interface BloqueDiagnostico { totalRespuestas: number; dimensiones: DimensionesPorCategoria }
+interface BloqueDiagnostico { totalRespuestas: number; dimensiones: DimensionesPorCategoria; ocultoPorAnonimato?: boolean }
 
 interface Detalle {
   programa: {
@@ -19,6 +20,8 @@ interface Detalle {
     estado: string; fechaInicio: string | null; fechaFin: string | null;
     facilitadores: string[];
   };
+  // HU-14: areaId/nombre null = participantes sin área.
+  participantesPorArea: { areaId: string | null; nombre: string | null; participantes: number }[];
   avance: { sesionesCompletadas: number; sesionesTotales: number; participantesActivos: number };
   sesiones: { id: string; numeroSesion: number; titulo: string; fechaProgramada: string; estado: string }[];
   asistencia: { registros: number; porcentajePromedio: number | null };
@@ -26,9 +29,11 @@ interface Detalle {
     id: string; nombre: string; orden: number; miembros: number;
     presentacion: { entregada: boolean; entregadoEn?: string | null; urlPresentacion?: string | null; conArchivo?: boolean };
   }[];
+  minimoAnonimato?: number;
   diagnostico: { inicial: BloqueDiagnostico; final: BloqueDiagnostico };
   feedback: {
     totalRespuestas: number;
+    ocultoPorAnonimato?: boolean;
     campos: {
       campoId: string; etiqueta: string; tipoCampo: string; n: number;
       promedio?: number | null;
@@ -38,10 +43,14 @@ interface Detalle {
   };
 }
 
+interface AreaCatalogo { id: string; nombre: string }
+
 interface ResumenAsistencia {
   sesiones: { id: string; numeroSesion: number }[];
-  filas: { usuarioId: string; nombre: string; email: string; porSesion: Record<string, boolean>; porcentaje: number }[];
+  filas: { usuarioId: string; nombre: string; email: string; area: string | null; porSesion: Record<string, boolean>; porcentaje: number }[];
 }
+
+const SIN_AREA = 'sin_area'; // mismo valor que espera el backend en ?areaId=
 
 // RF-43: detalle del programa para el cliente — avance, asistencia, diagnóstico
 // agregado, proyecto y feedback. Todo SOLO lectura, sin export (RN-07).
@@ -50,31 +59,54 @@ export function PortalProgramaDetallePage() {
   const { t } = useTranslation(['portal', 'common', 'admin', 'formularios']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
+  const [areas, setAreas] = useState<AreaCatalogo[]>([]);
+  const [filtroArea, setFiltroArea] = useState(''); // '' = todas · SIN_AREA · id de área
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // HU-14: el filtro de área se aplica a TODA la página (el servidor filtra).
+  const query = filtroArea ? `?areaId=${encodeURIComponent(filtroArea)}` : '';
 
   const cargarDatos = () => {
     let cancelled = false;
     setLoading(true);
     setError('');
     Promise.all([
-      fetchWithErrorMapping(`${API_URL}/portal/programas/${programaId}`).then(r => r.json()),
+      fetchWithErrorMapping(`${API_URL}/portal/programas/${programaId}${query}`).then(r => r.json()),
       // RF-20: la matriz detallada la sirve el endpoint de resumen (admite roles cliente).
-      fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/asistencia/resumen`)
+      fetchWithErrorMapping(`${API_URL}/admin/programas/${programaId}/asistencia/resumen${query}`)
         .then(r => r.json())
         .catch(() => null),
+      // HU-14: catálogo para el filtro; si falla, el panel sigue funcionando sin él.
+      fetchWithErrorMapping(`${API_URL}/portal/areas`).then(r => r.json()).catch(() => []),
     ])
-      .then(([det, res]) => {
+      .then(([det, res, catalogo]) => {
         if (cancelled) return;
         setDetalle(det);
         setAsistencia(res);
+        setAreas(catalogo);
       })
       .catch(err => { if (!cancelled) setError(translateError(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   };
 
-  useEffect(cargarDatos, [programaId]);
+  useEffect(cargarDatos, [programaId, filtroArea]);
+
+  const filasPorArea = detalle?.participantesPorArea ?? [];
+  const columnasArea: DataTableColumn<Detalle['participantesPorArea'][number]>[] = [
+    {
+      key: 'area',
+      header: t('portal:detalle.col_area'),
+      render: f => f.nombre ?? t('portal:areas.sin_area'),
+    },
+    {
+      key: 'participantes',
+      header: t('portal:detalle.col_participantes'),
+      align: 'right',
+      render: f => f.participantes,
+    },
+  ];
 
   const fecha = (v: string | null | undefined) => (v ? new Date(v).toLocaleDateString() : '—');
 
@@ -100,7 +132,8 @@ export function PortalProgramaDetallePage() {
         }
       />
 
-      {loading && <Loading label={t('common:loading')} />}
+      {/* Spinner solo en la primera carga: al cambiar el filtro se conserva la página para que no parpadee. */}
+      {loading && !detalle && <Loading label={t('common:loading')} />}
 
       {!loading && error && (
         <Alert variant="danger" title={error}>
@@ -108,7 +141,7 @@ export function PortalProgramaDetallePage() {
         </Alert>
       )}
 
-      {!loading && !error && detalle && (
+      {!error && detalle && (
         <>
           {/* Avance */}
           <div className="stat-grid" style={{ marginBottom: 'var(--space-5)' }}>
@@ -124,6 +157,34 @@ export function PortalProgramaDetallePage() {
             ))}
           </div>
 
+          {/* HU-14: participantes por área (+ filtro por área del catálogo) */}
+          <div className="section-card home-panel" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="section-card-header">
+              <span className="section-card-title">{t('portal:detalle.por_area_title')}</span>
+              <span className="count-badge">{filasPorArea.length}</span>
+            </div>
+            <div className="home-filter-strip" style={{ paddingBottom: 'var(--space-5)' }}>
+              <FilterToolbar>
+                <select
+                  className="input"
+                  aria-label={t('portal:areas.filtro')}
+                  title={t('portal:areas.filtro_hint')}
+                  value={filtroArea}
+                  onChange={e => setFiltroArea(e.target.value)}
+                >
+                  <option value="">{t('portal:areas.todas')}</option>
+                  {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                  <option value={SIN_AREA}>{t('portal:areas.sin_area')}</option>
+                </select>
+              </FilterToolbar>
+            </div>
+            {filasPorArea.length === 0 ? (
+              <EmptyState title={t('portal:detalle.sin_datos')} />
+            ) : (
+              <DataTable columns={columnasArea} rows={filasPorArea} rowKey={f => f.areaId ?? SIN_AREA} />
+            )}
+          </div>
+
           {/* Asistencia (matriz sesión × participante, RF-20) */}
           {asistencia && asistencia.filas.length > 0 && (
             <div className="section-card" style={{ marginBottom: 'var(--space-5)' }}>
@@ -136,6 +197,7 @@ export function PortalProgramaDetallePage() {
                     <thead>
                       <tr>
                         <th>{t('portal:detalle.participante')}</th>
+                        <th>{t('portal:detalle.col_area')}</th>
                         {asistencia.sesiones.map(s => (
                           <th key={s.id} style={{ textAlign: 'center' }}>S{s.numeroSesion}</th>
                         ))}
@@ -146,6 +208,7 @@ export function PortalProgramaDetallePage() {
                       {asistencia.filas.map(f => (
                         <tr key={f.usuarioId}>
                           <td>{f.nombre}</td>
+                          <td>{f.area ?? t('portal:areas.sin_area')}</td>
                           {asistencia.sesiones.map(s => (
                             <td key={s.id} style={{ textAlign: 'center' }}>
                               {f.porSesion[s.id] ? '✓' : f.porSesion[s.id] === false ? '✗' : '—'}
@@ -173,7 +236,11 @@ export function PortalProgramaDetallePage() {
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-2)' }}>
                       {t(`portal:detalle.${key}`)} · n={bloque.totalRespuestas}
                     </div>
-                    {bloque.dimensiones.escala.length === 0 && bloque.dimensiones.seleccion.length === 0 ? (
+                    {bloque.ocultoPorAnonimato ? (
+                      <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                        {t('portal:detalle.anonimato_oculto', { min: detalle.minimoAnonimato })}
+                      </p>
+                    ) : bloque.dimensiones.escala.length === 0 && bloque.dimensiones.seleccion.length === 0 ? (
                       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.sin_datos')}</p>
                     ) : (
                       (['escala', 'seleccion'] as const).map(categoria => {
@@ -237,7 +304,10 @@ export function PortalProgramaDetallePage() {
             </div>
             <div className="section-card-body">
               <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{t('portal:detalle.feedback_hint')}</p>
-              {detalle.feedback.totalRespuestas === 0 && <p style={{ fontSize: '0.85rem' }}>{t('portal:detalle.sin_datos')}</p>}
+              {detalle.feedback.ocultoPorAnonimato && (
+                <p style={{ fontSize: '0.85rem' }}>{t('portal:detalle.anonimato_oculto', { min: detalle.minimoAnonimato })}</p>
+              )}
+              {!detalle.feedback.ocultoPorAnonimato && detalle.feedback.totalRespuestas === 0 && <p style={{ fontSize: '0.85rem' }}>{t('portal:detalle.sin_datos')}</p>}
               {detalle.feedback.campos.map(campo => (
                 <div key={campo.campoId} style={{ marginBottom: 'var(--space-4)' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-1)' }}>{campo.etiqueta}</div>

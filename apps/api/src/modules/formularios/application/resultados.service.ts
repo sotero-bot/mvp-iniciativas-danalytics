@@ -48,25 +48,31 @@ export interface DiagnosticoInicialGlobal extends DiagnosticoAgregado {
 export class ResultadosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async diagnosticoAgregado(programaId: string): Promise<{
+  // `usuarioWhere` (HU-14): acota por atributos del respondiente (p. ej. su área); solo para agregados.
+  async diagnosticoAgregado(programaId: string, usuarioWhere?: Prisma.UsuarioWhereInput): Promise<{
     inicial: DiagnosticoAgregado;
     final: DiagnosticoAgregado;
   }> {
     const [inicial, final] = await Promise.all([
-      this.agregadoDeTipo(programaId, 'diagnostico_inicial'),
-      this.agregadoDeTipo(programaId, 'diagnostico_final'),
+      this.agregadoDeTipo(programaId, 'diagnostico_inicial', usuarioWhere),
+      this.agregadoDeTipo(programaId, 'diagnostico_final', usuarioWhere),
     ]);
     return { inicial, final };
   }
 
   // RF-36/RN-06: feedback agregado y anónimo — se descartan los ids de
   // respondiente antes de agregar; ningún campo del resultado los contiene.
-  async feedbackAgregado(programaId: string): Promise<{
+  async feedbackAgregado(programaId: string, usuarioWhere?: Prisma.UsuarioWhereInput): Promise<{
     totalRespuestas: number;
     campos: CampoAgregado[];
   }> {
     const respuestas = await this.prisma.respuestaFormulario.findMany({
-      where: { programaId, estado: 'submitted', plantilla: { tipoFormulario: 'feedback' } },
+      where: {
+        programaId,
+        estado: 'submitted',
+        plantilla: { tipoFormulario: 'feedback' },
+        ...(usuarioWhere ? { usuarioRespondiente: usuarioWhere } : {}),
+      },
       select: { datosRespuestaJson: true, plantillaId: true },
     });
     if (respuestas.length === 0) return { totalRespuestas: 0, campos: [] };
@@ -135,23 +141,30 @@ export class ResultadosService {
   private whereRespuestasDeTipo(
     programaId: string,
     tipo: TipoFormulario,
+    usuarioWhere?: Prisma.UsuarioWhereInput,
   ): Prisma.RespuestaFormularioWhereInput {
     if (tipo === 'diagnostico_inicial') {
       return {
         estado: 'submitted',
         plantilla: { tipoFormulario: tipo, programaId: null },
-        usuarioRespondiente: { participaciones: { some: { programaId, activo: true } } },
+        usuarioRespondiente: { participaciones: { some: { programaId, activo: true } }, ...usuarioWhere },
       };
     }
-    return { programaId, estado: 'submitted', plantilla: { tipoFormulario: tipo } };
+    return {
+      programaId,
+      estado: 'submitted',
+      plantilla: { tipoFormulario: tipo },
+      ...(usuarioWhere ? { usuarioRespondiente: usuarioWhere } : {}),
+    };
   }
 
   private async agregadoDeTipo(
     programaId: string,
     tipo: TipoFormulario,
+    usuarioWhere?: Prisma.UsuarioWhereInput,
   ): Promise<DiagnosticoAgregado> {
     const respuestas = await this.prisma.respuestaFormulario.findMany({
-      where: this.whereRespuestasDeTipo(programaId, tipo),
+      where: this.whereRespuestasDeTipo(programaId, tipo, usuarioWhere),
       select: { scoresPorDimensionJson: true },
     });
     return {

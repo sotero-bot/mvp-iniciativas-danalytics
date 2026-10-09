@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
-import { Modal, Field } from '../../components/ui';
+import { Modal, Field, Alert } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -31,7 +31,12 @@ interface ImportReporte {
   resumen: { total: number; ok: number; error: number };
   filas: ImportFilaReporte[];
   matriculados?: number;
+  areasNuevas?: string[]; // HU-14: áreas que la importación creará (top-level, no por fila)
 }
+
+interface AreaOpcion { id: string; nombre: string }
+
+const AREA_NUEVA = '__nueva__';
 
 export function MatriculaModal({
   modo, programaId, empresaId, onClose, onSaved,
@@ -49,7 +54,13 @@ export function MatriculaModal({
   const [busqueda, setBusqueda] = useState('');
   const [saving, setSaving] = useState(false);
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
-  const [form, setForm] = useState({ email: '', nombre: '', cargo: '', area: '', enviarInvitacion: true });
+  const [form, setForm] = useState({ email: '', nombre: '', cargo: '', areaId: '', enviarInvitacion: true });
+
+  // HU-14: catálogo de áreas de la empresa del programa.
+  const [areas, setAreas] = useState<AreaOpcion[]>([]);
+  const [creandoArea, setCreandoArea] = useState(false);
+  const [nombreAreaNueva, setNombreAreaNueva] = useState('');
+  const [guardandoArea, setGuardandoArea] = useState(false);
 
   // --- Carga masiva vía Excel ---
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -74,6 +85,37 @@ export function MatriculaModal({
   }, [empresaId]);
 
   useEffect(() => { cargarEstudiantes(); }, [cargarEstudiantes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWithErrorMapping(`${API_URL}/organization/empresas/${empresaId}/areas`)
+      .then(res => res.json())
+      .then(data => { if (!cancelled) setAreas(data); })
+      .catch(err => toast.error(translateError(err)));
+    return () => { cancelled = true; };
+  }, [empresaId]);
+
+  const crearAreaNueva = async () => {
+    const nombre = nombreAreaNueva.trim();
+    if (!nombre) return;
+    setGuardandoArea(true);
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas/${empresaId}/areas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre }),
+      });
+      const creada: AreaOpcion = await res.json();
+      setAreas(prev => [...prev, creada].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setForm(f => ({ ...f, areaId: creada.id })); // reselecciona la recién creada
+      setCreandoArea(false);
+      setNombreAreaNueva('');
+    } catch (err) {
+      toast.error(translateError(err));
+    } finally {
+      setGuardandoArea(false);
+    }
+  };
 
   // Programas de ESTA empresa donde el estudiante ya participa (activo).
   const programasEmpresa = (est: EstudianteEmpresa) =>
@@ -120,12 +162,14 @@ export function MatriculaModal({
           email: form.email,
           nombre: form.nombre,
           cargo: form.cargo || null,
-          area: form.area || null,
+          areaId: form.areaId || null,
           enviarInvitacion: form.enviarInvitacion,
           locale: i18n.language,
         }),
       });
-      setForm({ email: '', nombre: '', cargo: '', area: '', enviarInvitacion: true });
+      setForm({ email: '', nombre: '', cargo: '', areaId: '', enviarInvitacion: true });
+      setCreandoArea(false);
+      setNombreAreaNueva('');
       setMostrarNuevo(false);
       await cargarEstudiantes();
       onSaved();
@@ -138,7 +182,7 @@ export function MatriculaModal({
 
   const descargarPlantilla = async () => {
     try {
-      const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/participantes/plantilla`);
+      const res = await fetchWithErrorMapping(`${API_URL}/admin/programas/participantes/plantilla?programaId=${programaId}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -290,10 +334,40 @@ export function MatriculaModal({
                 <Field label={t('admin:programas.participantes.fields.cargo')}>
                   <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
                 </Field>
-                <Field label={t('admin:programas.participantes.fields.area')}>
-                  <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
+                <Field label={t('admin:programas.participantes.fields.area_select')}>
+                  <select
+                    className="input"
+                    value={creandoArea ? AREA_NUEVA : form.areaId}
+                    onChange={e => {
+                      if (e.target.value === AREA_NUEVA) { setCreandoArea(true); return; }
+                      setCreandoArea(false);
+                      setForm(f => ({ ...f, areaId: e.target.value }));
+                    }}
+                  >
+                    <option value="">—</option>
+                    {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                    <option value={AREA_NUEVA}>{t('admin:programas.participantes.area_nueva')}</option>
+                  </select>
                 </Field>
               </div>
+              {creandoArea && (
+                <Field label={t('admin:programas.participantes.area_nueva_prompt')}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      className="input"
+                      value={nombreAreaNueva}
+                      onChange={e => setNombreAreaNueva(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); crearAreaNueva(); } }}
+                    />
+                    <button type="button" className="btn btn-secondary" onClick={() => { setCreandoArea(false); setNombreAreaNueva(''); }} disabled={guardandoArea}>
+                      {t('common:buttons.cancel')}
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={crearAreaNueva} disabled={guardandoArea || !nombreAreaNueva.trim()}>
+                      {t('common:buttons.create')}
+                    </button>
+                  </div>
+                </Field>
+              )}
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.enviarInvitacion} onChange={e => setForm(f => ({ ...f, enviarInvitacion: e.target.checked }))} />
                 {t('admin:programas.participantes.fields.enviar_invitacion')}
@@ -351,6 +425,12 @@ export function MatriculaModal({
                   error: reporte.resumen.error,
                 })}
               </div>
+
+              {reporte.areasNuevas && reporte.areasNuevas.length > 0 && (
+                <Alert variant="warning">
+                  {t('admin:programas.participantes.import.areas_nuevas', { areas: reporte.areasNuevas.join(', ') })}
+                </Alert>
+              )}
 
               {reporte.filas.length === 0 ? (
                 <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>

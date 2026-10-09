@@ -22,12 +22,14 @@ import {
 } from '../../apps/api/src/modules/auth/guards';
 import { UsuariosController } from '../../apps/api/src/modules/organization/interfaces/usuarios.controller';
 import { EmpresasController } from '../../apps/api/src/modules/organization/interfaces/empresas.controller';
+import { AdminAreasController } from '../../apps/api/src/modules/organization/interfaces/admin-areas.controller';
 import { IniciativasController } from '../../apps/api/src/modules/organization/interfaces/iniciativas.controller';
 import { ActividadesController } from '../../apps/api/src/modules/methodology/interfaces/actividades.controller';
 
 const LEGACY_CONTROLLERS = [
   ['UsuariosController', UsuariosController],
   ['EmpresasController', EmpresasController],
+  ['AdminAreasController', AdminAreasController],
   ['IniciativasController', IniciativasController],
   ['ActividadesController', ActividadesController],
 ] as const;

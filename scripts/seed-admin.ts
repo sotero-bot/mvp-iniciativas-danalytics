@@ -7,8 +7,9 @@
  *   2. Upsertea los 6 roles del sistema en la tabla Role.
  *   3. Backfillea Usuario.roleId de los usuarios existentes que aún no
  *      tienen role asignado (les asigna 'participante_legacy').
- *   4. Upsertea el admin en Usuario con role=danalytics_admin.
- *   5. Upsertea las listas de destinatarios de notificaciones (RF-40).
+ *   4. Backfillea el catálogo AreaEmpresa desde Usuario.area (HU-14, idempotente).
+ *   5. Upsertea el admin en Usuario con role=danalytics_admin.
+ *   6. Upsertea las listas de destinatarios de notificaciones (RF-40).
  *
  * Se ejecuta en cada `vercel-build` después de `prisma db push`.
  *
@@ -18,6 +19,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { agruparAreas, claveArea } from '../apps/api/src/modules/organization/application/areas';
 
 const prisma = new PrismaClient();
 
@@ -106,6 +108,15 @@ async function ensureIndices() {
     END $$;
   `);
   console.log('  CHECK presentacion_final_url_o_archivo asegurado');
+
+  // HU-14 — `db push` no crea índices funcionales. Impide "Diseño" y "diseño" ACTIVAS a la vez
+  // en la misma empresa; se limita a las activas para que una inactiva no bloquee recrear el área.
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "area_empresa_nombre_ci"
+      ON "AreaEmpresa"("empresaId", lower("nombre"))
+      WHERE "activo" = true;
+  `);
+  console.log('  Índice area_empresa_nombre_ci asegurado');
 }
 
 // Fase 4 — RF-44 / CLIENTE_ADMIN_UNICO (Plan 2 §4.4): a lo sumo un Usuario ACTIVO
@@ -164,6 +175,66 @@ async function backfillFacilitadores() {
   });
   if (result.count > 0) {
     console.log(`  ${result.count} asignaciones facilitador→programa migradas a ProgramaFacilitador`);
+  }
+}
+
+// HU-14: migra el texto libre Usuario.area (deprecado) al catálogo AreaEmpresa + Usuario.areaId.
+// Idempotente: solo mira usuarios SIN areaId y reutiliza las áreas ya existentes de la empresa
+// (comparando sin mayúsculas ni acentos), así que una segunda corrida no crea ni vincula nada.
+// Se conserva Usuario.area hasta confirmar el backfill (expand-contract).
+async function backfillAreasEmpresa() {
+  const filas = await prisma.$queryRaw<{ empresaId: string; area: string }[]>`
+    SELECT "empresaId", btrim("area") AS area
+    FROM "Usuario"
+    WHERE "empresaId" IS NOT NULL
+      AND "areaId" IS NULL
+      AND btrim(coalesce("area", '')) <> ''
+    GROUP BY "empresaId", btrim("area")
+    ORDER BY min("createdAt"), btrim("area")
+  `; // orden estable: la "primera grafía vista" es la del usuario más antiguo
+
+  let creadas = 0;
+  let vinculados = 0;
+  const grupos = agruparAreas(filas);
+  const catalogo = new Map<string, Map<string, string>>(); // empresaId → clave → areaId
+  for (const g of grupos) {
+    let porClave = catalogo.get(g.empresaId);
+    if (!porClave) {
+      const existentes = await prisma.areaEmpresa.findMany({
+        where: { empresaId: g.empresaId },
+        select: { id: true, nombre: true },
+      });
+      porClave = new Map(existentes.map((a) => [claveArea(a.nombre), a.id]));
+      catalogo.set(g.empresaId, porClave);
+    }
+    let areaId = porClave.get(claveArea(g.nombre));
+    if (!areaId) {
+      const creada = await prisma.areaEmpresa.create({
+        data: { empresaId: g.empresaId, nombre: g.nombre },
+      });
+      areaId = creada.id;
+      porClave.set(claveArea(g.nombre), areaId);
+      creadas++;
+    }
+    vinculados += await prisma.$executeRaw`
+      UPDATE "Usuario"
+      SET "areaId" = ${areaId}
+      WHERE "empresaId" = ${g.empresaId}
+        AND "areaId" IS NULL
+        AND btrim("area") = ANY(${g.variantes})
+    `;
+  }
+
+  const [{ n: noMigrables }] = await prisma.$queryRaw<{ n: number }[]>`
+    SELECT count(*)::int AS n
+    FROM "Usuario"
+    WHERE "empresaId" IS NULL AND btrim(coalesce("area", '')) <> ''
+  `;
+  console.log(`  Áreas de empresa: ${creadas} creadas, ${vinculados} usuarios vinculados`);
+  if (noMigrables > 0) {
+    console.warn(
+      `  WARNING: ${noMigrables} usuarios tienen área pero empresaId NULL: no son migrables y conservan el texto suelto`,
+    );
   }
 }
 
@@ -238,6 +309,7 @@ async function main() {
   await ensureIndiceClienteAdminUnico();
   await backfillLegacyUsers();
   await backfillFacilitadores();
+  await backfillAreasEmpresa();
   await upsertAdmin();
   await upsertConfiguracionNotificaciones();
   console.log('✅  Seed completado');

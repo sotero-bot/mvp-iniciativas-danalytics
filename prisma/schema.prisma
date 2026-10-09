@@ -63,6 +63,23 @@ model Empresa {
   usuarios                 Usuario[]
   programas                Programa[]
   usuariosCliente          UsuarioCliente[]
+  areas                    AreaEmpresa[]
+}
+
+// HU-14: catálogo de áreas por empresa (las áreas son de la empresa, no globales).
+model AreaEmpresa {
+  id        String    @id @default(uuid())
+  empresaId String
+  nombre    String
+  orden     Int       @default(0)
+  activo    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  empresa   Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuarios  Usuario[]
+
+  @@unique([empresaId, nombre])
+  @@index([empresaId, activo])
 }
 
 model Role {
@@ -257,7 +274,10 @@ model Usuario {
   updatedAt              DateTime                 @updatedAt
   estado                 String                   @default("activo")
   activo                 Boolean                  @default(true)
+  // DEPRECADO (HU-14): texto libre migrado a areaId. Se elimina tras confirmar el backfill.
   area                   String?
+  areaId                 String?
+  areaCatalogo           AreaEmpresa?             @relation(fields: [areaId], references: [id], onDelete: SetNull)
   instancias             InstanciaActividad[]
   empresa                Empresa?                 @relation(fields: [empresaId], references: [id])
   role                   Role?                    @relation(fields: [roleId], references: [id])

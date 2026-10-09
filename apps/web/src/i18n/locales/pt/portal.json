@@ -34,15 +34,19 @@
     "presentacion_pendiente": "Apresentação pendente",
     "feedback": "Feedback do programa",
     "feedback_hint": "Respostas anônimas e agregadas dos participantes.",
-    "promedio": "Média"
+    "promedio": "Média",
+    "por_area_title": "Participantes por área",
+    "col_area": "Área",
+    "col_participantes": "Participantes",
+    "anonimato_oculto": "Há menos de {{min}} respostas nesta área: são ocultadas para proteger o anonimato."
   },
   "usuarios": {
     "title": "Usuários da sua empresa",
-    "subtitle": "Convide usuários somente leitura para o portal ou revogue o acesso deles.",
+    "subtitle": "Consulte os usuários da sua empresa, convide usuários somente leitura para o portal ou revogue o acesso deles.",
     "nombre": "Nome",
     "email": "Email",
     "invitar": "Convidar",
-    "empty": "Você ainda não convidou ninguém.",
+    "empty": "Sua empresa ainda não tem usuários.",
     "estado": "Status",
     "invitado": "Convidado",
     "activo": "Ativo",
@@ -54,6 +58,13 @@
     "revocado_ok": "Acesso revogado.",
     "programas": "Programas",
     "programas_asignados": "Programas de IA em Ação visíveis para este usuário",
-    "sin_programas": "Não há programas de IA em Ação na empresa."
+    "sin_programas": "Não há programas de IA em Ação na empresa.",
+    "rol": "Papel"
+  },
+  "areas": {
+    "filtro": "Filtrar por área",
+    "todas": "Todas as áreas",
+    "sin_area": "Sem área",
+    "filtro_hint": "Este filtro se aplica a toda a página: participantes, presença, grupos, diagnóstico e feedback."
   }
 }

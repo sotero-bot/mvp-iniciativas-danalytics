@@ -35,7 +35,7 @@ function buildController(overrides: Record<string, any> = {}) {
     },
     iniciativa: { findMany: vi.fn().mockResolvedValue([]) },
     sesion: { findMany: vi.fn().mockResolvedValue([{ id: 's1', numeroSesion: 1, titulo: 'S1', fechaProgramada: new Date(), estado: 'completada' }]) },
-    participantePrograma: { count: vi.fn().mockResolvedValue(4) },
+    participantePrograma: { count: vi.fn().mockResolvedValue(4), findMany: vi.fn().mockResolvedValue([]) }, // findMany: HU-14 (participantesPorArea)
     asistencia: { findMany: vi.fn().mockResolvedValue([{ presente: true }, { presente: false }]) },
     grupo: { findMany: vi.fn().mockResolvedValue([]) },
     ...overrides.prisma,

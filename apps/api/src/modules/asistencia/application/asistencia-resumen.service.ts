@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 
+import type { Prisma } from '@prisma/client';
+
 import { PrismaService } from '../../../prisma.service';
 
 export interface AsistenciaResumenSesion {
@@ -14,6 +16,7 @@ export interface AsistenciaResumenFila {
   usuarioId: string;
   nombre: string;
   email: string;
+  area: string | null; // HU-14: nombre del área del catálogo
   porSesion: Record<string, boolean>;
   porcentaje: number;
 }
@@ -30,7 +33,8 @@ export interface AsistenciaResumen {
 export class AsistenciaResumenService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async build(programaId: string): Promise<AsistenciaResumen> {
+  // `usuarioWhere` (HU-14): restringe la matriz a los participantes que cumplen la condición (p. ej. un área).
+  async build(programaId: string, usuarioWhere?: Prisma.UsuarioWhereInput): Promise<AsistenciaResumen> {
     const [sesiones, participantes, asistencias] = await Promise.all([
       this.prisma.sesion.findMany({
         where: { programaId },
@@ -38,8 +42,11 @@ export class AsistenciaResumenService {
         orderBy: { numeroSesion: 'asc' },
       }),
       this.prisma.participantePrograma.findMany({
-        where: { programaId, activo: true },
-        select: { usuarioId: true, usuario: { select: { id: true, nombre: true, email: true } } },
+        where: { programaId, activo: true, ...(usuarioWhere ? { usuario: usuarioWhere } : {}) },
+        select: {
+          usuarioId: true,
+          usuario: { select: { id: true, nombre: true, email: true, areaCatalogo: { select: { id: true, nombre: true } } } },
+        },
       }),
       this.prisma.asistencia.findMany({ where: { sesion: { programaId } } }),
     ]);
@@ -54,6 +61,7 @@ export class AsistenciaResumenService {
         usuarioId: p.usuarioId,
         nombre: p.usuario.nombre,
         email: p.usuario.email,
+        area: p.usuario.areaCatalogo?.nombre ?? null,
         porSesion,
         porcentaje: presentes / totalSesiones,
       };

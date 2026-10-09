@@ -150,5 +150,24 @@
       "updated": "Iniciativa actualizada"
     },
     "confirm_delete": "¿Eliminar la iniciativa?"
+  },
+  "areas": {
+    "title": "Áreas de {{empresa}}",
+    "list_title": "Áreas registradas",
+    "nombre": "Nombre del área",
+    "nombre_placeholder": "Ej: Operaciones, Diseño…",
+    "crear": "Crear área",
+    "creada": "Área creada.",
+    "editar_title": "Renombrar área",
+    "renombrar": "Renombrar",
+    "renombrada": "Área renombrada.",
+    "desactivar": "Desactivar",
+    "desactivar_title": "¿Desactivar área?",
+    "desactivar_confirm": "El área «{{nombre}}» dejará de ofrecerse en los selectores. Usuarios con esta área asignada: {{count}} (la conservarán).",
+    "desactivada": "Área desactivada.",
+    "usuarios_count": "Usuarios",
+    "empty": "Esta empresa aún no tiene áreas.",
+    "empty_desc": "Crea la primera con el formulario.",
+    "gestionar": "Áreas"
   }
 }

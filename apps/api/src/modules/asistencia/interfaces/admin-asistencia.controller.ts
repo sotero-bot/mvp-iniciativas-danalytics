@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 
 import { PrismaService } from '../../../prisma.service';
@@ -7,6 +7,7 @@ import { CLIENTE_ROLE_SLUGS } from '../../auth/guards/auth-user';
 import type { AuthUser } from '../../auth/guards';
 import { AppError } from '../../../shared/errors/AppError';
 import { assertProgramaCliente } from '../../portal/application/cliente-scope';
+import { filtroUsuarioPorArea } from '../../portal/application/filtro-area';
 import { AsistenciaResumenService } from '../application/asistencia-resumen.service';
 
 interface PatchAsistenciaDto {
@@ -41,9 +42,14 @@ export class AdminAsistenciaController {
   // propio endpoint equivalente en FacilitadorAsistenciaController).
   @Roles('danalytics_admin', ...CLIENTE_ROLE_SLUGS)
   @Get('programas/:id/asistencia/resumen')
-  async resumen(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+  async resumen(
+    @Param('id') programaId: string,
+    @CurrentUser() actor: AuthUser,
+    @Query('areaId') areaId?: string, // HU-14: filtra la matriz por área (portal cliente)
+  ) {
     await this.assertAccesible(programaId, actor);
-    return this.asistenciaResumen.build(programaId);
+    const filtro = filtroUsuarioPorArea(areaId);
+    return filtro ? this.asistenciaResumen.build(programaId, filtro) : this.asistenciaResumen.build(programaId);
   }
 
   // RF-21/RN-07: solo danalytics_admin exporta desde esta vista.

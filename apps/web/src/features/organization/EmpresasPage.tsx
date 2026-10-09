@@ -9,6 +9,7 @@ import {
 import type { DataTableColumn } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { AreasEmpresaModal } from './AreasEmpresaModal';
 
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -140,6 +141,7 @@ export function EmpresasPage() {
   const [createPdfFile, setCreatePdfFile] = useState<File | null>(null);
   const [wasValidated, setWasValidated] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ id: string; nombre: string } | null>(null);
+  const [areasModal, setAreasModal] = useState<{ id: string; nombre: string } | null>(null); // HU-14
 
   const [editModal, setEditModal] = useState<Empresa | null>(null);
   const [editNombre, setEditNombre] = useState('');
@@ -312,6 +314,9 @@ export function EmpresasPage() {
           <Button variant="secondary" size="sm" onClick={() => openEdit(emp)}>
             {t('common:buttons.edit')}
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setAreasModal({ id: emp.id, nombre: emp.nombre })}>
+            {t('organization:areas.gestionar')}
+          </Button>
           {emp.activo && (
           <Button
             variant="danger"
@@ -337,6 +342,8 @@ export function EmpresasPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteModal(null)}
       />
+
+      <AreasEmpresaModal empresa={areasModal} onClose={() => setAreasModal(null)} />
 
       <Modal
         isOpen={!!editModal}

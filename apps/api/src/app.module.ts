@@ -5,6 +5,7 @@ import { S3Service } from './modules/storage/S3Service';
 
 // Controllers
 import { EmpresasController } from './modules/organization/interfaces/empresas.controller';
+import { AdminAreasController } from './modules/organization/interfaces/admin-areas.controller';
 import { IniciativasController } from './modules/organization/interfaces/iniciativas.controller';
 import { UsuariosController } from './modules/organization/interfaces/usuarios.controller';
 import { ActividadesController } from './modules/methodology/interfaces/actividades.controller';
@@ -36,6 +37,7 @@ import { AdminResultadosController } from './modules/formularios/interfaces/admi
 import { GrupoRecursosController } from './modules/reto/interfaces/grupo-recursos.controller';
 import { FacilitadorRetoController } from './modules/reto/interfaces/facilitador-reto.controller';
 import { PortalProgramasController } from './modules/portal/interfaces/portal-programas.controller';
+import { PortalAreasController } from './modules/portal/interfaces/portal-areas.controller';
 import { PortalUsuariosClienteController } from './modules/portal/interfaces/portal-usuarios-cliente.controller';
 import { AdminRegistroAccesoController } from './modules/auditoria/interfaces/admin-registro-acceso.controller';
 import { RegistroAccesoInterceptor } from './modules/auditoria/registro-acceso.interceptor';
@@ -77,6 +79,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
   imports: [AuthModule, TranslationModule, EmailModule],
   controllers: [
     EmpresasController,
+    AdminAreasController,
     IniciativasController,
     UsuariosController,
     ActividadesController,
@@ -106,6 +109,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     GrupoRecursosController,
     FacilitadorRetoController,
     PortalProgramasController,
+    PortalAreasController,
     PortalUsuariosClienteController,
     AdminRegistroAccesoController,
   ],

@@ -74,7 +74,8 @@
       "empresa": "Empresa",
       "login": "Login",
       "estado": "Estado",
-      "acciones": "Acciones"
+      "acciones": "Acciones",
+      "area": "Área"
     },
     "status": {
       "active": "Activo",
@@ -102,7 +103,8 @@
       "cargo": "Cargo",
       "area": "Área",
       "puede_iniciar_sesion": "Puede iniciar sesión",
-      "activo": "Activo"
+      "activo": "Activo",
+      "area_sin_empresa": "Selecciona primero una empresa para elegir el área."
     },
     "modal": {
       "title_create": "Crear usuario",
@@ -304,7 +306,8 @@
         "nombre": "Nombre completo",
         "cargo": "Cargo",
         "area": "Área",
-        "enviar_invitacion": "Enviar invitación por email al matricular"
+        "enviar_invitacion": "Enviar invitación por email al matricular",
+        "area_select": "Área"
       },
       "modal": {
         "title": "Matricular estudiante",
@@ -348,8 +351,12 @@
           "FILA_EMAIL_DUPLICADO_ARCHIVO": "Email repetido en el archivo",
           "FILA_YA_MATRICULADO": "Ya está matriculado en este programa",
           "FILA_OTRA_EMPRESA": "El email pertenece a otra empresa"
-        }
-      }
+        },
+        "areas_nuevas": "Se crearán estas áreas nuevas en la empresa: {{areas}}"
+      },
+      "area_nueva": "Crear área nueva…",
+      "area_nueva_prompt": "Nombre del área nueva",
+      "area_sin": "Sin área"
     },
     "grupos": {
       "empty": "Aún no hay grupos. Crea el primero para asignar participantes.",

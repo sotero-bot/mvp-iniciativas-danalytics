@@ -17,6 +17,7 @@ import {
 import type { DataTableColumn, StatusVariant } from '../../components/ui';
 import { toast } from '../../components/toast-store';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
+import { areaDeUsuario } from './usuarioArea';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -63,7 +64,9 @@ interface Usuario {
   googleId: string | null;
   googleEmailVerificado: boolean;
   cargo: string | null;
-  area: string | null;
+  area: string | null; // DEPRECADO (HU-14): se muestra areaCatalogo
+  areaId: string | null;
+  areaCatalogo: { id: string; nombre: string } | null;
   estado: string;
   activo: boolean;
   empresaId: string | null;
@@ -80,7 +83,7 @@ interface FormState {
   password: string;
   empresaId: string;
   cargo: string;
-  area: string;
+  areaId: string;
   puedeIniciarSesion: boolean;
   activo: boolean;
 }
@@ -93,10 +96,12 @@ const emptyForm: FormState = {
   password: '',
   empresaId: '',
   cargo: '',
-  area: '',
+  areaId: '',
   puedeIniciarSesion: true,
   activo: true,
 };
+
+const AREA_NUEVA = '__nueva__';
 
 interface ProgramaLite { id: string; nombre: string; }
 
@@ -116,7 +121,7 @@ export function UsuariosPage() {
   const [search, setSearch] = useState('');
 
   // Datatable: ordenamiento y paginación en cliente.
-  type SortKey = 'nombre' | 'identificacion' | 'role' | 'empresa' | 'login' | 'estado';
+  type SortKey = 'nombre' | 'identificacion' | 'role' | 'empresa' | 'area' | 'login' | 'estado';
   const [sortKey, setSortKey] = useState<SortKey>('nombre');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -132,6 +137,11 @@ export function UsuariosPage() {
   // C-07: asignación de programas de IA en Acción a un usuario_cliente.
   const [programasModal, setProgramasModal] = useState<Usuario | null>(null);
   const [programasCliente, setProgramasCliente] = useState<{ programas: ProgramaLite[]; asignados: string[] } | null>(null);
+  // HU-14: áreas del catálogo de la empresa elegida en el formulario.
+  const [areasEmpresa, setAreasEmpresa] = useState<{ id: string; nombre: string }[]>([]);
+  const [creandoArea, setCreandoArea] = useState(false);
+  const [nombreAreaNueva, setNombreAreaNueva] = useState('');
+  const [guardandoArea, setGuardandoArea] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -233,6 +243,42 @@ export function UsuariosPage() {
     if (e.key === 'Enter') load();
   };
 
+  useEffect(() => {
+    setAreasEmpresa([]);
+    setCreandoArea(false);
+    setNombreAreaNueva('');
+    if (!modalOpen || !form.empresaId) return;
+    let cancelled = false;
+    fetchWithErrorMapping(`${API_URL}/organization/empresas/${form.empresaId}/areas`)
+      .then(res => res.json())
+      .then(data => { if (!cancelled) setAreasEmpresa(data); })
+      .catch(err => toast.error(translateError(err)));
+    return () => { cancelled = true; };
+  }, [modalOpen, form.empresaId]);
+
+  // Alta de área al vuelo, sin pasar por el modal de áreas de la empresa.
+  const crearAreaNueva = async () => {
+    const nombre = nombreAreaNueva.trim();
+    if (!nombre || !form.empresaId) return;
+    setGuardandoArea(true);
+    try {
+      const res = await fetchWithErrorMapping(`${API_URL}/organization/empresas/${form.empresaId}/areas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre }),
+      });
+      const creada: { id: string; nombre: string } = await res.json();
+      setAreasEmpresa(prev => [...prev, creada].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setForm(f => ({ ...f, areaId: creada.id })); // reselecciona la recién creada
+      setCreandoArea(false);
+      setNombreAreaNueva('');
+    } catch (err) {
+      toast.error(translateError(err));
+    } finally {
+      setGuardandoArea(false);
+    }
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm({ ...emptyForm });
@@ -249,7 +295,7 @@ export function UsuariosPage() {
       password: '',
       empresaId: u.empresaId ?? '',
       cargo: u.cargo ?? '',
-      area: u.area ?? '',
+      areaId: u.areaId ?? '',
       puedeIniciarSesion: u.puedeIniciarSesion,
       activo: u.activo,
     });
@@ -265,7 +311,7 @@ export function UsuariosPage() {
         nombre: form.nombre,
         role: form.role,
         cargo: form.cargo || null,
-        area: form.area || null,
+        areaId: form.areaId || null,
         puedeIniciarSesion: form.puedeIniciarSesion,
       };
 
@@ -273,6 +319,7 @@ export function UsuariosPage() {
         body.username = form.username;
         body.email = form.email || null;
         body.empresaId = null;
+        body.areaId = null; // el admin no pertenece a una empresa
         if (!editing || form.password) body.password = form.password;
       } else {
         body.email = form.email;
@@ -358,6 +405,7 @@ export function UsuariosPage() {
       case 'identificacion': return (u.username || u.email || '').toLowerCase();
       case 'role': return (u.role?.nombre ?? '').toLowerCase();
       case 'empresa': return (u.empresa?.nombre ?? '').toLowerCase();
+      case 'area': return areaDeUsuario(u).toLowerCase();
       case 'login': return u.puedeIniciarSesion ? 1 : 0;
       case 'estado': return u.activo ? 1 : 0;
     }
@@ -458,6 +506,15 @@ export function UsuariosPage() {
       render: u => (
         <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', opacity: u.activo ? 1 : 0.55 }}>
           {u.empresa?.nombre ?? <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'area',
+      header: sortHeader('area', t('admin:usuarios.columns.area')),
+      render: u => (
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', opacity: u.activo ? 1 : 0.55 }}>
+          {areaDeUsuario(u) || <span style={{ color: 'var(--color-border-strong)' }}>—</span>}
         </span>
       ),
     },
@@ -661,7 +718,7 @@ export function UsuariosPage() {
               </Field>
               {isEmpresaRole && (
                 <Field label={t('admin:usuarios.fields.empresa')} required>
-                  <select className="input" value={form.empresaId} onChange={e => setForm(f => ({ ...f, empresaId: e.target.value }))} required>
+                  <select className="input" value={form.empresaId} onChange={e => setForm(f => ({ ...f, empresaId: e.target.value, areaId: '' }))} required>
                     <option value="">—</option>
                     {empresaOptions.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
                   </select>
@@ -687,10 +744,52 @@ export function UsuariosPage() {
             <Field label={t('admin:usuarios.fields.cargo')}>
               <input className="input" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} />
             </Field>
-            <Field label={t('admin:usuarios.fields.area')}>
-              <input className="input" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} />
+            <Field
+              label={t('admin:usuarios.fields.area')}
+              hint={!form.empresaId || isAdminRole ? t('admin:usuarios.fields.area_sin_empresa') : undefined}
+            >
+              <select
+                className="input"
+                value={creandoArea ? AREA_NUEVA : form.areaId}
+                disabled={!form.empresaId || isAdminRole}
+                onChange={e => {
+                  if (e.target.value === AREA_NUEVA) { setCreandoArea(true); return; }
+                  setCreandoArea(false);
+                  setForm(f => ({ ...f, areaId: e.target.value }));
+                }}
+              >
+                <option value="">—</option>
+                {/* Un área ya desactivada que el usuario conserva debe seguir visible para no perderla al guardar. */}
+                {editing?.areaCatalogo && editing.empresaId === form.empresaId
+                  && !areasEmpresa.some(a => a.id === editing.areaCatalogo!.id) && (
+                  <option value={editing.areaCatalogo.id}>{editing.areaCatalogo.nombre}</option>
+                )}
+                {areasEmpresa.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                <option value={AREA_NUEVA}>{t('admin:programas.participantes.area_nueva')}</option>
+              </select>
             </Field>
           </div>
+
+          {creandoArea && (
+            <Field label={t('admin:programas.participantes.area_nueva_prompt')}>
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <input
+                  className="input"
+                  value={nombreAreaNueva}
+                  onChange={e => setNombreAreaNueva(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); crearAreaNueva(); } }}
+                  autoFocus
+                />
+                <button type="button" className="btn btn-secondary" disabled={guardandoArea}
+                  onClick={() => { setCreandoArea(false); setNombreAreaNueva(''); }}>
+                  {t('common:buttons.cancel')}
+                </button>
+                <button type="button" className="btn btn-primary" disabled={guardandoArea || !nombreAreaNueva.trim()} onClick={crearAreaNueva}>
+                  {t('common:buttons.create')}
+                </button>
+              </div>
+            </Field>
+          )}
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.85rem', cursor: 'pointer', marginBottom: 'var(--space-4)' }}>
             <input

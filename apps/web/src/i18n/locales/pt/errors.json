@@ -83,5 +83,8 @@
   "USUARIO_CLIENTE_DUPLICADO": "Esse usuário já tem acesso ativo ao portal da sua empresa.",
   "USUARIO_CLIENTE_NOT_FOUND": "O usuário do portal não existe ou não pertence à sua empresa.",
   "CLIENTE_ADMIN_UNICO": "Já existe um administrador de cliente ativo para esta empresa. Desative-o antes de atribuir outro.",
-  "PROGRAMA_GRACIA_VENCIDA": "O prazo de carência deste programa já venceu: você pode consultar sessões, presença e participantes, mas não pode mais registrar nem modificar nada."
+  "PROGRAMA_GRACIA_VENCIDA": "O prazo de carência deste programa já venceu: você pode consultar sessões, presença e participantes, mas não pode mais registrar nem modificar nada.",
+  "AREA_NOT_FOUND": "A área não existe.",
+  "AREA_DUPLICATE": "Já existe uma área com esse nome na empresa.",
+  "AREA_EMPRESA_INVALIDA": "A área não pertence à empresa indicada."
 }
