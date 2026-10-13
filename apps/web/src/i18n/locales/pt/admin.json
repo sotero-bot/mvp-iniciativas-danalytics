@@ -278,7 +278,12 @@
       "registradas_sin_total": "sessões registradas (sem total esperado definido)",
       "faltan": "faltam {{n}}",
       "presentacion_desde": "apresentação a partir da sessão {{n}}",
-      "total_alcanzado": "Você já atingiu o total de sessões esperadas do programa."
+      "total_alcanzado": "Você já atingiu o total de sessões esperadas do programa.",
+      "formularios": {
+        "legend": "Formulários desta sessão",
+        "hint": "Formulários que o estudante deve responder após esta sessão. Escolha a versão do catálogo; um formulário pode estar em várias sessões. Aparecem nas pendências dele, sob cada sessão.",
+        "empty": "Não há formulários de feedback ou diagnóstico final ativos no catálogo."
+      }
     },
     "participantes": {
       "empty": "Ainda não há participantes matriculados.",

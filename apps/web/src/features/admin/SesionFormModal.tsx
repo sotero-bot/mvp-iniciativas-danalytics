@@ -7,6 +7,24 @@ import type { Sesion } from './programas.types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// HU-13: formularios que el estudiante responde tras una sesión (N:M). El admin elige del
+// CATÁLOGO (versión activa); al guardar, el servidor fija esa versión en el programa. `id` es el
+// id del formulario ya fijado en el programa o, si aún no lo está, el del catálogo.
+interface OpcionFormulario {
+  id: string;
+  nombre: string;
+  version: number;
+}
+interface PlantillaLista {
+  id: string;
+  nombre: string;
+  tipoFormulario: string;
+  version: number;
+  activa: boolean;
+  snapshotDeId: string | null;
+}
+const TIPOS_POR_SESION = ['feedback', 'diagnostico_final'];
+
 // ─────────────────────────────────────────────────────────────
 // Modal para crear/editar sesión
 // ─────────────────────────────────────────────────────────────
@@ -42,6 +60,49 @@ export function SesionFormModal({
   );
   const [archivo, setArchivo] = useState<File | null>(null);
   const archivoRef = useRef<HTMLInputElement>(null);
+
+  const [opciones, setOpciones] = useState<OpcionFormulario[]>([]);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const get = (url: string) => fetchWithErrorMapping(`${API_URL}${url}`).then(r => r.json());
+        const [catalogo, delPrograma, vinculos]: [PlantillaLista[], PlantillaLista[], { plantillaIds: string[] } | null] =
+          await Promise.all([
+            get('/admin/plantillas-formulario'),
+            get(`/admin/plantillas-formulario?programaId=${programaId}`),
+            editing ? get(`/admin/sesiones/${editing.id}/formularios`) : Promise.resolve(null),
+          ]);
+        const enCatalogo = catalogo.filter(f => f.activa && TIPOS_POR_SESION.includes(f.tipoFormulario));
+        const propios = delPrograma.filter(f => TIPOS_POR_SESION.includes(f.tipoFormulario));
+        const ligados = new Set(vinculos?.plantillaIds ?? []);
+
+        const lista: OpcionFormulario[] = enCatalogo.map(g => {
+          const fijado = propios.find(p => p.snapshotDeId === g.id);
+          return { id: fijado?.id ?? g.id, nombre: g.nombre, version: g.version };
+        });
+        // Versiones anteriores ya ligadas a la sesión: se muestran para poder cambiarlas por otra.
+        const idsCatalogo = new Set(enCatalogo.map(g => g.id));
+        for (const p of propios) {
+          if (ligados.has(p.id) && !(p.snapshotDeId && idsCatalogo.has(p.snapshotDeId))) {
+            lista.push({ id: p.id, nombre: p.nombre, version: p.version });
+          }
+        }
+        setOpciones(lista);
+        setSeleccion(ligados);
+      } catch {
+        // Silencioso: sin formularios el resto del modal sigue funcionando.
+      }
+    })();
+  }, [programaId, editing?.id]);
+
+  const toggleFormulario = (id: string) =>
+    setSeleccion(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const nombreArchivoActual = presentacionArchivoKey ? presentacionArchivoKey.split('/').pop() : null;
 
@@ -150,6 +211,13 @@ export function SesionFormModal({
           body: JSON.stringify({ presentacionArchivoKey: presign.key }),
         });
       }
+
+      // N:M: se reemplaza el conjunto de formularios de la sesión (ya guardada, tiene id).
+      await fetchWithErrorMapping(`${API_URL}/admin/sesiones/${sesionId}/formularios`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantillaIds: [...seleccion] }),
+      });
 
       const tituloPt = form.tituloPt.trim();
       const descripcionPt = form.descripcionPt.trim();
@@ -361,6 +429,27 @@ export function SesionFormModal({
               {t('admin:programas.sesiones.presentacion_archivo_hint')}
             </div>
           </Field>
+          </fieldset>
+          <fieldset style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px', margin: 0, minWidth: 0 }}>
+            <legend style={{ padding: '0 6px', fontSize: '0.85rem', fontWeight: 600 }}>
+              {t('admin:programas.sesiones.formularios.legend')}
+            </legend>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
+              {t('admin:programas.sesiones.formularios.hint')}
+            </div>
+            {opciones.length === 0 ? (
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                {t('admin:programas.sesiones.formularios.empty')}
+              </div>
+            ) : (
+              opciones.map(f => (
+                <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', padding: '4px 0' }}>
+                  <input type="checkbox" checked={seleccion.has(f.id)} onChange={() => toggleFormulario(f.id)} />
+                  <span>{f.nombre}</span>
+                  <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.75rem' }}>v{f.version}</span>
+                </label>
+              ))
+            )}
           </fieldset>
           <Field
             label={<>{t('admin:programas.sesiones.fields.url_grabacion')}<InfoTooltip label={t('admin:programas.sesiones.fields.url_grabacion_hint')} /></>}

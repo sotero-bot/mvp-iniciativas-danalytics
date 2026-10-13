@@ -8,6 +8,8 @@ import { SidebarIcon } from '../../components/SidebarIcon';
 import { formatFechaHora, formatDiasRelativos } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
 import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
+import { pendienteTo, etiquetaSesiones } from '../estudiante/pendientes';
+import type { Pendiente } from '../estudiante/pendientes';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -37,40 +39,10 @@ interface ProgramaResumen {
   fase: { fase: 1 | 2 | 3; clave: 'entendimiento' | 'sesiones' | 'presentacion_final'; completada?: true };
 }
 
-type PendienteTipo = 'encuesta_inicio' | 'matricula' | 'entregable' | 'formulario';
-
-interface Pendiente {
-  tipo: PendienteTipo;
-  plantillaId: string | null;
-  programaId: string | null;
-  programaNombre: string | null;
-  nombre: string | null;
-}
-
 interface Resumen {
   proximaSesion: ProximaSesion | null;
   pendientes: Pendiente[];
   programas: ProgramaResumen[];
-}
-
-const HOME = '/inicio';
-
-// Destino de cada pendiente según su tipo. Cada uno enlaza a su acción real
-// (el formulario concreto, la confirmación del programa, el reto del grupo),
-// no a un listado genérico.
-function pendienteTo(p: Pendiente): string {
-  switch (p.tipo) {
-    case 'encuesta_inicio':
-      return `/estudiante/formularios/${p.plantillaId}?from=${encodeURIComponent(HOME)}`;
-    case 'formulario': {
-      const from = `/estudiante/programas/${p.programaId}/sesiones`;
-      return `/estudiante/formularios/${p.plantillaId}?from=${encodeURIComponent(from)}`;
-    }
-    case 'entregable':
-      return `/estudiante/programas/${p.programaId}/sesiones`;
-    case 'matricula':
-      return '/estudiante/programas';
-  }
 }
 
 const RETO_VARIANT: Record<RetoEstado, StatusVariant> = {
@@ -113,7 +85,12 @@ export function EstudianteHome() {
       case 'entregable':
         return t('pendiente_entregable', { programa: p.programaNombre });
       case 'formulario':
-        return t('pendiente_formulario', { programa: p.programaNombre, nombre: p.nombre });
+        {
+          // HU-13: deja claro de qué sesión es el pendiente.
+          const base = t('pendiente_formulario', { programa: p.programaNombre, nombre: p.nombre });
+          const ses = etiquetaSesiones(p);
+          return ses ? `${base} · ${t('pendiente_de_sesion', { ...ses })}` : base;
+        }
     }
   };
 

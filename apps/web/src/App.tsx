@@ -32,6 +32,7 @@ import { EstudianteProgramasPage } from './features/estudiante/ProgramasPage';
 import { EstudianteSesionesPage } from './features/estudiante/SesionesPage';
 import { FormularioResponderPage } from './features/estudiante/FormularioResponderPage';
 import { EstudianteGrupoPage } from './features/estudiante/GrupoPage';
+import { EstudiantePendientesPage } from './features/estudiante/PendientesPage';
 import { GrupoRecursoPage } from './features/estudiante/GrupoRecursoPage';
 import { GrupoPresentacionPage } from './features/estudiante/GrupoPresentacionPage';
 import { FacilitadorResultadosPage } from './features/facilitador/ResultadosPage';
@@ -543,6 +544,7 @@ function App() {
         {/* Portal Estudiante */}
         <Route path="/estudiante/programas" element={<PortalRoute allow="estudiante"><EstudianteProgramasPage /></PortalRoute>} />
         <Route path="/estudiante/programas/:id/sesiones" element={<PortalRoute allow="estudiante"><EstudianteSesionesPage userId={session?.sub ?? ''} /></PortalRoute>} />
+        <Route path="/estudiante/programas/:id/pendientes" element={<PortalRoute allow="estudiante"><EstudiantePendientesPage /></PortalRoute>} />
         <Route path="/estudiante/programas/:id/grupo" element={<PortalRoute allow="estudiante"><EstudianteGrupoPage userId={session?.sub ?? ''} /></PortalRoute>} />
         <Route path="/estudiante/formularios/:plantillaId" element={<PortalRoute allow="estudiante"><FormularioResponderPage /></PortalRoute>} />
         <Route path="/estudiante/grupos/:grupoId/bitacora" element={<PortalRoute allow="estudiante"><GrupoRecursoPage recurso="bitacora" /></PortalRoute>} />

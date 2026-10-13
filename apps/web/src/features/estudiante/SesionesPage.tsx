@@ -62,6 +62,8 @@ interface FormularioDisponible {
   descripcion: string | null;
   estado: 'pendiente' | 'en_progreso' | 'enviado';
   enviadoEn: string | null;
+  // HU-13: sesiones del programa a las que está ligado (N:M).
+  sesiones: { numeroSesion: number; titulo: string }[];
 }
 
 interface FasePrograma {
@@ -276,7 +278,14 @@ export function EstudianteSesionesPage({ userId }: { userId: string }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                     {sesiones.map((s) => (
-                      <SesionCard key={s.id} sesion={s} lang={i18n.language} t={t} />
+                      <SesionCard
+                        key={s.id}
+                        sesion={s}
+                        lang={i18n.language}
+                        t={t}
+                        formularios={formulariosPrograma.filter((f) => f.sesiones.some((x) => x.numeroSesion === s.numeroSesion))}
+                        from={from}
+                      />
                     ))}
                   </div>
                 )}
@@ -421,11 +430,19 @@ function GrupoCard({ grupo: g, from, userId }: { grupo: MiGrupo; from: string; u
 }
 
 function FormularioCard({ formulario: f, from }: { formulario: FormularioDisponible; from: string }) {
-  const { t } = useTranslation(['formularios']);
+  const { t } = useTranslation(['formularios', 'estudiante']);
   return (
     <div className="card" style={{ padding: 'var(--space-4)' }}>
       <div className="eyebrow">{t(`formularios:tipos.${f.tipoFormulario}`)}</div>
       <div style={{ fontWeight: 600, margin: 'var(--space-1) 0 var(--space-3)' }}>{f.nombre}</div>
+      {f.sesiones.length > 0 && (
+        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '0 0 var(--space-3)' }}>
+          {t('estudiante:pendientes.de_sesion', {
+            count: f.sesiones.length,
+            lista: f.sesiones.map((x) => x.numeroSesion).join(', '),
+          })}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <StatusBadge variant={ESTADO_VARIANT[f.estado] ?? 'neutral'}>
           {t(`formularios:estudiante.estado.${f.estado}`)}
@@ -446,10 +463,14 @@ function SesionCard({
   sesion: s,
   lang,
   t,
+  formularios,
+  from,
 }: {
   sesion: Sesion;
   lang: string;
   t: ReturnType<typeof useTranslation>['t'];
+  formularios: FormularioDisponible[];
+  from: string;
 }) {
   return (
     <div className="card" style={{ padding: 'var(--space-4)', opacity: s.bloqueada ? 0.6 : 1 }}>
@@ -497,6 +518,31 @@ function SesionCard({
           </span>
         )}
       </div>
+      {/* HU-13: formularios que el estudiante responde tras esta sesión. */}
+      {formularios.length > 0 && (
+        <div style={{ marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)' }}>
+          <div className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>{t('estudiante:sesiones.formularios_sesion')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {formularios.map((f) => (
+              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.9rem' }}>{f.nombre}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <StatusBadge variant={ESTADO_VARIANT[f.estado] ?? 'neutral'}>
+                    {t(`formularios:estudiante.estado.${f.estado}`)}
+                  </StatusBadge>
+                  <Link className="btn" to={`/estudiante/formularios/${f.id}?from=${encodeURIComponent(from)}`}>
+                    {f.estado === 'pendiente'
+                      ? t('formularios:estudiante.responder')
+                      : f.estado === 'en_progreso'
+                        ? t('formularios:estudiante.continuar')
+                        : t('formularios:estudiante.ver_estado')}
+                  </Link>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

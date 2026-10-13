@@ -413,9 +413,24 @@ model Sesion {
   programa             Programa                 @relation(fields: [programaId], references: [id], onDelete: Cascade)
   asistencias          Asistencia[]
   observaciones        ObservacionFacilitador[]
+  formularios          SesionFormulario[]
 
   @@unique([programaId, numeroSesion])
   @@index([programaId])
+}
+
+// HU-13: formularios del programa que el estudiante responde tras una sesión. N:M — un
+// formulario puede colgar de varias sesiones y una sesión tener varios formularios. Solo
+// aplica a snapshots de programa (las plantillas globales no tienen sesiones).
+model SesionFormulario {
+  sesionId    String
+  plantillaId String
+  createdAt   DateTime            @default(now())
+  sesion      Sesion              @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  plantilla   PlantillaFormulario @relation(fields: [plantillaId], references: [id], onDelete: Cascade)
+
+  @@id([sesionId, plantillaId])
+  @@index([plantillaId])
 }
 
 model ParticipantePrograma {
@@ -627,6 +642,7 @@ model PlantillaFormulario {
   creadoPor      Usuario?              @relation("PlantillaCreador", fields: [creadoPorId], references: [id])
   campos         CampoFormulario[]
   respuestas     RespuestaFormulario[]
+  sesiones       SesionFormulario[]
 
   @@index([programaId, tipoFormulario])
   @@index([tipoFormulario, activa])

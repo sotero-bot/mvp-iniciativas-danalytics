@@ -9,6 +9,7 @@ import { AppError } from '../../../shared/errors/AppError';
 import { ENTREGA_SELECT, entregaCompleta } from '../../grupos/application/entrega-grupo';
 import { derivarFasePrograma } from '../../programas/application/fase-programa';
 import { retosGrupoSelect, retosParaEstudiante, retosParaFacilitador } from '../../grupos/application/retos-entregados';
+import { PendientesEstudianteService } from '../application/pendientes-estudiante.service';
 
 // C-03: el facilitador ve la presentación desde 7 días calendario antes de la sesión.
 const FACILITADOR_ANTELACION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -40,6 +41,7 @@ export class ActorSesionesController {
     private readonly prisma: PrismaService,
     private readonly scope: ActorScopeService,
     private readonly s3: S3Service,
+    private readonly pendientesService: PendientesEstudianteService,
   ) {}
 
   // Glue mínimo para que la UI pueda listar "mis programas" antes de poder pedir
@@ -271,7 +273,7 @@ export class ActorSesionesController {
   async resumenEstudiante(@CurrentUser() actor: AuthUser) {
     const now = Date.now();
 
-    const [programas, plantillas, matriculasPendientes] = await Promise.all([
+    const [programas, pendientes] = await Promise.all([
       this.prisma.programa.findMany({
         where: this.scope.programaScope(actor),
         select: {
@@ -309,77 +311,11 @@ export class ActorSesionesController {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      // Formularios individuales del estudiante (misma lógica que /formularios/disponibles):
-      // la encuesta de inicio es la plantilla GLOBAL (programaId=null); el resto son de programa.
-      this.prisma.plantillaFormulario.findMany({
-        where: {
-          activa: true,
-          tipoFormulario: { in: ['diagnostico_inicial', 'diagnostico_final', 'feedback'] },
-          OR: [
-            { programaId: null, tipoFormulario: 'diagnostico_inicial' },
-            { programa: { is: { AND: [{ estado: 'activo' }, this.scope.programaScope(actor)] } } },
-          ],
-        },
-        select: {
-          id: true,
-          nombre: true,
-          programaId: true,
-          tipoFormulario: true,
-          programa: { select: { id: true, nombre: true } },
-          respuestas: { where: { usuarioRespondienteId: actor.sub }, select: { estado: true } },
-        },
-      }),
-      this.prisma.participantePrograma.findMany({
-        where: { usuarioId: actor.sub, activo: true, confirmadoEn: null },
-        select: { programa: { select: { id: true, nombre: true } } },
-        orderBy: { createdAt: 'desc' },
-      }),
+      // HU-13: los pendientes viven en un servicio compartido con GET programas/:id/pendientes.
+      this.pendientesService.listar(actor),
     ]);
 
-    const enviado = (rs: { estado: string }[]) => rs.some((r) => r.estado === 'submitted');
-
-    // Pendientes ITEMIZADOS y atribuidos a su programa (o global, para la encuesta de
-    // inicio) para que el frontend enlace a la acción real de cada uno, no a un listado
-    // genérico. `tipo` gobierna el destino; `plantillaId`/`programaId` lo parametrizan.
-    type Pendiente = {
-      tipo: 'encuesta_inicio' | 'matricula' | 'entregable' | 'formulario';
-      plantillaId: string | null;
-      programaId: string | null;
-      programaNombre: string | null;
-      nombre: string | null;
-    };
-    const pendientes: Pendiente[] = [];
-
-    // 1) Encuesta de inicio (gate global, sin programa). Deep-link al formulario.
-    const encuesta = plantillas.find(
-      (p) => p.programaId === null && p.tipoFormulario === 'diagnostico_inicial',
-    );
-    if (encuesta && !enviado(encuesta.respuestas)) {
-      pendientes.push({
-        tipo: 'encuesta_inicio',
-        plantillaId: encuesta.id,
-        programaId: null,
-        programaNombre: null,
-        nombre: encuesta.nombre,
-      });
-    }
-
-    // 2) Matrículas por confirmar (programas fuera de scope hasta confirmar).
-    for (const m of matriculasPendientes) {
-      pendientes.push({
-        tipo: 'matricula',
-        plantillaId: null,
-        programaId: m.programa.id,
-        programaNombre: m.programa.nombre,
-        nombre: null,
-      });
-    }
-
-    // 3) Entregables del reto pendientes: se recolectan en el loop de programas.
-    const entregableItems: Pendiente[] = [];
-
-    // Resumen por programa. Un grupo con el reto habilitado (bitácora habilitada) y sin
-    // presentación final entregada aporta un entregable pendiente atribuido al programa.
+    // Resumen por programa.
     const resumenProgramas = programas.map((p) => {
       const sesionesRealizadas = p.sesiones.filter((s) => s.fechaProgramada.getTime() < now).length;
       const sesionesTotal = p.totalSesionesEsperadas ?? p.sesiones.length;
@@ -392,16 +328,6 @@ export class ActorSesionesController {
       else if (!p.bitacoraHabilitadaEn) reto = 'bloqueado';
       else if (grupo.respuestasFormulario.length > 0) reto = 'en_progreso';
       else reto = 'sin_iniciar';
-
-      if (grupo && p.bitacoraHabilitadaEn && !grupo.presentacionFinal && !grupo.finalizadoEn) {
-        entregableItems.push({
-          tipo: 'entregable',
-          plantillaId: null,
-          programaId: p.id,
-          programaNombre: p.nombre,
-          nombre: null,
-        });
-      }
 
       return {
         id: p.id,
@@ -427,26 +353,6 @@ export class ActorSesionesController {
         ),
       };
     });
-
-    pendientes.push(...entregableItems);
-
-    // 4) Formularios del programa pendientes (feedback / diagnóstico final). Deep-link
-    // al formulario, con `?from` a la vista del programa correspondiente. Se excluye
-    // el diagnóstico inicial por-programa: es un snapshot que NO se responde directo —
-    // el estudiante contesta la encuesta de inicio GLOBAL (gate), así que el snapshot
-    // nunca tendría respuesta y aparecería como pendiente para siempre (mismo criterio
-    // que la vista del programa en SesionesPage).
-    for (const pl of plantillas) {
-      if (pl.programaId !== null && pl.tipoFormulario !== 'diagnostico_inicial' && !enviado(pl.respuestas)) {
-        pendientes.push({
-          tipo: 'formulario',
-          plantillaId: pl.id,
-          programaId: pl.programaId,
-          programaNombre: pl.programa?.nombre ?? null,
-          nombre: pl.nombre,
-        });
-      }
-    }
 
     // Próxima sesión: la más cercana en el futuro entre TODOS los programas.
     let proxima: {
@@ -498,6 +404,14 @@ export class ActorSesionesController {
       pendientes,
       programas: resumenProgramas,
     };
+  }
+
+  // HU-13: pendientes del estudiante en un programa, divididos por sesión + generales.
+  @Get('estudiante/programas/:id/pendientes')
+  @Roles('estudiante')
+  async pendientesPrograma(@Param('id') programaId: string, @CurrentUser() actor: AuthUser) {
+    await this.scope.assertProgramaAccessible(this.prisma, actor, programaId);
+    return this.pendientesService.agrupar(actor, programaId);
   }
 
   @Get('sesiones/:id/material')

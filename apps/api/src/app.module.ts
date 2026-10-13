@@ -30,6 +30,7 @@ import { AdminObservacionesController } from './modules/observaciones/interfaces
 import { AdminNotificacionesController } from './modules/notificaciones/interfaces/admin-notificaciones.controller';
 import { InternalJobsController } from './modules/notificaciones/interfaces/internal-jobs.controller';
 import { ActorSesionesController } from './modules/sesiones/interfaces/actor-sesiones.controller';
+import { PendientesEstudianteService } from './modules/sesiones/application/pendientes-estudiante.service';
 import { AdminFormulariosController } from './modules/formularios/interfaces/admin-formularios.controller';
 import { EstudianteFormulariosController } from './modules/formularios/interfaces/estudiante-formularios.controller';
 import { FacilitadorResultadosController } from './modules/formularios/interfaces/facilitador-resultados.controller';
@@ -218,6 +219,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     SnapshotFormulariosService,
     ResultadosService,
     AsistenciaResumenService,
+    PendientesEstudianteService,
     MiembrosGrupoService,
     GrupoCierreService,
     UsuarioClienteService,

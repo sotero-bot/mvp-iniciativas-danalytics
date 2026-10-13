@@ -145,6 +145,27 @@ export class SnapshotFormulariosService {
     });
   }
 
+  /**
+   * HU-13: fija en el programa UNA versión concreta del catálogo (la elegida en una sesión) y
+   * devuelve el id del snapshot. Idempotente: si ese global ya tiene snapshot en el programa,
+   * devuelve el existente. `null` si el global no existe o no está activo.
+   */
+  async asegurarSnapshot(programaId: string, globalId: string, creadoPorId?: string | null): Promise<string | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const existente = await tx.plantillaFormulario.findFirst({
+        where: { programaId, snapshotDeId: globalId },
+        select: { id: true },
+      });
+      if (existente) return existente.id;
+      const global = await tx.plantillaFormulario.findFirst({
+        where: { id: globalId, programaId: null, activa: true },
+        include: { campos: { orderBy: { orden: 'asc' } } },
+      });
+      if (!global) return null;
+      return this.copiarPlantilla(tx, global, programaId, creadoPorId ?? null);
+    });
+  }
+
   private async copiarGlobales(tx: Tx, programaId: string, creadoPorId: string | null): Promise<number> {
     const globales = await tx.plantillaFormulario.findMany({
       where: { programaId: null, activa: true },
@@ -173,7 +194,7 @@ export class SnapshotFormulariosService {
     global: Prisma.PlantillaFormularioGetPayload<{ include: { campos: true } }>,
     programaId: string,
     creadoPorId: string | null,
-  ): Promise<void> {
+  ): Promise<string> {
     const snapshot = await tx.plantillaFormulario.create({
       data: {
         id: randomUUID(),
@@ -207,5 +228,6 @@ export class SnapshotFormulariosService {
         },
       });
     }
+    return snapshot.id;
   }
 }

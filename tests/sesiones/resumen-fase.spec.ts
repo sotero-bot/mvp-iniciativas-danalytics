@@ -15,6 +15,7 @@ vi.mock('../../apps/api/src/modules/programas/application/fase-programa', async 
 });
 
 import { ActorSesionesController } from '../../apps/api/src/modules/sesiones/interfaces/actor-sesiones.controller';
+import { PendientesEstudianteService } from '../../apps/api/src/modules/sesiones/application/pendientes-estudiante.service';
 import { derivarFasePrograma } from '../../apps/api/src/modules/programas/application/fase-programa';
 
 const ESTUDIANTE = { sub: 'e1', userId: 'e1', role: 'estudiante' as const, empresaId: null };
@@ -53,7 +54,8 @@ function buildController(programas: unknown[]) {
     participantePrograma: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const scopeStub = { programaScope: vi.fn().mockReturnValue({}), graciaVencida: vi.fn().mockReturnValue(false) };
-  const controller = new ActorSesionesController(prismaMock as any, scopeStub as any, {} as any);
+  const pendientes = new PendientesEstudianteService(prismaMock as any, scopeStub as any);
+  const controller = new ActorSesionesController(prismaMock as any, scopeStub as any, {} as any, pendientes);
   return { controller, prismaMock };
 }
 

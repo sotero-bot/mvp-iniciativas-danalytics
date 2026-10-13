@@ -28,7 +28,9 @@
     "kpi_sesiones": "Sesiones",
     "kpi_sesiones_hint": "Completadas",
     "kpi_pendientes": "Pendientes",
-    "kpi_pendientes_hint": "Por resolver"
+    "kpi_pendientes_hint": "Por resolver",
+    "pendiente_de_sesion_one": "Sesión {{lista}}",
+    "pendiente_de_sesion_other": "Sesiones {{lista}}"
   },
   "programas": {
     "title": "Mis programas",
@@ -51,7 +53,8 @@
     "empty": "Este programa todavía no tiene sesiones.",
     "presentacion": "Ver presentación",
     "presentacion_archivo": "Descargar presentación",
-    "facilitador": "Facilitador"
+    "facilitador": "Facilitador",
+    "formularios_sesion": "Formularios de esta sesión"
   },
   "programa": {
     "encuesta_inicio_title": "Encuesta de inicio: Uso de IA Generativa",
@@ -93,5 +96,16 @@
     "sin_grupo_hint": "Tu facilitador lo asignará antes de comenzar el reto.",
     "reto_title": "Estado del reto",
     "contactar": "Escribir"
+  },
+  "pendientes": {
+    "title": "Pendientes",
+    "total": "{{count}} pendientes",
+    "sesion_prefix": "Sesión {{n}}",
+    "generales_title": "Sin sesión asociada",
+    "generales_hint": "Formularios y tareas que no pertenecen a una sesión concreta.",
+    "empty": "No tienes pendientes. Todo al día.",
+    "sesion_realizada": "Sesión ya realizada",
+    "de_sesion_one": "Sesión {{lista}}",
+    "de_sesion_other": "Sesiones {{lista}}"
   }
 }

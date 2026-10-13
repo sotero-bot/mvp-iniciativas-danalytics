@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { Breadcrumb, Button, Loading, PageHeader } from '../../components/ui';
@@ -7,6 +7,7 @@ import type { BreadcrumbItem } from '../../components/ui';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { toast } from '../../components/toast-store';
 import { formatFechaHora } from '../../shared/formatDate';
+import { safeInternalPath } from '../../shared/safeInternalPath';
 
 // Clave reservada dentro de cada iteración de un grupo repetible para guardar
 // automáticamente el instante en que se creó. No colisiona con los ids (UUID) de
@@ -58,7 +59,8 @@ export function FormularioResponderPage() {
   const [searchParams] = useSearchParams();
   // Al abrirse desde la vista de programa (?from=), el enlace de "volver" regresa
   // ahí; si no, cae a "Mis programas".
-  const backTo = searchParams.get('from') || '/estudiante/programas';
+  const backTo = safeInternalPath(searchParams.get('from'), '/estudiante/programas');
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation(['formularios', 'common']);
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [datos, setDatos] = useState<Datos>({});
@@ -173,7 +175,9 @@ export function FormularioResponderPage() {
       dirtyRef.current = false;
       setEnviado(true);
       toast.success(t('formularios:estudiante.success'));
-      window.scrollTo({ top: 0 });
+      // Al enviar, vuelve a donde se abrió (p. ej. las sesiones del programa). `replace` evita
+      // que "atrás" regrese a un formulario ya enviado.
+      navigate(backTo, { replace: true });
     } catch (err) {
       toast.error(translateError(err));
     } finally {

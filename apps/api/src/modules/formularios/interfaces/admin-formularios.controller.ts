@@ -357,7 +357,76 @@ export class AdminFormulariosController {
     return this.snapshots.estadoSnapshot(programaId);
   }
 
+  // --------- Formularios por sesión (HU-13, N:M) ---------
+
+  @Get('sesiones/:id/formularios')
+  async getSesionFormularios(@Param('id') sesionId: string): Promise<{ plantillaIds: string[] }> {
+    await this.assertSesionExiste(sesionId);
+    const vinculos = await this.prisma.sesionFormulario.findMany({
+      where: { sesionId },
+      select: { plantillaId: true },
+    });
+    return { plantillaIds: vinculos.map((v) => v.plantillaId) };
+  }
+
+  // Reemplaza el conjunto de formularios de la sesión. Cada id puede ser un formulario ya fijado
+  // en el programa o una versión ACTIVA del catálogo; en este caso se fija en el programa (el
+  // estudiante responde la versión del programa) y se liga ese. Solo los tipos que el estudiante
+  // responde por sesión: feedback y diagnóstico final.
+  @Put('sesiones/:id/formularios')
+  async setSesionFormularios(
+    @Param('id') sesionId: string,
+    @Body() body: { plantillaIds: string[] },
+    @CurrentUser() actor?: AuthUser,
+  ): Promise<{ plantillaIds: string[] }> {
+    if (!Array.isArray(body?.plantillaIds)) {
+      throw new AppError('VALIDATION_ERROR', { message: 'plantillaIds debe ser un arreglo' });
+    }
+    const sesion = await this.assertSesionExiste(sesionId);
+    const ids = [...new Set(body.plantillaIds)];
+    const tipoFormulario = { in: ['feedback', 'diagnostico_final'] as TipoFormulario[] };
+
+    const delPrograma = ids.length
+      ? await this.prisma.plantillaFormulario.findMany({
+          where: { id: { in: ids }, programaId: sesion.programaId, tipoFormulario },
+          select: { id: true },
+        })
+      : [];
+    const propios = new Set(delPrograma.map((p) => p.id));
+    const delCatalogo = ids.filter((id) => !propios.has(id));
+    const catalogo = delCatalogo.length
+      ? await this.prisma.plantillaFormulario.findMany({
+          where: { id: { in: delCatalogo }, programaId: null, activa: true, tipoFormulario },
+          select: { id: true },
+        })
+      : [];
+    if (catalogo.length !== delCatalogo.length) throw new AppError('PLANTILLA_NOT_FOUND');
+
+    const fijados = new Map<string, string>();
+    for (const g of catalogo) {
+      const snapshotId = await this.snapshots.asegurarSnapshot(sesion.programaId, g.id, actor?.sub ?? null);
+      if (!snapshotId) throw new AppError('PLANTILLA_NOT_FOUND');
+      fijados.set(g.id, snapshotId);
+    }
+    const finales = [...new Set(ids.map((id) => fijados.get(id) ?? id))];
+
+    await this.prisma.$transaction([
+      this.prisma.sesionFormulario.deleteMany({ where: { sesionId } }),
+      this.prisma.sesionFormulario.createMany({ data: finales.map((plantillaId) => ({ sesionId, plantillaId })) }),
+    ]);
+    return { plantillaIds: finales };
+  }
+
   // --------- Helpers ---------
+
+  private async assertSesionExiste(sesionId: string): Promise<{ id: string; programaId: string }> {
+    const sesion = await this.prisma.sesion.findUnique({
+      where: { id: sesionId },
+      select: { id: true, programaId: true },
+    });
+    if (!sesion) throw new AppError('SESION_NOT_FOUND');
+    return sesion;
+  }
 
   // RF-23/RF-47: una plantilla (global o snapshot) con ≥1 respuesta es inmutable.
   private async assertPlantillaMutable(plantillaId: string): Promise<void> {

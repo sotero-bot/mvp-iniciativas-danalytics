@@ -84,6 +84,8 @@ export class EstudianteFormulariosController {
         nombre: true,
         descripcion: true,
         programa: { select: { id: true, nombre: true } },
+        // HU-13: sesiones del programa a las que está ligado (N:M).
+        sesiones: { select: { sesion: { select: { numeroSesion: true, titulo: true } } } },
         respuestas: {
           where: { usuarioRespondienteId: actor.sub },
           select: { estado: true, enviadoEn: true, updatedAt: true },
@@ -103,6 +105,7 @@ export class EstudianteFormulariosController {
         descripcion: p.descripcion,
         estado: !respuesta ? 'pendiente' : respuesta.estado === 'submitted' ? 'enviado' : 'en_progreso',
         enviadoEn: respuesta?.enviadoEn ?? null,
+        sesiones: p.sesiones.map(v => v.sesion).sort((a, b) => a.numeroSesion - b.numeroSesion),
       };
     });
   }
