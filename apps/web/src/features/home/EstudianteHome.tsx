@@ -8,10 +8,13 @@ import { SidebarIcon } from '../../components/SidebarIcon';
 import { formatFechaHora, formatDiasRelativos } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
 import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
-import { pendienteTo, etiquetaSesiones } from '../estudiante/pendientes';
+import { pendienteTo, etiquetaSesiones, ordenarPendientes, esBloqueante, destinoVerTodos } from '../estudiante/pendientes';
 import type { Pendiente } from '../estudiante/pendientes';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+// HU-04: filas visibles en el panel de pendientes; el resto se ve en "Ver todos".
+const MAX_PENDIENTES = 5;
 
 type RetoEstado = 'sin_grupo' | 'bloqueado' | 'entregado' | 'finalizado' | 'en_progreso' | 'sin_iniciar';
 
@@ -59,6 +62,7 @@ const RETO_VARIANT: Record<RetoEstado, StatusVariant> = {
 // GET /estudiante/resumen para no hacer N peticiones ni calcular fechas en cliente.
 export function EstudianteHome() {
   const { t, i18n } = useTranslation('estudiante', { keyPrefix: 'home' });
+  const { t: tp } = useTranslation('estudiante', { keyPrefix: 'pendientes' });
   const [data, setData] = useState<Resumen | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,6 +79,9 @@ export function EstudianteHome() {
 
   if (loading) return <Loading label={t('cargando', { defaultValue: 'Cargando…' })} />;
   if (!data) return null;
+
+  const pendientesOrdenados = ordenarPendientes(data.pendientes);
+  const verTodosTo = destinoVerTodos(data.programas);
 
   const etiquetaPendiente = (p: Pendiente): string => {
     switch (p.tipo) {
@@ -128,33 +135,51 @@ export function EstudianteHome() {
               hint={t('kpi_pendientes_hint')}
               icon={<SidebarIcon name="observaciones" size={18} />}
               accent="#F59E0B"
+              to={verTodosTo}
             />
           </div>
         </div>
       </div>
 
-      {/* Pendientes de acción: cada uno enlaza a su acción real y muestra el programa. */}
-      {data.pendientes.length > 0 && (
-        <div className="section-card home-panel">
-          <div className="section-card-header">
-            <span className="section-card-title">{t('pendientes_title')}</span>
-            <span className="count-badge">{data.pendientes.length}</span>
-          </div>
-          <div className="home-list">
-            {data.pendientes.map((p, i) => (
-              <Link
-                key={`${p.tipo}-${p.plantillaId ?? p.programaId ?? i}`}
-                to={pendienteTo(p)}
-                className="home-list-row"
-              >
-                <span className="home-list-row-dot" aria-hidden="true" />
-                <span className="home-list-row-text">{etiquetaPendiente(p)}</span>
-                <span className="home-list-row-arrow" aria-hidden="true">›</span>
-              </Link>
-            ))}
-          </div>
+      {/* Pendientes de acción: lo bloqueante primero, máximo MAX_PENDIENTES; cada fila enlaza a su acción real. */}
+      <div className="section-card home-panel">
+        <div className="section-card-header">
+          <span className="section-card-title">{t('pendientes_title')}</span>
+          <span className="count-badge">{data.pendientes.length}</span>
         </div>
-      )}
+        {data.pendientes.length === 0 ? (
+          <div className="section-card-body">
+            <EmptyState title={tp('empty')} />
+          </div>
+        ) : (
+          <>
+            <div className="home-list">
+              {pendientesOrdenados.slice(0, MAX_PENDIENTES).map((p, i) => {
+                const bloqueante = esBloqueante(p);
+                return (
+                  <Link
+                    key={`${p.tipo}-${p.plantillaId ?? p.programaId ?? i}`}
+                    to={pendienteTo(p)}
+                    className={`home-list-row${bloqueante ? ' card-accent' : ''}`}
+                    style={bloqueante ? { borderLeftColor: 'var(--color-warning)' } : undefined}
+                    title={bloqueante ? tp('bloqueante_hint') : undefined}
+                  >
+                    <span className="home-list-row-dot" aria-hidden="true" />
+                    <span className="home-list-row-text">{etiquetaPendiente(p)}</span>
+                    {bloqueante && <StatusBadge variant="warning">{tp('bloqueante')}</StatusBadge>}
+                    <span className="home-list-row-arrow" aria-hidden="true">›</span>
+                  </Link>
+                );
+              })}
+            </div>
+            {data.pendientes.length > MAX_PENDIENTES && (
+              <div className="section-card-body">
+                <Link to={verTodosTo}>{tp('ver_todos', { count: data.pendientes.length })}</Link>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Próxima sesión: la más cercana en el futuro, entre todos los programas. */}
       <div className="section-card home-panel">

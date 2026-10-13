@@ -46,6 +46,45 @@ export function pendienteTo(p: Pendiente): string {
   }
 }
 
+// HU-04: lo que el estudiante debe completar para avanzar (encuesta de inicio y confirmación de
+// matrícula). Es solo señal visual: el servidor no lo hace cumplir.
+export function esBloqueante(p: Pendiente): boolean {
+  return p.tipo === 'encuesta_inicio' || p.tipo === 'matricula';
+}
+
+const ORDEN_TIPO: Record<PendienteTipo, number> = {
+  encuesta_inicio: 0,
+  matricula: 1,
+  entregable: 2,
+  formulario: 3,
+};
+
+// Sesión más temprana del pendiente; sin sesión → al final de su grupo.
+const primeraSesion = (p: Pendiente): number =>
+  p.sesiones.length === 0 ? Infinity : Math.min(...p.sesiones.map((s) => s.numeroSesion));
+
+// HU-04: encuesta_inicio → matricula → entregable → formulario; dentro de cada tipo, por la sesión
+// más temprana (hoy solo los formularios tienen sesiones). Copia estable: no muta la entrada.
+export function ordenarPendientes(items: Pendiente[]): Pendiente[] {
+  return items
+    .map((p, i) => ({ p, i }))
+    .sort(
+      (a, b) =>
+        ORDEN_TIPO[a.p.tipo] - ORDEN_TIPO[b.p.tipo] ||
+        (primeraSesion(a.p) === primeraSesion(b.p) ? 0 : primeraSesion(a.p) < primeraSesion(b.p) ? -1 : 1) ||
+        a.i - b.i,
+    )
+    .map(({ p }) => p);
+}
+
+// Destino de "Ver todos": con un solo programa, su vista de pendientes; con varios (o ninguno),
+// el listado de programas.
+export function destinoVerTodos(programas: { id: string }[]): string {
+  return programas.length === 1
+    ? `/estudiante/programas/${programas[0].id}/pendientes`
+    : '/estudiante/programas';
+}
+
 // Argumentos de i18n para decir de qué sesión(es) es un pendiente (null si no tiene).
 export function etiquetaSesiones(p: Pendiente): { count: number; lista: string } | null {
   if (p.sesiones.length === 0) return null;

@@ -106,6 +106,9 @@
     "empty": "Você não tem pendências. Tudo em dia.",
     "sesion_realizada": "Sessão já realizada",
     "de_sesion_one": "Sessão {{lista}}",
-    "de_sesion_other": "Sessões {{lista}}"
+    "de_sesion_other": "Sessões {{lista}}",
+    "ver_todos": "Ver as {{count}} pendências",
+    "bloqueante": "Obrigatório",
+    "bloqueante_hint": "Você deve completá-lo para avançar no programa."
   }
 }

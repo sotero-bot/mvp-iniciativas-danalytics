@@ -106,6 +106,9 @@
     "empty": "No tienes pendientes. Todo al día.",
     "sesion_realizada": "Sesión ya realizada",
     "de_sesion_one": "Sesión {{lista}}",
-    "de_sesion_other": "Sesiones {{lista}}"
+    "de_sesion_other": "Sesiones {{lista}}",
+    "ver_todos": "Ver los {{count}} pendientes",
+    "bloqueante": "Obligatorio",
+    "bloqueante_hint": "Debes completarlo para avanzar en el programa."
   }
 }
