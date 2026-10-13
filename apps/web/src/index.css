@@ -508,6 +508,115 @@ select.input {
   box-shadow: inset 1px 0 0 rgba(59, 130, 246, 0.15);
 }
 
+/* ─── Sidebar: grupo desplegable "Programas" (HU-01) ─── */
+.nav-group-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  text-align: left;
+}
+
+.nav-group-toggle.open {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+}
+
+.nav-group-toggle:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.nav-group-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.33);
+  color: #38BDF8;
+}
+
+.nav-group-label {
+  flex: 1;
+}
+
+.nav-group-caret {
+  transition: var(--transition);
+}
+
+.nav-group-caret.open {
+  transform: rotate(90deg);
+}
+
+.nav-group-list {
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--space-4);
+}
+
+.nav-group-list[hidden] {
+  display: none;
+}
+
+.nav-group-entradas {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.nav-group-empty {
+  padding: var(--space-2) 0.625rem;
+  color: var(--sidebar-text);
+  font-size: 0.8rem;
+}
+
+.nav-sub-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) 0.625rem;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--sidebar-text);
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-sub-item:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: var(--sidebar-text-hover);
+}
+
+.nav-sub-item.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  border-left-color: var(--color-accent);
+}
+
+.nav-sub-programa-fase {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--sidebar-text);
+}
+
+.nav-group-toggle:focus-visible,
+.nav-sub-item:focus-visible {
+  outline-color: #60A5FA;
+}
+
 /* ─── Main Content ─── */
 /* Fondo plano cálido y padding generoso que aprovecha el ancho (no se deja
    espacio muerto a los lados). Ver 01-estructura-pagina.md. */

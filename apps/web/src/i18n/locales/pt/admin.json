@@ -16,7 +16,19 @@
     "formularios": "Formulários",
     "observaciones": "Situações reportadas",
     "notificaciones": "Notificações",
-    "registro_acceso": "Registro de acesso"
+    "registro_acceso": "Registro de acesso",
+    "programas_grupo": "Programas",
+    "programa_sesiones": "Sessões",
+    "programa_grupo": "Grupo",
+    "programa_pendientes": "Pendências",
+    "sin_programas": "Sem programas atribuídos",
+    "elegir_programa": "Escolha um programa",
+    "programa_grupos": "Grupos",
+    "programa_participantes": "Participantes",
+    "programa_reto": "Desafio",
+    "programa_observaciones": "Situações reportadas",
+    "programa_resultados": "Resultados",
+    "programa_resumen": "Resumo"
   },
   "registro_acceso": {
     "title": "Registro de acesso",

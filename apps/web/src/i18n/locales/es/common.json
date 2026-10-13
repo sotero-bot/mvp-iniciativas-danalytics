@@ -159,7 +159,9 @@
     "open_menu": "Abrir menú",
     "close_menu": "Cerrar menú",
     "main_navigation": "Navegación principal",
-    "close_dialog": "Cerrar diálogo"
+    "close_dialog": "Cerrar diálogo",
+    "expand_programs": "Desplegar programas",
+    "collapse_programs": "Plegar programas"
   },
   "editor": {
     "placeholder_default": "Escribe aquí…",

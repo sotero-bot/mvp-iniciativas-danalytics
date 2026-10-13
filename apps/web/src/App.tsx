@@ -20,6 +20,8 @@ import { PlantillasPage } from './features/methodology/PlantillasPage';
 import { PlantillaPasosPage } from './features/methodology/PlantillaPasosPage';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { SidebarIcon } from './components/SidebarIcon';
+import { SidebarProgramasNav, clearProgramasCache } from './components/SidebarProgramasNav';
+import { construirEntradasPrograma } from './components/sidebar-programas';
 import { ToastHost, toast } from './components/toast-store';
 import { HomePage, ROLE_CARDS } from './features/home/HomePage';
 import { FacilitadorProgramasPage } from './features/facilitador/ProgramasPage';
@@ -67,14 +69,10 @@ interface CurrentUser {
 let currentUserCache: CurrentUser | null = null;
 export function clearCurrentUserCache() {
   currentUserCache = null;
+  clearProgramasCache(); // si no, el siguiente usuario vería los programas del anterior
 }
 
 const ADMIN_SLUG = 'danalytics_admin';
-// Estos roles ya tienen todos sus destinos cubiertos en Inicio (tarjetas o,
-// en el caso de estudiante, su propio dashboard vía EstudianteHome); el
-// sidebar solo agregaría una entrada duplicada sin navegación nueva, así que
-// para ellos el sidebar se limita a "Inicio".
-const SIDEBAR_HOME_ONLY_ROLES = ['cliente_admin', 'usuario_cliente', 'estudiante', 'facilitador'];
 
 interface SessionPayload {
   sub: string;
@@ -145,8 +143,12 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
   const role = session?.role ?? null;
   const isAdmin = role === ADMIN_SLUG;
   const inicioPath = isAdmin ? '/admin/inicio' : '/inicio';
-  const showRoleCardsInSidebar = !isAdmin && !SIDEBAR_HOME_ONLY_ROLES.includes(role ?? '');
-  const roleCards = showRoleCardsInSidebar ? (ROLE_CARDS[role ?? ''] ?? []) : [];
+  // Los roles con desplegable "Programas" no repiten su tarjeta de programas en el sidebar;
+  // el resto de sus tarjetas (p. ej. "Usuarios" del cliente_admin) se conservan.
+  const tieneDesplegableProgramas = !!role && construirEntradasPrograma(role, '_').length > 0;
+  const roleCards = isAdmin
+    ? []
+    : (ROLE_CARDS[role ?? ''] ?? []).filter(c => !(tieneDesplegableProgramas && c.icon === 'programas'));
 
   // Datos del card de usuario: usa el perfil (nombre/rol/empresa reales) cuando cargó;
   // si el fetch aún no volvió o falló (p. ej. token expirado), cae al JWT para que
@@ -208,6 +210,9 @@ const Layout = ({ children, onLogout }: { children: React.ReactNode; onLogout: (
             {t('admin:sidebar.home')}
           </NavLink>
         </nav>
+
+        {/* HU-01: programas del usuario (desplegable). Solo aplica a roles con entradas definidas. */}
+        {!isAdmin && tieneDesplegableProgramas && role && <SidebarProgramasNav role={role} />}
 
         {/* — Secciones por rol NO-admin: navegables si su ruta ya existe — */}
         {!isAdmin && roleCards.length > 0 && (
