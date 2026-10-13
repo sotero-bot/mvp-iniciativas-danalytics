@@ -7,6 +7,9 @@ import type { StatusVariant, DataTableColumn } from '../../components/ui';
 import { formatFechaHora } from '../../shared/formatDate';
 import { toast } from '../../components/toast-store';
 import { ProgramaFaseStepper } from '../../components/ProgramaFaseStepper';
+import { GrupoIntegrantes } from './GrupoIntegrantes';
+import { GrupoRecursosEstado } from './GrupoRecursosEstado';
+import type { MiGrupo } from './GrupoRecursosEstado';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -67,26 +70,6 @@ interface FasePrograma {
   completada?: true;
 }
 
-interface RecursoEstado {
-  iniciada: boolean;
-  entregada: boolean;
-  ultimaEdicionEn: string | null;
-}
-
-interface MiGrupo {
-  id: string;
-  nombre: string;
-  orden: number;
-  finalizado: boolean;
-  programa: { id: string; nombre: string; estado: string };
-  miembros: { id: string; nombre: string }[];
-  recursos: {
-    bitacora: RecursoEstado & { habilitada: boolean };
-    plantillaProyecto: RecursoEstado;
-    presentacionFinal: { entregada: boolean; entregadoEn: string | null };
-  };
-}
-
 const ESTADO_VARIANT: Record<string, StatusVariant> = {
   pendiente: 'warning',
   en_progreso: 'info',
@@ -97,7 +80,7 @@ const ESTADO_VARIANT: Record<string, StatusVariant> = {
 // (global, gate), su grupo con los recursos del reto, los formularios del
 // programa y las sesiones. Si la encuesta de inicio (diagnóstico global) no está
 // enviada, aparece de primera y el resto queda bloqueado hasta completarla.
-export function EstudianteSesionesPage() {
+export function EstudianteSesionesPage({ userId }: { userId: string }) {
   const { id: programaId = '' } = useParams();
   const { t, i18n } = useTranslation(['estudiante', 'formularios', 'common', 'admin']);
   const [sesiones, setSesiones] = useState<Sesion[]>([]);
@@ -312,7 +295,7 @@ export function EstudianteSesionesPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                     {misGrupos.map((g) => (
-                      <GrupoCard key={g.id} grupo={g} from={from} />
+                      <GrupoCard key={g.id} grupo={g} from={from} userId={userId} />
                     ))}
                   </div>
                 )}
@@ -405,22 +388,8 @@ function EncuestaInicioCard({
   );
 }
 
-function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
+function GrupoCard({ grupo: g, from, userId }: { grupo: MiGrupo; from: string; userId: string }) {
   const { t } = useTranslation(['formularios']);
-  const fromQ = `?from=${encodeURIComponent(from)}`;
-
-  const badge = (activo: boolean, textoActivo: string, textoInactivo: string) => (
-    <StatusBadge variant={activo ? 'info' : 'neutral'}>{activo ? textoActivo : textoInactivo}</StatusBadge>
-  );
-  const recursoBadge = (rec: RecursoEstado) =>
-    rec.entregada ? (
-      <StatusBadge variant="success">{t('formularios:grupo.estado_entregado')}</StatusBadge>
-    ) : (
-      badge(rec.iniciada, t('formularios:grupo.estado_en_progreso'), t('formularios:grupo.estado_sin_iniciar'))
-    );
-
-  // O-01: el gate de la bitácora bloquea toda la sección del reto.
-  const bloqueada = !g.recursos.bitacora.habilitada;
 
   return (
     <div className="card" style={{ padding: 'var(--space-5)' }}>
@@ -439,80 +408,14 @@ function GrupoCard({ grupo: g, from }: { grupo: MiGrupo; from: string }) {
           {/* HU-23: el revisor finalizó el grupo; sus recursos quedan de solo lectura. */}
           {g.finalizado && <StatusBadge variant="success">{t('formularios:grupo.finalizado')}</StatusBadge>}
         </div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-          {t('formularios:grupo.miembros')}: {g.miembros.map((m) => m.nombre).join(', ') || '—'}
-        </div>
       </div>
 
-      {/* O-01: la habilitación de la bitácora es el gate de TODA la sección del
-          reto. Sin habilitar, los tres recursos quedan bloqueados. */}
-      {!g.recursos.bitacora.habilitada && (
-        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
-          🔒 {t('formularios:grupo.bitacora_bloqueada')}
-        </div>
-      )}
-
-      {/* Recursos del reto en fila: aprovecha el ancho completo de la tarjeta. */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 'var(--space-3)',
-        }}
-      >
-        <RecursoTile icon="📓" titulo={t('formularios:tipos.bitacora')} bloqueada={bloqueada}>
-          {recursoBadge(g.recursos.bitacora)}
-          <Link className="btn" to={`/estudiante/grupos/${g.id}/bitacora${fromQ}`}>{t('formularios:grupo.abrir')}</Link>
-        </RecursoTile>
-
-        <RecursoTile icon="📐" titulo={t('formularios:tipos.plantilla_proyecto')} bloqueada={bloqueada}>
-          {recursoBadge(g.recursos.plantillaProyecto)}
-          <Link className="btn" to={`/estudiante/grupos/${g.id}/plantilla-proyecto${fromQ}`}>{t('formularios:grupo.abrir')}</Link>
-        </RecursoTile>
-
-        <RecursoTile icon="🎤" titulo={t('formularios:presentacion.title')} bloqueada={bloqueada}>
-          {g.recursos.presentacionFinal.entregada ? (
-            <StatusBadge variant="success">{t('formularios:presentacion.entregada')}</StatusBadge>
-          ) : (
-            badge(false, '', t('formularios:grupo.estado_sin_iniciar'))
-          )}
-          <Link className="btn" to={`/estudiante/grupos/${g.id}/presentacion${fromQ}`}>{t('formularios:grupo.abrir')}</Link>
-        </RecursoTile>
+      {/* HU-11: integrantes con su correo, directamente en la tarjeta del grupo. */}
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <GrupoIntegrantes miembros={g.miembros} userId={userId} />
       </div>
-    </div>
-  );
-}
 
-// Recuadro de un recurso del reto (bitácora / plantilla / presentación) para el
-// layout horizontal: título arriba, estado + acción abajo. Cuando la sección
-// está bloqueada (bitácora no habilitada) se atenúa y no permite interacción.
-function RecursoTile({
-  icon,
-  titulo,
-  bloqueada,
-  children,
-}: {
-  icon: string;
-  titulo: string;
-  bloqueada?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      aria-disabled={bloqueada}
-      style={{
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-md)',
-        padding: 'var(--space-3)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-2)',
-        opacity: bloqueada ? 0.5 : 1,
-        pointerEvents: bloqueada ? 'none' : 'auto',
-      }}
-    >
-      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{icon} {titulo}</span>
-      <span style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>{children}</span>
+      <GrupoRecursosEstado grupo={g} from={from} />
     </div>
   );
 }

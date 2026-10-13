@@ -84,7 +84,12 @@ export class GrupoRecursosController {
       },
       select: {
         ...GRUPO_SELECT,
-        miembros: { select: { usuario: { select: { id: true, nombre: true } } } },
+        // HU-11: el correo de los compañeros se expone SOLO a los miembros del mismo
+        // grupo — el WHERE de arriba (miembros.some.usuarioId = actor.sub) es lo
+        // que lo garantiza. No reutilizar este select en endpoints sin ese filtro.
+        miembros: {
+          select: { usuario: { select: { id: true, nombre: true, email: true } } },
+        },
         respuestasFormulario: {
           where: { plantilla: { is: { tipoFormulario: { in: ['bitacora', 'plantilla_proyecto'] }, activa: true } } },
           select: {

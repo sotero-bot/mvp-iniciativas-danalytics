@@ -81,5 +81,17 @@
     "retos_col_integrantes": "Integrantes",
     "retos_col_estado": "Estado",
     "retos_col_fecha": "Fecha de entrega"
+  },
+  "grupo": {
+    "title": "Grupo",
+    "integrantes_title": "Integrantes",
+    "nombre": "Nombre",
+    "correo": "Correo",
+    "sin_correo": "Sin correo registrado",
+    "yo": "Tú",
+    "sin_grupo": "Todavía no tienes un grupo asignado en este programa.",
+    "sin_grupo_hint": "Tu facilitador lo asignará antes de comenzar el reto.",
+    "reto_title": "Estado del reto",
+    "contactar": "Escribir"
   }
 }
