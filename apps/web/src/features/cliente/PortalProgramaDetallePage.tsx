@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchWithErrorMapping, translateError } from '../../shared/api/fetchWithErrorMapping';
 import { BarrasDimensiones } from '../facilitador/ResultadosPage';
@@ -56,7 +56,7 @@ const SIN_AREA = 'sin_area'; // mismo valor que espera el backend en ?areaId=
 // agregado, proyecto y feedback. Todo SOLO lectura, sin export (RN-07).
 export function PortalProgramaDetallePage() {
   const { id: programaId = '' } = useParams();
-  const { t } = useTranslation(['portal', 'common', 'admin', 'formularios']);
+  const { t } = useTranslation(['portal', 'common', 'admin', 'formularios', 'participantes']);
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [asistencia, setAsistencia] = useState<ResumenAsistencia | null>(null);
   const [areas, setAreas] = useState<AreaCatalogo[]>([]);
@@ -122,6 +122,11 @@ export function PortalProgramaDetallePage() {
       <PageHeader
         eyebrow={t('portal:programas.title')}
         title={detalle?.programa.nombre || '—'}
+        actions={
+          <Link className="btn btn-secondary btn-sm" to={`/portal/programas/${programaId}/participantes`}>
+            {t('participantes:ver_participantes')}
+          </Link>
+        }
         description={
           detalle ? (
             <>

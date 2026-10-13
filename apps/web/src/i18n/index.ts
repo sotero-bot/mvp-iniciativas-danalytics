@@ -14,6 +14,7 @@ import esFacilitador from './locales/es/facilitador.json';
 import esEstudiante from './locales/es/estudiante.json';
 import esFormularios from './locales/es/formularios.json';
 import esPortal from './locales/es/portal.json';
+import esParticipantes from './locales/es/participantes.json';
 
 import ptCommon from './locales/pt/common.json';
 import ptAuth from './locales/pt/auth.json';
@@ -27,6 +28,7 @@ import ptFacilitador from './locales/pt/facilitador.json';
 import ptEstudiante from './locales/pt/estudiante.json';
 import ptFormularios from './locales/pt/formularios.json';
 import ptPortal from './locales/pt/portal.json';
+import ptParticipantes from './locales/pt/participantes.json';
 
 export const SUPPORTED_LANGUAGES = ['es', 'pt'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -60,6 +62,7 @@ export const NAMESPACES = [
   'estudiante',
   'formularios',
   'portal',
+  'participantes',
 ] as const;
 
 const resources = {
@@ -76,6 +79,7 @@ const resources = {
     estudiante: esEstudiante,
     formularios: esFormularios,
     portal: esPortal,
+    participantes: esParticipantes,
   },
   pt: {
     common: ptCommon,
@@ -90,6 +94,7 @@ const resources = {
     estudiante: ptEstudiante,
     formularios: ptFormularios,
     portal: ptPortal,
+    participantes: ptParticipantes,
   },
 };
 

@@ -47,6 +47,8 @@ import { RegistroAccesoPage } from './features/admin/RegistroAccesoPage';
 import { PortalProgramasPage } from './features/cliente/PortalProgramasPage';
 import { PortalProgramaDetallePage } from './features/cliente/PortalProgramaDetallePage';
 import { PortalUsuariosPage } from './features/cliente/PortalUsuariosPage';
+import { PortalParticipantesPage } from './features/cliente/PortalParticipantesPage';
+import { FacilitadorParticipantesPage } from './features/facilitador/ParticipantesPage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -539,6 +541,7 @@ function App() {
         <Route path="/facilitador/programas/:id/observaciones" element={<PortalRoute allow="facilitador"><FacilitadorObservacionesPage /></PortalRoute>} />
         <Route path="/facilitador/sesiones/:id/asistencia" element={<PortalRoute allow="facilitador"><FacilitadorAsistenciaPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/resultados" element={<PortalRoute allow="facilitador"><FacilitadorResultadosPage /></PortalRoute>} />
+        <Route path="/facilitador/programas/:id/participantes" element={<PortalRoute allow="facilitador"><FacilitadorParticipantesPage /></PortalRoute>} />
         <Route path="/facilitador/programas/:id/reto" element={<PortalRoute allow="facilitador"><FacilitadorRetoPage /></PortalRoute>} />
 
         {/* Portal Estudiante */}
@@ -554,6 +557,7 @@ function App() {
         {/* Portal Cliente (Fase 4, RF-42..45 — solo lectura salvo gestión de usuario_cliente) */}
         <Route path="/portal/programas" element={<PortalRoute allow={['cliente_admin', 'usuario_cliente']}><PortalProgramasPage /></PortalRoute>} />
         <Route path="/portal/programas/:id" element={<PortalRoute allow={['cliente_admin', 'usuario_cliente']}><PortalProgramaDetallePage /></PortalRoute>} />
+        <Route path="/portal/programas/:id/participantes" element={<PortalRoute allow={['cliente_admin', 'usuario_cliente']}><PortalParticipantesPage /></PortalRoute>} />
         <Route path="/portal/usuarios" element={<PortalRoute allow="cliente_admin"><PortalUsuariosPage /></PortalRoute>} />
 
         {/* Public MagicLink consume */}

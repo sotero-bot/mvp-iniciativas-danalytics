@@ -24,6 +24,9 @@ import { UsuariosController } from '../../apps/api/src/modules/organization/inte
 import { EmpresasController } from '../../apps/api/src/modules/organization/interfaces/empresas.controller';
 import { AdminAreasController } from '../../apps/api/src/modules/organization/interfaces/admin-areas.controller';
 import { IniciativasController } from '../../apps/api/src/modules/organization/interfaces/iniciativas.controller';
+import { FacilitadorParticipantesController } from '../../apps/api/src/modules/participantes/interfaces/facilitador-participantes.controller';
+import { ClienteParticipantesController } from '../../apps/api/src/modules/participantes/interfaces/cliente-participantes.controller';
+import { CLIENTE_ROLE_SLUGS } from '../../apps/api/src/modules/auth/guards/auth-user';
 import { ActividadesController } from '../../apps/api/src/modules/methodology/interfaces/actividades.controller';
 
 const LEGACY_CONTROLLERS = [
@@ -45,6 +48,26 @@ describe('Controllers legacy protegidos como danalytics_admin (RNF-01/02)', () =
     it(`${nombre}: declara @Roles(danalytics_admin) — facilitador queda excluido`, () => {
       const roles = Reflect.getMetadata(ROLES_KEY, controller);
       expect(roles).toEqual(['danalytics_admin']);
+    });
+  }
+});
+
+// HU-16: controllers nuevos con roles propios (no danalytics_admin): deben montar los dos guards.
+const CONTROLLERS_POR_ROL = [
+  ['FacilitadorParticipantesController', FacilitadorParticipantesController, ['facilitador']],
+  ['ClienteParticipantesController', ClienteParticipantesController, [...CLIENTE_ROLE_SLUGS]],
+] as const;
+
+describe('Controllers de participantes (HU-16): guards + @Roles de clase', () => {
+  for (const [nombre, controller, roles] of CONTROLLERS_POR_ROL) {
+    it(`${nombre}: monta JwtAuthGuard + RolesGuard`, () => {
+      const guards = Reflect.getMetadata(GUARDS_METADATA, controller) ?? [];
+      expect(guards).toContain(JwtAuthGuard);
+      expect(guards).toContain(RolesGuard);
+    });
+
+    it(`${nombre}: declara @Roles(${roles.join(', ')})`, () => {
+      expect(Reflect.getMetadata(ROLES_KEY, controller)).toEqual([...roles]);
     });
   }
 });

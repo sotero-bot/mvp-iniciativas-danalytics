@@ -40,7 +40,7 @@ function formatFecha(iso: string, locale?: string): string {
 }
 
 export function FacilitadorProgramasPage() {
-  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common', 'admin', 'errors']);
+  const { t, i18n } = useTranslation(['facilitador', 'formularios', 'common', 'admin', 'errors', 'participantes']);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -166,6 +166,7 @@ export function FacilitadorProgramasPage() {
             { key: 'grupos', label: t('facilitador:grupos.title'), to: `/facilitador/programas/${p.id}/grupos` },
             { key: 'observaciones', label: t('facilitador:observaciones.title'), to: `/facilitador/programas/${p.id}/observaciones` },
             { key: 'resultados', label: t('formularios:resultados.title'), to: `/facilitador/programas/${p.id}/resultados` },
+            { key: 'participantes', label: t('participantes:ver_participantes'), to: `/facilitador/programas/${p.id}/participantes` },
           ];
           return (
             <div key={p.id} className="card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

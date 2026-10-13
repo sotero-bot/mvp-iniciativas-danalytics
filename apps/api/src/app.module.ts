@@ -25,6 +25,9 @@ import { FacilitadorGruposController } from './modules/grupos/interfaces/facilit
 import { FacilitadorAsistenciaController } from './modules/asistencia/interfaces/facilitador-asistencia.controller';
 import { AdminAsistenciaController } from './modules/asistencia/interfaces/admin-asistencia.controller';
 import { AsistenciaResumenService } from './modules/asistencia/application/asistencia-resumen.service';
+import { FichaEstudianteService } from './modules/participantes/application/ficha-estudiante.service';
+import { FacilitadorParticipantesController } from './modules/participantes/interfaces/facilitador-participantes.controller';
+import { ClienteParticipantesController } from './modules/participantes/interfaces/cliente-participantes.controller';
 import { FacilitadorObservacionesController } from './modules/observaciones/interfaces/facilitador-observaciones.controller';
 import { AdminObservacionesController } from './modules/observaciones/interfaces/admin-observaciones.controller';
 import { AdminNotificacionesController } from './modules/notificaciones/interfaces/admin-notificaciones.controller';
@@ -98,6 +101,8 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     FacilitadorGruposController,
     FacilitadorAsistenciaController,
     AdminAsistenciaController,
+    FacilitadorParticipantesController,
+    ClienteParticipantesController,
     FacilitadorObservacionesController,
     AdminObservacionesController,
     AdminNotificacionesController,
@@ -219,6 +224,7 @@ import { ObtenerPasosActividadUseCase } from './modules/methodology/application/
     SnapshotFormulariosService,
     ResultadosService,
     AsistenciaResumenService,
+    FichaEstudianteService,
     PendientesEstudianteService,
     MiembrosGrupoService,
     GrupoCierreService,
